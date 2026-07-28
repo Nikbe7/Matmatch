@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-29 — Locked Ingredient schema (category taxonomy, cost tiers, seasonality fields)
+
+**Decision:** Ingredient category is an 8-value enum by culinary usage (`protein`, `vegetable`, `fruit`, `dairy`, `starch`, `spice_aromatic`, `fat_oil`, `condiment`) rather than the 6 suggested in issue #1's original text. Seasonality is `peak_months[]` (1-12) + `available_year_round` (boolean) + `seasonality_strength` (`strong`/`weak`), rather than a single loose `seasonality_tags[]` string array or coarser season-name tags. Full definitions and known edge cases (legumes, mushrooms, nuts) are in [ARCHITECTURE.md §5.1](../ARCHITECTURE.md#51-ingredient-schema-locked-phase-0-day-1).
+
+**Why:** A 20-ingredient spot-check against the original 6-category draft failed on cooking oils and fruit — both common in Swedish home cooking, neither fitting `condiment` or `vegetable` without creating semantically wrong groupings that would misfire once recipe templates start matching on category. Category is by culinary usage, not botany/nutrition, since that's what the Meal Engine actually reasons about. For seasonality, month-level granularity plus a year-round/strength split gives the Meal Engine a computable "in season now" signal and separates a hard seasonal cutoff from a soft price/quality one, at only marginal extra curation cost over a coarser scheme.
+
+**How to apply:** Ingredient catalog generation (issue #6) should categorize by function-in-a-dish, not ingredient type — e.g. chickpeas/lentils/tofu are `protein`, mushrooms are `vegetable`, nuts default to `condiment` unless a specific template uses them as the protein base (a template-level tagging call, not a reason to recategorize the ingredient). Split generic catalog entries ("svamp", "lök") into specific varieties wherever cost tier or seasonality genuinely differs between them.
+
+---
+
 ## 2026-07-28 — Transitioned from Planning Mode to Development Mode; consolidated engineering docs
 
 **Decision:** Removed `CLAUDE_CODE_GUIDE.md`, `AI_COLLABORATION.md`, `AUTOMATION_ROADMAP.md`, `CODE_QUALITY_AND_COST.md`, `DOCUMENTATION_MAP.md`, `PHASE_-1_CHECKLIST.md`, and `PRINCIPLES.md` from `docs/engineering/`. `docs/engineering/` now holds only `GIT_AND_GITHUB.md` and this decision log. Durable content was merged: engineering principles and the documentation/workflow philosophy into `CLAUDE.md`, AI-cost engineering discipline into `ARCHITECTURE.md` §4.2. The rest (agent/MCP "not now" reasoning, the automation-candidates table, the Phase -1 status checklist) was transitional planning content that had already served its purpose.

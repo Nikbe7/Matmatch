@@ -85,7 +85,7 @@ Allergy and hard dietary restriction filtering happens in the **Meal Engine**, b
 - **User** — id, email, auth provider info, subscription status
 - **Household** — id, owner_user_id, name
 - **HouseholdMember** — id, household_id, type (adult/child), portion_size, dietary_flags[], allergies[] (distinct field, treated as sensitive), protein_preference
-- **Ingredient** — id, name, category, default_cost_tier, seasonality_tags[] (curated/maintained data, not AI-generated)
+- **Ingredient** — id, name, category, default_cost_tier, peak_months[], available_year_round, seasonality_strength (curated/maintained data, not AI-generated; see "Ingredient schema" below for the locked vocabularies)
 - **RecipeTemplate** — id, name, base_ingredients[], tags (protein type, cuisine, prep_time, cost_tier, dietary_compatibility[])
 - **SessionPantryInput** — id, household_id, session_id, ingredient_ids[] (ephemeral, per-session — explicitly *not* a persistent inventory table)
 - **GeneratedMeal** — id, household_id, recipe_template_id (nullable if fully AI-generated), final_ingredients[], portions, estimated_cost_tier, created_at, source (template/tier1/tier2)
@@ -97,6 +97,38 @@ Allergy and hard dietary restriction filtering happens in the **Meal Engine**, b
 Notes:
 - Pantry input is intentionally session-scoped, not a standing inventory table, per the UX/product decision to avoid staleness and unnecessary complexity in MVP.
 - Allergy data is stored as a distinct, clearly-flagged field (not folded into general preferences) both for UX clarity and because it should be treated as sensitive personal data under GDPR (see Section 7).
+
+### 5.1 Ingredient schema (locked, Phase 0 Day 1)
+
+Locked against a 30-ingredient spot-check spanning proteins, vegetables, dairy, starches, aromatics, condiments, fats, and fruit, plus known edge cases (legumes, mushrooms, nuts). Categorization is by **culinary usage**, not botanical or nutritional classification, since the Meal Engine reasons about how an ingredient functions in a recipe (its role), not what it technically is.
+
+**`category` (enum, one per ingredient):**
+- `protein` — meat, poultry, fish/seafood, eggs, and plant-based protein staples (legumes, tofu)
+- `vegetable` — fresh/cooked vegetables, including edible fungi used as a vegetable component
+- `fruit` — fresh fruit, whether used in sweet or savory contexts
+- `dairy` — milk-derived products (milk, cheese, butter, cream, yogurt)
+- `starch` — grains, flours, pasta, rice, bread, and potatoes — the carbohydrate base of a meal
+- `spice_aromatic` — fresh aromatics (onion, garlic, ginger, fresh herbs) and dried spices/herbs
+- `fat_oil` — cooking oils and non-dairy fats (olive oil, rapeseed oil, lard)
+- `condiment` — sauces, vinegars, mustards, and other small-quantity flavor additions
+
+**`default_cost_tier` (enum):** `₤` (budget) / `₤₤` (mid) / `₤₤₤` (premium) — curated, team-maintained, per CLAUDE.md (never AI-inferred as a specific price). Approximate Swedish-grocery bands for calibration, reviewed periodically rather than tied to live prices:
+- `₤` — everyday staples, roughly <40 kr/kg or <15 kr/unit (potatoes, onions, pasta, rice, oats, milk, eggs)
+- `₤₤` — routine but pricier (chicken breast, ground beef, cheese, off-season peppers)
+- `₤₤₤` — premium or import-heavy (salmon, shrimp, prime cuts, out-of-season specialty produce)
+
+**Seasonality fields:**
+- `peak_months` (int[], 1-12) — months of peak quality/value; empty if not meaningfully seasonal
+- `available_year_round` (boolean) — whether the ingredient is reliably purchasable outside its peak (true for most staples via storage or import; false for a handful of genuinely peak-only items)
+- `seasonality_strength` (`strong` / `weak`, only meaningful when `peak_months` is non-empty) — `strong` means quality/price swing noticeably outside peak (tomatoes, cucumbers, bell peppers, mostly imported); `weak` means available and decent year-round but cheaper/better in peak months (potatoes, carrots, apples — store well domestically)
+
+Chosen over a single `seasonality_tags[]` string array so the Meal Engine can directly compute "in season now" and distinguish a hard seasonal cutoff from a soft price/quality signal, without string-matching a loosely-defined tag vocabulary.
+
+**Known edge cases (documented, not separate categories):**
+- Legumes (chickpeas, lentils, beans, tofu) → `protein` — functions as the protein source in vegetarian/vegan templates
+- Mushrooms → `vegetable` — culinary role, not fungal taxonomy
+- Nuts & seeds → `condiment` — default assumption is garnish/texture in small quantity; if a future template uses nuts as the primary protein base (e.g. a cashew-based vegan dish), that's a per-recipe-template tagging decision, not a reason to recategorize the ingredient
+- Generic entries like "svamp" (mushroom) or "lök" (onion) should be split into specific varieties in the catalog (champinjon vs. kantarell; gul lök vs. rödlök) where cost tier or seasonality genuinely differs — a catalog-content note for issue #6, not a schema gap
 
 ## 6. API Surface (High Level, No Implementation Yet)
 
