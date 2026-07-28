@@ -31,6 +31,9 @@ Building: ingredient catalog, recipe template library (structured skeletons — 
 - Pantry/"what I have" input is session-scoped and ephemeral — do not build persistent pantry inventory tracking in MVP.
 - Recipe template skeletons store structure (ingredients + roles + tags), not full prose instructions — final phrasing is generated on demand and cached.
 
+## Don't surprise me
+Never make large architectural decisions without discussing them first. If a task requires changing the architecture, introducing a new dependency, changing the database schema, or modifying the roadmap, stop and explain the tradeoffs before implementing. This holds regardless of how confident the right answer seems.
+
 ## Engineering principles
 1. Deterministic first, AI only where creativity is genuinely required.
 2. Safety-critical logic (allergies) is never AI-dependent — no exceptions.
@@ -57,6 +60,21 @@ The GitHub Project board is the single source of truth for what's being worked o
 - New work discovered mid-implementation → create a GitHub Issue immediately (labels, priority, milestone, add to the project, place in the right column) rather than noting it in a comment or a doc.
 - Label taxonomy, milestones, and full board mechanics: `docs/engineering/GIT_AND_GITHUB.md`.
 
+## Definition of Done
+An issue is considered complete when:
+- The implementation satisfies the acceptance criteria.
+- The code builds successfully.
+- Relevant tests pass.
+- No obvious TODOs remain.
+- Documentation has been updated if architecture or long-term behavior changed.
+- Claude has performed a self-review.
+- A Conventional Commit message has been suggested.
+
+Only then should the issue move to Review.
+
+## Task sizing
+Never implement multiple unrelated features in the same session. Prefer small, reviewable changes — one issue, one branch, one PR. If a task turns out to bundle unrelated work, split it into separate issues rather than shipping it as one large change.
+
 ## Development session workflow
 1. Review the GitHub Project board.
 2. Recommend the highest-priority actionable issue.
@@ -70,6 +88,9 @@ The GitHub Project board is the single source of truth for what's being worked o
 Optimize for simplicity, maintainability, readability, low AI cost, fast iteration, and production quality, in that rough order for a pre-PMF solo project. Prefer the simplest solution that satisfies current requirements; don't build infrastructure for hypothetical future features.
 - Testing: heavy unit coverage on the Meal Engine (matching, cost tiering, portion math, and especially allergy filtering — non-negotiable); light integration tests on API endpoints; minimal UI/E2E investment until the core loop is validated (Phase 2, see MVP_ROADMAP.md).
 - Self-review (`/code-review`, plus `/security-review` for anything touching auth, payments, or user data) before moving an issue to Review.
+
+## When to use extended thinking
+Use extended thinking only for: architecture, database design, AI orchestration, difficult debugging, and major refactoring. Do not use it for routine CRUD implementation or small UI work — the extra depth is wasted where the shape of the solution isn't in question.
 
 ## Conventions
 - Branching: trunk-based, short-lived `type/description` branches, squash-merged into `main`. Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, etc.). Full mechanics: `docs/engineering/GIT_AND_GITHUB.md`.
