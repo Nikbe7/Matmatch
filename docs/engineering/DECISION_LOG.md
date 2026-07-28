@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-29 — Locked allergy & dietary-flag vocabulary; scoped deliberately narrow for MVP
+
+**Decision:** `allergies[]` (hard filter): `gluten`, `dairy_lactose`, `egg`, `tree_nuts`, `peanuts`, `shellfish`, `fish`, `soy` — not the full EU 14-allergen list. `dietary_flags[]` (soft preference): `vegetarian`, `vegan`, `high_protein_preference`, replacing the separate `protein_preference` field. Full lists and future-consideration notes in [ARCHITECTURE.md §5.2](../ARCHITECTURE.md#52-allergy--dietary-vocabulary-locked-phase-0-day-2-3).
+
+**Why:** Scoped to what MVP actually needs (UX_FLOW.md's onboarding chips, the "vegetarian & vegan" template batch) rather than the maximal correct list, per explicit direction to avoid over-expanding the taxonomy pre-PMF. Two things were deliberately deferred rather than added speculatively: gluten-free-by-choice (currently only expressible as the stricter `gluten` allergy — fine for MVP, revisit if lifestyle users complain) and religious dietary restrictions (halal/kosher/no-pork) — plausible for the Swedish market but not part of the current MVP use case, and would need a decision on hard-filter vs. soft-preference treatment before being added, not a snap call. Family-friendly cooking is derived from household composition (`type: child` present) rather than a new flag, to avoid a second source of truth for the same signal.
+
+**How to apply:** If real usage surfaces demand for any deferred item (pescatarian, gluten-free-as-preference, halal/kosher, sesame/celery/mustard allergies), add it as a new controlled-vocabulary value, not a schema change — `allergies[]`/`dietary_flags[]` are already open arrays. Religious dietary restrictions specifically should get their own scoping discussion (hard vs. soft) before being added, not be folded into the existing lists by default.
+
+---
+
 ## 2026-07-29 — Locked Ingredient schema (category taxonomy, cost tiers, seasonality fields)
 
 **Decision:** Ingredient category is an 8-value enum by culinary usage (`protein`, `vegetable`, `fruit`, `dairy`, `starch`, `spice_aromatic`, `fat_oil`, `condiment`) rather than the 6 suggested in issue #1's original text. Seasonality is `peak_months[]` (1-12) + `available_year_round` (boolean) + `seasonality_strength` (`strong`/`weak`), rather than a single loose `seasonality_tags[]` string array or coarser season-name tags. Full definitions and known edge cases (legumes, mushrooms, nuts) are in [ARCHITECTURE.md §5.1](../ARCHITECTURE.md#51-ingredient-schema-locked-phase-0-day-1).

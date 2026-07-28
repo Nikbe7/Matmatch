@@ -84,7 +84,7 @@ Allergy and hard dietary restriction filtering happens in the **Meal Engine**, b
 
 - **User** — id, email, auth provider info, subscription status
 - **Household** — id, owner_user_id, name
-- **HouseholdMember** — id, household_id, type (adult/child), portion_size, dietary_flags[], allergies[] (distinct field, treated as sensitive), protein_preference
+- **HouseholdMember** — id, household_id, type (adult/child), portion_size, dietary_flags[], allergies[] (distinct field, treated as sensitive) — see "Allergy & dietary vocabulary" below for the locked value lists
 - **Ingredient** — id, name, category, default_cost_tier, peak_months[], available_year_round, seasonality_strength (curated/maintained data, not AI-generated; see "Ingredient schema" below for the locked vocabularies)
 - **RecipeTemplate** — id, name, base_ingredients[], tags (protein type, cuisine, prep_time, cost_tier, dietary_compatibility[])
 - **SessionPantryInput** — id, household_id, session_id, ingredient_ids[] (ephemeral, per-session — explicitly *not* a persistent inventory table)
@@ -129,6 +129,24 @@ Chosen over a single `seasonality_tags[]` string array so the Meal Engine can di
 - Mushrooms → `vegetable` — culinary role, not fungal taxonomy
 - Nuts & seeds → `condiment` — default assumption is garnish/texture in small quantity; if a future template uses nuts as the primary protein base (e.g. a cashew-based vegan dish), that's a per-recipe-template tagging decision, not a reason to recategorize the ingredient
 - Generic entries like "svamp" (mushroom) or "lök" (onion) should be split into specific varieties in the catalog (champinjon vs. kantarell; gul lök vs. rödlök) where cost tier or seasonality genuinely differs — a catalog-content note for issue #6, not a schema gap
+
+### 5.2 Allergy & dietary vocabulary (locked, Phase 0 Day 2-3)
+
+Two distinct, non-interchangeable vocabularies, matching UX_FLOW.md §3/§6's requirement that allergies be visually and structurally distinct from preferences.
+
+**`allergies[]` (hard filter, safety-critical, never AI-dependent — see §4.3):**
+`gluten`, `dairy_lactose`, `egg`, `tree_nuts`, `peanuts`, `shellfish`, `fish`, `soy`
+
+Scoped to what's actually common in Swedish households, not the full EU 14-allergen regulatory list. Not included in MVP, documented for later if real usage demands it: celery, mustard, sesame, sulphites, lupin, and splitting `shellfish` into crustaceans/molluscs or `dairy_lactose` into milk-protein-allergy/lactose-intolerance (different mechanisms, same hard-exclude behavior for filtering purposes — not worth the added complexity until it's a real user need).
+
+**`dietary_flags[]` (soft preference, informs suggestions, never hard-excludes):**
+`vegetarian`, `vegan`, `high_protein_preference`
+
+Scoped tightly to what the current UX flow and Phase 0 template batches (see MVP_ROADMAP.md, "vegetarian & vegan" batch) actually use. `protein_preference` as a separate field is dropped in favor of folding `high_protein_preference` into this same array — UX_FLOW.md §3 already presents it as one more chip alongside the dietary flags, so a single list is simpler than two parallel fields for one screen.
+
+**Not included in MVP dietary flags, documented as future considerations:** pescatarian; gluten-free as a lifestyle choice rather than an allergy (currently, avoiding gluten is only expressible via the `gluten` allergy, which is stricter than intended for a non-allergic preference); religious dietary restrictions (halal, kosher, no-pork) — not covered by the current MVP use case, but plausible for the Swedish market and would need a decision on whether they behave as hard filters (like allergies) or soft preferences before being added; low-carb/keto and other diet systems, out of scope unless a real usage signal supports them.
+
+**Family-friendly cooking is not a dietary flag.** It's derived from household composition (presence of `type: child` members) rather than a separate manually-set preference, to avoid two sources of truth for the same signal.
 
 ## 6. API Surface (High Level, No Implementation Yet)
 
