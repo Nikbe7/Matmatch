@@ -32,13 +32,13 @@ This is the entry point for Phase -1. It doesn't restate the reasoning — each 
 ## Checklist before writing the first line of application code
 
 **Must do (blocking):**
-- [ ] Install `gh` CLI and run `gh auth login`
-- [ ] Run `scripts/setup-github.sh` to create labels and milestones
-- [ ] Manually create the GitHub Projects (v2) board with the six status fields (`Backlog → Ready → In Progress → Review → Testing → Done`) — see the script's final output for the exact command; Projects v2 field creation is verbose enough via API that a one-time manual pass in the web UI is more reliable than scripting it
+- [x] Install `gh` CLI and run `gh auth login`
+- [x] Run `scripts/setup-github.sh` to create labels and milestones
+- [x] Manually create the GitHub Projects (v2) board with the six status fields (`Backlog → Ready → In Progress → Review → Testing → Done`)
 - [ ] Review and commit everything created in this session (nothing has been committed yet — see below)
 
 **Should do (not blocking Phase 0 start, but do early):**
-- [ ] Open the first batch of Phase 0 issues (schema design, ingredient catalog generation, allergy taxonomy + mapping, template generation, substitution generation — mirroring [MVP_ROADMAP.md](../MVP_ROADMAP.md)'s day-by-day plan) so the board reflects real work from day one instead of being set up and then ignored
+- [x] Open the first batch of Phase 0 issues — all 21 issues (#1-#21) covering the full Phase 0 day-by-day plan are created, labeled, milestoned (`Phase 0 — Foundations`), and sitting in the project's Backlog column
 - [ ] Decide hosting/DB provider (Supabase vs. Neon) and auth provider (Supabase Auth vs. Auth.js) — open items in the decision log; not urgent until Phase 0 needs a real database instance, but don't let it become a last-minute scramble
 
 **Deliberately deferred (do NOT do yet — would violate the Phase -1 scope):**

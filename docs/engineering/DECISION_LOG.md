@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-28 — Phase 0 broken into 21 GitHub issues, all in Backlog
+
+**Decision:** Populated the GitHub Project with 21 issues covering the full Phase 0 plan (schema/vocabulary locks, ingredient catalog generation + review, allergen mapping generation + 100% manual verification, recipe template generation split into 5 batches by protein category, validation tooling, hero-subset polish, substitution generation + review, and a Phase 0 exit review). All milestoned to `Phase 0 — Foundations`, labeled by type/area/priority, and placed in Backlog.
+
+**Why:** MVP_ROADMAP.md's Phase 0 day-by-day plan explicitly warns against generating recipe templates via one large prompt; batching by protein category (chicken/poultry, beef/pork, fish/seafood, vegetarian/vegan, egg/dairy/pantry) gives natural few-hours-sized units that also map to the coverage matrix's primary axis. The safety-critical allergen verification step (#9) and the schema-lock steps (#1-4) are marked `priority: p0` since everything else in Phase 0 depends on them.
+
+**How to apply:** Work the Backlog roughly in dependency order — each issue notes what blocks it. If the ingredient catalog ends up much larger or smaller than the ~150-250 target, the allergen-verification issue (#9) may need splitting into more/fewer sub-issues to stay a few-hours task per sitting; that's expected and noted in the issue body.
+
+---
+
 ## 2026-07-28 — Established Phase -1 engineering foundation
 
 **Decision:** Before any application code, set up documentation structure (`docs/engineering/`), local Claude Code config (`.claude/`), GitHub issue/PR templates (`.github/`), and a git/GitHub workflow — all defined in this session.
