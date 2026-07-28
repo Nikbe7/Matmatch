@@ -86,7 +86,7 @@ Allergy and hard dietary restriction filtering happens in the **Meal Engine**, b
 - **Household** — id, owner_user_id, name
 - **HouseholdMember** — id, household_id, type (adult/child), portion_size, dietary_flags[], allergies[] (distinct field, treated as sensitive) — see "Allergy & dietary vocabulary" below for the locked value lists
 - **Ingredient** — id, name, category, default_cost_tier, peak_months[], available_year_round, seasonality_strength (curated/maintained data, not AI-generated; see "Ingredient schema" below for the locked vocabularies)
-- **RecipeTemplate** — id, name, base_ingredients[], tags (protein type, cuisine, prep_time, cost_tier, dietary_compatibility[])
+- **RecipeTemplate** — id, name, protein_group, cuisine, cost_tier, prep_time_band, dietary_tags[], ingredient_slots[] (role, ingredient_id, substitutable) — see "RecipeTemplate schema & coverage matrix" below for the locked vocabularies and matrix
 - **SessionPantryInput** — id, household_id, session_id, ingredient_ids[] (ephemeral, per-session — explicitly *not* a persistent inventory table)
 - **GeneratedMeal** — id, household_id, recipe_template_id (nullable if fully AI-generated), final_ingredients[], portions, estimated_cost_tier, created_at, source (template/tier1/tier2)
 - **ShoppingList** — id, generated_meal_id, items[] (ingredient_id, have/need flag, checked state)
@@ -147,6 +147,37 @@ Scoped tightly to what the current UX flow and Phase 0 template batches (see MVP
 **Not included in MVP dietary flags, documented as future considerations:** pescatarian; gluten-free as a lifestyle choice rather than an allergy (currently, avoiding gluten is only expressible via the `gluten` allergy, which is stricter than intended for a non-allergic preference); religious dietary restrictions (halal, kosher, no-pork) — not covered by the current MVP use case, but plausible for the Swedish market and would need a decision on whether they behave as hard filters (like allergies) or soft preferences before being added; low-carb/keto and other diet systems, out of scope unless a real usage signal supports them.
 
 **Family-friendly cooking is not a dietary flag.** It's derived from household composition (presence of `type: child` members) rather than a separate manually-set preference, to avoid two sources of truth for the same signal.
+
+### 5.3 RecipeTemplate schema & coverage matrix (locked, Phase 0 Day 1)
+
+**Fields:**
+- `name` — dish name
+- `protein_group` (enum) — coverage/generation-batch category, not the same as an ingredient's `category`: `chicken_poultry`, `beef_pork`, `fish_seafood`, `vegetarian_vegan`, `egg_dairy_pantry`. Matches issues #10-14 one-to-one by design.
+- `cuisine` (enum) — `swedish_nordic`, `italian_mediterranean`, `asian`, `mexican_texmex`, `middle_eastern`, `american_comfort`. Kept broad and small (6 values) rather than granular (no separate Thai/Vietnamese/Chinese, no separate Greek/Spanish) — matches how a home cook actually thinks about a dish, and keeps the coverage matrix tractable.
+- `cost_tier` — reuses the `₤`/`₤₤`/`₤₤₤` enum locked for `Ingredient` in §5.1. No separate template-level cost vocabulary.
+- `prep_time_band` (enum) — `<20min`, `20-40min`, `40min+`
+- `dietary_tags[]` — reuses the `dietary_flags` vocabulary locked in §5.2 (`vegetarian`, `vegan`, `high_protein_preference`). A template can match zero or more.
+- `ingredient_slots[]` — each slot is `{role, ingredient_id, substitutable}`. `role` is the CLAUDE.md-specified subset of `Ingredient.category` used for slot composition: `protein`, `starch`, `vegetable`, `aromatic` (maps to `spice_aromatic`), `dairy`. `substitutable` is a boolean placeholder only — the actual substitution-group mechanics are issue #3's schema, not duplicated here.
+
+**Allergen safety is deliberately *not* a RecipeTemplate field.** No `contains_allergens[]` or similar is stored on the template. Per §4.3, allergy filtering must never be AI-dependent or manually curated — it's computed live (or cached as a derived value) by joining a template's `ingredient_slots[]` against the verified ingredient-to-allergen mapping (issues #8/#9). A hand-tagged allergen list on the template would be a second source of truth that goes stale the moment a substitution changes what's actually in the dish — exactly the kind of drift the safety-critical filtering principle exists to prevent.
+
+**Coverage matrix.** Defined as a 2D matrix — `protein_group` × `cuisine` — with a per-cell *target template count*, not a full 4-axis cross-product against `cost_tier` × `prep_time_band`. A full cross-product (5 × 6 × 3 × 3 = 270 cells) would force templates into unrealistic corners (e.g. a premium, 40min+, `egg_dairy_pantry` breakfast-for-dinner dish isn't a real pattern). Instead, `cost_tier` and `prep_time_band` are distributed *within* each cell according to what's realistic for that protein/cuisine combination, per the guidance below. Total target: **170 templates**, within the roadmap's 150-200 range.
+
+| protein_group ↓ / cuisine → | swedish_nordic | italian_mediterranean | asian | mexican_texmex | middle_eastern | american_comfort | row total |
+|---|---|---|---|---|---|---|---|
+| chicken_poultry | 8 | 8 | 10 | 6 | 5 | 3 | 40 |
+| beef_pork | 8 | 7 | 5 | 6 | 3 | 6 | 35 |
+| fish_seafood | 8 | 6 | 6 | 2 | 2 | 1 | 25 |
+| vegetarian_vegan | 5 | 9 | 10 | 6 | 7 | 3 | 40 |
+| egg_dairy_pantry | 8 | 6 | 4 | 3 | 3 | 6 | 30 |
+| **column total** | 37 | 36 | 35 | 23 | 20 | 19 | **170** |
+
+Row totals reflect realistic weekly-rotation frequency (chicken and vegetarian/vegan get the most coverage; fish/seafood the least, consistent with typical Swedish household cooking frequency even though nutritionally recommended). Within each row, weight toward cost/prep patterns that actually occur:
+- `chicken_poultry` — budget/mid-skewed, mostly 20-40min, some quick stir-fries and a few 40min+ roasts
+- `beef_pork` — spans all three cost tiers (mince=budget, fläskfilé=mid, ribeye/entrecôte=premium), mostly 20-40min with some 40min+ braises
+- `fish_seafood` — mid/premium-skewed (salmon, shrimp), mostly <20-40min since fish cooks fast
+- `vegetarian_vegan` — budget/mid-skewed (legumes, vegetables are cheap), mostly <20-40min
+- `egg_dairy_pantry` — budget-skewed, mostly <20min quick meals
 
 ## 6. API Surface (High Level, No Implementation Yet)
 

@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-29 — Locked RecipeTemplate schema; coverage matrix scoped by realism, not full cross-product
+
+**Decision:** `RecipeTemplate` reuses the `Ingredient` cost-tier enum (§5.1) and the `dietary_flags` vocabulary (§5.2) rather than defining parallel ones; adds its own `protein_group` (5 values, matching issues #10-14 exactly) and `cuisine` (6 broad values) enums. The Phase 0 coverage matrix is `protein_group × cuisine` (30 cells, target 170 templates total) with `cost_tier`/`prep_time_band` distributed *within* each cell per realistic patterns, rather than a full `protein_group × cuisine × cost_tier × prep_time_band` cross-product (270 cells). Allergen safety is explicitly **not** a template field — see ARCHITECTURE.md §5.3.
+
+**Why:** A full 4-axis cross-product forces cells that don't correspond to real cooking patterns (e.g. a premium-tier, 40-minute `egg_dairy_pantry` dish), diluting template quality and generation effort on combinations nobody will use. Weighting the 2D matrix by realistic weekly-rotation frequency (chicken and vegetarian/vegan get the most coverage, fish/seafood the least) makes better use of the ~150-200 template budget. Not storing a `contains_allergens[]` tag on templates avoids a second source of truth for safety-critical data — per CLAUDE.md, allergy filtering must never depend on anything but the verified ingredient-to-allergen mapping (#8/#9), and a hand-tagged template field would silently go stale the moment a substitution changes what's actually in a dish.
+
+**How to apply:** Batch-generation issues (#10-14) should target their row's per-cuisine counts from the matrix table, not generate a uniform count per cuisine. If actual generation reveals a cell genuinely can't support its target count with distinct, non-repetitive dishes (e.g. `fish_seafood × american_comfort` at 1), reduce that cell and redistribute to a stronger cell in the same row rather than forcing filler content — note the change in the batch issue, not by editing this matrix retroactively.
+
+---
+
 ## 2026-07-29 — Locked allergy & dietary-flag vocabulary; scoped deliberately narrow for MVP
 
 **Decision:** `allergies[]` (hard filter): `gluten`, `dairy_lactose`, `egg`, `tree_nuts`, `peanuts`, `shellfish`, `fish`, `soy` — not the full EU 14-allergen list. `dietary_flags[]` (soft preference): `vegetarian`, `vegan`, `high_protein_preference`, replacing the separate `protein_preference` field. Full lists and future-consideration notes in [ARCHITECTURE.md §5.2](../ARCHITECTURE.md#52-allergy--dietary-vocabulary-locked-phase-0-day-2-3).
