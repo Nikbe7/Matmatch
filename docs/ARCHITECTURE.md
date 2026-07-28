@@ -73,6 +73,9 @@ Key point: the **Meal Engine runs first**. It narrows the problem (valid recipe 
 - **Model tiering** — use a smaller/cheaper model for routine Tier 1 generation, reserving larger models for Tier 2 and premium personalization.
 - **Hard rate limits on free tier** — enforce via a usage counter tied to billing period, checked before any Tier 1/2 call is made (Tier 0 template matching should remain generous even on free tier, since it costs nothing).
 - **Never generate specific cost figures via AI.** Cost/savings claims (e.g., "carrots instead of peppers saves ~15 kr") should come from curated, team-maintained cost-tier data, not model output — this avoids a specific, easily-wrong-feeling hallucination risk that would directly damage user trust in the cost-saving value prop.
+- **Dev/test environments use mocked AI responses by default** — only staging/production call the real Claude API, so local development and CI don't burn real credits on every run.
+- **Log tier + token count per request from the first real call**, not added retroactively — this is what makes the Tier 0:1:2 ratio (an MVP success metric, see MVP_ROADMAP.md) actually measurable.
+- **Code review rejects any AI Orchestrator call path that skips the template-match/cache check** — caching and Tier 0 matching only work as a cost control if every code path actually goes through them.
 
 ### 4.3 Safety-critical logic stays out of AI entirely
 Allergy and hard dietary restriction filtering happens in the **Meal Engine**, before any candidate reaches the AI layer or the user's screen. The AI Orchestrator should never be the last line of defense for a safety constraint — it operates only within a pre-filtered candidate set.

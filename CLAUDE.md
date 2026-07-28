@@ -8,6 +8,8 @@ Matmatch is a mobile-first, AI-powered food planning PWA. It helps households de
 - `/docs/UX_FLOW.md` — user journeys, tap-first interaction model, screen-by-screen flow
 - `/docs/ARCHITECTURE.md` — tech stack, system design, database schema, AI cost strategy
 - `/docs/MVP_ROADMAP.md` — phased plan and current status; includes the Phase 0 data model and day-by-day plan
+- `/docs/engineering/GIT_AND_GITHUB.md` — branching, commits, labels, milestones, PR/board mechanics
+- `/docs/engineering/DECISION_LOG.md` — history of non-obvious decisions; check before re-litigating a settled question
 
 ## Core architectural principle
 Deterministic app logic (the "Meal Engine": ingredient matching, cost tiering, seasonality, portion math, allergy filtering) is fully separate from generative AI (the "AI Orchestrator": creative direction generation, personalization, free-text refinement). Allergy/dietary filtering is ALWAYS deterministic — it must never depend on model output. See ARCHITECTURE.md section 4 for the AI tiering strategy (Tier 0 template match / Tier 1 templated personalization / Tier 2 open-ended generation).
@@ -21,7 +23,7 @@ Deterministic app logic (the "Meal Engine": ingredient matching, cost tiering, s
 - Analytics: instrumented from day one (see MVP_ROADMAP.md success metrics)
 
 ## Current phase: Phase 0 — data foundation
-Building: ingredient catalog, recipe template library (structured skeletons — NOT full written recipes), allergy/dietary taxonomy, ingredient substitution relationships. Recipe templates are generated in small batches against a coverage matrix (protein x cuisine x cost tier x prep-time), never one broad prompt. See MVP_ROADMAP.md for the full data model examples and day-by-day plan.
+Building: ingredient catalog, recipe template library (structured skeletons — NOT full written recipes), allergy/dietary taxonomy, ingredient substitution relationships. Recipe templates are generated in small batches against a coverage matrix (protein x cuisine x cost tier x prep-time), never one broad prompt. See MVP_ROADMAP.md for the full data model examples and day-by-day plan. All Phase 0 work is tracked as GitHub Issues on the project board, not in this file.
 
 ## Non-negotiables
 - Ingredient-to-allergen mappings require 100% manual verification — never trust AI-drafted allergen data without review, no sampling.
@@ -29,8 +31,46 @@ Building: ingredient catalog, recipe template library (structured skeletons — 
 - Pantry/"what I have" input is session-scoped and ephemeral — do not build persistent pantry inventory tracking in MVP.
 - Recipe template skeletons store structure (ingredients + roles + tags), not full prose instructions — final phrasing is generated on demand and cached.
 
-## Conventions
-Full engineering process (Claude Code setup, AI collaboration rules, git/GitHub workflow, automation roadmap, code quality, documentation structure, engineering principles) lives in `/docs/engineering/` — start at `/docs/engineering/PHASE_-1_CHECKLIST.md`. This section stays short on purpose; update it only when a convention is stable enough to state in one line.
+## Engineering principles
+1. Deterministic first, AI only where creativity is genuinely required.
+2. Safety-critical logic (allergies) is never AI-dependent — no exceptions.
+3. Never let AI invent numbers a user will trust (costs, nutrition) — curated data only.
+4. Ship the smallest thing that tests the retention hypothesis; cut scope before extending the timeline.
+5. Decisions are versioned in the repo (`docs/engineering/DECISION_LOG.md`), not held in memory.
+6. Automate the boring and repeatable; keep judgment calls human.
+7. Architecture changes are discussed before they're implemented.
+8. Prefer boring, proven technology. `main` is always deployable.
+9. Process must save more time than it costs — cut any ritual that stops paying for itself.
 
-- Branching: trunk-based, short-lived `type/description` branches, squash-merged into `main`. Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, etc.). See `docs/engineering/GIT_AND_GITHUB.md`.
-- Lint/test/build commands: not yet defined — no `package.json` exists yet (Phase -1 is process only, no application code). Add here once Phase 0/1 scaffolding introduces them.
+## Documentation philosophy
+This repo prioritizes building Matmatch, not producing documentation. Before creating a new doc, ask: will this realistically be referenced during normal development, does it hold long-term knowledge, and is it the single source of truth for that topic? If not, it belongs in a GitHub Issue, a PR description, a commit message, or the decision log — not a new file.
+- Update existing documents instead of creating new ones. Fragmentation is a cost.
+- Every doc is the single source of truth for its topic. If two docs could answer the same question, merge them.
+- Long-term value only: product vision, architecture, roadmap, UX decisions, engineering conventions, decision log. Never `TODO.md`, `STATUS.md`, `NOTES.md`, or other temporary/status files — the GitHub Project is the task tracker, the decision log is the memory.
+- Keep docs concise and dense — reference material, not narrative.
+
+## GitHub Project workflow
+The GitHub Project board is the single source of truth for what's being worked on — no separate markdown TODO lists.
+- Starting work on an issue → move it to **In Progress**.
+- Implementation complete, ready for review → move it to **Review**.
+- Niklas verifies it → move it to **Done**.
+- New work discovered mid-implementation → create a GitHub Issue immediately (labels, priority, milestone, add to the project, place in the right column) rather than noting it in a comment or a doc.
+- Label taxonomy, milestones, and full board mechanics: `docs/engineering/GIT_AND_GITHUB.md`.
+
+## Development session workflow
+1. Review the GitHub Project board.
+2. Recommend the highest-priority actionable issue.
+3. Explain the implementation approach before writing code.
+4. Implement it.
+5. Update relevant docs only if architecture or long-term behavior actually changed.
+6. Suggest a commit message (Conventional Commits).
+7. Flag when the issue is ready to move to Review — and remind to move it to Done once verified.
+
+## Engineering mindset
+Optimize for simplicity, maintainability, readability, low AI cost, fast iteration, and production quality, in that rough order for a pre-PMF solo project. Prefer the simplest solution that satisfies current requirements; don't build infrastructure for hypothetical future features.
+- Testing: heavy unit coverage on the Meal Engine (matching, cost tiering, portion math, and especially allergy filtering — non-negotiable); light integration tests on API endpoints; minimal UI/E2E investment until the core loop is validated (Phase 2, see MVP_ROADMAP.md).
+- Self-review (`/code-review`, plus `/security-review` for anything touching auth, payments, or user data) before moving an issue to Review.
+
+## Conventions
+- Branching: trunk-based, short-lived `type/description` branches, squash-merged into `main`. Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, etc.). Full mechanics: `docs/engineering/GIT_AND_GITHUB.md`.
+- Lint/test/build commands: not yet defined — no `package.json` exists yet. Add here once Phase 0/1 scaffolding introduces them.

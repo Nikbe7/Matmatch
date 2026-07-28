@@ -11,6 +11,6 @@ Closes #
 
 ## Quality checklist
 - [ ] Tests added/updated for any deterministic logic touched (Meal Engine)
-- [ ] Docs updated in this same PR (see `docs/engineering/DOCUMENTATION_MAP.md`)
+- [ ] Docs updated in this same PR, only if architecture or long-term behavior changed (see CLAUDE.md documentation philosophy)
 - [ ] Decision log entry added, if a non-obvious call was made
 - [ ] Self-reviewed (`/code-review`, plus `/security-review` if auth/payments/user data)

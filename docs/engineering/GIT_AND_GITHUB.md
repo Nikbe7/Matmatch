@@ -14,7 +14,7 @@ Optimized for one developer working with an AI partner, not a team — every rec
 
 **[Conventional Commits](https://www.conventionalcommits.org/):** `type(scope): summary`, e.g. `feat(meal-engine): add cost-tier filtering`, `fix(allergy): handle missing member field`, `docs: update architecture for pgvector`.
 
-Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`. This isn't ceremony for its own sake — it's the input format that makes automated changelog generation and semantic version bumping possible later (see [AUTOMATION_ROADMAP.md](AUTOMATION_ROADMAP.md)), without hand-writing either.
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`. This isn't ceremony for its own sake — it's the input format that makes automated changelog generation and semantic version bumping possible later, without hand-writing either.
 
 ## Versioning
 
@@ -68,6 +68,12 @@ Backlog → Ready → In Progress → Review → Testing → Done
 - **Testing**: merged to a preview/staging context or manually verified against acceptance criteria.
 - **Done**: deployed/verified, issue closed.
 
+**Working the board (the trigger rules that matter day to day):**
+- Starting work on an issue → move it to In Progress.
+- Implementation complete → move it to Review.
+- Niklas verifies it → move it to Done.
+- New work discovered mid-implementation → new Issue, labeled/prioritized/milestoned, added to the project, placed in the right column — not a note in a doc or a comment.
+
 For a solo developer, "Review" and "Testing" don't require a second human — they require the review/testing steps to actually happen and be visible, rather than being silently skipped because there's no one else to hand off to.
 
 ## Discussions & Wiki
@@ -76,7 +82,7 @@ For a solo developer, "Review" and "Testing" don't require a second human — th
 
 ## Claude ↔ GitHub integration
 
-**Prerequisite:** `gh` CLI is not installed in this environment yet. Install it and run `gh auth login` before any of the below is executable — see the [Phase -1 checklist](PHASE_-1_CHECKLIST.md).
+`gh` CLI is installed and authenticated. All of the below is live.
 
 **Claude should:**
 - Read issues/PRs (`gh issue view`, `gh pr view`) to pull context before implementing.
@@ -92,8 +98,8 @@ For a solo developer, "Review" and "Testing" don't require a second human — th
 - Changing repo settings, permissions, or billing.
 - Force-pushing anything.
 
-**Not using GitHub MCP** — see [CLAUDE_CODE_GUIDE.md](CLAUDE_CODE_GUIDE.md#mcp-strategy) for why `gh` CLI via Bash is sufficient for now.
+**Not using GitHub MCP** — `gh` CLI via Bash already covers issues, PRs, labels, milestones, and Projects v2; a second integration path for the same system would be redundant. Revisit only if a specific workflow genuinely needs something `gh` can't do.
 
 ## Setup script
 
-`scripts/setup-github.sh` creates the labels, milestones, and project board described above via `gh`. It's idempotent (safe to re-run) but **not yet executed** — run it once `gh` is installed and authenticated.
+`scripts/setup-github.sh` creates the labels and milestones described above via `gh`. It's idempotent (safe to re-run if labels/milestones ever need to be recreated) and has already been run once.

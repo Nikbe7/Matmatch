@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-28 — Transitioned from Planning Mode to Development Mode; consolidated engineering docs
+
+**Decision:** Removed `CLAUDE_CODE_GUIDE.md`, `AI_COLLABORATION.md`, `AUTOMATION_ROADMAP.md`, `CODE_QUALITY_AND_COST.md`, `DOCUMENTATION_MAP.md`, `PHASE_-1_CHECKLIST.md`, and `PRINCIPLES.md` from `docs/engineering/`. `docs/engineering/` now holds only `GIT_AND_GITHUB.md` and this decision log. Durable content was merged: engineering principles and the documentation/workflow philosophy into `CLAUDE.md`, AI-cost engineering discipline into `ARCHITECTURE.md` §4.2. The rest (agent/MCP "not now" reasoning, the automation-candidates table, the Phase -1 status checklist) was transitional planning content that had already served its purpose.
+
+**Why:** Phase -1 (engineering foundation) is complete; the priority now is building Matmatch, not maintaining documentation about how to build it. Nine engineering docs was fragmentation with no ongoing payoff — most weren't going to be opened during normal feature work. The GitHub Project board is now the single source of truth for task status; no markdown file should duplicate that.
+
+**How to apply:** Before adding a new doc anywhere in this repo, apply the test in `CLAUDE.md`'s documentation philosophy section. Status/progress/TODO-shaped content goes in GitHub Issues, not markdown.
+
+---
+
 ## 2026-07-28 — Phase 0 broken into 21 GitHub issues, all in Backlog
 
 **Decision:** Populated the GitHub Project with 21 issues covering the full Phase 0 plan (schema/vocabulary locks, ingredient catalog generation + review, allergen mapping generation + 100% manual verification, recipe template generation split into 5 batches by protein category, validation tooling, hero-subset polish, substitution generation + review, and a Phase 0 exit review). All milestoned to `Phase 0 — Foundations`, labeled by type/area/priority, and placed in Backlog.
