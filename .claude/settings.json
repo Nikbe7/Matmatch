@@ -31,8 +31,7 @@
       "Bash(gh issue edit:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
-      "Bash(gh project:*)",
-      "Bash(xclip:*)"
+      "Bash(gh project:*)"
     ],
     "deny": [
       "Bash(git push --force*)",
