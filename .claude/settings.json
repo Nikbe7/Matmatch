@@ -1,26 +1,47 @@
 {
   "permissions": {
     "allow": [
+      "Bash(ls)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(mkdir:*)",
       "Bash(git status)",
       "Bash(git status:*)",
       "Bash(git diff)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
+      "Bash(git show:*)",
       "Bash(git branch)",
       "Bash(git branch:*)",
-      "Bash(git show:*)",
-      "Bash(ls)",
-      "Bash(ls:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(git switch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm ci)",
+      "Bash(npm run:*)",
       "Bash(npm test)",
-      "Bash(npm run lint)",
-      "Bash(npm run build)",
-      "Bash(npm run typecheck)"
+      "Bash(npx tsc:*)",
+      "Bash(npx vitest:*)",
+      "Bash(node:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh project:*)"
     ],
     "deny": [
       "Bash(git push --force*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)",
-      "Bash(rm -rf*)"
+      "Bash(rm -rf*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh issue close:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(npm publish:*)"
     ]
   }
 }
