@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-29 — Condensed product-advisor agent for decision velocity
+
+**Decision:** Rewrote `.claude/agents/product-advisor.md`'s body (frontmatter unchanged) to optimize for decision velocity over analytical completeness. Response length is now budgeted by question type (quick call / decision / deep dive) instead of a fixed 9-heading template applied to every question. Implementation prompts remain a primary output but are never produced for Delay/Reject verdicts. Claude Code setup guidance (model/effort/context strategy) defaults to Sonnet/medium/continue-chat and is only surfaced when a deviation is warranted, rather than printed on every implementation-suggesting answer.
+
+**Why:** The prior template mandated the same heavy structure regardless of question size, producing ~700-word answers to 20-word questions and extra back-and-forth before reaching the implementation chat. No capability was removed — challenge-me behavior, business/AI/technical lenses, and prompt generation are all preserved, just expressed more tightly.
+
+**How to apply:** If the agent starts under- or over-explaining again, adjust the response-mode thresholds in the agent file directly rather than reverting to the old fixed-template structure.
+
+---
+
 ## 2026-07-29 — Validator (#15) moved ahead of data generation (#6, #10-14)
 
 **Decision:** The schema/dedup validator (#15) is built before data generation (#6, #10-14), not after, reversing MVP_ROADMAP.md's original Day 3-5/Day 5-6 ordering.
