@@ -94,4 +94,4 @@ Use extended thinking only for: architecture, database design, AI orchestration,
 
 ## Conventions
 - Branching: trunk-based, short-lived `type/description` branches, squash-merged into `main`. Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, etc.). Full mechanics: `docs/engineering/GIT_AND_GITHUB.md`.
-- Lint/test/build commands: not yet defined — no `package.json` exists yet. Add here once Phase 0/1 scaffolding introduces them.
+- Typecheck: `npm run typecheck`. Test: `npm test`. (No lint/build step yet — no frontend or CLI validator exists yet; add here once #15 or the frontend scaffolding lands.)

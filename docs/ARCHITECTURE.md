@@ -112,10 +112,10 @@ Locked against a 30-ingredient spot-check spanning proteins, vegetables, dairy, 
 - `fat_oil` — cooking oils and non-dairy fats (olive oil, rapeseed oil, lard)
 - `condiment` — sauces, vinegars, mustards, and other small-quantity flavor additions
 
-**`default_cost_tier` (enum):** `₤` (budget) / `₤₤` (mid) / `₤₤₤` (premium) — curated, team-maintained, per CLAUDE.md (never AI-inferred as a specific price). Approximate Swedish-grocery bands for calibration, reviewed periodically rather than tied to live prices:
-- `₤` — everyday staples, roughly <40 kr/kg or <15 kr/unit (potatoes, onions, pasta, rice, oats, milk, eggs)
-- `₤₤` — routine but pricier (chicken breast, ground beef, cheese, off-season peppers)
-- `₤₤₤` — premium or import-heavy (salmon, shrimp, prime cuts, out-of-season specialty produce)
+**`default_cost_tier` (enum):** `budget` / `mid` / `premium` — curated, team-maintained, per CLAUDE.md (never AI-inferred as a specific price). Approximate Swedish-grocery bands for calibration, reviewed periodically rather than tied to live prices. Displayed to users as `₤`/`₤₤`/`₤₤₤` — see UX_FLOW.md §4 note on the display mapping.
+- `budget` — everyday staples, roughly <40 kr/kg or <15 kr/unit (potatoes, onions, pasta, rice, oats, milk, eggs)
+- `mid` — routine but pricier (chicken breast, ground beef, cheese, off-season peppers)
+- `premium` — premium or import-heavy (salmon, shrimp, prime cuts, out-of-season specialty produce)
 
 **Seasonality fields:**
 - `peak_months` (int[], 1-12) — months of peak quality/value; empty if not meaningfully seasonal
@@ -154,7 +154,7 @@ Scoped tightly to what the current UX flow and Phase 0 template batches (see MVP
 - `name` — dish name
 - `protein_group` (enum) — coverage/generation-batch category, not the same as an ingredient's `category`: `chicken_poultry`, `beef_pork`, `fish_seafood`, `vegetarian_vegan`, `egg_dairy_pantry`. Matches issues #10-14 one-to-one by design.
 - `cuisine` (enum) — `swedish_nordic`, `italian_mediterranean`, `asian`, `mexican_texmex`, `middle_eastern`, `american_comfort`. Kept broad and small (6 values) rather than granular (no separate Thai/Vietnamese/Chinese, no separate Greek/Spanish) — matches how a home cook actually thinks about a dish, and keeps the coverage matrix tractable.
-- `cost_tier` — reuses the `₤`/`₤₤`/`₤₤₤` enum locked for `Ingredient` in §5.1. No separate template-level cost vocabulary.
+- `cost_tier` — reuses the `budget`/`mid`/`premium` enum locked for `Ingredient` in §5.1. No separate template-level cost vocabulary.
 - `prep_time_band` (enum) — `<20min`, `20-40min`, `40min+`
 - `dietary_tags[]` — reuses the `dietary_flags` vocabulary locked in §5.2 (`vegetarian`, `vegan`, `high_protein_preference`). A template can match zero or more.
 - `ingredient_slots[]` — each slot is `{role, ingredient_id, substitutable}`. `role` is the CLAUDE.md-specified subset of `Ingredient.category` used for slot composition: `protein`, `starch`, `vegetable`, `aromatic` (maps to `spice_aromatic`), `dairy`. `substitutable` is a boolean placeholder only — the actual substitution-group mechanics are issue #3's schema, not duplicated here.

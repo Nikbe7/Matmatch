@@ -8,6 +8,36 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-29 — Validator (#15) moved ahead of data generation (#6, #10-14)
+
+**Decision:** The schema/dedup validator (#15) is built before data generation (#6, #10-14), not after, reversing MVP_ROADMAP.md's original Day 3-5/Day 5-6 ordering.
+
+**Why:** The original plan treated validation as a final inspection. With five independent generation batches, that means cross-batch id collisions and schema drift surface only after 170 templates already exist and are partly hand-verified. Validator-first turns each batch into a feedback loop instead.
+
+**How to apply:** Run the validator against each batch as it lands; accept no batch that hasn't passed. #15 is built and tested against fixtures rather than real data, which is the only cost, and it's marginal.
+
+---
+
+## 2026-07-29 — Swedish-only for MVP; no i18n abstraction
+
+**Decision:** Matmatch is Swedish-language and Swedish-market-specific for MVP. No i18n abstraction is built — no translation keys, no i18n library, no locale column, no language variants in any schema. Swedish is hardcoded. `Ingredient.name` and `RecipeTemplate.name` are Swedish display text; `id` on both is an ASCII slug (see the id-constraint decision above).
+
+**Why:** A second language or market is a Phase 3 decision that needs real market signal, not preparation. An i18n layer pre-PMF is cost without validated benefit. What's "Swedish" about the product is the language, the ingredient availability assumptions from Swedish grocery retail, the cost bands in kronor, and the seasonality months — not the dish repertoire.
+
+**How to apply:** The `cuisine` enum (§5.3) must **not** be narrowed toward husmanskost — Swedish households cook tacos, pasta, and wok, and the coverage matrix is already calibrated for that breadth. If a second language ever becomes relevant, the cost is confined to `name` fields and UI copy; no schema change is needed to make that call later.
+
+---
+
+## 2026-07-29 — Cost-tier enum values changed from glyphs to words; id fields constrained to ASCII slugs
+
+**Decision:** `Ingredient.default_cost_tier` / `RecipeTemplate.cost_tier` data values changed from `₤`/`₤₤`/`₤₤₤` to `budget`/`mid`/`premium`. The three-tier curated model, its Swedish-kr calibration bands, and the "never AI-inferred as a specific price" rule (CLAUDE.md, ARCHITECTURE.md §4.2) are unchanged — only the wire/data representation moved. The glyphs remain in the frontend as a **display-only** mapping (`budget → ₤`, `mid → ₤₤`, `premium → ₤₤₤`), per UX_FLOW.md §4. Separately, `Ingredient.id` and `RecipeTemplate.id` are now constrained to a lowercase ASCII slug (`^[a-z0-9]+(-[a-z0-9]+)*$`); `name` fields are untouched and remain Swedish display text.
+
+**Why:** `₤` is U+20A4 LIRA SIGN, visually near-identical to `£` U+00A3 POUND SIGN — a homoglyph error in ~420 rows of generated data (#6, #10-14) would be effectively invisible in review and would corrupt grep, URL params, CSV export, and DB indexing, for a symbol that means nothing to a Swedish user in the first place. The catalog is authored in Swedish (gul lök, fläskfilé, kantareller); an unconstrained `id` would inherit åäö and risk NFC/NFD normalization mismatches in the same class of places — worse, since two visually identical `ö` can be different byte sequences. Both were caught and fixed before any real data existed, at effectively zero migration cost.
+
+**How to apply:** Frontend cost-tier rendering must map the enum value to a glyph in display code, never reuse `budget`/`mid`/`premium` as if it were the glyph. Ingredient/recipe-template generation (#6, #10-14) must derive `id` as a slug of the Swedish `name` (transliterated, not truncated) rather than an arbitrary counter — see the corresponding issue bodies for the explicit requirement.
+
+---
+
 ## 2026-07-29 — Locked RecipeTemplate schema; coverage matrix scoped by realism, not full cross-product
 
 **Decision:** `RecipeTemplate` reuses the `Ingredient` cost-tier enum (§5.1) and the `dietary_flags` vocabulary (§5.2) rather than defining parallel ones; adds its own `protein_group` (5 values, matching issues #10-14 exactly) and `cuisine` (6 broad values) enums. The Phase 0 coverage matrix is `protein_group × cuisine` (30 cells, target 170 templates total) with `cost_tier`/`prep_time_band` distributed *within* each cell per realistic patterns, rather than a full `protein_group × cuisine × cost_tier × prep_time_band` cross-product (270 cells). Allergen safety is explicitly **not** a template field — see ARCHITECTURE.md §5.3.
