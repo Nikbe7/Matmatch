@@ -1,0 +1,11 @@
+[
+  {
+    "id": "Gul Lök",
+    "name": "Gul lök",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  }
+]

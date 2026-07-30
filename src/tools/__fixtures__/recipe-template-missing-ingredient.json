@@ -1,0 +1,14 @@
+[
+  {
+    "id": "spok-gryta",
+    "name": "Spökgryta",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": ["vegetarian"],
+    "ingredient_slots": [
+      { "role": "protein", "ingredient_id": "nonexistent-ingredient", "substitutable": false }
+    ]
+  }
+]

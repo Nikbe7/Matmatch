@@ -1,0 +1,15 @@
+[
+  {
+    "id": "kyckling-wok",
+    "name": "Kyckling wok",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      { "role": "protein", "ingredient_id": "kyckling", "substitutable": true },
+      { "role": "aromatic", "ingredient_id": "gul-lok", "substitutable": true }
+    ]
+  }
+]

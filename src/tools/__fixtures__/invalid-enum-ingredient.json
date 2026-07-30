@@ -1,0 +1,11 @@
+[
+  {
+    "id": "fisk",
+    "name": "Fisk",
+    "category": "meat",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  }
+]

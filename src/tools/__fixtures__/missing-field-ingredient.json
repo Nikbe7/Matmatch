@@ -1,0 +1,10 @@
+[
+  {
+    "id": "tomat",
+    "name": "Tomat",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [7, 8],
+    "available_year_round": true
+  }
+]

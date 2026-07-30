@@ -1,0 +1,20 @@
+[
+  {
+    "id": "gul-lok",
+    "name": "Gul lök",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kyckling",
+    "name": "Kyckling",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  }
+]

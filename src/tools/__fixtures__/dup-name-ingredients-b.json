@@ -1,0 +1,11 @@
+[
+  {
+    "id": "gul-lok-2",
+    "name": "  gul LÖK  ",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  }
+]
