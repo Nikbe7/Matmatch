@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-31 — Allergen mapping rows denote the plain, unprepared ingredient unless the name itself names a manufactured product
+
+**Decision:** A `data/ingredient-allergens.json` row is scoped to the ingredient's plain, unprepared retail form unless the catalog `name` itself denotes a manufactured product (falukorv, leverpastej, blodpudding — not "kyckling" or "revbensspjäll"). Plain-form rows never carry allergens from a hypothetical marinade, seasoning or sauce a retailer might sell it in.
+
+**Why:** `kycklingvingar` and `revbensspjäll` are the plain cut; a pre-marinated version is a different retail product a household chooses separately, not an inherent property of "chicken wings" or "pork ribs" as an ingredient. `skaldjursmix` is the inverse case — its name denotes a mixed-shellfish product, so `shellfish` is inherent to the row even though no single component was independently verified; it does not, however, imply `fish` was assumed to be added without evidence.
+
+**How to apply:** #28 and #29 must apply this rule without re-litigating it — verify against the ingredient the `name` field actually denotes, not against every retail variant that could theoretically exist on a Swedish shelf.
+
+---
+
 ## 2026-07-31 — `allergens: []` means "none of the 8 locked values", not "allergen-free"
 
 **Decision:** An empty `allergens[]` in `data/ingredient-allergens.json` means "contains none of the 8 locked allergen values" — it does **not** mean "contains no allergens." Sesame, mustard and celery remain deliberately out of vocabulary (see the 2026-07-29 allergy vocabulary entry); `sesamfron`, `sesamolja`, `senap` and `dijonsenap` therefore carry `[]`.
