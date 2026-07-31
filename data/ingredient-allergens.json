@@ -816,142 +816,142 @@
   {
     "ingredient_id": "chiliflakes",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "curry",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "farsk-basilika",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "farsk-chili",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "farsk-dill",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "farsk-koriander",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "farsk-mynta",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "farsk-persilja",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "farsk-rosmarin",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "farsk-timjan",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "gul-lok",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "gurkmeja",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "ingefara",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kanel",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kardemumma",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "lagerblad",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "muskotnot",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "oregano",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "paprikapulver",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "purjolok",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rodlok",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "salt",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "schalottenlok",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "spiskummin",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "svartpeppar",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "vaniljsocker",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "vitlok",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "balsamvinager",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "bearnaisesas",
@@ -959,63 +959,63 @@
       "egg",
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "cashewnotter",
     "allergens": [
-      "tree_nuts"
+      "tree_nuts",
+      "peanuts"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "currypasta",
-    "allergens": [
-      "shellfish",
-      "fish"
-    ],
-    "verification_status": "unverified"
+    "allergens": [],
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "dijonsenap",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "jordnotter",
     "allergens": [
-      "peanuts"
+      "peanuts",
+      "tree_nuts"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "ketchup",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kokosmjolk",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "majonnas",
     "allergens": [
       "egg"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "mandel",
     "allergens": [
-      "tree_nuts"
+      "tree_nuts",
+      "peanuts"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "matlagningsvinager",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "oystersas",
@@ -1024,42 +1024,45 @@
       "soy",
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "pesto",
     "allergens": [
       "dairy_lactose",
-      "tree_nuts"
+      "tree_nuts",
+      "egg",
+      "peanuts"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "pinjenotter",
     "allergens": [
-      "tree_nuts"
+      "tree_nuts",
+      "peanuts"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rodvinsvinager",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "sambal-oelek",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "senap",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "sesamfron",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "soja",
@@ -1067,17 +1070,17 @@
       "gluten",
       "soy"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "sweet-chilisas",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "tomatpure",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "worcestershiresas",
@@ -1086,91 +1089,91 @@
       "soy",
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "ananas",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "apelsin",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "apple",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "banan",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "blabar",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "citron",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "hallon",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "jordgubbar",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kiwi",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "lime",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "mango",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "melon",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "paron",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "persika",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "plommon",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "vattenmelon",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "vindruvor",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   }
 ]
