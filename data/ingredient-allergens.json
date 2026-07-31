@@ -80,6 +80,13 @@
     "verification_status": "verified"
   },
   {
+    "ingredient_id": "inlagd-sill",
+    "allergens": [
+      "fish"
+    ],
+    "verification_status": "verified"
+  },
+  {
     "ingredient_id": "kalkonfars",
     "allergens": [],
     "verification_status": "verified"
@@ -205,13 +212,6 @@
   {
     "ingredient_id": "rokt-skinka",
     "allergens": [],
-    "verification_status": "verified"
-  },
-  {
-    "ingredient_id": "sill",
-    "allergens": [
-      "fish"
-    ],
     "verification_status": "verified"
   },
   {
