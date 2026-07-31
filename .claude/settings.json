@@ -31,6 +31,8 @@
       "Bash(gh issue edit:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr list:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh issue close:*)",
       "Bash(gh project:*)"
     ],
     "deny": [
@@ -38,8 +40,6 @@
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)",
       "Bash(rm -rf*)",
-      "Bash(gh pr merge:*)",
-      "Bash(gh issue close:*)",
       "Bash(gh repo delete:*)",
       "Bash(npm publish:*)"
     ]
