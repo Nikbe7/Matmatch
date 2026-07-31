@@ -45,7 +45,7 @@
     "seasonality_strength": "weak"
   },
   {
-    "id": "entrec-te",
+    "id": "entrecote",
     "name": "entrecôte",
     "category": "protein",
     "default_cost_tier": "premium",
@@ -1051,7 +1051,7 @@
     "seasonality_strength": "weak"
   },
   {
-    "id": "cr-me-fra-che",
+    "id": "creme-fraiche",
     "name": "crème fraîche",
     "category": "dairy",
     "default_cost_tier": "budget",
