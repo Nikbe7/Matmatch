@@ -126,6 +126,15 @@
     "seasonality_strength": "weak"
   },
   {
+    "id": "inlagd-sill",
+    "name": "inlagd sill",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
     "id": "kalkonfars",
     "name": "kalkonfärs",
     "category": "protein",
@@ -328,15 +337,6 @@
     "name": "rökt skinka",
     "category": "protein",
     "default_cost_tier": "mid",
-    "peak_months": [],
-    "available_year_round": true,
-    "seasonality_strength": "weak"
-  },
-  {
-    "id": "sill",
-    "name": "sill",
-    "category": "protein",
-    "default_cost_tier": "budget",
     "peak_months": [],
     "available_year_round": true,
     "seasonality_strength": "weak"
