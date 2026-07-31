@@ -472,80 +472,78 @@
       "gluten",
       "egg"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "basmatiris",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "bulgur",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "couscous",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "formbrod",
     "allergens": [
-      "gluten",
-      "soy",
-      "dairy_lactose"
+      "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "fullkornspasta",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "glasnudlar",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "havregryn",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "jasminris",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "knackebrod",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "makaroner",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "mannagryn",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "naanbrod",
@@ -553,210 +551,210 @@
       "gluten",
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "nypotatis",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "potatis",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "potatismjol",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "quinoa",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "ragbrod",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "ris",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "risnudlar",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "spagetti",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "tacoskal",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "tortillabrod",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "vetemjol",
     "allergens": [
       "gluten"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "creme-fraiche",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "fetaost",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "filmjolk",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "graddfil",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "halloumi",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "hushallsost",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "keso",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kvarg",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "lattmjolk",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "matlagningsgradde",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "mellanmjolk",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "mozzarella",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "naturell-yoghurt",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "parmesan",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "prastost",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "smor",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "standardmjolk",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "turkisk-yoghurt",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "vasterbottensost",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "vispgradde",
     "allergens": [
       "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "bakmargarin",
@@ -764,57 +762,56 @@
       "dairy_lactose",
       "soy"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "ister",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "jordnotsolja",
     "allergens": [
       "peanuts"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kokosolja",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "majsolja",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "margarin",
     "allergens": [
-      "dairy_lactose",
       "soy"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "olivolja",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rapsolja",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "sesamolja",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "solrosolja",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "chiliflakes",
