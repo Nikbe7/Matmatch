@@ -1,1 +1,1604 @@
-[]
+[
+  {
+    "id": "kycklinggryta-med-rotfrukter",
+    "name": "Kycklinggryta med rotfrukter",
+    "protein_group": "chicken_poultry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kyckling",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "palsternacka",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lagerblad",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "dillstuvad-kyckling-med-potatis",
+    "name": "Dillstuvad kyckling med potatis",
+    "protein_group": "chicken_poultry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "artor",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-dill",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "ugnsbakad-kyckling-med-rotmos",
+    "name": "Ugnsbakad kyckling med rotmos",
+    "protein_group": "chicken_poultry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kyckling",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "kalrot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "svartpeppar",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingbullar-i-graddsas",
+    "name": "Kycklingbullar i gräddsås",
+    "protein_group": "chicken_poultry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfars",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "artor",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingsoppa-med-rotfrukter",
+    "name": "Kycklingsoppa med rotfrukter",
+    "protein_group": "chicken_poultry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kyckling",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "selleri",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lagerblad",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklinglarfile-med-ugnsrostade-rotfrukter",
+    "name": "Kycklinglårfilé med ugnsrostade rotfrukter",
+    "protein_group": "chicken_poultry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklinglarfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "palsternacka",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rodbeta",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-rosmarin",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingpaj-med-purjolok",
+    "name": "Kycklingpaj med purjolök",
+    "protein_group": "chicken_poultry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kyckling",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "purjolok",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "creme-fraiche",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "snabbstekt-kycklingfile-med-sockerartor",
+    "name": "Snabbstekt kycklingfilé med sockerärtor",
+    "protein_group": "chicken_poultry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "sockerartor",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingpasta-med-tomatsas-och-basilika",
+    "name": "Kycklingpasta med tomatsås och basilika",
+    "protein_group": "chicken_poultry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-basilika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "parmesan",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingfile-med-citron-och-vitlok",
+    "name": "Kycklingfilé med citron och vitlök",
+    "protein_group": "chicken_poultry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "spenat",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklinggratang-med-mozzarella-och-tomat",
+    "name": "Kycklinggratäng med mozzarella och tomat",
+    "protein_group": "chicken_poultry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "mozzarella",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "fullkornspasta",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "oregano",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "pestokyckling-med-sparris",
+    "name": "Pestokyckling med sparris",
+    "protein_group": "chicken_poultry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "pesto",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "sparris",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "nypotatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "parmesan",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "medelhavssallad-med-kyckling-och-fetaost",
+    "name": "Medelhavssallad med kyckling och fetaost",
+    "protein_group": "chicken_poultry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "ruccola",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "korsbarstomat",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "fetaost",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "citron-och-rosmarinkyckling-i-ugn",
+    "name": "Citron- och rosmarinkyckling i ugn",
+    "protein_group": "chicken_poultry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-rosmarin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "zucchini",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "nypotatis",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklinggryta-pa-medelhavsvis-med-aubergine",
+    "name": "Kycklinggryta på medelhavsvis med aubergine",
+    "protein_group": "chicken_poultry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kyckling",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "aubergine",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "oregano",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "couscous",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "snabbstekt-kycklingfile-med-zucchini-och-parmesan",
+    "name": "Snabbstekt kycklingfilé med zucchini och parmesan",
+    "protein_group": "chicken_poultry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "zucchini",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "parmesan",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingwok-med-broccoli-och-cashewnotter",
+    "name": "Kycklingwok med broccoli och cashewnötter",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "broccoli",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "cashewnotter",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "gron-curry-med-kyckling-och-basmatiris",
+    "name": "Grön curry med kyckling och basmatiris",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "currypasta",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "bambuskott",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "basmatiris",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "kokosmjolk",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "teriyakikyckling-med-jasminris",
+    "name": "Teriyakikyckling med jasminris",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "broccoli",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingnudlar-med-gronsaker",
+    "name": "Kycklingnudlar med grönsaker",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "aggnudlar",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "sojagroddar",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingsoppa-med-glasnudlar-och-ingefara",
+    "name": "Kycklingsoppa med glasnudlar och ingefära",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "glasnudlar",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "sotsur-kyckling-med-ananas",
+    "name": "Sötsur kyckling med ananas",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "ananas",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sweet-chilisas",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingvingar-med-sesam-och-sweet-chilisas",
+    "name": "Kycklingvingar med sesam och sweet chilisås",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingvingar",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sesamfron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sweet-chilisas",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "massamaninspirerad-currygryta-med-kycklinglarfile",
+    "name": "Massamaninspirerad currygryta med kycklinglårfilé",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklinglarfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "currypasta",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "kokosmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "jordnotter",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingbowl-med-jasminris-och-sojagroddar",
+    "name": "Kycklingbowl med jasminris och sojagroddar",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "sojagroddar",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sesamfron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kalkonfile-i-wok-med-paprika-och-ingefara",
+    "name": "Kalkonfilé i wok med paprika och ingefära",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kalkonfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "risnudlar",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingtacos-med-avokado-och-koriander",
+    "name": "Kycklingtacos med avokado och koriander",
+    "protein_group": "chicken_poultry",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tacoskal",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingfajitas-med-paprika-och-lok",
+    "name": "Kycklingfajitas med paprika och lök",
+    "protein_group": "chicken_poultry",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingquesadilla-med-hushallsost",
+    "name": "Kycklingquesadilla med hushållsost",
+    "protein_group": "chicken_poultry",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingenchiladas-med-svarta-bonor-och-majs",
+    "name": "Kycklingenchiladas med svarta bönor och majs",
+    "protein_group": "chicken_poultry",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingbowl-med-svarta-bonor-majs-och-avokado",
+    "name": "Kycklingbowl med svarta bönor, majs och avokado",
+    "protein_group": "chicken_poultry",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingchili-med-svarta-bonor",
+    "name": "Kycklingchili med svarta bönor",
+    "protein_group": "chicken_poultry",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfars",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingspett-med-couscous-och-yoghurtsas",
+    "name": "Kycklingspett med couscous och yoghurtsås",
+    "protein_group": "chicken_poultry",
+    "cuisine": "middle_eastern",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "couscous",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "turkisk-yoghurt",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-mynta",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklinggryta-med-kikartor-och-gurkmeja",
+    "name": "Kycklinggryta med kikärtor och gurkmeja",
+    "protein_group": "chicken_poultry",
+    "cuisine": "middle_eastern",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kyckling",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "kikartor",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gurkmeja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "bulgur",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "ugnsbakad-kyckling-med-citron-och-paprikapulver",
+    "name": "Ugnsbakad kyckling med citron och paprikapulver",
+    "protein_group": "chicken_poultry",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklinglarfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "bulgur",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingbowl-med-bulgur-fetaost-och-mandel",
+    "name": "Kycklingbowl med bulgur, fetaost och mandel",
+    "protein_group": "chicken_poultry",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "bulgur",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "fetaost",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "korsbarstomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "mandel",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "fylld-naanbrod-med-kyckling-och-yoghurtsas",
+    "name": "Fylld naanbröd med kyckling och yoghurtsås",
+    "protein_group": "chicken_poultry",
+    "cuisine": "middle_eastern",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "naanbrod",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "naturell-yoghurt",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "isbergssallat",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "krispig-ugnsbakad-kyckling-med-potatismos",
+    "name": "Krispig ugnsbakad kyckling med potatismos",
+    "protein_group": "chicken_poultry",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklinglarfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "bbq-kyckling-med-majs-och-vitkalssallad",
+    "name": "BBQ-kyckling med majs och vitkålssallad",
+    "protein_group": "chicken_poultry",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "vitkal",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ketchup",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "majonnas",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kycklingpaj-med-majs-och-bacon",
+    "name": "Kycklingpaj med majs och bacon",
+    "protein_group": "chicken_poultry",
+    "cuisine": "american_comfort",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kycklingfars",
+        "substitutable": false
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "bacon",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  }
+]
