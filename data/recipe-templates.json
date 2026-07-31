@@ -127,7 +127,7 @@
     "name": "Kycklingbullar i gräddsås",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -163,7 +163,7 @@
     "name": "Kycklingsoppa med rotfrukter",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -206,7 +206,9 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "dietary_tags": [],
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
     "ingredient_slots": [
       {
         "role": "protein",
@@ -276,7 +278,7 @@
     "name": "Snabbstekt kycklingfilé med sockerärtor",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "<20min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -312,7 +314,7 @@
     "name": "Kycklingpasta med tomatsås och basilika",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
-    "cost_tier": "budget",
+    "cost_tier": "premium",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -425,7 +427,7 @@
     "name": "Pestokyckling med sparris",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
-    "cost_tier": "mid",
+    "cost_tier": "premium",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -461,7 +463,7 @@
     "name": "Medelhavssallad med kyckling och fetaost",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "<20min",
     "dietary_tags": [
       "high_protein_preference"
@@ -581,7 +583,7 @@
     "name": "Snabbstekt kycklingfilé med zucchini och parmesan",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
-    "cost_tier": "budget",
+    "cost_tier": "premium",
     "prep_time_band": "<20min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -617,7 +619,7 @@
     "name": "Kycklingwok med broccoli och cashewnötter",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -750,7 +752,7 @@
     "name": "Kycklingnudlar med grönsaker",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "<20min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -791,7 +793,7 @@
     "name": "Kycklingsoppa med glasnudlar och ingefära",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -905,8 +907,8 @@
     ]
   },
   {
-    "id": "massamaninspirerad-currygryta-med-kycklinglarfile",
-    "name": "Massamaninspirerad currygryta med kycklinglårfilé",
+    "id": "massamangryta-med-kycklinglarfile",
+    "name": "Massamangryta med kycklinglårfilé",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
@@ -950,7 +952,7 @@
     "name": "Kycklingbowl med jasminris och sojagroddar",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "<20min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -1032,7 +1034,7 @@
     "name": "Kycklingtacos med avokado och koriander",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "<20min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -1073,7 +1075,7 @@
     "name": "Kycklingfajitas med paprika och lök",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -1114,7 +1116,7 @@
     "name": "Kycklingquesadilla med hushållsost",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "<20min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -1232,9 +1234,11 @@
     "name": "Kycklingchili med svarta bönor",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "dietary_tags": [],
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
     "ingredient_slots": [
       {
         "role": "protein",
@@ -1273,7 +1277,7 @@
     "name": "Kycklingspett med couscous och yoghurtsås",
     "protein_group": "chicken_poultry",
     "cuisine": "middle_eastern",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -1314,7 +1318,7 @@
     "name": "Kycklinggryta med kikärtor och gurkmeja",
     "protein_group": "chicken_poultry",
     "cuisine": "middle_eastern",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -1438,11 +1442,11 @@
     ]
   },
   {
-    "id": "fylld-naanbrod-med-kyckling-och-yoghurtsas",
-    "name": "Fylld naanbröd med kyckling och yoghurtsås",
+    "id": "fyllt-naanbrod-med-kyckling-och-yoghurtsas",
+    "name": "Fyllt naanbröd med kyckling och yoghurtsås",
     "protein_group": "chicken_poultry",
     "cuisine": "middle_eastern",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "<20min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -1526,7 +1530,9 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "dietary_tags": [],
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
     "ingredient_slots": [
       {
         "role": "protein",
@@ -1565,7 +1571,7 @@
     "name": "Kycklingpaj med majs och bacon",
     "protein_group": "chicken_poultry",
     "cuisine": "american_comfort",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [

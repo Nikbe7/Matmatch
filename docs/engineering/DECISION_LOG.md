@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-31 — RecipeTemplate `cost_tier` and `dietary_tags` (high_protein_preference) are derived, not authored
+
+**Decision:** For `RecipeTemplate`, `cost_tier` and the `high_protein_preference` dietary tag are computed deterministically from `ingredient_slots[]`, never hand-assigned during generation. `cost_tier` = the highest `default_cost_tier` (budget < mid < premium) among the template's slot ingredients, per `data/ingredients.json`. `dietary_tags` includes `high_protein_preference` iff the template has no slot with `role: "starch"`; `vegetarian`/`vegan` are set by generation batch, not derived. Applied retroactively to the #10 chicken/poultry batch (19 of 40 `cost_tier` values and 3 `dietary_tags` values corrected).
+
+**Why:** `cost_tier` renders to users as a ₤/₤₤/₤₤₤ signal and is exactly the kind of curated number CLAUDE.md forbids letting drift from its source of truth — a hand-judged tier that disagrees with the ingredient catalog is untrustworthy in the same way an AI-invented cost figure would be. Judgment-assigned tags also undercounted badly in practice: only 1 of 40 chicken/poultry templates had `high_protein_preference` before the rule was applied, which would make the high-protein chip return almost nothing for the biggest protein group. A stated rule also means batches #11-14 don't each re-litigate the same call.
+
+**How to apply:** Generation batches #11-14 must derive `cost_tier`/`dietary_tags` (for `high_protein_preference`) by these same rules rather than assigning by feel. Issue (to be filed against #10's PR) tracks adding this as an automated validator check — `--type recipe-template` recomputing both fields and erroring on mismatch — which should land before #11 starts.
+
+---
+
 ## 2026-07-31 — Rejected user-facing priority sliders; today-level priorities stay chip-driven
 
 **Decision:** No continuous, user-adjustable "priority sliders" (price/time/etc.) in the UI. Today-level priorities are expressed only through existing tap affordances — Tonight-card redirects and Build & adjust chips (UX_FLOW.md §4, §5.5) — not a configuration surface. The concept is kept internally: the Phase 1 Meal Engine ranking function will take an explicit, session-scoped weight vector (initially `{cost, time}`) that adjustment chips mutate, rather than hardcoded sort rules. Weights are ephemeral per session, never persisted to the household profile. The same vector may bias substitution choice within a slot and pass as a tag into Tier 1 instruction generation (shortcut vs. from-scratch); it must not affect portion math or shopping-list logic. Health/nutrition priorities are excluded entirely — not just from the UI but from the weight vector.
