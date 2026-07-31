@@ -1,1 +1,1937 @@
-[]
+[
+  {
+    "id": "agg",
+    "name": "ägg",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "anka",
+    "name": "anka",
+    "category": "protein",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "bacon",
+    "name": "bacon",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "biff",
+    "name": "biff",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "blodpudding",
+    "name": "blodpudding",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "entrec-te",
+    "name": "entrecôte",
+    "category": "protein",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "falukorv",
+    "name": "falukorv",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "fiskpinnar",
+    "name": "fiskpinnar",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "flaskfars",
+    "name": "fläskfärs",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "flaskfile",
+    "name": "fläskfilé",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "flaskkarre",
+    "name": "fläskkarré",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "flaskkotlett",
+    "name": "fläskkotlett",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "grillkorv",
+    "name": "grillkorv",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "hogrev",
+    "name": "högrev",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kalkonfars",
+    "name": "kalkonfärs",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kalkonfile",
+    "name": "kalkonfilé",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kalvfars",
+    "name": "kalvfärs",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kikartor",
+    "name": "kikärtor",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kyckling",
+    "name": "kyckling",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kycklingfars",
+    "name": "kycklingfärs",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kycklingfile",
+    "name": "kycklingfilé",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kycklingklubba",
+    "name": "kycklingklubba",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kycklinglarfile",
+    "name": "kycklinglårfilé",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kycklingvingar",
+    "name": "kycklingvingar",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "lammfars",
+    "name": "lammfärs",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "lammfile",
+    "name": "lammfilé",
+    "category": "protein",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "lax",
+    "name": "lax",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "laxfile",
+    "name": "laxfilé",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "leverpastej",
+    "name": "leverpastej",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "linser",
+    "name": "linser",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "musslor",
+    "name": "musslor",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "notfars",
+    "name": "nötfärs",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "oxfile",
+    "name": "oxfilé",
+    "category": "protein",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "rakor",
+    "name": "räkor",
+    "category": "protein",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "revbensspjall",
+    "name": "revbensspjäll",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "rokt-lax",
+    "name": "rökt lax",
+    "category": "protein",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "rokt-skinka",
+    "name": "rökt skinka",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "sill",
+    "name": "sill",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "skaldjursmix",
+    "name": "skaldjursmix",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "skinka",
+    "name": "skinka",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "svarta-bonor",
+    "name": "svarta bönor",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "tofu",
+    "name": "tofu",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "tonfisk",
+    "name": "tonfisk",
+    "category": "protein",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "torsk",
+    "name": "torsk",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "torskfile",
+    "name": "torskfilé",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "artor",
+    "name": "ärtor",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "aubergine",
+    "name": "aubergine",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "avokado",
+    "name": "avokado",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "bambuskott",
+    "name": "bambuskott",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "blomkal",
+    "name": "blomkål",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "broccoli",
+    "name": "broccoli",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "brysselkal",
+    "name": "brysselkål",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "champinjon",
+    "name": "champinjon",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "fankal",
+    "name": "fänkål",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "gron-paprika",
+    "name": "grön paprika",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "grona-bonor",
+    "name": "gröna bönor",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "gronkal",
+    "name": "grönkål",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "gurka",
+    "name": "gurka",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "isbergssallat",
+    "name": "isbergssallat",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kalrot",
+    "name": "kålrot",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kantarell",
+    "name": "kantarell",
+    "category": "vegetable",
+    "default_cost_tier": "premium",
+    "peak_months": [
+      7,
+      8,
+      9
+    ],
+    "available_year_round": false,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "korsbarstomat",
+    "name": "körsbärstomat",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "majrova",
+    "name": "majrova",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "majs",
+    "name": "majs",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "mangold",
+    "name": "mangold",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "minigurka",
+    "name": "minigurka",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "morot",
+    "name": "morot",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "palsternacka",
+    "name": "palsternacka",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "portabello",
+    "name": "portabello",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "pumpa",
+    "name": "pumpa",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      9,
+      10,
+      11
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "radisor",
+    "name": "rädisor",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [
+      5,
+      6,
+      7
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "rod-paprika",
+    "name": "röd paprika",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "rodbeta",
+    "name": "rödbeta",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "rodkal",
+    "name": "rödkål",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "rotselleri",
+    "name": "rotselleri",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "ruccola",
+    "name": "ruccola",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "salladsmix",
+    "name": "salladsmix",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "selleri",
+    "name": "selleri",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "sockerartor",
+    "name": "sockerärtor",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "sojagroddar",
+    "name": "sojagroddar",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "sparris",
+    "name": "sparris",
+    "category": "vegetable",
+    "default_cost_tier": "premium",
+    "peak_months": [
+      5,
+      6
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "spenat",
+    "name": "spenat",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "spetskal",
+    "name": "spetskål",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [
+      6,
+      7
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "tomat",
+    "name": "tomat",
+    "category": "vegetable",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "vitkal",
+    "name": "vitkål",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "zucchini",
+    "name": "zucchini",
+    "category": "vegetable",
+    "default_cost_tier": "budget",
+    "peak_months": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "aggnudlar",
+    "name": "äggnudlar",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "basmatiris",
+    "name": "basmatiris",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "bulgur",
+    "name": "bulgur",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "couscous",
+    "name": "couscous",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "formbrod",
+    "name": "formbröd",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "fullkornspasta",
+    "name": "fullkornspasta",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "glasnudlar",
+    "name": "glasnudlar",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "havregryn",
+    "name": "havregryn",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "jasminris",
+    "name": "jasminris",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "knackebrod",
+    "name": "knäckebröd",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "makaroner",
+    "name": "makaroner",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "mannagryn",
+    "name": "mannagryn",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "naanbrod",
+    "name": "naanbröd",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "nypotatis",
+    "name": "nypotatis",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      6,
+      7
+    ],
+    "available_year_round": false,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "potatis",
+    "name": "potatis",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "potatismjol",
+    "name": "potatismjöl",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "quinoa",
+    "name": "quinoa",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "ragbrod",
+    "name": "rågbröd",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "ris",
+    "name": "ris",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "risnudlar",
+    "name": "risnudlar",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "spagetti",
+    "name": "spagetti",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "tacoskal",
+    "name": "tacoskal",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "tortillabrod",
+    "name": "tortillabröd",
+    "category": "starch",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "vetemjol",
+    "name": "vetemjöl",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "cr-me-fra-che",
+    "name": "crème fraîche",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "fetaost",
+    "name": "fetaost",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "filmjolk",
+    "name": "filmjölk",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "graddfil",
+    "name": "gräddfil",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "halloumi",
+    "name": "halloumi",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "hushallsost",
+    "name": "hushållsost",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "keso",
+    "name": "keso",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kvarg",
+    "name": "kvarg",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "lattmjolk",
+    "name": "lättmjölk",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "matlagningsgradde",
+    "name": "matlagningsgrädde",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "mellanmjolk",
+    "name": "mellanmjölk",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "mozzarella",
+    "name": "mozzarella",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "naturell-yoghurt",
+    "name": "naturell yoghurt",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "parmesan",
+    "name": "parmesan",
+    "category": "dairy",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "prastost",
+    "name": "prästost",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "smor",
+    "name": "smör",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "standardmjolk",
+    "name": "standardmjölk",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "turkisk-yoghurt",
+    "name": "turkisk yoghurt",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "vasterbottensost",
+    "name": "västerbottensost",
+    "category": "dairy",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "vispgradde",
+    "name": "vispgrädde",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "bakmargarin",
+    "name": "bakmargarin",
+    "category": "fat_oil",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "ister",
+    "name": "ister",
+    "category": "fat_oil",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "jordnotsolja",
+    "name": "jordnötsolja",
+    "category": "fat_oil",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kokosolja",
+    "name": "kokosolja",
+    "category": "fat_oil",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "majsolja",
+    "name": "majsolja",
+    "category": "fat_oil",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "margarin",
+    "name": "margarin",
+    "category": "fat_oil",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "olivolja",
+    "name": "olivolja",
+    "category": "fat_oil",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "rapsolja",
+    "name": "rapsolja",
+    "category": "fat_oil",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "sesamolja",
+    "name": "sesamolja",
+    "category": "fat_oil",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "solrosolja",
+    "name": "solrosolja",
+    "category": "fat_oil",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "chiliflakes",
+    "name": "chiliflakes",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "curry",
+    "name": "curry",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "farsk-basilika",
+    "name": "färsk basilika",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "farsk-chili",
+    "name": "färsk chili",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "farsk-dill",
+    "name": "färsk dill",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "farsk-koriander",
+    "name": "färsk koriander",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "farsk-mynta",
+    "name": "färsk mynta",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "farsk-persilja",
+    "name": "färsk persilja",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "farsk-rosmarin",
+    "name": "färsk rosmarin",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "farsk-timjan",
+    "name": "färsk timjan",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "gul-lok",
+    "name": "gul lök",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "gurkmeja",
+    "name": "gurkmeja",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "ingefara",
+    "name": "ingefära",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kanel",
+    "name": "kanel",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kardemumma",
+    "name": "kardemumma",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "lagerblad",
+    "name": "lagerblad",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "muskotnot",
+    "name": "muskotnöt",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "oregano",
+    "name": "oregano",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "paprikapulver",
+    "name": "paprikapulver",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "purjolok",
+    "name": "purjolök",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "rodlok",
+    "name": "rödlök",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "salt",
+    "name": "salt",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "schalottenlok",
+    "name": "schalottenlök",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "spiskummin",
+    "name": "spiskummin",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "svartpeppar",
+    "name": "svartpeppar",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "vaniljsocker",
+    "name": "vaniljsocker",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "vitlok",
+    "name": "vitlök",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "balsamvinager",
+    "name": "balsamvinäger",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "bearnaisesas",
+    "name": "bearnaisesås",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "cashewnotter",
+    "name": "cashewnötter",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "currypasta",
+    "name": "currypasta",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "dijonsenap",
+    "name": "dijonsenap",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "jordnotter",
+    "name": "jordnötter",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "ketchup",
+    "name": "ketchup",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "kokosmjolk",
+    "name": "kokosmjölk",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "majonnas",
+    "name": "majonnäs",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "mandel",
+    "name": "mandel",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "matlagningsvinager",
+    "name": "matlagningsvinäger",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "oystersas",
+    "name": "oystersås",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "pesto",
+    "name": "pesto",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "pinjenotter",
+    "name": "pinjenötter",
+    "category": "condiment",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "rodvinsvinager",
+    "name": "rödvinsvinäger",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "sambal-oelek",
+    "name": "sambal oelek",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "senap",
+    "name": "senap",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "sesamfron",
+    "name": "sesamfrön",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "soja",
+    "name": "soja",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "sweet-chilisas",
+    "name": "sweet chilisås",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "tomatpure",
+    "name": "tomatpuré",
+    "category": "condiment",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "worcestershiresas",
+    "name": "worcestershiresås",
+    "category": "condiment",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "ananas",
+    "name": "ananas",
+    "category": "fruit",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "apelsin",
+    "name": "apelsin",
+    "category": "fruit",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "apple",
+    "name": "äpple",
+    "category": "fruit",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "banan",
+    "name": "banan",
+    "category": "fruit",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "blabar",
+    "name": "blåbär",
+    "category": "fruit",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      7,
+      8
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "citron",
+    "name": "citron",
+    "category": "fruit",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "hallon",
+    "name": "hallon",
+    "category": "fruit",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      7,
+      8
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "jordgubbar",
+    "name": "jordgubbar",
+    "category": "fruit",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      6,
+      7
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "kiwi",
+    "name": "kiwi",
+    "category": "fruit",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "lime",
+    "name": "lime",
+    "category": "fruit",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "mango",
+    "name": "mango",
+    "category": "fruit",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "melon",
+    "name": "melon",
+    "category": "fruit",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "paron",
+    "name": "päron",
+    "category": "fruit",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "persika",
+    "name": "persika",
+    "category": "fruit",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      6,
+      7,
+      8
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "plommon",
+    "name": "plommon",
+    "category": "fruit",
+    "default_cost_tier": "mid",
+    "peak_months": [
+      8,
+      9
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "vattenmelon",
+    "name": "vattenmelon",
+    "category": "fruit",
+    "default_cost_tier": "budget",
+    "peak_months": [
+      6,
+      7,
+      8
+    ],
+    "available_year_round": true,
+    "seasonality_strength": "strong"
+  },
+  {
+    "id": "vindruvor",
+    "name": "vindruvor",
+    "category": "fruit",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  }
+]
