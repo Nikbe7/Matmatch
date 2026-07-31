@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-07-31 — Coconut carries no `tree_nuts` allergen tag
+
+**Decision:** Coconut-derived catalog ingredients (`kokosmjolk`, `kokosolja`, and any future coconut entry) get no `tree_nuts` value in their `allergens[]`. This is a standing rule for the whole catalog, not a per-row call.
+
+**Why:** EU allergen labelling (Regulation 1169/2011, Annex II) enumerates tree nuts explicitly — almond, hazelnut, walnut, cashew, pecan, brazil, pistachio, macadamia — and coconut is not among them. Treating coconut as a tree nut is the US FDA convention and does not apply to the Swedish market. This is a settled regulatory question, not genuine uncertainty, so the §5.4 fail-safe rule ("when uncertain, include the allergen") does not govern it — fail-safe resolves ambiguity, it is not a reason to over-tag against a clear standard. Tagging it would exclude coconut-based curry, wok and vegan dishes from every tree-nut household for no safety benefit, and those dishes concentrate in the largest cells of the §5.3 template coverage matrix (`vegetarian_vegan × asian` at 10, the joint-largest).
+
+**How to apply:** #9's verification pass must **not** flip coconut rows to include `tree_nuts` — an empty `allergens[]` on a coconut row is the intended, reviewed answer, and this entry exists specifically because a careful reviewer would otherwise "correct" it. If a real user ever reports a coconut allergy, that is a **new allergen vocabulary value** added to §5.2, not a reclassification of coconut as a tree nut.
+
+---
+
 ## 2026-07-31 — Locked ingredient-to-allergen mapping schema (ARCHITECTURE.md §5.4)
 
 **Decision:** The ingredient→allergen mapping (issues #8/#9's source data) is a **separate** entity, `IngredientAllergenMapping`, not a field on `Ingredient` (§5.1) — one record per ingredient (`ingredient_id`, `allergens[]`, `verification_status`), not one per `(ingredient, allergen)` pair. `verification_status` is a required two-value enum (`unverified` / `verified`), with no `verified_by`/`verified_at` fields. "May contain" / cross-contamination cases (oats and gluten, sausage fillers) are collapsed into `allergens[]` — there is no third `may_contain` state. Stored as its own file, `data/ingredient-allergens.json`, validated via #15's CLI as `--type ingredient-allergen`, which adds a coverage check (every catalog ingredient must have a mapping row, erroring when missing) and reports an unverified-row count as a warning in its summary.
