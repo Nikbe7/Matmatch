@@ -29,3 +29,6 @@ coverage/
 # Misc
 *.tsbuildinfo
 .turbo/
+
+# Scratch artifacts — working tools for a task, not durable data or docs
+tmp/
