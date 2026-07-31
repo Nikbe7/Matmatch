@@ -2,7 +2,7 @@
   {
     "id": "gul-lok",
     "name": "Gul lök",
-    "category": "vegetable",
+    "category": "spice_aromatic",
     "default_cost_tier": "budget",
     "peak_months": [],
     "available_year_round": true,

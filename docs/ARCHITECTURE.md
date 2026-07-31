@@ -127,6 +127,7 @@ Chosen over a single `seasonality_tags[]` string array so the Meal Engine can di
 
 **Known edge cases (documented, not separate categories):**
 - Legumes (chickpeas, lentils, beans, tofu) → `protein` — functions as the protein source in vegetarian/vegan templates
+- Alliums (onion, garlic, shallot, leek) and ginger → `spice_aromatic`, not `vegetable` — they function as a flavor base, not a vegetable component, even at larger quantities (e.g. purjolök in a soup)
 - Mushrooms → `vegetable` — culinary role, not fungal taxonomy
 - Nuts & seeds → `condiment` — default assumption is garnish/texture in small quantity; if a future template uses nuts as the primary protein base (e.g. a cashew-based vegan dish), that's a per-recipe-template tagging decision, not a reason to recategorize the ingredient
 - Generic entries like "svamp" (mushroom) or "lök" (onion) should be split into specific varieties in the catalog (champinjon vs. kantarell; gul lök vs. rödlök) where cost tier or seasonality genuinely differs — a catalog-content note for issue #6, not a schema gap
