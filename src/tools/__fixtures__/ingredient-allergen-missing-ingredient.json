@@ -1,0 +1,3 @@
+[
+  { "ingredient_id": "nonexistent-ingredient", "allergens": ["gluten"], "verification_status": "verified" }
+]

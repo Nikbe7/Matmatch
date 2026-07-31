@@ -87,6 +87,7 @@ Allergy and hard dietary restriction filtering happens in the **Meal Engine**, b
 - **HouseholdMember** — id, household_id, type (adult/child), portion_size, dietary_flags[], allergies[] (distinct field, treated as sensitive) — see "Allergy & dietary vocabulary" below for the locked value lists
 - **Ingredient** — id, name, category, default_cost_tier, peak_months[], available_year_round, seasonality_strength (curated/maintained data, not AI-generated; see "Ingredient schema" below for the locked vocabularies)
 - **RecipeTemplate** — id, name, protein_group, cuisine, cost_tier, prep_time_band, dietary_tags[], ingredient_slots[] (role, ingredient_id, substitutable) — see "RecipeTemplate schema & coverage matrix" below for the locked vocabularies and matrix
+- **IngredientAllergenMapping** — ingredient_id (FK to Ingredient.id), allergens[], verification_status — the sole source of truth for allergy filtering (§4.3); see "Ingredient-to-allergen mapping" below
 - **SessionPantryInput** — id, household_id, session_id, ingredient_ids[] (ephemeral, per-session — explicitly *not* a persistent inventory table)
 - **GeneratedMeal** — id, household_id, recipe_template_id (nullable if fully AI-generated), final_ingredients[], portions, estimated_cost_tier, created_at, source (template/tier1/tier2)
 - **ShoppingList** — id, generated_meal_id, items[] (ingredient_id, have/need flag, checked state)
@@ -159,7 +160,7 @@ Scoped tightly to what the current UX flow and Phase 0 template batches (see MVP
 - `dietary_tags[]` — reuses the `dietary_flags` vocabulary locked in §5.2 (`vegetarian`, `vegan`, `high_protein_preference`). A template can match zero or more.
 - `ingredient_slots[]` — each slot is `{role, ingredient_id, substitutable}`. `role` is the CLAUDE.md-specified subset of `Ingredient.category` used for slot composition: `protein`, `starch`, `vegetable`, `aromatic` (maps to `spice_aromatic`), `dairy`. `substitutable` is a boolean placeholder only — the actual substitution-group mechanics are issue #3's schema, not duplicated here.
 
-**Allergen safety is deliberately *not* a RecipeTemplate field.** No `contains_allergens[]` or similar is stored on the template. Per §4.3, allergy filtering must never be AI-dependent or manually curated — it's computed live (or cached as a derived value) by joining a template's `ingredient_slots[]` against the verified ingredient-to-allergen mapping (issues #8/#9). A hand-tagged allergen list on the template would be a second source of truth that goes stale the moment a substitution changes what's actually in the dish — exactly the kind of drift the safety-critical filtering principle exists to prevent.
+**Allergen safety is deliberately *not* a RecipeTemplate field.** No `contains_allergens[]` or similar is stored on the template. Per §4.3, allergy filtering must never be AI-dependent or manually curated — it's computed live (or cached as a derived value) by joining a template's `ingredient_slots[]` against the verified ingredient-to-allergen mapping (§5.4, issues #8/#9). A hand-tagged allergen list on the template would be a second source of truth that goes stale the moment a substitution changes what's actually in the dish — exactly the kind of drift the safety-critical filtering principle exists to prevent.
 
 **Coverage matrix.** Defined as a 2D matrix — `protein_group` × `cuisine` — with a per-cell *target template count*, not a full 4-axis cross-product against `cost_tier` × `prep_time_band`. A full cross-product (5 × 6 × 3 × 3 = 270 cells) would force templates into unrealistic corners (e.g. a premium, 40min+, `egg_dairy_pantry` breakfast-for-dinner dish isn't a real pattern). Instead, `cost_tier` and `prep_time_band` are distributed *within* each cell according to what's realistic for that protein/cuisine combination, per the guidance below. Total target: **170 templates**, within the roadmap's 150-200 range.
 
@@ -178,6 +179,26 @@ Row totals reflect realistic weekly-rotation frequency (chicken and vegetarian/v
 - `fish_seafood` — mid/premium-skewed (salmon, shrimp), mostly <20-40min since fish cooks fast
 - `vegetarian_vegan` — budget/mid-skewed (legumes, vegetables are cheap), mostly <20-40min
 - `egg_dairy_pantry` — budget-skewed, mostly <20min quick meals
+
+### 5.4 Ingredient-to-allergen mapping (locked, Phase 0 Day 3)
+
+The single source of truth for safety-critical allergen filtering (§4.3). A **separate mapping**, not a field on `Ingredient` (§5.1): it has its own per-row verification lifecycle (independent of the ingredient catalog's curated-data status), is reviewable as a bounded ~200-row artifact on its own, and versions independently — an allergen correction is a one-line diff here, not a touch on the catalog record it corrects.
+
+**Shape — one record per ingredient** (not one record per `(ingredient, allergen)` pair):
+
+- `ingredient_id` — foreign key into `Ingredient.id` (§5.1), reusing the same slug-id schema
+- `allergens[]` — reuses the `allergies` vocabulary locked in §5.2 (`gluten`, `dairy_lactose`, `egg`, `tree_nuts`, `peanuts`, `shellfish`, `fish`, `soy`). May legitimately be empty — an empty array on a `verified` row is the explicit, positive claim "this ingredient contains none of the tracked allergens," not an unset value.
+- `verification_status` (enum, required) — `unverified` / `verified`. `unverified` is what issue #8's AI-drafted rows carry; issue #9 flips a row to `verified` only after a human reviews it. Required (no default, no optional) for the same reason `seasonality_strength` is required in §5.1: an unreviewed row must be structurally impossible to mistake for a reviewed one.
+
+One row per ingredient, not per pair, because it's the only shape that can express "verified, contains nothing" without ambiguity. With per-pair rows, zero rows for an ingredient is indistinguishable between "verified as allergen-free" and "never reviewed" — exactly the silent-allergen-free failure this schema exists to prevent. A full cross-product of per-pair rows (8 allergens × ~200 ingredients) would also multiply the artifact #9 has to 100%-manually-verify roughly eightfold for no product benefit.
+
+**"May contain" / cross-contamination is collapsed into `allergens[]`, not a third state.** Oats with cross-contamination gluten risk, or a sausage with a soy filler, get `gluten` / `soy` in their `allergens[]` exactly like a definite ingredient — there is no `may_contain` distinction. Because §4.3 filtering is a hard binary exclude, not a graded risk score, "may contain" and "definitely contains" require identical downstream behavior for an allergic household, so a third state would add real modeling weight for a distinction nothing currently consumes.
+
+**No `verified_by` / `verified_at` fields.** That's process metadata already captured by git blame and PR review on this file; duplicating it into the row would be a second source of truth for information git already owns.
+
+**Fail-safe enforcement, stated explicitly so a future implementation doesn't default permissive:** the Meal Engine must treat a **missing row** and an **`unverified` row** identically to a row that **contains** the allergen — both exclude the ingredient for a household with that allergy. An ingredient absent from this mapping, or present but not yet verified, is never treated as allergen-free.
+
+Storage: `data/ingredient-allergens.json`, alongside `data/ingredients.json` / `data/recipe-templates.json` / `data/substitutions.json`. Validated via the CLI validator (#15) as `--type ingredient-allergen`, including a coverage check (every catalog ingredient has a mapping row) and an unverified-row count in the summary output — see DECISION_LOG 2026-07-31.
 
 ## 6. API Surface (High Level, No Implementation Yet)
 

@@ -108,3 +108,80 @@ describe("validateFiles", () => {
     expect(result.errors).toHaveLength(2);
   });
 });
+
+describe("validateFiles — ingredient-allergen coverage", () => {
+  it("passes when every catalog ingredient has a verified mapping row", () => {
+    const result = validateFiles([
+      fixture("valid-ingredients.json", "ingredient"),
+      fixture("valid-ingredient-allergens.json", "ingredient-allergen"),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("fails a mapping row referencing a nonexistent ingredient id", () => {
+    // The fixture only maps "nonexistent-ingredient", so the coverage check
+    // also fires (gul-lok/kyckling are uncovered) alongside the referential
+    // check under test here — both are correct, independent findings.
+    const result = validateFiles([
+      fixture("valid-ingredients.json", "ingredient"),
+      fixture("ingredient-allergen-missing-ingredient.json", "ingredient-allergen"),
+    ]);
+
+    expect(
+      result.errors.some((error) => error.message.includes('references unknown ingredient id "nonexistent-ingredient"')),
+    ).toBe(true);
+  });
+
+  it("fails coverage when a catalog ingredient has no mapping row at all", () => {
+    const result = validateFiles([
+      fixture("valid-ingredients.json", "ingredient"),
+      fixture("ingredient-allergen-partial-coverage.json", "ingredient-allergen"),
+    ]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.message).toContain('ingredient "kyckling" has no ingredient-allergen mapping row');
+  });
+
+  it("skips the coverage check and notes it when no ingredient file is passed", () => {
+    const result = validateFiles([fixture("valid-ingredient-allergens.json", "ingredient-allergen")]);
+
+    expect(result.errors).toEqual([]);
+    expect(
+      result.notes.some((note) => note.includes("no ingredient file was passed") && note.includes("coverage")),
+    ).toBe(true);
+  });
+
+  it("skips the coverage check and notes it when no ingredient-allergen file is passed", () => {
+    const result = validateFiles([fixture("valid-ingredients.json", "ingredient")]);
+
+    expect(result.errors).toEqual([]);
+    expect(
+      result.notes.some(
+        (note) => note.includes("no ingredient-allergen file was passed") && note.includes("coverage"),
+      ),
+    ).toBe(true);
+  });
+
+  it("warns with an unverified-row count, without erroring, and does not affect exit-worthy status", () => {
+    const result = validateFiles([
+      fixture("valid-ingredients.json", "ingredient"),
+      fixture("ingredient-allergen-unverified.json", "ingredient-allergen"),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]!.message).toContain("1 of 2 ingredient-allergen row(s) are unverified");
+  });
+
+  it("fails on duplicate ingredient_id in the mapping across files", () => {
+    const result = validateFiles([
+      fixture("dup-id-ingredient-allergens-a.json", "ingredient-allergen"),
+      fixture("dup-id-ingredient-allergens-b.json", "ingredient-allergen"),
+    ]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.message).toContain('duplicate ingredient-allergen id "gul-lok"');
+  });
+});

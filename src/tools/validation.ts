@@ -1,18 +1,28 @@
 import type { z } from "zod";
 import { IngredientSchema } from "../schema/ingredient.js";
 import { RecipeTemplateSchema } from "../schema/recipeTemplate.js";
+import { IngredientAllergenMappingSchema } from "../schema/ingredientAllergenMapping.js";
 
-export type RecordType = "ingredient" | "recipe-template";
+export type RecordType = "ingredient" | "recipe-template" | "ingredient-allergen";
 
 interface TypeConfig {
   schema: z.ZodType;
   // Ingredient ids this record references, for cross-file referential checks
   // against the ingredient catalog. Omitted for types that reference nothing.
   extractIngredientRefs?: (record: Record<string, unknown>) => string[];
+  // Where this type's data lives by default, relative to the repo root, used
+  // when `npm run validate` is invoked with no explicit --type groups. Plain
+  // paths are checked for existence and skipped-with-a-note if absent; glob
+  // patterns are expanded and simply contribute nothing if they match zero
+  // files (no "missing" note — an unsplit catalog is not an error).
+  defaultPaths: string[];
 }
 
 const TYPE_REGISTRY: Record<RecordType, TypeConfig> = {
-  ingredient: { schema: IngredientSchema },
+  ingredient: {
+    schema: IngredientSchema,
+    defaultPaths: ["data/ingredients.json", "data/ingredients/*.json"],
+  },
   "recipe-template": {
     schema: RecipeTemplateSchema,
     extractIngredientRefs: (record) =>
@@ -21,10 +31,21 @@ const TYPE_REGISTRY: Record<RecordType, TypeConfig> = {
             .map((slot) => (slot as { ingredient_id?: unknown })?.ingredient_id)
             .filter((id): id is string => typeof id === "string")
         : [],
+    defaultPaths: ["data/recipe-templates.json"],
+  },
+  "ingredient-allergen": {
+    schema: IngredientAllergenMappingSchema,
+    extractIngredientRefs: (record) =>
+      typeof record.ingredient_id === "string" ? [record.ingredient_id] : [],
+    defaultPaths: ["data/ingredient-allergens.json"],
   },
 };
 
 export const RECORD_TYPES = Object.keys(TYPE_REGISTRY) as RecordType[];
+
+export const DEFAULT_PATHS_BY_TYPE: Record<RecordType, string[]> = Object.fromEntries(
+  RECORD_TYPES.map((type) => [type, TYPE_REGISTRY[type].defaultPaths]),
+) as Record<RecordType, string[]>;
 
 export interface FileInput {
   path: string;
@@ -48,11 +69,15 @@ export interface ValidationResult {
   recordsChecked: number;
 }
 
+// A record's identity is usually its own "id" field, but a mapping like
+// IngredientAllergenMapping has no independent id — its identity is the
+// foreign key it's keyed on. Falling back to "ingredient_id" lets duplicate-id
+// detection and error reporting work uniformly across both shapes.
 function recordId(record: unknown): string | undefined {
-  if (record && typeof record === "object" && "id" in record) {
-    const id = (record as { id: unknown }).id;
-    return typeof id === "string" ? id : undefined;
-  }
+  if (!record || typeof record !== "object") return undefined;
+  const { id, ingredient_id } = record as { id?: unknown; ingredient_id?: unknown };
+  if (typeof id === "string") return id;
+  if (typeof ingredient_id === "string") return ingredient_id;
   return undefined;
 }
 
@@ -133,6 +158,8 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
   }
 
   checkReferentialIntegrity(inputs, validByType, errors, notes);
+  checkAllergenCoverage(inputs, validByType, errors, notes);
+  checkUnverifiedAllergenRows(validByType, warnings);
 
   return {
     errors,
@@ -220,4 +247,66 @@ function checkReferentialIntegrity(
       }
     }
   }
+}
+
+// The inverse of checkReferentialIntegrity: every ingredient in the catalog
+// must have an allergen mapping row. A catalog id with no row is the most
+// likely real-world way the fail-safe allergen posture (ARCHITECTURE.md §5.4)
+// gets silently broken — an ingredient added in #6 and never mapped in #8/#9.
+function checkAllergenCoverage(
+  inputs: FileInput[],
+  validByType: Map<RecordType, ValidRecord[]>,
+  errors: ValidationIssue[],
+  notes: string[],
+): void {
+  const ingredientFilePassed = inputs.some((i) => i.type === "ingredient");
+  if (!ingredientFilePassed) {
+    notes.push(
+      "no ingredient file was passed in this invocation; skipping allergen mapping coverage check",
+    );
+    return;
+  }
+
+  const allergenFilePassed = inputs.some((i) => i.type === "ingredient-allergen");
+  if (!allergenFilePassed) {
+    notes.push(
+      "no ingredient-allergen file was passed in this invocation; skipping allergen mapping coverage check",
+    );
+    return;
+  }
+
+  const mappedIngredientIds = new Set(
+    (validByType.get("ingredient-allergen") ?? [])
+      .map((entry) => recordId(entry.record))
+      .filter((id): id is string => !!id),
+  );
+
+  for (const entry of validByType.get("ingredient") ?? []) {
+    const ingredientId = recordId(entry.record);
+    if (ingredientId && !mappedIngredientIds.has(ingredientId)) {
+      errors.push({
+        file: entry.file,
+        index: entry.index,
+        id: ingredientId,
+        message: `ingredient "${ingredientId}" has no ingredient-allergen mapping row`,
+      });
+    }
+  }
+}
+
+function checkUnverifiedAllergenRows(
+  validByType: Map<RecordType, ValidRecord[]>,
+  warnings: ValidationIssue[],
+): void {
+  const rows = validByType.get("ingredient-allergen") ?? [];
+  const unverified = rows.filter((entry) => entry.record.verification_status === "unverified");
+  if (unverified.length === 0) return;
+
+  const files = [...new Set(rows.map((entry) => entry.file))].join(", ");
+  warnings.push({
+    file: files,
+    message:
+      `${unverified.length} of ${rows.length} ingredient-allergen row(s) are unverified — ` +
+      `#9 requires 100% manual verification before any allergen-dependent code ships`,
+  });
 }

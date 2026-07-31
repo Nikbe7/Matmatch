@@ -1,6 +1,7 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { glob } from "node:fs/promises";
 import {
+  DEFAULT_PATHS_BY_TYPE,
   RECORD_TYPES,
   validateFiles,
   type FileInput,
@@ -20,6 +21,37 @@ async function expandPaths(pattern: string): Promise<string[]> {
   const matches: string[] = [];
   for await (const match of glob(pattern)) matches.push(match);
   return matches;
+}
+
+// Invoked with no --type groups at all: validate every registered type's
+// default data file(s) (DEFAULT_PATHS_BY_TYPE, sourced from the type
+// registry itself — see validation.ts). A plain default path that doesn't
+// exist yet is skipped with a note rather than failing the run; a glob
+// pattern matching zero files simply contributes nothing.
+export async function resolveDefaultTargets(): Promise<{
+  targets: { path: string; type: RecordType }[];
+  notes: string[];
+}> {
+  const targets: { path: string; type: RecordType }[] = [];
+  const notes: string[] = [];
+
+  for (const type of RECORD_TYPES) {
+    for (const pattern of DEFAULT_PATHS_BY_TYPE[type]) {
+      if (isGlobPattern(pattern)) {
+        for (const path of await expandPaths(pattern)) targets.push({ path, type });
+        continue;
+      }
+
+      try {
+        await access(pattern);
+        targets.push({ path: pattern, type });
+      } catch {
+        notes.push(`default data file ${pattern} does not exist; skipping`);
+      }
+    }
+  }
+
+  return { targets, notes };
 }
 
 // Usage: npm run validate -- --type ingredient data/ingredients.json --type recipe-template data/recipe-templates.json
@@ -61,11 +93,19 @@ function formatIssue(issue: { file: string; index?: number; id?: string; path?: 
 
 export async function main(argv: string[]): Promise<number> {
   let targets: { path: string; type: RecordType }[];
-  try {
-    targets = await parseArgs(argv);
-  } catch (cause) {
-    console.error((cause as Error).message);
-    return 1;
+  let preNotes: string[] = [];
+
+  if (argv.length === 0) {
+    console.log("no --type given: validating all registered data files by default\n");
+    ({ targets, notes: preNotes } = await resolveDefaultTargets());
+  } else {
+    console.log("explicit --type invocation\n");
+    try {
+      targets = await parseArgs(argv);
+    } catch (cause) {
+      console.error((cause as Error).message);
+      return 1;
+    }
   }
 
   if (targets.length === 0) {
@@ -87,6 +127,7 @@ export async function main(argv: string[]): Promise<number> {
 
   const result = validateFiles(inputs);
 
+  for (const note of preNotes) console.log(`NOTE ${note}`);
   for (const error of result.errors) console.error(`ERROR ${formatIssue(error)}`);
   for (const warning of result.warnings) console.warn(`WARNING ${formatIssue(warning)}`);
   for (const note of result.notes) console.log(`NOTE ${note}`);
