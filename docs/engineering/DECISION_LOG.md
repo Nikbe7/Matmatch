@@ -8,13 +8,23 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
-## 2026-07-31 — Coconut carries no `tree_nuts` allergen tag
+## 2026-07-31 — `allergens: []` means "none of the 8 locked values", not "allergen-free"
 
-**Decision:** Coconut-derived catalog ingredients (`kokosmjolk`, `kokosolja`, and any future coconut entry) get no `tree_nuts` value in their `allergens[]`. This is a standing rule for the whole catalog, not a per-row call.
+**Decision:** An empty `allergens[]` in `data/ingredient-allergens.json` means "contains none of the 8 locked allergen values" — it does **not** mean "contains no allergens." Sesame, mustard and celery remain deliberately out of vocabulary (see the 2026-07-29 allergy vocabulary entry); `sesamfron`, `sesamolja`, `senap` and `dijonsenap` therefore carry `[]`.
 
-**Why:** EU allergen labelling (Regulation 1169/2011, Annex II) enumerates tree nuts explicitly — almond, hazelnut, walnut, cashew, pecan, brazil, pistachio, macadamia — and coconut is not among them. Treating coconut as a tree nut is the US FDA convention and does not apply to the Swedish market. This is a settled regulatory question, not genuine uncertainty, so the §5.4 fail-safe rule ("when uncertain, include the allergen") does not govern it — fail-safe resolves ambiguity, it is not a reason to over-tag against a clear standard. Tagging it would exclude coconut-based curry, wok and vegan dishes from every tree-nut household for no safety benefit, and those dishes concentrate in the largest cells of the §5.3 template coverage matrix (`vegetarian_vegan × asian` at 10, the joint-largest).
+**Why:** No new information has appeared to reopen the deferral, and adding two values now would force a re-review of all 206 rows during the pass that is already Phase 0's long pole. The user-facing risk is currently nil because onboarding only offers the 8 locked chips, so a sesame-allergic user cannot express the allergy and cannot be told a sesame dish is safe for it.
 
-**How to apply:** #9's verification pass must **not** flip coconut rows to include `tree_nuts` — an empty `allergens[]` on a coconut row is the intended, reviewed answer, and this entry exists specifically because a careful reviewer would otherwise "correct" it. If a real user ever reports a coconut allergy, that is a **new allergen vocabulary value** added to §5.2, not a reclassification of coconut as a tree nut.
+**How to apply:** Adding any ninth allergen value **requires** a full re-review pass over every row in `data/ingredient-allergens.json` for that value, and every affected row must be reset to `unverified` first. Never add a value to the onboarding chips before that pass is complete — a chip without a completed mapping pass is a silent false-safe. Do not attempt to encode out-of-vocabulary allergens in `[]` rows or in comments.
+
+---
+
+## 2026-07-31 — Tree-nut boundary cases: coconut untagged, pine nuts tagged
+
+**Decision:** Coconut-derived ingredients (kokosmjölk, kokosolja, kokosgrädde, riven kokos) carry no `tree_nuts` tag. Pine nuts (pinjenötter, and pesto containing them) **do** carry `tree_nuts`. Neither is on EU Annex II.
+
+**Why:** Annex II settles the taxonomy but not the product call, so the two are decided on exclusion cost against clinical reality. Coconut: the regulatory answer is unambiguous, tree-nut-allergic people are not advised to avoid it, and tagging it would remove coconut-milk curry, wok and vegan dishes — a structural part of the largest cell in the template coverage matrix. Pine nuts: documented cross-reactivity with tree nuts, commonly avoided in practice, and the exclusion cost is a garnish plus one sauce. This is a deliberate judgment ratio (clinical avoidance vs. exclusion cost), not a taxonomy rule — recorded because it is exactly the kind of asymmetry a careful reviewer will otherwise "fix" into consistency.
+
+**How to apply:** #9 must not flip either row set. A real user reporting a coconut allergy is a new vocabulary value, not a reclassification of coconut as a tree nut.
 
 ---
 
