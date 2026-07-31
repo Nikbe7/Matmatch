@@ -83,9 +83,9 @@ changes, each with its one-line reason, and what to do after. No headings, no ce
 
 Every block that finishes a piece of work ends by telling the other chat to close it out
 explicitly — run typecheck and tests, commit with the Conventional Commit line, push, open
-the PR with `Closes #N`, and move the issue to Review. Never leave it implied. Merging to
-`main` and closing the issue are Niklas's, per `docs/engineering/GIT_AND_GITHUB.md`: name
-them as his next action instead, unless he has said he wants them delegated.
+the PR with `Closes #N`, and move the issue to Review. Never leave it implied. Once Niklas
+says the work is verified, the same block tells it to squash-merge and close the issue too —
+he verifies, the other chat presses the buttons.
 
 For new work, write a full brief for a senior engineer who has the repo but not this
 conversation. It should need zero editing:
