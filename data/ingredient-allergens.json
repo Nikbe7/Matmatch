@@ -4,476 +4,467 @@
     "allergens": [
       "egg"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "anka",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "bacon",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "biff",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "blodpudding",
     "allergens": [
       "gluten",
-      "dairy_lactose"
+      "dairy_lactose",
+      "egg"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "entrecote",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "falukorv",
-    "allergens": [
-      "gluten",
-      "soy"
-    ],
-    "verification_status": "unverified"
+    "allergens": [],
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "fiskpinnar",
     "allergens": [
       "fish",
-      "gluten"
+      "gluten",
+      "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "flaskfars",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "flaskfile",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "flaskkarre",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "flaskkotlett",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "grillkorv",
-    "allergens": [
-      "gluten",
-      "soy"
-    ],
-    "verification_status": "unverified"
+    "allergens": [],
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "hogrev",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kalkonfars",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kalkonfile",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kalvfars",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kikartor",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kyckling",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kycklingfars",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kycklingfile",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kycklingklubba",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kycklinglarfile",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kycklingvingar",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "lammfars",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "lammfile",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "lax",
     "allergens": [
       "fish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "laxfile",
     "allergens": [
       "fish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "leverpastej",
     "allergens": [
       "gluten",
-      "dairy_lactose",
-      "soy"
+      "dairy_lactose"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "linser",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "musslor",
     "allergens": [
       "shellfish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "notfars",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "oxfile",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rakor",
     "allergens": [
       "shellfish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "revbensspjall",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rokt-lax",
     "allergens": [
       "fish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rokt-skinka",
-    "allergens": [
-      "soy"
-    ],
-    "verification_status": "unverified"
+    "allergens": [],
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "sill",
     "allergens": [
       "fish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "skaldjursmix",
     "allergens": [
       "shellfish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "skinka",
-    "allergens": [
-      "soy"
-    ],
-    "verification_status": "unverified"
+    "allergens": [],
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "svarta-bonor",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "tofu",
     "allergens": [
       "soy"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "tonfisk",
     "allergens": [
       "fish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "torsk",
     "allergens": [
       "fish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "torskfile",
     "allergens": [
       "fish"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "artor",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "aubergine",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "avokado",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "bambuskott",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "blomkal",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "broccoli",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "brysselkal",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "champinjon",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "fankal",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "gron-paprika",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "grona-bonor",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "gronkal",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "gurka",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "isbergssallat",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kalrot",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "kantarell",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "korsbarstomat",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "majrova",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "majs",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "mangold",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "minigurka",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "morot",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "palsternacka",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "portabello",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "pumpa",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "radisor",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rod-paprika",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rodbeta",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rodkal",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "rotselleri",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "ruccola",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "salladsmix",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "selleri",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "sockerartor",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "sojagroddar",
     "allergens": [
       "soy"
     ],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "sparris",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "spenat",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "spetskal",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "tomat",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "vitkal",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "zucchini",
     "allergens": [],
-    "verification_status": "unverified"
+    "verification_status": "verified"
   },
   {
     "ingredient_id": "aggnudlar",
