@@ -2207,8 +2207,8 @@
     ]
   },
   {
-    "id": "kare-med-sotsur-sas-och-ananas",
-    "name": "Karé med sötsur sås och ananas",
+    "id": "flaskkarre-med-sotsur-sas-och-ananas",
+    "name": "Fläskkarré med sötsur sås och ananas",
     "protein_group": "beef_pork",
     "cuisine": "asian",
     "cost_tier": "mid",
@@ -2827,8 +2827,8 @@
     ]
   },
   {
-    "id": "grillad-oxfile-med-bearnaisesas-och-pommes",
-    "name": "Grillad oxfilé med bearnaisesås och pommes",
+    "id": "philly-cheesesteak-med-entrecote",
+    "name": "Philly cheesesteak med entrecôte",
     "protein_group": "beef_pork",
     "cuisine": "american_comfort",
     "cost_tier": "premium",
@@ -2837,22 +2837,27 @@
     "ingredient_slots": [
       {
         "role": "protein",
-        "ingredient_id": "oxfile",
+        "ingredient_id": "entrecote",
         "substitutable": false
       },
       {
-        "role": "aromatic",
-        "ingredient_id": "bearnaisesas",
-        "substitutable": true
-      },
-      {
         "role": "starch",
-        "ingredient_id": "potatis",
+        "ingredient_id": "formbrod",
         "substitutable": true
       },
       {
         "role": "vegetable",
-        "ingredient_id": "broccoli",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
         "substitutable": true
       }
     ]
