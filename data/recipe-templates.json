@@ -5447,5 +5447,1128 @@
         "substitutable": true
       }
     ]
+  },
+  {
+    "id": "pannkakor-med-vaniljsocker",
+    "name": "Pannkakor med vaniljsocker",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "standardmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vaniljsocker",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "aggrora-med-graddfil-pa-ragbrod",
+    "name": "Äggröra med gräddfil på rågbröd",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": false
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "graddfil",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ragbrod",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "skinksmorgas-med-agg-och-senap",
+    "name": "Skinksmörgås med ägg och senap",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "skinka",
+        "substitutable": false
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "senap",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "raggmunk-med-graddfil",
+    "name": "Raggmunk med gräddfil",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "graddfil",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatismjol",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "standardmjolk",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "artsoppa-med-senap",
+    "name": "Ärtsoppa med senap",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "artor",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "senap",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "ostpaj-med-purjolok",
+    "name": "Ostpaj med purjolök",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hushallsost",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "purjolok",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "standardmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "korv-stroganoff-med-ris",
+    "name": "Korv stroganoff med ris",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "falukorv",
+        "substitutable": false
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "tomatpure",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "makaronipanna-med-falukorv",
+    "name": "Makaronipanna med falukorv",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "falukorv",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "makaroner",
+        "substitutable": true
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "standardmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "pasta-aglio-e-olio-med-prastost",
+    "name": "Pasta aglio e olio med prästost",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "prastost",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "chiliflakes",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "frittata-med-spenat-och-graddfil",
+    "name": "Frittata med spenat och gräddfil",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": false
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "graddfil",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "spenat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "panzanella-med-hushallsost-tomat-och-basilika",
+    "name": "Panzanella med hushållsost, tomat och basilika",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hushallsost",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ragbrod",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "balsamvinager",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-basilika",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kramig-polenta-med-keso-och-spenat",
+    "name": "Krämig polenta med keso och spenat",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "keso",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "mannagryn",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "spenat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "svartbonssallad-med-citron-och-persilja",
+    "name": "Svartbönssallad med citron och persilja",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan",
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "purjolokssoppa-med-creme-fraiche",
+    "name": "Purjolökssoppa med crème fraîche",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "creme-fraiche",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "purjolok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "svartpeppar",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "friterat-ris-med-prastost-och-gronsaker",
+    "name": "Friterat ris med prästost och grönsaker",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "prastost",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "artor",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "halloumi-i-wok-med-teriyakisas-och-sesam",
+    "name": "Halloumi i wok med teriyakisås och sesam",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "halloumi",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "broccoli",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sesamfron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "aggcurry-med-kokosmjolk-och-spenat",
+    "name": "Äggcurry med kokosmjölk och spenat",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "asian",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "curry",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "kokosmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "spenat",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "svampsoppa-med-soja-och-vitlok",
+    "name": "Svampsoppa med soja och vitlök",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "asian",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "champinjon",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gurkmeja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "huevos-rancheros-med-svarta-bonor",
+    "name": "Huevos rancheros med svarta bönor",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "migas-med-tortilla-och-ost",
+    "name": "Migas med tortilla och ost",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "queso-fundido-med-tortilla",
+    "name": "Queso fundido med tortilla",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hushallsost",
+        "substitutable": false
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "fetaost",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "shakshuka-med-tomatpure-och-gron-paprika",
+    "name": "Shakshuka med tomatpuré och grön paprika",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "middle_eastern",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "tomatpure",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gurkmeja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "fyllt-naanbrod-med-halloumi-och-yoghurtsas",
+    "name": "Fyllt naanbröd med halloumi och yoghurtsås",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "halloumi",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "naanbrod",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "naturell-yoghurt",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-mynta",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kall-yoghurtsoppa-med-gurka-och-dill",
+    "name": "Kall yoghurtsoppa med gurka och dill",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "middle_eastern",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "naturell-yoghurt",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-dill",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "knackebrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "amerikansk-grillad-ostmacka-med-tomatsoppa",
+    "name": "Amerikansk grillad ostmacka med tomatsoppa",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hushallsost",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "tomatpure",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "aggmacka-med-majonnas-och-dill",
+    "name": "Äggmacka med majonnäs och dill",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "american_comfort",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "majonnas",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-dill",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "vafflor-med-apple",
+    "name": "Våfflor med äpple",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "american_comfort",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "standardmjolk",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "apple",
+        "substitutable": true
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "potatisgratang-med-vasterbottensost",
+    "name": "Potatisgratäng med västerbottensost",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "american_comfort",
+    "cost_tier": "premium",
+    "prep_time_band": "40min+",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "vasterbottensost",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "vispgradde",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "svartpeppar",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "korvgryta-med-potatis-och-gron-paprika",
+    "name": "Korvgryta med potatis och grön paprika",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "american_comfort",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "falukorv",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "tomatpure",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "ostsoppa-med-brod-och-vitlok",
+    "name": "Ostsoppa med bröd och vitlök",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hushallsost",
+        "substitutable": false
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "svartpeppar",
+        "substitutable": true
+      }
+    ]
   }
 ]
