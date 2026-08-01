@@ -1,0 +1,15 @@
+[
+  {
+    "id": "kyckling-med-ris",
+    "name": "Kyckling med ris",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": ["high_protein_preference"],
+    "ingredient_slots": [
+      { "role": "protein", "ingredient_id": "kyckling", "substitutable": false },
+      { "role": "starch", "ingredient_id": "ris", "substitutable": true }
+    ]
+  }
+]

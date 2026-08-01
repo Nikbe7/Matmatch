@@ -1,14 +1,14 @@
 [
   {
-    "id": "kyckling-wok",
-    "name": "Kyckling wok",
+    "id": "kyckling-med-lok",
+    "name": "Kyckling med lök",
     "protein_group": "chicken_poultry",
-    "cuisine": "asian",
+    "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "dietary_tags": ["high_protein_preference"],
+    "dietary_tags": [],
     "ingredient_slots": [
-      { "role": "protein", "ingredient_id": "kyckling", "substitutable": true },
+      { "role": "protein", "ingredient_id": "kyckling", "substitutable": false },
       { "role": "aromatic", "ingredient_id": "gul-lok", "substitutable": true }
     ]
   }

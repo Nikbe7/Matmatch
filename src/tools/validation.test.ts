@@ -109,6 +109,88 @@ describe("validateFiles", () => {
   });
 });
 
+describe("validateFiles — recipe-template derived fields", () => {
+  it("passes a template whose cost_tier and dietary_tags are correctly derived from its slots", () => {
+    const result = validateFiles([
+      fixture("recipe-template-derived-fields-ingredients.json", "ingredient"),
+      fixture("recipe-template-derived-fields-correct.json", "recipe-template"),
+    ]);
+
+    expect(result.errors).toEqual([]);
+  });
+
+  it("fails when cost_tier is lower than the highest-tier slot ingredient", () => {
+    const result = validateFiles([
+      fixture("recipe-template-derived-fields-ingredients.json", "ingredient"),
+      fixture("recipe-template-cost-tier-too-low.json", "recipe-template"),
+    ]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.message).toBe(
+      'template "kyckling-parmesan-mid": cost_tier "mid" should be "premium" (parmesan is premium)',
+    );
+  });
+
+  it("fails when cost_tier is higher than the highest-tier slot ingredient", () => {
+    const result = validateFiles([
+      fixture("recipe-template-derived-fields-ingredients.json", "ingredient"),
+      fixture("recipe-template-cost-tier-too-high.json", "recipe-template"),
+    ]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.message).toBe(
+      'template "budget-aromatic-starch": cost_tier "premium" should be "budget" (gul-lok is budget)',
+    );
+  });
+
+  it("fails when high_protein_preference is present despite a starch slot", () => {
+    const result = validateFiles([
+      fixture("recipe-template-derived-fields-ingredients.json", "ingredient"),
+      fixture("recipe-template-high-protein-tag-present-with-starch.json", "recipe-template"),
+    ]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.message).toBe(
+      'template "kyckling-med-ris": dietary_tags includes "high_protein_preference" but has a starch slot',
+    );
+  });
+
+  it("fails when high_protein_preference is missing despite no starch slot", () => {
+    const result = validateFiles([
+      fixture("recipe-template-derived-fields-ingredients.json", "ingredient"),
+      fixture("recipe-template-high-protein-tag-missing.json", "recipe-template"),
+    ]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.message).toBe(
+      'template "kyckling-med-lok": dietary_tags is missing "high_protein_preference" (no starch slot)',
+    );
+  });
+
+  it("skips derived-field checks (no crash, no extra error) for a template with an unresolved ingredient id", () => {
+    const result = validateFiles([
+      fixture("valid-ingredients.json", "ingredient"),
+      fixture("recipe-template-missing-ingredient.json", "recipe-template"),
+    ]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.message).toContain('references unknown ingredient id "nonexistent-ingredient"');
+  });
+
+  it("skips the derived-field checks and notes it when no ingredient file is passed", () => {
+    const result = validateFiles([
+      fixture("recipe-template-derived-fields-correct.json", "recipe-template"),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(
+      result.notes.some(
+        (note) => note.includes("no ingredient file was passed") && note.includes("derived-field"),
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("validateFiles — ingredient-allergen coverage", () => {
   it("passes when every catalog ingredient has a verified mapping row", () => {
     const result = validateFiles([
