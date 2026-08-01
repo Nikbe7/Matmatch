@@ -5876,11 +5876,51 @@
     ]
   },
   {
-    "id": "grillad-mozzarella-macka-med-tomat-och-basilika",
-    "name": "Grillad mozzarella-macka med tomat och basilika",
+    "id": "svartbonssallad-med-citron-och-persilja",
+    "name": "Svartbönssallad med citron och persilja",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "italian_mediterranean",
-    "cost_tier": "mid",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan",
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "purjolokssoppa-med-creme-fraiche",
+    "name": "Purjolökssoppa med crème fraîche",
+    "protein_group": "egg_dairy_pantry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "budget",
     "prep_time_band": "<20min",
     "dietary_tags": [
       "vegetarian"
@@ -5888,66 +5928,27 @@
     "ingredient_slots": [
       {
         "role": "protein",
-        "ingredient_id": "mozzarella",
+        "ingredient_id": "creme-fraiche",
         "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "purjolok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "svartpeppar",
+        "substitutable": true
       },
       {
         "role": "starch",
         "ingredient_id": "formbrod",
-        "substitutable": true
-      },
-      {
-        "role": "vegetable",
-        "ingredient_id": "tomat",
-        "substitutable": true
-      },
-      {
-        "role": "aromatic",
-        "ingredient_id": "farsk-basilika",
-        "substitutable": true
-      },
-      {
-        "role": "dairy",
-        "ingredient_id": "smor",
-        "substitutable": true
-      }
-    ]
-  },
-  {
-    "id": "ugnsbakade-agg-i-tomatsas-med-keso",
-    "name": "Ugnsbakade ägg i tomatsås med keso",
-    "protein_group": "egg_dairy_pantry",
-    "cuisine": "italian_mediterranean",
-    "cost_tier": "budget",
-    "prep_time_band": "20-40min",
-    "dietary_tags": [
-      "vegetarian",
-      "high_protein_preference"
-    ],
-    "ingredient_slots": [
-      {
-        "role": "protein",
-        "ingredient_id": "agg",
-        "substitutable": false
-      },
-      {
-        "role": "aromatic",
-        "ingredient_id": "tomatpure",
-        "substitutable": true
-      },
-      {
-        "role": "aromatic",
-        "ingredient_id": "vitlok",
-        "substitutable": true
-      },
-      {
-        "role": "aromatic",
-        "ingredient_id": "oregano",
-        "substitutable": true
-      },
-      {
-        "role": "dairy",
-        "ingredient_id": "keso",
         "substitutable": true
       }
     ]
@@ -6039,8 +6040,8 @@
     ]
   },
   {
-    "id": "kvargcurry-med-kokosmjolk-och-spenat",
-    "name": "Kvargcurry med kokosmjölk och spenat",
+    "id": "aggcurry-med-kokosmjolk-och-spenat",
+    "name": "Äggcurry med kokosmjölk och spenat",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "asian",
     "cost_tier": "budget",
@@ -6051,7 +6052,7 @@
     "ingredient_slots": [
       {
         "role": "protein",
-        "ingredient_id": "kvarg",
+        "ingredient_id": "agg",
         "substitutable": false
       },
       {
@@ -6279,11 +6280,11 @@
     ]
   },
   {
-    "id": "yoghurtdip-med-za-atar-inspirerad-krydda-pa-ragbrod",
-    "name": "Yoghurtdip med za'atar-inspirerad krydda på rågbröd",
+    "id": "fyllt-naanbrod-med-halloumi-och-yoghurtsas",
+    "name": "Fyllt naanbröd med halloumi och yoghurtsås",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "middle_eastern",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "<20min",
     "dietary_tags": [
       "vegetarian"
@@ -6291,22 +6292,27 @@
     "ingredient_slots": [
       {
         "role": "protein",
-        "ingredient_id": "naturell-yoghurt",
+        "ingredient_id": "halloumi",
         "substitutable": false
       },
       {
         "role": "starch",
-        "ingredient_id": "ragbrod",
+        "ingredient_id": "naanbrod",
         "substitutable": true
       },
       {
-        "role": "aromatic",
-        "ingredient_id": "oregano",
+        "role": "dairy",
+        "ingredient_id": "naturell-yoghurt",
         "substitutable": true
       },
       {
         "role": "vegetable",
         "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-mynta",
         "substitutable": true
       }
     ]
