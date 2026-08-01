@@ -61,10 +61,16 @@ describe("resolveDefaultTargets", () => {
     await writeFile(path.join(dir, "data", "ingredients.json"), "[]");
     await writeFile(path.join(dir, "data", "recipe-templates.json"), "[]");
     await writeFile(path.join(dir, "data", "ingredient-allergens.json"), "[]");
+    await writeFile(path.join(dir, "data", "substitutions.json"), "[]");
 
     const { targets, notes } = await resolveDefaultTargets();
 
-    expect(targets.map((t) => t.type).sort()).toEqual(["ingredient", "ingredient-allergen", "recipe-template"]);
+    expect(targets.map((t) => t.type).sort()).toEqual([
+      "ingredient",
+      "ingredient-allergen",
+      "recipe-template",
+      "substitution",
+    ]);
     expect(notes).toEqual([]);
   });
 

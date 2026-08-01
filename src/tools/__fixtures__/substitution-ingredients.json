@@ -1,0 +1,29 @@
+[
+  {
+    "id": "gul-lok",
+    "name": "Gul lök",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "rodlok",
+    "name": "Rödlök",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "schalottenlok",
+    "name": "Schalottenlök",
+    "category": "spice_aromatic",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  }
+]

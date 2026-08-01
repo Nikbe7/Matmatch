@@ -2,6 +2,7 @@ import type { z } from "zod";
 import { IngredientSchema, type CostTier } from "../schema/ingredient.js";
 import { RecipeTemplateSchema } from "../schema/recipeTemplate.js";
 import { IngredientAllergenMappingSchema } from "../schema/ingredientAllergenMapping.js";
+import { SubstitutionGroupSchema } from "../schema/substitution.js";
 
 // DECISION_LOG.md 2026-07-31 — RecipeTemplate cost_tier and dietary_tags
 // (high_protein_preference) are derived, not authored. This ordering is the
@@ -12,7 +13,7 @@ export const COST_TIER_ORDER: Record<CostTier, number> = {
   premium: 2,
 };
 
-export type RecordType = "ingredient" | "recipe-template" | "ingredient-allergen";
+export type RecordType = "ingredient" | "recipe-template" | "ingredient-allergen" | "substitution";
 
 interface TypeConfig {
   schema: z.ZodType;
@@ -47,6 +48,14 @@ const TYPE_REGISTRY: Record<RecordType, TypeConfig> = {
     extractIngredientRefs: (record) =>
       typeof record.ingredient_id === "string" ? [record.ingredient_id] : [],
     defaultPaths: ["data/ingredient-allergens.json"],
+  },
+  substitution: {
+    schema: SubstitutionGroupSchema,
+    extractIngredientRefs: (record) =>
+      Array.isArray(record.member_ingredient_ids)
+        ? record.member_ingredient_ids.filter((id): id is string => typeof id === "string")
+        : [],
+    defaultPaths: ["data/substitutions.json"],
   },
 };
 
@@ -170,6 +179,7 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
   checkRecipeTemplateDerivedFields(inputs, validByType, errors, warnings);
   checkAllergenCoverage(inputs, validByType, errors, warnings, notes);
   checkUnverifiedAllergenRows(validByType, warnings);
+  checkSubstitutionMembersResolvable(inputs, validByType, warnings);
 
   return {
     errors,
@@ -390,6 +400,34 @@ function checkAllergenCoverage(
       });
     }
   }
+}
+
+// Member resolution itself rides checkReferentialIntegrity via the type
+// registry's extractIngredientRefs. That check only *notes* a skipped run when
+// no ingredient file was passed; for substitution groups the whole point of the
+// file is the ingredient ids it names, so a run that resolved none of them is
+// warned about rather than passing quietly. Silent when there are no groups —
+// an empty data/substitutions.json is valid and shouldn't produce noise.
+//
+// Deliberately absent: any check comparing default_cost_tier across a group's
+// members. Groups are most useful precisely when members differ in tier (the
+// premium→budget swap is the feature); enforcing tier homogeneity here would
+// delete it. See ARCHITECTURE.md §5.5 on how this interacts with the derived
+// RecipeTemplate.cost_tier rule.
+function checkSubstitutionMembersResolvable(
+  inputs: FileInput[],
+  validByType: Map<RecordType, ValidRecord[]>,
+  warnings: ValidationIssue[],
+): void {
+  const groups = validByType.get("substitution") ?? [];
+  if (groups.length === 0) return;
+  if (inputs.some((i) => i.type === "ingredient")) return;
+
+  warnings.push({
+    file: [...new Set(groups.map((entry) => entry.file))].join(", "),
+    message:
+      "no ingredient file was passed in this invocation; skipping substitution member resolution against the ingredient catalog",
+  });
 }
 
 function checkUnverifiedAllergenRows(

@@ -284,3 +284,91 @@ describe("validateFiles — ingredient-allergen coverage", () => {
     expect(result.errors[0]!.message).toContain('duplicate ingredient-allergen id "gul-lok"');
   });
 });
+
+describe("validateFiles — substitution groups", () => {
+  it("passes a clean substitution file alongside the ingredient catalog", () => {
+    const result = validateFiles([
+      fixture("substitution-ingredients.json", "ingredient"),
+      fixture("valid-substitutions.json", "substitution"),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("passes an empty substitutions file with no errors", () => {
+    const result = validateFiles([
+      fixture("substitution-ingredients.json", "ingredient"),
+      { path: "data/substitutions.json", type: "substitution", content: "[]" },
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("fails on duplicate group id across files", () => {
+    const result = validateFiles([
+      fixture("dup-id-substitutions-a.json", "substitution"),
+      fixture("dup-id-substitutions-b.json", "substitution"),
+    ]);
+
+    expect(
+      result.errors.some((error) => error.message.includes('duplicate substitution id "lok"')),
+    ).toBe(true);
+  });
+
+  it("warns on a duplicate group name (case/whitespace-insensitive)", () => {
+    const result = validateFiles([
+      fixture("substitution-ingredients.json", "ingredient"),
+      fixture("dup-name-substitutions.json", "substitution"),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]!.message).toContain("duplicate substitution name");
+  });
+
+  it("fails a member ingredient id that resolves to nothing in the catalog", () => {
+    const result = validateFiles([
+      fixture("substitution-ingredients.json", "ingredient"),
+      fixture("substitution-missing-ingredient.json", "substitution"),
+    ]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({ id: "lok" });
+    expect(result.errors[0]!.message).toContain('references unknown ingredient id "nonexistent-ingredient"');
+  });
+
+  it("fails a group with fewer than 2 members", () => {
+    const result = validateFiles([
+      fixture("substitution-ingredients.json", "ingredient"),
+      fixture("substitution-too-few-members.json", "substitution"),
+    ]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({ path: "member_ingredient_ids", id: "lok" });
+  });
+
+  it("warns (does not silently pass) when no ingredient file is passed, so member resolution never ran", () => {
+    const result = validateFiles([fixture("valid-substitutions.json", "substitution")]);
+
+    expect(result.errors).toEqual([]);
+    expect(
+      result.warnings.some(
+        (warning) =>
+          warning.message.includes("no ingredient file was passed") &&
+          warning.message.includes("substitution member resolution"),
+      ),
+    ).toBe(true);
+  });
+
+  it("does not warn about skipped member resolution when there are no groups to resolve", () => {
+    const result = validateFiles([
+      { path: "data/substitutions.json", type: "substitution", content: "[]" },
+    ]);
+
+    expect(
+      result.warnings.some((warning) => warning.message.includes("substitution member resolution")),
+    ).toBe(false);
+  });
+});
