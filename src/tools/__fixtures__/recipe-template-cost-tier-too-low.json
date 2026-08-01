@@ -1,0 +1,15 @@
+[
+  {
+    "id": "kyckling-parmesan-mid",
+    "name": "Kyckling parmesan mid",
+    "protein_group": "chicken_poultry",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": ["high_protein_preference"],
+    "ingredient_slots": [
+      { "role": "protein", "ingredient_id": "kyckling", "substitutable": false },
+      { "role": "dairy", "ingredient_id": "parmesan", "substitutable": true }
+    ]
+  }
+]

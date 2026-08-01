@@ -1,7 +1,16 @@
 import type { z } from "zod";
-import { IngredientSchema } from "../schema/ingredient.js";
+import { IngredientSchema, type CostTier } from "../schema/ingredient.js";
 import { RecipeTemplateSchema } from "../schema/recipeTemplate.js";
 import { IngredientAllergenMappingSchema } from "../schema/ingredientAllergenMapping.js";
+
+// DECISION_LOG.md 2026-07-31 — RecipeTemplate cost_tier and dietary_tags
+// (high_protein_preference) are derived, not authored. This ordering is the
+// single source of truth for "highest tier" comparisons below.
+export const COST_TIER_ORDER: Record<CostTier, number> = {
+  budget: 0,
+  mid: 1,
+  premium: 2,
+};
 
 export type RecordType = "ingredient" | "recipe-template" | "ingredient-allergen";
 
@@ -158,7 +167,8 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
   }
 
   checkReferentialIntegrity(inputs, validByType, errors, notes);
-  checkAllergenCoverage(inputs, validByType, errors, notes);
+  checkRecipeTemplateDerivedFields(inputs, validByType, errors, warnings);
+  checkAllergenCoverage(inputs, validByType, errors, warnings, notes);
   checkUnverifiedAllergenRows(validByType, warnings);
 
   return {
@@ -249,6 +259,92 @@ function checkReferentialIntegrity(
   }
 }
 
+// DECISION_LOG.md 2026-07-31 — cost_tier and the high_protein_preference
+// dietary tag are derived from ingredient_slots[], not authored:
+//   - cost_tier must equal the highest default_cost_tier among slot ingredients.
+//   - high_protein_preference must be present iff no slot has role "starch".
+// A template whose slots reference an unresolvable ingredient id is skipped
+// here — checkReferentialIntegrity already reports that, and there is no
+// default_cost_tier to derive from for the missing ingredient.
+function checkRecipeTemplateDerivedFields(
+  inputs: FileInput[],
+  validByType: Map<RecordType, ValidRecord[]>,
+  errors: ValidationIssue[],
+  warnings: ValidationIssue[],
+): void {
+  const ingredientFilePassed = inputs.some((i) => i.type === "ingredient");
+  if (!ingredientFilePassed) {
+    warnings.push({
+      file: inputs.map((i) => i.path).join(", "),
+      message:
+        "no ingredient file was passed in this invocation; skipping recipe-template derived-field checks (cost_tier, dietary_tags)",
+    });
+    return;
+  }
+
+  const ingredientCostTiers = new Map<string, CostTier>();
+  for (const entry of validByType.get("ingredient") ?? []) {
+    const id = recordId(entry.record);
+    const tier = entry.record.default_cost_tier;
+    if (id && typeof tier === "string") {
+      ingredientCostTiers.set(id, tier as CostTier);
+    }
+  }
+
+  for (const entry of validByType.get("recipe-template") ?? []) {
+    const templateId = recordId(entry.record) ?? "(unknown id)";
+    const slots = Array.isArray(entry.record.ingredient_slots)
+      ? (entry.record.ingredient_slots as { role?: unknown; ingredient_id?: unknown }[])
+      : [];
+
+    const slotTiers: { ingredientId: string; tier: CostTier }[] = [];
+    let hasUnresolvedIngredient = false;
+    for (const slot of slots) {
+      const ingredientId = typeof slot.ingredient_id === "string" ? slot.ingredient_id : undefined;
+      const tier = ingredientId ? ingredientCostTiers.get(ingredientId) : undefined;
+      if (!ingredientId || !tier) {
+        hasUnresolvedIngredient = true;
+        break;
+      }
+      slotTiers.push({ ingredientId, tier });
+    }
+    if (hasUnresolvedIngredient) continue;
+
+    let highest = slotTiers[0]!;
+    for (const slotTier of slotTiers) {
+      if (COST_TIER_ORDER[slotTier.tier] > COST_TIER_ORDER[highest.tier]) highest = slotTier;
+    }
+    const storedTier = entry.record.cost_tier;
+    if (storedTier !== highest.tier) {
+      errors.push({
+        file: entry.file,
+        index: entry.index,
+        id: templateId,
+        message: `template "${templateId}": cost_tier "${String(storedTier)}" should be "${highest.tier}" (${highest.ingredientId} is ${highest.tier})`,
+      });
+    }
+
+    const hasStarchSlot = slots.some((slot) => slot.role === "starch");
+    const tags = Array.isArray(entry.record.dietary_tags) ? (entry.record.dietary_tags as string[]) : [];
+    const hasHighProteinTag = tags.includes("high_protein_preference");
+    if (hasStarchSlot && hasHighProteinTag) {
+      errors.push({
+        file: entry.file,
+        index: entry.index,
+        id: templateId,
+        message: `template "${templateId}": dietary_tags includes "high_protein_preference" but has a starch slot`,
+      });
+    } else if (!hasStarchSlot && !hasHighProteinTag) {
+      errors.push({
+        file: entry.file,
+        index: entry.index,
+        id: templateId,
+        message: `template "${templateId}": dietary_tags is missing "high_protein_preference" (no starch slot)`,
+      });
+    }
+  }
+}
+
 // The inverse of checkReferentialIntegrity: every ingredient in the catalog
 // must have an allergen mapping row. A catalog id with no row is the most
 // likely real-world way the fail-safe allergen posture (ARCHITECTURE.md §5.4)
@@ -257,13 +353,15 @@ function checkAllergenCoverage(
   inputs: FileInput[],
   validByType: Map<RecordType, ValidRecord[]>,
   errors: ValidationIssue[],
+  warnings: ValidationIssue[],
   notes: string[],
 ): void {
   const ingredientFilePassed = inputs.some((i) => i.type === "ingredient");
   if (!ingredientFilePassed) {
-    notes.push(
-      "no ingredient file was passed in this invocation; skipping allergen mapping coverage check",
-    );
+    warnings.push({
+      file: inputs.map((i) => i.path).join(", "),
+      message: "no ingredient file was passed in this invocation; skipping allergen mapping coverage check",
+    });
     return;
   }
 

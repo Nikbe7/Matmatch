@@ -1,0 +1,15 @@
+[
+  {
+    "id": "budget-aromatic-starch",
+    "name": "Budget aromatic starch",
+    "protein_group": "chicken_poultry",
+    "cuisine": "asian",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      { "role": "aromatic", "ingredient_id": "gul-lok", "substitutable": true },
+      { "role": "starch", "ingredient_id": "ris", "substitutable": true }
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "kyckling",
+    "name": "Kyckling",
+    "category": "protein",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "gul-lok",
+    "name": "Gul lök",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "ris",
+    "name": "Ris",
+    "category": "starch",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "parmesan",
+    "name": "Parmesan",
+    "category": "dairy",
+    "default_cost_tier": "premium",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  }
+]
