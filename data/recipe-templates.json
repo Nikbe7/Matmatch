@@ -3649,13 +3649,15 @@
     ]
   },
   {
-    "id": "raktacos-med-chili-och-lime",
-    "name": "Räktacos med chili och lime",
+    "id": "rakceviche-med-lime-och-koriander",
+    "name": "Räkceviche med lime och koriander",
     "protein_group": "fish_seafood",
     "cuisine": "mexican_texmex",
     "cost_tier": "premium",
     "prep_time_band": "<20min",
-    "dietary_tags": [],
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
     "ingredient_slots": [
       {
         "role": "protein",
@@ -3663,8 +3665,13 @@
         "substitutable": false
       },
       {
-        "role": "starch",
-        "ingredient_id": "tortillabrod",
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
         "substitutable": true
       },
       {
@@ -3673,13 +3680,13 @@
         "substitutable": true
       },
       {
-        "role": "aromatic",
-        "ingredient_id": "lime",
+        "role": "vegetable",
+        "ingredient_id": "avokado",
         "substitutable": true
       },
       {
         "role": "vegetable",
-        "ingredient_id": "rodkal",
+        "ingredient_id": "tomat",
         "substitutable": true
       }
     ]
