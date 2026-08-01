@@ -4428,12 +4428,12 @@
     ]
   },
   {
-    "id": "linssoppa-med-gurkmeja-och-spiskummin",
-    "name": "Linssoppa med gurkmeja och spiskummin",
+    "id": "nudelsoppa-med-tofu-sojagroddar-och-ingefara",
+    "name": "Nudelsoppa med tofu, sojagroddar och ingefära",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
-    "prep_time_band": "20-40min",
+    "prep_time_band": "<20min",
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -4441,17 +4441,22 @@
     "ingredient_slots": [
       {
         "role": "protein",
-        "ingredient_id": "linser",
+        "ingredient_id": "tofu",
         "substitutable": false
       },
       {
-        "role": "aromatic",
-        "ingredient_id": "gurkmeja",
+        "role": "starch",
+        "ingredient_id": "risnudlar",
         "substitutable": true
       },
       {
-        "role": "aromatic",
-        "ingredient_id": "spiskummin",
+        "role": "vegetable",
+        "ingredient_id": "sojagroddar",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
         "substitutable": true
       },
       {
@@ -4460,13 +4465,13 @@
         "substitutable": true
       },
       {
-        "role": "starch",
-        "ingredient_id": "basmatiris",
+        "role": "aromatic",
+        "ingredient_id": "soja",
         "substitutable": true
       },
       {
-        "role": "vegetable",
-        "ingredient_id": "tomat",
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
         "substitutable": true
       }
     ]
@@ -5400,22 +5405,26 @@
     ]
   },
   {
-    "id": "chili-sin-carne-med-linser-och-majs",
-    "name": "Chili sin carne med linser och majs",
+    "id": "ugnsrostad-potatis-med-tofu-majs-och-avokado",
+    "name": "Ugnsrostad potatis med tofu, majs och avokado",
     "protein_group": "vegetarian_vegan",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [
       "vegetarian",
-      "vegan",
-      "high_protein_preference"
+      "vegan"
     ],
     "ingredient_slots": [
       {
         "role": "protein",
-        "ingredient_id": "linser",
+        "ingredient_id": "tofu",
         "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
       },
       {
         "role": "vegetable",
@@ -5424,12 +5433,7 @@
       },
       {
         "role": "vegetable",
-        "ingredient_id": "tomat",
-        "substitutable": true
-      },
-      {
-        "role": "aromatic",
-        "ingredient_id": "spiskummin",
+        "ingredient_id": "avokado",
         "substitutable": true
       },
       {
