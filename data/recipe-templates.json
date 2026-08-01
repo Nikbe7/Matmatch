@@ -2892,5 +2892,911 @@
         "substitutable": true
       }
     ]
+  },
+  {
+    "id": "stekt-torsk-med-aggsas-och-potatis",
+    "name": "Stekt torsk med äggsås och potatis",
+    "protein_group": "fish_seafood",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "torskfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "laxpudding-med-dill",
+    "name": "Laxpudding med dill",
+    "protein_group": "fish_seafood",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "lax",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "vispgradde",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-dill",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "fiskpinnar-med-currysas-och-ris",
+    "name": "Fiskpinnar med currysås och ris",
+    "protein_group": "fish_seafood",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "fiskpinnar",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "curry",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "gravad-lax-med-senapssas-och-ragbrod",
+    "name": "Gravad lax med senapssås och rågbröd",
+    "protein_group": "fish_seafood",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "lax",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "dijonsenap",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-dill",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ragbrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "raksmorgas-med-agg-och-majonnas",
+    "name": "Räksmörgås med ägg och majonnäs",
+    "protein_group": "fish_seafood",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "premium",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "rakor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ragbrod",
+        "substitutable": true
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "majonnas",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "isbergssallat",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "fiskgratang-med-rakor-och-dill",
+    "name": "Fiskgratäng med räkor och dill",
+    "protein_group": "fish_seafood",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "premium",
+    "prep_time_band": "40min+",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "torskfile",
+        "substitutable": false
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "rakor",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "vispgradde",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-dill",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kokt-torsk-med-loksas",
+    "name": "Kokt torsk med löksås",
+    "protein_group": "fish_seafood",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "torsk",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "musselgryta-med-vitlok-och-purjolok",
+    "name": "Musselgryta med vitlök och purjolök",
+    "protein_group": "fish_seafood",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "musslor",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "purjolok",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "pasta-med-tonfisk-tomat-och-vitlok",
+    "name": "Pasta med tonfisk, tomat och vitlök",
+    "protein_group": "fish_seafood",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "tonfisk",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "ugnsbakad-lax-med-citron-och-sparris",
+    "name": "Ugnsbakad lax med citron och sparris",
+    "protein_group": "fish_seafood",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "laxfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "sparris",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "nypotatis",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "rakpasta-med-vitlok-och-chili",
+    "name": "Räkpasta med vitlök och chili",
+    "protein_group": "fish_seafood",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "premium",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "rakor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "fisksoppa-pa-medelhavsvis-med-torsk-och-tomat",
+    "name": "Fisksoppa på medelhavsvis med torsk och tomat",
+    "protein_group": "fish_seafood",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "torsk",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "oregano",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-basilika",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "musslor-i-vitvinssas-med-vitlok-och-persilja",
+    "name": "Musslor i vitvinssås med vitlök och persilja",
+    "protein_group": "fish_seafood",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "musslor",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "tonfisksallad-med-fetaost-och-ruccola",
+    "name": "Tonfisksallad med fetaost och ruccola",
+    "protein_group": "fish_seafood",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "tonfisk",
+        "substitutable": false
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "fetaost",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "ruccola",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "korsbarstomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "laxwok-med-broccoli-och-ingefara",
+    "name": "Laxwok med broccoli och ingefära",
+    "protein_group": "fish_seafood",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "laxfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "broccoli",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "rakor-i-currysas-med-kokosmjolk",
+    "name": "Räkor i currysås med kokosmjölk",
+    "protein_group": "fish_seafood",
+    "cuisine": "asian",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "rakor",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "currypasta",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "kokosmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "tonfisk-poke-bowl-med-jasminris-och-avokado",
+    "name": "Tonfisk poke bowl med jasminris och avokado",
+    "protein_group": "fish_seafood",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "tonfisk",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sesamfron",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "musslor-i-wok-med-chili-och-vitlok",
+    "name": "Musslor i wok med chili och vitlök",
+    "protein_group": "fish_seafood",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "musslor",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "risnudlar",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "torsk-i-currysas-med-basmatiris",
+    "name": "Torsk i currysås med basmatiris",
+    "protein_group": "fish_seafood",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "torskfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "currypasta",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "kokosmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "basmatiris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "skaldjursmix-i-wok-med-sojagroddar-och-paprika",
+    "name": "Skaldjursmix i wok med sojagroddar och paprika",
+    "protein_group": "fish_seafood",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "skaldjursmix",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "sojagroddar",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "risnudlar",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "fisktacos-med-torsk-avokado-och-lime",
+    "name": "Fisktacos med torsk, avokado och lime",
+    "protein_group": "fish_seafood",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "torskfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "rakceviche-med-lime-och-koriander",
+    "name": "Räkceviche med lime och koriander",
+    "protein_group": "fish_seafood",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "premium",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "rakor",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "ugnsbakad-torsk-med-gurkmeja-och-citron",
+    "name": "Ugnsbakad torsk med gurkmeja och citron",
+    "protein_group": "fish_seafood",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "torskfile",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gurkmeja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "bulgur",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "rakspett-med-couscous-och-yoghurtsas",
+    "name": "Räkspett med couscous och yoghurtsås",
+    "protein_group": "fish_seafood",
+    "cuisine": "middle_eastern",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "rakor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "couscous",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "turkisk-yoghurt",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "fish-and-chips-med-torsk-och-remouladsas",
+    "name": "Fish and chips med torsk och remouladsås",
+    "protein_group": "fish_seafood",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "torskfile",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "majonnas",
+        "substitutable": true
+      }
+    ]
   }
 ]
