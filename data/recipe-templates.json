@@ -3798,5 +3798,1650 @@
         "substitutable": true
       }
     ]
+  },
+  {
+    "id": "linssoppa-med-rotfrukter",
+    "name": "Linssoppa med rotfrukter",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "linser",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "palsternacka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lagerblad",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "svampgryta-med-kantareller-och-graddfil",
+    "name": "Svampgryta med kantareller och gräddfil",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "portabello",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "kantarell",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "graddfil",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "halloumistekar-med-rostad-rotfrukt",
+    "name": "Halloumistekar med rostad rotfrukt",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "halloumi",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rodbeta",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-rosmarin",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kikartsbiffar-med-graddfilssas",
+    "name": "Kikärtsbiffar med gräddfilssås",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kikartor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "havregryn",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "graddfil",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "gronsakspaj-med-fetaost",
+    "name": "Grönsakspaj med fetaost",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "fetaost",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "spenat",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "pasta-med-kikartor-tomat-och-basilika",
+    "name": "Pasta med kikärtor, tomat och basilika",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kikartor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-basilika",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "risotto-med-svamp-och-prastost",
+    "name": "Risotto med svamp och prästost",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "champinjon",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "prastost",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "melanzane-alla-parmigiana",
+    "name": "Melanzane alla parmigiana",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [
+      "vegetarian",
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "aubergine",
+        "substitutable": false
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "mozzarella",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-basilika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "oregano",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "linsgryta-med-tomat-och-timjan",
+    "name": "Linsgryta med tomat och timjan",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "linser",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-timjan",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "fullkornspasta",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "fyllda-paprikor-med-quinoa-och-svarta-bonor",
+    "name": "Fyllda paprikor med quinoa och svarta bönor",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "quinoa",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "caprese-sallad-med-mozzarella-och-basilika",
+    "name": "Caprese-sallad med mozzarella och basilika",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "mozzarella",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-basilika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "balsamvinager",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "minestrone-med-kikartor-och-pasta",
+    "name": "Minestrone med kikärtor och pasta",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kikartor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "makaroner",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "selleri",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "bruschetta-med-tofu-tomat-och-basilika",
+    "name": "Bruschetta med tofu, tomat och basilika",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "tofu",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ragbrod",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-basilika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "zucchinipaj-med-fetaost-och-pinjenotter",
+    "name": "Zucchinipaj med fetaost och pinjenötter",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "premium",
+    "prep_time_band": "40min+",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "fetaost",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "zucchini",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "pinjenotter",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "tofuwok-med-broccoli-och-cashewnotter",
+    "name": "Tofuwok med broccoli och cashewnötter",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "tofu",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "broccoli",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "cashewnotter",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kikartscurry-med-kokosmjolk",
+    "name": "Kikärtscurry med kokosmjölk",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kikartor",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "curry",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "kokosmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "basmatiris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "linssoppa-med-gurkmeja-och-spiskummin",
+    "name": "Linssoppa med gurkmeja och spiskummin",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "linser",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gurkmeja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "basmatiris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "gronsaksbowl-med-svarta-bonor-jasminris-och-sojagroddar",
+    "name": "Grönsaksbowl med svarta bönor, jasminris och sojagroddar",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "sojagroddar",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sesamfron",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "pad-thai-med-tofu-och-jordnotter",
+    "name": "Pad thai med tofu och jordnötter",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "tofu",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "risnudlar",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "sojagroddar",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "jordnotter",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sambal-oelek",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "svartbonsgryta-med-majs-och-paprika",
+    "name": "Svartbönsgryta med majs och paprika",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "friterad-tofu-i-sotsur-sas-med-ananas",
+    "name": "Friterad tofu i sötsur sås med ananas",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "tofu",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "ananas",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sweet-chilisas",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "asiatisk-nudelsallad-med-kikartor-och-koriander",
+    "name": "Asiatisk nudelsallad med kikärtor och koriander",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kikartor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "risnudlar",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "friterat-ris-med-halloumi-och-gronsaker",
+    "name": "Friterat ris med halloumi och grönsaker",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "halloumi",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "artor",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "svampspett-med-jordnotssas",
+    "name": "Svampspett med jordnötssås",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "champinjon",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "jordnotter",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sambal-oelek",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gurka",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "chili-sin-carne-med-svarta-bonor-och-majs",
+    "name": "Chili sin carne med svarta bönor och majs",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan",
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kikartstacos-med-avokado-och-koriander",
+    "name": "Kikärtstacos med avokado och koriander",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kikartor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "quesadilla-med-svarta-bonor-och-ost",
+    "name": "Quesadilla med svarta bönor och ost",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "burritobowl-med-quinoa-linser-och-majs",
+    "name": "Burritobowl med quinoa, linser och majs",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "linser",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "quinoa",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "enchiladas-med-kikartor-och-ost",
+    "name": "Enchiladas med kikärtor och ost",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kikartor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "nachos-med-svarta-bonor-guacamole-och-ost",
+    "name": "Nachos med svarta bönor, guacamole och ost",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tacoskal",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "falafel-med-couscous-och-citronsas",
+    "name": "Falafel med couscous och citronsås",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "middle_eastern",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "kikartor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "couscous",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "linsbowl-med-rostade-gronsaker-och-bulgur",
+    "name": "Linsbowl med rostade grönsaker och bulgur",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "linser",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "bulgur",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "aubergine",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gurkmeja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kryddig-bongryta-med-kanel-och-gurkmeja",
+    "name": "Kryddig böngryta med kanel och gurkmeja",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "kanel",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gurkmeja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "couscous",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "fylld-aubergine-med-bulgur-och-pinjenotter",
+    "name": "Fylld aubergine med bulgur och pinjenötter",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "middle_eastern",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "aubergine",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "bulgur",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "pinjenotter",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "halloumispett-med-couscous-och-oregano",
+    "name": "Halloumispett med couscous och oregano",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "halloumi",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "couscous",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "oregano",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "zucchini",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "tabbouleh-sallad-med-bulgur-persilja-och-linser",
+    "name": "Tabbouleh-sallad med bulgur, persilja och linser",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "linser",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "bulgur",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-mynta",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kryddig-linssoppa-med-citron-och-koriander",
+    "name": "Kryddig linssoppa med citron och koriander",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "linser",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "veggieburgare-med-svarta-bonor-och-avokado",
+    "name": "Veggieburgare med svarta bönor och avokado",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "isbergssallat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ketchup",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "mac-and-cheese-med-hushallsost",
+    "name": "Mac and cheese med hushållsost",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hushallsost",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "makaroner",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "standardmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "muskotnot",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "chili-sin-carne-med-linser-och-majs",
+    "name": "Chili sin carne med linser och majs",
+    "protein_group": "vegetarian_vegan",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "vegetarian",
+      "vegan",
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "linser",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
   }
 ]
