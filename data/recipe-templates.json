@@ -1606,5 +1606,1291 @@
         "substitutable": true
       }
     ]
+  },
+  {
+    "id": "kalops-med-rotfrukter",
+    "name": "Kalops med rotfrukter",
+    "protein_group": "beef_pork",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "40min+",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hogrev",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lagerblad",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "svartpeppar",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "pyttipanna-med-biff-och-stekt-agg",
+    "name": "Pyttipanna med biff och stekt ägg",
+    "protein_group": "beef_pork",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "biff",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kottbullar-med-graddsas-och-rodbetssallad",
+    "name": "Köttbullar med gräddsås och rödbetssallad",
+    "protein_group": "beef_pork",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "notfars",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rodbeta",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "stekt-flaskkarre-med-rotmos",
+    "name": "Stekt fläskkarré med rotmos",
+    "protein_group": "beef_pork",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskkarre",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "kalrot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "svartpeppar",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "biff-med-lok-och-potatis",
+    "name": "Biff med lök och potatis",
+    "protein_group": "beef_pork",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "biff",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kaldolmar-med-kottfars",
+    "name": "Kåldolmar med köttfärs",
+    "protein_group": "beef_pork",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "40min+",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "notfars",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "vitkal",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "flaskkotlett-med-stekt-potatis-och-graddsas",
+    "name": "Fläskkotlett med stekt potatis och gräddsås",
+    "protein_group": "beef_pork",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskkotlett",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "matlagningsgradde",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "skinkstek-med-potatismos-och-senap",
+    "name": "Skinkstek med potatismos och senap",
+    "protein_group": "beef_pork",
+    "cuisine": "swedish_nordic",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "skinka",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "senap",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "pasta-bolognese-med-notfars",
+    "name": "Pasta bolognese med nötfärs",
+    "protein_group": "beef_pork",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "notfars",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "prastost",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "flaskfile-i-skinklindning-med-timjan",
+    "name": "Fläskfilé i skinklindning med timjan",
+    "protein_group": "beef_pork",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskfile",
+        "substitutable": false
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "rokt-skinka",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-timjan",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "zucchini",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "grillad-entrecote-med-rosmarin-och-parmesan",
+    "name": "Grillad entrecôte med rosmarin och parmesan",
+    "protein_group": "beef_pork",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "entrecote",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-rosmarin",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "parmesan",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "ruccola",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "nypotatis",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "pasta-carbonara-med-bacon",
+    "name": "Pasta carbonara med bacon",
+    "protein_group": "beef_pork",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "bacon",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "prastost",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "flaskkotlett-milanese-med-citron",
+    "name": "Fläskkotlett milanese med citron",
+    "protein_group": "beef_pork",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskkotlett",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "vetemjol",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "citron",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "toskansk-gryta-med-rotfrukter",
+    "name": "Toskansk gryta med rotfrukter",
+    "protein_group": "beef_pork",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "budget",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hogrev",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "selleri",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "oregano",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "flaskfarsbollar-i-tomatsas-med-basilika",
+    "name": "Fläskfärsbollar i tomatsås med basilika",
+    "protein_group": "beef_pork",
+    "cuisine": "italian_mediterranean",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskfars",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-basilika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "spagetti",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "biff-i-oystersas-med-broccoli",
+    "name": "Biff i oystersås med broccoli",
+    "protein_group": "beef_pork",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "biff",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "broccoli",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "oystersas",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ingefara",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "flaskfile-i-wok-med-cashewnotter-och-paprika",
+    "name": "Fläskfilé i wok med cashewnötter och paprika",
+    "protein_group": "beef_pork",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "cashewnotter",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "soja",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "flaskkarre-med-sotsur-sas-och-ananas",
+    "name": "Fläskkarré med sötsur sås och ananas",
+    "protein_group": "beef_pork",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskkarre",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "ananas",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sweet-chilisas",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "notfars-pad-thai-stil-med-risnudlar",
+    "name": "Nötfärs pad thai-stil med risnudlar",
+    "protein_group": "beef_pork",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "notfars",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "risnudlar",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "sojagroddar",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "jordnotter",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "sambal-oelek",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "currygryta-med-flaskkarre-och-kokosmjolk",
+    "name": "Currygryta med fläskkarré och kokosmjölk",
+    "protein_group": "beef_pork",
+    "cuisine": "asian",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskkarre",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "currypasta",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "kokosmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "jasminris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "carne-asada-med-lime-och-koriander",
+    "name": "Carne asada med lime och koriander",
+    "protein_group": "beef_pork",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "entrecote",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "lime",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "flaskfile-al-pastor-med-ananas",
+    "name": "Fläskfilé al pastor med ananas",
+    "protein_group": "beef_pork",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskfile",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "ananas",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-koriander",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "notfarsburrito-med-svarta-bonor-och-ris",
+    "name": "Nötfärsburrito med svarta bönor och ris",
+    "protein_group": "beef_pork",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "notfars",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "svarta-bonor",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tortillabrod",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "texas-chili-med-hogrev",
+    "name": "Texas chili med högrev",
+    "protein_group": "beef_pork",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hogrev",
+        "substitutable": false
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "nachos-med-flaskfars-ost-och-guacamole",
+    "name": "Nachos med fläskfärs, ost och guacamole",
+    "protein_group": "beef_pork",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskfars",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "tacoskal",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "avokado",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-chili",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "grillade-flaskspjut-med-chimichurri-inspirerad-sas",
+    "name": "Grillade fläskspjut med chimichurri-inspirerad sås",
+    "protein_group": "beef_pork",
+    "cuisine": "mexican_texmex",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskkarre",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "rodvinsvinager",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "rod-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "ris",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "notkottsspett-med-bulgur-och-yoghurtsas",
+    "name": "Nötköttsspett med bulgur och yoghurtsås",
+    "protein_group": "beef_pork",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "biff",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "bulgur",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "turkisk-yoghurt",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "farsk-persilja",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kottfarsbiffar-med-bulgur-och-gurkmeja",
+    "name": "Köttfärsbiffar med bulgur och gurkmeja",
+    "protein_group": "beef_pork",
+    "cuisine": "middle_eastern",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "notfars",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "bulgur",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gurkmeja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kryddig-grytstek-med-kanel-och-gurkmeja",
+    "name": "Kryddig grytstek med kanel och gurkmeja",
+    "protein_group": "beef_pork",
+    "cuisine": "middle_eastern",
+    "cost_tier": "budget",
+    "prep_time_band": "40min+",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "hogrev",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "kanel",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gurkmeja",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "kikartor",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "couscous",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "amerikansk-cheeseburgare-med-bacon",
+    "name": "Amerikansk cheeseburgare med bacon",
+    "protein_group": "beef_pork",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "<20min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "notfars",
+        "substitutable": false
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "bacon",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "tomat",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "isbergssallat",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "ugnsbakade-revbensspjall-med-bbq-sas",
+    "name": "Ugnsbakade revbensspjäll med BBQ-sås",
+    "protein_group": "beef_pork",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "40min+",
+    "dietary_tags": [
+      "high_protein_preference"
+    ],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "revbensspjall",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "ketchup",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "vitlok",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "majs",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "langkokt-pulled-pork-med-coleslaw",
+    "name": "Långkokt pulled pork med coleslaw",
+    "protein_group": "beef_pork",
+    "cuisine": "american_comfort",
+    "cost_tier": "budget",
+    "prep_time_band": "40min+",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "flaskkarre",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "paprikapulver",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "spiskummin",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "vitkal",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "morot",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "kottfarslimpa-med-potatismos",
+    "name": "Köttfärslimpa med potatismos",
+    "protein_group": "beef_pork",
+    "cuisine": "american_comfort",
+    "cost_tier": "mid",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "notfars",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "havregryn",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "standardmjolk",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "philly-cheesesteak-med-entrecote",
+    "name": "Philly cheesesteak med entrecôte",
+    "protein_group": "beef_pork",
+    "cuisine": "american_comfort",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "entrecote",
+        "substitutable": false
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "formbrod",
+        "substitutable": true
+      },
+      {
+        "role": "vegetable",
+        "ingredient_id": "gron-paprika",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "hushallsost",
+        "substitutable": true
+      }
+    ]
+  },
+  {
+    "id": "grillad-entrecote-med-stekt-lok-och-bearnaisesas",
+    "name": "Grillad entrecôte med stekt lök och bearnaisesås",
+    "protein_group": "beef_pork",
+    "cuisine": "american_comfort",
+    "cost_tier": "premium",
+    "prep_time_band": "20-40min",
+    "dietary_tags": [],
+    "ingredient_slots": [
+      {
+        "role": "protein",
+        "ingredient_id": "entrecote",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "bearnaisesas",
+        "substitutable": true
+      },
+      {
+        "role": "starch",
+        "ingredient_id": "potatis",
+        "substitutable": true
+      }
+    ]
   }
 ]
