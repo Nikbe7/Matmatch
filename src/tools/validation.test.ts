@@ -177,17 +177,32 @@ describe("validateFiles — recipe-template derived fields", () => {
     expect(result.errors[0]!.message).toContain('references unknown ingredient id "nonexistent-ingredient"');
   });
 
-  it("skips the derived-field checks and notes it when no ingredient file is passed", () => {
+  it("warns (does not silently pass) when only a recipe-template file is passed, so the derived-field checks never ran", () => {
     const result = validateFiles([
       fixture("recipe-template-derived-fields-correct.json", "recipe-template"),
     ]);
 
     expect(result.errors).toEqual([]);
     expect(
-      result.notes.some(
-        (note) => note.includes("no ingredient file was passed") && note.includes("derived-field"),
+      result.warnings.some(
+        (warning) => warning.message.includes("no ingredient file was passed") && warning.message.includes("derived-field"),
       ),
     ).toBe(true);
+  });
+
+  it("does run the derived-field checks — and reports their errors — once an ingredient file is passed alongside", () => {
+    const result = validateFiles([
+      fixture("recipe-template-derived-fields-ingredients.json", "ingredient"),
+      fixture("recipe-template-cost-tier-too-low.json", "recipe-template"),
+    ]);
+
+    expect(
+      result.warnings.some((warning) => warning.message.includes("no ingredient file was passed")),
+    ).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.message).toBe(
+      'template "kyckling-parmesan-mid": cost_tier "mid" should be "premium" (parmesan is premium)',
+    );
   });
 });
 
@@ -226,12 +241,14 @@ describe("validateFiles — ingredient-allergen coverage", () => {
     expect(result.errors[0]!.message).toContain('ingredient "kyckling" has no ingredient-allergen mapping row');
   });
 
-  it("skips the coverage check and notes it when no ingredient file is passed", () => {
+  it("warns (does not silently pass) when no ingredient file is passed, so the coverage check never ran", () => {
     const result = validateFiles([fixture("valid-ingredient-allergens.json", "ingredient-allergen")]);
 
     expect(result.errors).toEqual([]);
     expect(
-      result.notes.some((note) => note.includes("no ingredient file was passed") && note.includes("coverage")),
+      result.warnings.some(
+        (warning) => warning.message.includes("no ingredient file was passed") && warning.message.includes("coverage"),
+      ),
     ).toBe(true);
   });
 

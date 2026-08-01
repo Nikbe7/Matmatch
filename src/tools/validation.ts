@@ -167,8 +167,8 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
   }
 
   checkReferentialIntegrity(inputs, validByType, errors, notes);
-  checkRecipeTemplateDerivedFields(inputs, validByType, errors, notes);
-  checkAllergenCoverage(inputs, validByType, errors, notes);
+  checkRecipeTemplateDerivedFields(inputs, validByType, errors, warnings);
+  checkAllergenCoverage(inputs, validByType, errors, warnings, notes);
   checkUnverifiedAllergenRows(validByType, warnings);
 
   return {
@@ -270,13 +270,15 @@ function checkRecipeTemplateDerivedFields(
   inputs: FileInput[],
   validByType: Map<RecordType, ValidRecord[]>,
   errors: ValidationIssue[],
-  notes: string[],
+  warnings: ValidationIssue[],
 ): void {
   const ingredientFilePassed = inputs.some((i) => i.type === "ingredient");
   if (!ingredientFilePassed) {
-    notes.push(
-      "no ingredient file was passed in this invocation; skipping recipe-template derived-field checks (cost_tier, dietary_tags)",
-    );
+    warnings.push({
+      file: inputs.map((i) => i.path).join(", "),
+      message:
+        "no ingredient file was passed in this invocation; skipping recipe-template derived-field checks (cost_tier, dietary_tags)",
+    });
     return;
   }
 
@@ -351,13 +353,15 @@ function checkAllergenCoverage(
   inputs: FileInput[],
   validByType: Map<RecordType, ValidRecord[]>,
   errors: ValidationIssue[],
+  warnings: ValidationIssue[],
   notes: string[],
 ): void {
   const ingredientFilePassed = inputs.some((i) => i.type === "ingredient");
   if (!ingredientFilePassed) {
-    notes.push(
-      "no ingredient file was passed in this invocation; skipping allergen mapping coverage check",
-    );
+    warnings.push({
+      file: inputs.map((i) => i.path).join(", "),
+      message: "no ingredient file was passed in this invocation; skipping allergen mapping coverage check",
+    });
     return;
   }
 
