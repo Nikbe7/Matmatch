@@ -875,7 +875,7 @@
     "name": "Kycklingvingar med sesam och sweet chilisås",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -3140,7 +3140,7 @@
     "name": "Musselgryta med vitlök och purjolök",
     "protein_group": "fish_seafood",
     "cuisine": "swedish_nordic",
-    "cost_tier": "mid",
+    "cost_tier": "budget",
     "prep_time_band": "<20min",
     "dietary_tags": [],
     "ingredient_slots": [
@@ -6044,7 +6044,7 @@
     "name": "Äggcurry med kokosmjölk och spenat",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "asian",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "<20min",
     "dietary_tags": [
       "vegetarian"
@@ -6082,7 +6082,7 @@
     "name": "Svampsoppa med soja och vitlök",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "asian",
-    "cost_tier": "budget",
+    "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [
       "vegetarian",
