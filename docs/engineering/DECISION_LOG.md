@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-01 — Protein slots stay non-substitutable; ingredient-swap variety rests on the other four roles
+
+**Decision:** All 170 recipe templates have exactly one protein slot, and in all 170 it is `substitutable: false`. That stays. It was an emergent property of how batches #10–14 were authored rather than a recorded call; it is now a deliberate one. The `substitutions.json` library (#19) therefore contains **zero protein-role groups**, and `agg` at `protein` role — binding at 9 substitutable-slot occurrences — is a documented coverage exception rather than a group.
+
+**Why:** The protein is what the dish *is*; swapping it produces a different meal, not a variation of the same one. Households that want fish or no meat are served by dedicated template batches (40 vegetarian/vegan, 25 fish/seafood) rather than by swapping a protein inside a template built around it. Flipping the flag across 170 rows would also require authoring honest protein groups, and the coverage data gives no evidence anyone needs them: the only substitutable protein slots in the whole library are 13 *secondary* proteins (`agg` ×9, `bacon` ×2, `rokt-skinka` ×1, `rakor` ×1), and `agg`'s nine contexts — fried egg in pyttipanna, carbonara, äggsås, laxpudding, two smörgåsar, ostpaj, makaronipanna, våfflor — have no common partner set that would yield a recognisably similar meal. Inventing one is exactly the padding the coverage rule exists to prevent.
+
+**How to apply:** Ingredient-swap variety — the "170 templates feel like several hundred meals" claim — rests **entirely** on the `starch`, `vegetable`, `aromatic` and `dairy` roles. Anyone sizing that effect should model it from those four roles only. Do not "fix" the protein flags as a tidy-up; this entry exists because the next person to notice the pattern will otherwise read it as an oversight. Revisit trigger: Phase 2 cohort data showing users repeatedly redirecting the Tonight card toward a different protein — that would be evidence the swap is wanted inside a template rather than via a different template.
+
+---
+
 ## 2026-08-01 — Substitutions are symmetric groups, not directed pairs (ARCHITECTURE.md §5.5)
 
 **Decision:** A substitution is a `SubstitutionGroup` — `{id, name (Swedish display text), role (reuses `IngredientSlotRole`), member_ingredient_ids[]}`, minimum 2 members, no duplicates within a group, an ingredient may belong to several groups. Not directed `(from, to)` pairs. The group carries **no** allergen or dietary field of any kind, no similarity/quality score, no canonical or preferred member, and no reverse index. `ingredient_slots[].substitutable: false` suppresses swaps for that slot regardless of group membership. Stored as `data/substitutions.json`, validated as `--type substitution`. No substitution data was generated in this issue — the file stays an empty array.

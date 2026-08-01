@@ -1,1 +1,416 @@
-[]
+[
+  {
+    "id": "potatis",
+    "name": "Potatis",
+    "role": "starch",
+    "member_ingredient_ids": [
+      "potatis",
+      "nypotatis"
+    ]
+  },
+  {
+    "id": "ris",
+    "name": "Ris",
+    "role": "starch",
+    "member_ingredient_ids": [
+      "ris",
+      "jasminris",
+      "basmatiris"
+    ]
+  },
+  {
+    "id": "pasta",
+    "name": "Pasta",
+    "role": "starch",
+    "member_ingredient_ids": [
+      "spagetti",
+      "makaroner",
+      "fullkornspasta"
+    ]
+  },
+  {
+    "id": "nudlar",
+    "name": "Nudlar",
+    "role": "starch",
+    "member_ingredient_ids": [
+      "risnudlar",
+      "aggnudlar",
+      "glasnudlar"
+    ]
+  },
+  {
+    "id": "matbrod",
+    "name": "Matbröd",
+    "role": "starch",
+    "member_ingredient_ids": [
+      "formbrod",
+      "ragbrod",
+      "knackebrod"
+    ]
+  },
+  {
+    "id": "tortilla-och-tacoskal",
+    "name": "Tortilla och tacoskal",
+    "role": "starch",
+    "member_ingredient_ids": [
+      "tortillabrod",
+      "tacoskal"
+    ]
+  },
+  {
+    "id": "bulgur-och-couscous",
+    "name": "Bulgur och couscous",
+    "role": "starch",
+    "member_ingredient_ids": [
+      "bulgur",
+      "couscous",
+      "quinoa"
+    ]
+  },
+  {
+    "id": "mjol",
+    "name": "Mjöl",
+    "role": "starch",
+    "member_ingredient_ids": [
+      "vetemjol",
+      "potatismjol"
+    ]
+  },
+  {
+    "id": "tomat",
+    "name": "Tomat",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "tomat",
+      "korsbarstomat"
+    ]
+  },
+  {
+    "id": "paprika",
+    "name": "Paprika",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "rod-paprika",
+      "gron-paprika"
+    ]
+  },
+  {
+    "id": "rotfrukter",
+    "name": "Rotfrukter",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "morot",
+      "palsternacka",
+      "kalrot",
+      "rotselleri",
+      "majrova",
+      "rodbeta"
+    ]
+  },
+  {
+    "id": "kal",
+    "name": "Kål",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "vitkal",
+      "spetskal",
+      "rodkal"
+    ]
+  },
+  {
+    "id": "broccoli-och-blomkal",
+    "name": "Broccoli och blomkål",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "broccoli",
+      "blomkal",
+      "brysselkal"
+    ]
+  },
+  {
+    "id": "salladsblad",
+    "name": "Salladsblad",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "isbergssallat",
+      "ruccola",
+      "salladsmix"
+    ]
+  },
+  {
+    "id": "bladgront",
+    "name": "Bladgrönt",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "spenat",
+      "gronkal",
+      "mangold"
+    ]
+  },
+  {
+    "id": "squash-och-aubergine",
+    "name": "Squash och aubergine",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "zucchini",
+      "aubergine",
+      "pumpa"
+    ]
+  },
+  {
+    "id": "gurka",
+    "name": "Gurka",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "gurka",
+      "minigurka"
+    ]
+  },
+  {
+    "id": "artor-och-majs",
+    "name": "Ärtor och majs",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "artor",
+      "majs"
+    ]
+  },
+  {
+    "id": "wokgronsaker",
+    "name": "Wokgrönsaker",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "sojagroddar",
+      "bambuskott",
+      "sockerartor",
+      "grona-bonor"
+    ]
+  },
+  {
+    "id": "selleri-och-fankal",
+    "name": "Selleri och fänkål",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "selleri",
+      "fankal"
+    ]
+  },
+  {
+    "id": "sot-frukt",
+    "name": "Söt frukt",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "ananas",
+      "mango",
+      "persika"
+    ]
+  },
+  {
+    "id": "bonor-och-kikartor",
+    "name": "Bönor och kikärtor",
+    "role": "vegetable",
+    "member_ingredient_ids": [
+      "svarta-bonor",
+      "kikartor",
+      "linser"
+    ]
+  },
+  {
+    "id": "lok-och-vitlok",
+    "name": "Lök och vitlök",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "gul-lok",
+      "rodlok",
+      "schalottenlok",
+      "purjolok",
+      "vitlok"
+    ]
+  },
+  {
+    "id": "farska-mjuka-orter",
+    "name": "Färska mjuka örter",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "farsk-persilja",
+      "farsk-koriander",
+      "farsk-basilika",
+      "farsk-dill",
+      "farsk-mynta"
+    ]
+  },
+  {
+    "id": "kraftiga-orter",
+    "name": "Kraftiga örter",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "oregano",
+      "farsk-rosmarin",
+      "farsk-timjan",
+      "lagerblad"
+    ]
+  },
+  {
+    "id": "citrus",
+    "name": "Citrus",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "citron",
+      "lime"
+    ]
+  },
+  {
+    "id": "chili-och-hetta",
+    "name": "Chili och hetta",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "farsk-chili",
+      "chiliflakes",
+      "sambal-oelek",
+      "svartpeppar"
+    ]
+  },
+  {
+    "id": "kryddbas",
+    "name": "Kryddbas",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "spiskummin",
+      "paprikapulver",
+      "gurkmeja",
+      "curry",
+      "currypasta"
+    ]
+  },
+  {
+    "id": "asiatisk-aromatbas",
+    "name": "Asiatisk aromatbas",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "ingefara",
+      "vitlok",
+      "farsk-chili"
+    ]
+  },
+  {
+    "id": "asiatiska-saser",
+    "name": "Asiatiska såser",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "soja",
+      "oystersas"
+    ]
+  },
+  {
+    "id": "tomat-och-chilisaser",
+    "name": "Tomat- och chilisåser",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "tomatpure",
+      "ketchup",
+      "sweet-chilisas"
+    ]
+  },
+  {
+    "id": "senap",
+    "name": "Senap",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "senap",
+      "dijonsenap"
+    ]
+  },
+  {
+    "id": "majonnas-och-bearnaise",
+    "name": "Majonnäs och bearnaise",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "majonnas",
+      "bearnaisesas"
+    ]
+  },
+  {
+    "id": "notter-och-fron",
+    "name": "Nötter och frön",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "jordnotter",
+      "cashewnotter",
+      "mandel",
+      "pinjenotter",
+      "sesamfron"
+    ]
+  },
+  {
+    "id": "kokosmjolk-och-gradde",
+    "name": "Kokosmjölk och grädde",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "kokosmjolk",
+      "matlagningsgradde",
+      "vispgradde"
+    ]
+  },
+  {
+    "id": "gradde",
+    "name": "Grädde",
+    "role": "dairy",
+    "member_ingredient_ids": [
+      "matlagningsgradde",
+      "vispgradde",
+      "creme-fraiche"
+    ]
+  },
+  {
+    "id": "hardost",
+    "name": "Hårdost",
+    "role": "dairy",
+    "member_ingredient_ids": [
+      "hushallsost",
+      "prastost",
+      "vasterbottensost",
+      "parmesan"
+    ]
+  },
+  {
+    "id": "mjolk",
+    "name": "Mjölk",
+    "role": "dairy",
+    "member_ingredient_ids": [
+      "standardmjolk",
+      "mellanmjolk",
+      "lattmjolk"
+    ]
+  },
+  {
+    "id": "syrade-mjolkprodukter",
+    "name": "Syrade mjölkprodukter",
+    "role": "dairy",
+    "member_ingredient_ids": [
+      "graddfil",
+      "turkisk-yoghurt",
+      "naturell-yoghurt",
+      "creme-fraiche",
+      "kvarg"
+    ]
+  },
+  {
+    "id": "vit-ost",
+    "name": "Vit ost",
+    "role": "dairy",
+    "member_ingredient_ids": [
+      "fetaost",
+      "mozzarella"
+    ]
+  },
+  {
+    "id": "smor-och-margarin",
+    "name": "Smör och margarin",
+    "role": "dairy",
+    "member_ingredient_ids": [
+      "smor",
+      "margarin",
+      "bakmargarin"
+    ]
+  }
+]
