@@ -1,0 +1,11 @@
+[
+  {
+    "id": "lok",
+    "name": "Milda lökar",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "rodlok",
+      "schalottenlok"
+    ]
+  }
+]

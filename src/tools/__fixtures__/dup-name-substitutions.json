@@ -1,0 +1,20 @@
+[
+  {
+    "id": "lok",
+    "name": "Lök",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "gul-lok",
+      "rodlok"
+    ]
+  },
+  {
+    "id": "lok-mild",
+    "name": " lök ",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "rodlok",
+      "schalottenlok"
+    ]
+  }
+]

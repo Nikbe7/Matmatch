@@ -1,0 +1,11 @@
+[
+  {
+    "id": "lok",
+    "name": "Lök",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "gul-lok",
+      "nonexistent-ingredient"
+    ]
+  }
+]

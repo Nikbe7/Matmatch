@@ -88,6 +88,7 @@ Allergy and hard dietary restriction filtering happens in the **Meal Engine**, b
 - **Ingredient** — id, name, category, default_cost_tier, peak_months[], available_year_round, seasonality_strength (curated/maintained data, not AI-generated; see "Ingredient schema" below for the locked vocabularies)
 - **RecipeTemplate** — id, name, protein_group, cuisine, cost_tier, prep_time_band, dietary_tags[], ingredient_slots[] (role, ingredient_id, substitutable) — see "RecipeTemplate schema & coverage matrix" below for the locked vocabularies and matrix
 - **IngredientAllergenMapping** — ingredient_id (FK to Ingredient.id), allergens[], verification_status — the sole source of truth for allergy filtering (§4.3); see "Ingredient-to-allergen mapping" below
+- **SubstitutionGroup** — id, name, role, member_ingredient_ids[] — a named set of ingredients interchangeable in a slot of that role; see "Substitution groups" below
 - **SessionPantryInput** — id, household_id, session_id, ingredient_ids[] (ephemeral, per-session — explicitly *not* a persistent inventory table)
 - **GeneratedMeal** — id, household_id, recipe_template_id (nullable if fully AI-generated), final_ingredients[], portions, estimated_cost_tier, created_at, source (template/tier1/tier2)
 - **ShoppingList** — id, generated_meal_id, items[] (ingredient_id, have/need flag, checked state)
@@ -159,7 +160,7 @@ Scoped tightly to what the current UX flow and Phase 0 template batches (see MVP
 - `cost_tier` — reuses the `budget`/`mid`/`premium` enum locked for `Ingredient` in §5.1. No separate template-level cost vocabulary.
 - `prep_time_band` (enum) — `<20min`, `20-40min`, `40min+`
 - `dietary_tags[]` — reuses the `dietary_flags` vocabulary locked in §5.2 (`vegetarian`, `vegan`, `high_protein_preference`). A template can match zero or more.
-- `ingredient_slots[]` — each slot is `{role, ingredient_id, substitutable}`. `role` is the CLAUDE.md-specified subset of `Ingredient.category` used for slot composition: `protein`, `starch`, `vegetable`, `aromatic` (maps to `spice_aromatic`), `dairy`. `substitutable` is a boolean placeholder only — the actual substitution-group mechanics are issue #3's schema, not duplicated here.
+- `ingredient_slots[]` — each slot is `{role, ingredient_id, substitutable}`. `role` is the CLAUDE.md-specified subset of `Ingredient.category` used for slot composition: `protein`, `starch`, `vegetable`, `aromatic` (maps to `spice_aromatic`), `dairy`. `substitutable` gates whether the slot accepts swaps at all; the swap candidates themselves live in the substitution groups of §5.5, not on the template.
 
 **Allergen safety is deliberately *not* a RecipeTemplate field.** No `contains_allergens[]` or similar is stored on the template. Per §4.3, allergy filtering must never be AI-dependent or manually curated — it's computed live (or cached as a derived value) by joining a template's `ingredient_slots[]` against the verified ingredient-to-allergen mapping (§5.4, issues #8/#9). A hand-tagged allergen list on the template would be a second source of truth that goes stale the moment a substitution changes what's actually in the dish — exactly the kind of drift the safety-critical filtering principle exists to prevent.
 
@@ -200,6 +201,32 @@ One row per ingredient, not per pair, because it's the only shape that can expre
 **Fail-safe enforcement, stated explicitly so a future implementation doesn't default permissive:** the Meal Engine must treat a **missing row** and an **`unverified` row** identically to a row that **contains** the allergen — both exclude the ingredient for a household with that allergy. An ingredient absent from this mapping, or present but not yet verified, is never treated as allergen-free.
 
 Storage: `data/ingredient-allergens.json`, alongside `data/ingredients.json` / `data/recipe-templates.json` / `data/substitutions.json`. Validated via the CLI validator (#15) as `--type ingredient-allergen`, including a coverage check (every catalog ingredient has a mapping row) and an unverified-row count in the summary output — see DECISION_LOG 2026-07-31.
+
+### 5.5 Substitution groups (locked, Phase 0)
+
+What turns 170 templates (§5.3) into several hundred perceived-distinct meals. A **group** is a named, unordered set of ingredients that are interchangeable in a slot of a given role.
+
+**Shape:**
+- `id` — slug, reusing the `SlugIdSchema` of §5.1
+- `name` — Swedish display text, surfaced in the UI as a swap label ("Lök"). Human-readable prose, not a code identifier.
+- `role` — reuses the `IngredientSlotRole` enum locked in §5.3 (`protein`, `starch`, `vegetable`, `aromatic`, `dairy`). No parallel vocabulary.
+- `member_ingredient_ids[]` — foreign keys into `Ingredient.id`, **minimum 2**, no duplicates within a group. An ingredient may belong to more than one group.
+
+Lookup is derived, not stored: for a slot, the candidate swaps are the members of any group whose `role` matches the slot's role and whose members include the slot's `ingredient_id`. There is no reverse index field — it would be a denormalization to maintain for a file of this size.
+
+**Groups, not directed pairs.** A group of 4 expresses in one record what directed pairs need 12 rows for, and every one of those rows is a place for the data to contradict itself (an "A → B" row existing while "B → A" doesn't). The group is also the shape the UI actually consumes: the swap sheet shows *the other members*, a set operation rather than a graph traversal. The known limitation is that a group asserts **symmetric** interchangeability and cannot express that one direction is worse (tofu for chicken reads fine; chicken into a tofu-authored dish changes what the dish is). That asymmetry is deliberately left to Meal Engine ranking — which member to prefer for a given household and session is a ranking judgment, not a static property of the data, and encoding it here would compete with the session weight vector (DECISION_LOG 2026-07-31, priority sliders). See DECISION_LOG for the reversal cost.
+
+**Groups must never encode allergen or dietary suitability — in any form.** No allergen field, no dietary flags, no "dairy-free alternatives" group whose *identity* is the restriction it satisfies. Determining which members are safe for a household is Meal Engine logic, computed against the verified ingredient-to-allergen mapping (§5.4) at swap time. A suitability claim baked into a group would be a second source of truth for safety-critical filtering — hand-curated, unversioned against the mapping, and stale the moment an allergen correction lands — which is exactly what §4.3 exists to prevent. It would also route around the fail-safe rule: a group named for being dairy-free would read as safe even for a member whose mapping row is missing or `unverified`.
+
+**`substitutable: false` on a slot suppresses all swaps for that slot**, regardless of whether its ingredient belongs to a group. The template's flag wins — it is the author's statement that this ingredient *is* the dish (the lax in "ugnsbakad lax"), and group membership must not override it. This section is what gives that boolean its meaning; it was a documented placeholder from §5.3 until now.
+
+**Role↔category coherence is deliberately unenforced.** Nothing checks that a member's `Ingredient.category` is consistent with the group's `role` — an ingredient categorized `dairy` in a `protein` group validates clean. Per §5.3, translating between the slot-role and ingredient-category vocabularies is Meal Engine logic and never a string match; adding a mapping to the validator would smuggle that translation into the data layer where it doesn't belong. Members being sensible for their role is an authoring-review responsibility.
+
+**The validator deliberately performs no cost-tier check across a group's members.** Groups are most valuable precisely when members *differ* in tier — the premium→budget swap is the feature, and the "cheaper" adjustment chip depends on it. Enforcing tier homogeneity would delete it. Do not add such a check.
+
+**Open conflict: swap drift against the derived template `cost_tier`.** Per DECISION_LOG 2026-07-31, `RecipeTemplate.cost_tier` is the highest `default_cost_tier` among slot ingredients, validator-enforced. That rule is well-defined **only for the exact ingredient set stored in `ingredient_slots[]`** — the stored tier describes the *canonical* template, not the dish the user sees after a swap. Swap premium lax for mid torsk and the ₤₤₤ badge is stale: a curated number drifted from its source of truth, the failure mode the derived-field rule was written to prevent. **A swapped meal's effective cost tier is undefined until Phase 1.** The two candidate resolutions — recompute the effective tier at swap time, or store the canonical tier plus a derived range — are deliberately left unresolved here; this is the Meal Engine's call to make when it first renders a tier for a swapped meal, not a Phase 0 schema question.
+
+Storage: `data/substitutions.json`. Validated via the CLI validator (#15) as `--type substitution`: schema conformance, duplicate group ids and names, member resolution against the ingredient catalog, no duplicate members within a group, minimum 2 members. As with the other cross-file checks, an invocation passing no ingredient file *warns* rather than passing silently.
 
 ## 6. API Surface (High Level, No Implementation Yet)
 
