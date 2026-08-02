@@ -117,7 +117,7 @@ Locked against a 30-ingredient spot-check spanning proteins, vegetables, dairy, 
 **`default_cost_tier` (enum):** `budget` / `mid` / `premium` — curated, team-maintained, per CLAUDE.md (never AI-inferred as a specific price). Approximate Swedish-grocery bands for calibration, reviewed periodically rather than tied to live prices. Displayed to users as `₤`/`₤₤`/`₤₤₤` — see UX_FLOW.md §4 note on the display mapping.
 - `budget` — everyday staples, roughly <40 kr/kg or <15 kr/unit (potatoes, onions, pasta, rice, oats, milk, eggs)
 - `mid` — routine but pricier (chicken breast, ground beef, cheese, off-season peppers)
-- `premium` — premium or import-heavy (salmon, shrimp, prime cuts, out-of-season specialty produce)
+- `premium` — premium or import-heavy (entrecôte, oxfilé, shrimp, out-of-season specialty produce)
 
 **Seasonality fields:**
 - `peak_months` (int[], 1-12) — months of peak quality/value; empty if not meaningfully seasonal
