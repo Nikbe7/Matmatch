@@ -282,7 +282,7 @@
     "id": "musslor",
     "name": "musslor",
     "category": "protein",
-    "default_cost_tier": "mid",
+    "default_cost_tier": "budget",
     "peak_months": [],
     "available_year_round": true,
     "seasonality_strength": "weak"
@@ -880,7 +880,7 @@
     "id": "fullkornspasta",
     "name": "fullkornspasta",
     "category": "starch",
-    "default_cost_tier": "mid",
+    "default_cost_tier": "budget",
     "peak_months": [],
     "available_year_round": true,
     "seasonality_strength": "weak"
@@ -907,7 +907,7 @@
     "id": "jasminris",
     "name": "jasminris",
     "category": "starch",
-    "default_cost_tier": "budget",
+    "default_cost_tier": "mid",
     "peak_months": [],
     "available_year_round": true,
     "seasonality_strength": "weak"
