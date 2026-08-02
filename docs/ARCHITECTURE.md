@@ -11,10 +11,10 @@
 | Frontend | React + TypeScript, built as a PWA (Vite or Next.js) | Single codebase, installable on mobile, works well with mobile-first responsive design; Next.js if SEO/marketing pages matter early, Vite if the app is purely behind-login |
 | Mobile wrapping (later, if needed) | Capacitor | Path to app-store presence and reliable native push notifications without rewriting the frontend, once/if PWA push limitations become a real blocker |
 | Backend | Node.js + TypeScript | Shares types/language with frontend, mainstream ecosystem, fast to iterate for a small team |
-| Database | PostgreSQL | Relational data (households, members, recipes, orders) is genuinely relational; mature, well-understood, good hosting options (Supabase, Neon, RDS) |
+| Database | PostgreSQL — **Supabase, `eu-north-1`** (decided 2026-08-02) | Relational data (households, members, recipes, orders) is genuinely relational; mature, well-understood. Provider and region are settled — see DECISION_LOG 2026-08-02, including the five binding conditions (Data API disabled, RLS as defense-in-depth only, plain SQL migrations) |
 | Vector search (optional, later) | pgvector extension on Postgres | Only if ingredient/recipe similarity matching becomes valuable — avoid introducing a separate vector DB in MVP |
 | AI provider | Claude API (Anthropic) | Structured JSON output support, strong instruction-following for constrained generation tasks |
-| Auth | Standard email/social login (e.g., via Supabase Auth or Auth.js) | No need to build this from scratch |
+| Auth | **Supabase Auth** (decided 2026-08-02), asymmetric ES256 JWTs verified backend-side with `jose` | No need to build this from scratch; same provider as the database, so identity and row access are one mechanism rather than two. The backend holds no signing secret — it only verifies |
 | Payments | Stripe, with Swish/Klarna evaluated for the Swedish market | Stripe for subscription infra; local payment methods likely improve conversion for a 49 SEK/month consumer product |
 | Hosting | Vercel/Render/Fly.io (frontend + backend), managed Postgres (Supabase/Neon) | Minimal ops overhead appropriate for MVP-stage team size |
 | Analytics | PostHog (or similar) | Needed from day one to test the retention hypothesis, not bolted on later |
