@@ -8,6 +8,18 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-02 — Phase 0 complete: exit review passed, one scoped gap deferred to Phase 1
+
+**Decision:** Phase 0 is done. All acceptance criteria in #21 are met: 206-ingredient catalog (cost tiers and seasonality spot-checked, #7), 206/206 allergen mapping rows manually verified (#27–29), 170 recipe templates across all 30 coverage-matrix cells (#10–14), hero subset hand-polished (#18), 41 substitution groups generated and spot-checked (#19/#20). The exit review computed deterministic-filtering survival for 17 household profiles (§4.3's fail-safe rule: a missing or `unverified` allergen row excludes exactly as a row that contains the allergen) against all 170 templates. Every single allergy, every tested two-allergy combination, and vegetarian+tree_nuts clear a 20-template / 8-emptied-cell threshold comfortably — `gluten` alone, the worst single-allergy case, still leaves 108 templates after substitution rescue (+34 over raw, the largest rescue delta measured, evidence the substitution library in #19/#20 earns its keep for the cases it was built for).
+
+One exception found and deliberately not fixed here: `vegan + gluten` (17 templates) and `vegan + soy` (19, zero substitution rescue) both breach the 20-template floor — the only breaches across 17 profiles tested. Root cause: `soja` (soy sauce, correctly mapped `[gluten, soy]`) is the dominant savory ingredient across the 29 vegan-tagged templates, `tofu`/`soja`/`sojagroddar` are the vegan protein backbone, and per the 2026-08-01 decision below, protein slots are non-substitutable — so there is no swap path out of a protein-slot exclusion. Filed as issue #46 against Phase 1 (additive template batch, not a re-authoring of the existing 29).
+
+**Why recorded as a decision rather than left as a closed issue:** the exit review also surfaced a flag that looks like a gap but isn't — `vegetarian`/`vegan`-only profiles necessarily retain only 9–12 of 30 matrix cells, because the `protein_group` axis has 5 values and a vegetarian household can only ever match `vegetarian_vegan` and the vegetarian-taggable slice of `egg_dairy_pantry`. That's the ceiling by definition of what "vegetarian" means, not a data shortfall, and no issue was filed for it. Recording the distinction here so a future reader doesn't file a duplicate "fix vegetarian cell coverage" ticket against a number that was never fixable.
+
+**How to apply:** Phase 1 planning can treat Phase 0's data foundation as sufficient for the common cases the exit criterion cares about. #46 is the one open, scoped exception — track it there, not as a reason to reopen Phase 0. If a future spot-check or user report finds another profile below the same thresholds, use this review's method (`tmp/phase0_exit_review.py`'s approach: raw survival, substitution-rescued survival, cells retained, top offending ingredients) rather than re-deriving it from scratch.
+
+---
+
 ## 2026-08-01 — Protein slots stay non-substitutable; ingredient-swap variety rests on the other four roles
 
 **Decision:** All 170 recipe templates have exactly one protein slot, and in all 170 it is `substitutable: false`. That stays. It was an emergent property of how batches #10–14 were authored rather than a recorded call; it is now a deliberate one. The `substitutions.json` library (#19) therefore contains **zero protein-role groups**, and `agg` at `protein` role — binding at 9 substitutable-slot occurrences — is a documented coverage exception rather than a group.
