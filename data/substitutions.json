@@ -123,8 +123,7 @@
     "role": "vegetable",
     "member_ingredient_ids": [
       "broccoli",
-      "blomkal",
-      "brysselkal"
+      "blomkal"
     ]
   },
   {
@@ -153,8 +152,7 @@
     "role": "vegetable",
     "member_ingredient_ids": [
       "zucchini",
-      "aubergine",
-      "pumpa"
+      "aubergine"
     ]
   },
   {
@@ -164,15 +162,6 @@
     "member_ingredient_ids": [
       "gurka",
       "minigurka"
-    ]
-  },
-  {
-    "id": "artor-och-majs",
-    "name": "Ärtor och majs",
-    "role": "vegetable",
-    "member_ingredient_ids": [
-      "artor",
-      "majs"
     ]
   },
   {
@@ -228,29 +217,6 @@
     ]
   },
   {
-    "id": "farska-mjuka-orter",
-    "name": "Färska mjuka örter",
-    "role": "aromatic",
-    "member_ingredient_ids": [
-      "farsk-persilja",
-      "farsk-koriander",
-      "farsk-basilika",
-      "farsk-dill",
-      "farsk-mynta"
-    ]
-  },
-  {
-    "id": "kraftiga-orter",
-    "name": "Kraftiga örter",
-    "role": "aromatic",
-    "member_ingredient_ids": [
-      "oregano",
-      "farsk-rosmarin",
-      "farsk-timjan",
-      "lagerblad"
-    ]
-  },
-  {
     "id": "citrus",
     "name": "Citrus",
     "role": "aromatic",
@@ -266,8 +232,7 @@
     "member_ingredient_ids": [
       "farsk-chili",
       "chiliflakes",
-      "sambal-oelek",
-      "svartpeppar"
+      "sambal-oelek"
     ]
   },
   {
@@ -278,8 +243,7 @@
       "spiskummin",
       "paprikapulver",
       "gurkmeja",
-      "curry",
-      "currypasta"
+      "curry"
     ]
   },
   {
@@ -288,7 +252,6 @@
     "role": "aromatic",
     "member_ingredient_ids": [
       "ingefara",
-      "vitlok",
       "farsk-chili"
     ]
   },
@@ -302,31 +265,12 @@
     ]
   },
   {
-    "id": "tomat-och-chilisaser",
-    "name": "Tomat- och chilisåser",
-    "role": "aromatic",
-    "member_ingredient_ids": [
-      "tomatpure",
-      "ketchup",
-      "sweet-chilisas"
-    ]
-  },
-  {
     "id": "senap",
     "name": "Senap",
     "role": "aromatic",
     "member_ingredient_ids": [
       "senap",
       "dijonsenap"
-    ]
-  },
-  {
-    "id": "majonnas-och-bearnaise",
-    "name": "Majonnäs och bearnaise",
-    "role": "aromatic",
-    "member_ingredient_ids": [
-      "majonnas",
-      "bearnaisesas"
     ]
   },
   {
@@ -411,6 +355,53 @@
       "smor",
       "margarin",
       "bakmargarin"
+    ]
+  },
+  {
+    "id": "currybas",
+    "name": "Currybas",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "currypasta",
+      "curry"
+    ]
+  },
+  {
+    "id": "tomatbas",
+    "name": "Tomatbas",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "tomatpure",
+      "ketchup"
+    ]
+  },
+  {
+    "id": "persilja-och-dill",
+    "name": "Persilja och dill",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "farsk-persilja",
+      "farsk-dill"
+    ]
+  },
+  {
+    "id": "koriander-och-mynta",
+    "name": "Koriander och mynta",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "farsk-koriander",
+      "farsk-mynta"
+    ]
+  },
+  {
+    "id": "medelhavsorter",
+    "name": "Medelhavsörter",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "oregano",
+      "farsk-basilika",
+      "farsk-rosmarin",
+      "farsk-timjan"
     ]
   }
 ]
