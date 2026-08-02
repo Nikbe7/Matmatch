@@ -9,10 +9,13 @@
     "validate": "tsx src/tools/validate.ts"
   },
   "dependencies": {
+    "jose": "^6.2.7",
+    "postgres": "^3.4.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
+    "supabase": "^2.111.0",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
