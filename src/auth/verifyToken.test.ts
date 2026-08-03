@@ -3,12 +3,18 @@ import { AddressInfo } from "node:net";
 import { SignJWT, exportJWK, generateKeyPair, type JWK } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  LOCAL_API_URL,
   LOCAL_ISSUER,
   LOCAL_JWKS_URL,
   createTestUser,
   isLocalStackAvailable,
 } from "../db/__fixtures__/localStack.js";
-import { AuthError, bearerToken, createTokenVerifier } from "./verifyToken.js";
+import {
+  AuthError,
+  bearerToken,
+  createTokenVerifier,
+  tokenVerifierConfigFromEnv,
+} from "./verifyToken.js";
 
 const stackAvailable = await isLocalStackAvailable();
 
@@ -27,6 +33,49 @@ describe("bearerToken", () => {
     expect(() => bearerToken("Basic dXNlcjpwYXNz")).toThrow(AuthError);
     expect(() => bearerToken("Bearer")).toThrow(AuthError);
     expect(() => bearerToken("Bearer   ")).toThrow(AuthError);
+  });
+});
+
+describe("tokenVerifierConfigFromEnv", () => {
+  it("throws a named error when SUPABASE_URL is missing", () => {
+    expect(() => tokenVerifierConfigFromEnv({})).toThrow(/SUPABASE_URL/);
+  });
+
+  it("throws a named error when SUPABASE_URL is empty", () => {
+    expect(() => tokenVerifierConfigFromEnv({ SUPABASE_URL: "" })).toThrow(/SUPABASE_URL/);
+  });
+
+  it("throws a named error when SUPABASE_URL is whitespace-only", () => {
+    expect(() => tokenVerifierConfigFromEnv({ SUPABASE_URL: "   " })).toThrow(/SUPABASE_URL/);
+  });
+
+  it("derives the JWKS URL and issuer from SUPABASE_URL", () => {
+    const config = tokenVerifierConfigFromEnv({ SUPABASE_URL: "http://127.0.0.1:54321" });
+
+    expect(config.jwksUrl).toBe("http://127.0.0.1:54321/auth/v1/.well-known/jwks.json");
+    expect(config.issuer).toBe("http://127.0.0.1:54321/auth/v1");
+  });
+
+  it("strips a trailing slash from SUPABASE_URL before deriving, with no double slash", () => {
+    const config = tokenVerifierConfigFromEnv({ SUPABASE_URL: "http://127.0.0.1:54321/" });
+
+    expect(config.jwksUrl).toBe("http://127.0.0.1:54321/auth/v1/.well-known/jwks.json");
+    expect(config.issuer).toBe("http://127.0.0.1:54321/auth/v1");
+  });
+
+  it("defaults the audience to 'authenticated' when unset", () => {
+    const config = tokenVerifierConfigFromEnv({ SUPABASE_URL: "http://127.0.0.1:54321" });
+
+    expect(config.audience).toBe("authenticated");
+  });
+
+  it("uses SUPABASE_JWT_AUDIENCE when set", () => {
+    const config = tokenVerifierConfigFromEnv({
+      SUPABASE_URL: "http://127.0.0.1:54321",
+      SUPABASE_JWT_AUDIENCE: "custom-audience",
+    });
+
+    expect(config.audience).toBe("custom-audience");
   });
 });
 
@@ -170,6 +219,26 @@ describe.skipIf(!stackAvailable)("createTokenVerifier (real Supabase token)", ()
       jwksUrl: LOCAL_JWKS_URL,
       issuer: "https://some-other-project.supabase.co/auth/v1",
     });
+
+    await expect(verify(`Bearer ${user.accessToken}`)).rejects.toThrow(AuthError);
+  });
+
+  it("accepts a genuine token when SUPABASE_URL derives the matching issuer", async () => {
+    const user = await createTestUser();
+    const verify = createTokenVerifier(tokenVerifierConfigFromEnv({ SUPABASE_URL: LOCAL_API_URL }));
+
+    await expect(verify(`Bearer ${user.accessToken}`)).resolves.toEqual({ userId: user.userId });
+  });
+
+  it("rejects a genuine token when SUPABASE_URL derives a different issuer", async () => {
+    // Same server, different host string ("localhost" vs. "127.0.0.1") — the JWKS
+    // fetch still succeeds (no real network call to an unreachable host needed to
+    // prove the point), but the derived issuer no longer matches the token's real
+    // `iss` claim, which is minted against LOCAL_API_URL.
+    const user = await createTestUser();
+    const verify = createTokenVerifier(
+      tokenVerifierConfigFromEnv({ SUPABASE_URL: "http://localhost:54321" }),
+    );
 
     await expect(verify(`Bearer ${user.accessToken}`)).rejects.toThrow(AuthError);
   });
