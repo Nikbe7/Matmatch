@@ -6,6 +6,8 @@ import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../../
 import type { Household, HouseholdMember, HouseholdMemberType } from "../../src/schema/household";
 import type { CostTier } from "../../src/schema/ingredient";
 import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
+import { ShoppingList } from "./ShoppingList";
+import { loadShoppingList } from "./shoppingListStorage";
 
 // One screen, four states: signed out (login form), household unknown (loading),
 // no household (onboarding), household exists (Tonight view). This slice is a
@@ -303,29 +305,33 @@ function SuggestionCard({ result, onAccept }: { result: TonightResult; onAccept:
   );
 }
 
-type TonightViewState = { status: "suggestion" } | { status: "confirmed"; dishName: string };
+type TonightViewState = { status: "suggestion" } | { status: "shopping" };
 
 function TonightView({ data }: { data: TonightResponse }) {
-  const [state, setState] = useState<TonightViewState>({ status: "suggestion" });
   const result = data.result;
+
+  // A page reload in the shop must land back on the shopping list, not the
+  // suggestion card — so the initial state checks for a stored list matching this
+  // result's template id, once, at mount. TonightView is remounted fresh by Gate
+  // on every "ready" transition (see Gate below), so this lazy initializer always
+  // sees the current result.
+  const [state, setState] = useState<TonightViewState>(() =>
+    result !== null && loadShoppingList(result.template.id) ? { status: "shopping" } : { status: "suggestion" },
+  );
 
   return (
     <div>
       <h2>Tonight</h2>
       {result === null && <pre>{`no result: ${data.reason}`}</pre>}
       {result !== null && state.status === "suggestion" && (
-        <SuggestionCard
-          result={result}
-          onAccept={() => setState({ status: "confirmed", dishName: result.template.name })}
-        />
+        <SuggestionCard result={result} onAccept={() => setState({ status: "shopping" })} />
       )}
-      {state.status === "confirmed" && (
-        <div>
-          <p>Ikväll: {state.dishName}</p>
-          <button type="button" onClick={() => setState({ status: "suggestion" })}>
-            Tillbaka till förslaget
-          </button>
-        </div>
+      {result !== null && state.status === "shopping" && (
+        <ShoppingList
+          result={result}
+          portions={data.portions}
+          onNewSuggestion={() => setState({ status: "suggestion" })}
+        />
       )}
     </div>
   );

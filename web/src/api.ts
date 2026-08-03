@@ -15,6 +15,7 @@ export interface TonightIngredient {
 
 export interface TonightResult {
   template: {
+    id: string;
     name: string;
     cost_tier: CostTier;
     prep_time_band: PrepTimeBand;
@@ -25,7 +26,13 @@ export interface TonightResult {
   score: number;
 }
 
-export type TonightResponse = { result: TonightResult } | { result: null; reason: string };
+// portions is the household's raw total portion_factor — a plain number, never a
+// preformatted string. Rounding and the "För N portioner" wording are frontend
+// display logic (see App.tsx), not something the backend should own: baking the
+// wording into the API would mean it could only change via an API change.
+export type TonightResponse =
+  | { result: TonightResult; portions: number }
+  | { result: null; reason: string; portions: number };
 
 interface ApiErrorEnvelope {
   error: { code: string; message: string };
