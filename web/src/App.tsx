@@ -283,7 +283,7 @@ function SuggestionCard({ result, onAccept }: { result: TonightResult; onAccept:
     <div>
       <h3>{result.template.name}</h3>
       <p>
-        <span aria-label={costTierLabel(result.template.cost_tier)}>
+        <span role="img" aria-label={costTierLabel(result.template.cost_tier)}>
           <span aria-hidden="true">{costTierMeter(result.template.cost_tier)}</span>
         </span>{" "}
         · {PREP_TIME_LABELS[result.template.prep_time_band]}

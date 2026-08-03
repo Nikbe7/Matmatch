@@ -56,6 +56,17 @@ const suggestionBody = {
   },
 };
 
+function suggestionBodyForTier(tier: CostTier) {
+  return {
+    result: {
+      template: { name: "Kycklinggryta", cost_tier: tier, prep_time_band: "20-40min" },
+      ingredients: [{ role: "protein", name: "Kyckling", substituted: false }],
+      substitutions: [],
+      score: 0.5,
+    },
+  };
+}
+
 beforeEach(() => {
   sessionHolder.current = null;
 });
@@ -199,9 +210,13 @@ describe("App — Tonight suggestion card", () => {
     expect(container.textContent).not.toMatch(/\bmid\b/);
     expect(container.textContent).toContain("●●○");
 
-    const meter = container.querySelector('[aria-label="Mellan"]');
-    expect(meter).not.toBeNull();
-    const dots = meter!.querySelector('[aria-hidden="true"]');
+    // A role-based query, not an attribute check: jsdom doesn't enforce the rule
+    // that aria-label is ignored on a generic-role element, so a plain
+    // `container.querySelector('[aria-label="Mellan"]')` would pass even if the
+    // wrapper had no naming role at all. getByRole computes the accessible name
+    // the way a real screen reader would and fails if role="img" is missing.
+    const meter = screen.getByRole("img", { name: "Mellan" });
+    const dots = meter.querySelector('[aria-hidden="true"]');
     expect(dots).not.toBeNull();
     expect(dots!.textContent).toBe("●●○");
   });
@@ -222,4 +237,18 @@ describe("App — Tonight suggestion card", () => {
     await user.click(screen.getByRole("button", { name: "Tillbaka till förslaget" }));
     await screen.findByRole("heading", { name: "Kycklinggryta" });
   });
+
+  const labelByTier: Record<CostTier, string> = { budget: "Billig", mid: "Mellan", premium: "Dyr" };
+
+  for (const [tier, label] of Object.entries(labelByTier) as [CostTier, string][]) {
+    it(`exposes "${label}" as the accessible name for cost tier "${tier}"`, async () => {
+      sessionHolder.current = fakeSession;
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBodyForTier(tier))));
+
+      render(<App />);
+      await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+      expect(screen.getByRole("img", { name: label })).toBeTruthy();
+    });
+  }
 });
