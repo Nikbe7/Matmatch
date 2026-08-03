@@ -7,8 +7,8 @@
     "typecheck": "tsc --noEmit && npm run typecheck --prefix web",
     "test": "vitest run",
     "validate": "tsx src/tools/validate.ts",
-    "dev": "tsx watch src/api/server.ts",
-    "start": "tsx src/api/server.ts",
+    "dev": "tsx watch --env-file=.env src/api/server.ts",
+    "start": "tsx --env-file=.env src/api/server.ts",
     "start:cloud": "tsx --env-file=.env.cloud src/api/server.ts",
     "build": "npm run build --prefix web"
   },
