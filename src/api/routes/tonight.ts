@@ -8,6 +8,7 @@ import { pickTonight } from "../../engine/ranking.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../httpError.js";
 import { parseWeightsFromQuery } from "../weights.js";
+import { buildTonightIngredients } from "../tonightIngredients.js";
 
 export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: TokenVerifier): Router {
   const router = Router();
@@ -45,6 +46,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         result: {
           template: picked.template,
           substitutions: picked.substitutions,
+          ingredients: buildTonightIngredients(engineData, picked),
           score: picked.score,
         },
       });

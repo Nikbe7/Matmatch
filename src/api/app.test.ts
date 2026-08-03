@@ -217,6 +217,16 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     expect(response.body.result.template).toBeDefined();
     expect(typeof response.body.result.score).toBe("number");
     expect(Array.isArray(response.body.result.substitutions)).toBe(true);
+
+    // Every slot must carry a real, catalog-resolved Swedish name (#64) — never an
+    // empty string standing in for a lookup miss.
+    const { ingredients, template } = response.body.result;
+    expect(Array.isArray(ingredients)).toBe(true);
+    expect(ingredients).toHaveLength(template.ingredient_slots.length);
+    for (const ingredient of ingredients) {
+      expect(typeof ingredient.name).toBe("string");
+      expect(ingredient.name.length).toBeGreaterThan(0);
+    }
   });
 
   it("returns a null result with a reason for a household with no safe templates", async () => {
