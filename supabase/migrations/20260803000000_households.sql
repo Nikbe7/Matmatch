@@ -96,9 +96,13 @@ create trigger households_set_updated_at
 --
 -- FORCE, not just ENABLE: without FORCE, the table owner bypasses every policy
 -- below, which would make these policies silently inert for any connection that
--- happens to own the tables. Note that a superuser (e.g. the default local
--- `postgres` role) still bypasses RLS entirely — see README and the DECISION_LOG
--- entry for what that means and what it does not protect against.
+-- happens to own the tables. Note that a role carrying `rolbypassrls` — `postgres`,
+-- `supabase_admin` and service-role connections all do — still bypasses RLS
+-- entirely, whether or not it is a superuser. (Corrected: an earlier version of this
+-- comment said "superuser"; `postgres` here has rolsuper = false and rolbypassrls =
+-- true, so the bypass attribute is what matters.) The backend therefore connects as
+-- `matmatch_app`, which has neither — see 20260803120000_least_privilege_app_role.sql,
+-- README.md, and the DECISION_LOG 2026-08-03 entry.
 
 alter table public.households enable row level security;
 alter table public.households force row level security;
