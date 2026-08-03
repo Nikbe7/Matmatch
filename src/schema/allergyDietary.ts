@@ -1,28 +1,13 @@
 import { z } from "zod";
+import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "./vocabulary.js";
 
 // ARCHITECTURE.md §5.2 — Allergy & dietary vocabulary
+//
+// The locked values live in ./vocabulary.ts (zod-free — see that file for why);
+// this module only adds zod validation on top for backend/API use.
 
-// Plain arrays, not just the zod enums below: the frontend reads these directly so
-// the onboarding chip list is derived from the locked vocabulary rather than a
-// hand-typed parallel list. Zod validation and inferred types are unchanged — the
-// enums are now built from these arrays instead of duplicating the values.
-export const ALLERGIES = [
-  "gluten",
-  "dairy_lactose",
-  "egg",
-  "tree_nuts",
-  "peanuts",
-  "shellfish",
-  "fish",
-  "soy",
-] as const;
+export { ALLERGIES, DIETARY_FLAGS };
+export type { Allergy, DietaryFlag };
+
 export const AllergySchema = z.enum(ALLERGIES);
-export type Allergy = z.infer<typeof AllergySchema>;
-
-export const DIETARY_FLAGS = [
-  "vegetarian",
-  "vegan",
-  "high_protein_preference",
-] as const;
 export const DietaryFlagSchema = z.enum(DIETARY_FLAGS);
-export type DietaryFlag = z.infer<typeof DietaryFlagSchema>;

@@ -2,7 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ALLERGIES } from "../../src/schema/allergyDietary";
+import { ALLERGIES } from "../../src/schema/vocabulary";
 
 // Covers the signed-out state (login form, never reaches the network) and the
 // household gate: no-household → onboarding, submit → Tonight, API error →

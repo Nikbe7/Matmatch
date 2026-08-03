@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import { ApiError, createHousehold, fetchTonight, type TonightResponse } from "./api";
-import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../../src/schema/allergyDietary";
+import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../../src/schema/vocabulary";
 import type { Household, HouseholdMember, HouseholdMemberType } from "../../src/schema/household";
 
 // One screen, four states: signed out (login form), household unknown (loading),
