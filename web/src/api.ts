@@ -3,6 +3,8 @@
 // bearer token from the caller — it never touches the Supabase client or storage
 // itself.
 
+import type { Household } from "../../src/schema/household";
+
 export interface TonightResult {
   template: {
     name: string;
@@ -46,4 +48,21 @@ export async function fetchTonight(accessToken: string): Promise<TonightResponse
   }
 
   return body as TonightResponse;
+}
+
+export async function createHousehold(accessToken: string, household: Household): Promise<void> {
+  const response = await fetch("/api/households", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(household),
+  });
+
+  if (!response.ok) {
+    const body: unknown = await response.json();
+    const { error } = body as ApiErrorEnvelope;
+    throw new ApiError(response.status, error.code, error.message);
+  }
 }
