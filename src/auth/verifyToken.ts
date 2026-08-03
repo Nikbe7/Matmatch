@@ -24,8 +24,8 @@ export interface AuthenticatedUser {
 export interface TokenVerifierConfig {
   /** e.g. http://127.0.0.1:54321/auth/v1/.well-known/jwks.json */
   jwksUrl: string;
-  /** Expected `iss`. Optional so the local stack's issuer can differ from the cloud project's. */
-  issuer?: string;
+  /** Expected `iss`. Always checked — there is no skip path. */
+  issuer: string;
   /** Expected `aud`. Supabase issues `authenticated` for signed-in users. */
   audience?: string;
 }
@@ -78,18 +78,30 @@ export function createTokenVerifier(config: TokenVerifierConfig): TokenVerifier 
   };
 }
 
-/** Reads verifier configuration from the environment. See .env.example. */
+/**
+ * Reads verifier configuration from the environment. See .env.example.
+ *
+ * A single `SUPABASE_URL` is the source of truth for both the JWKS endpoint and the
+ * expected issuer — Supabase derives both from the same project base URL, so keeping
+ * them as two separately-set variables only invites them drifting apart (one pointed
+ * at local, one at cloud) with a confusing 401 as the only symptom.
+ */
 export function tokenVerifierConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): TokenVerifierConfig {
-  const jwksUrl = env.SUPABASE_JWKS_URL;
-  if (!jwksUrl) {
-    throw new Error("SUPABASE_JWKS_URL is not set — see .env.example and README.md");
+  const supabaseUrl = env.SUPABASE_URL?.trim();
+  if (!supabaseUrl) {
+    throw new Error("SUPABASE_URL is not set — see .env.example and README.md");
   }
 
+  // Stripped once here so every consumer (JWKS URL, issuer) gets the same
+  // normalised base, regardless of whether the configured value has a trailing
+  // slash.
+  const base = supabaseUrl.replace(/\/+$/, "");
+
   return {
-    jwksUrl,
-    issuer: env.SUPABASE_JWT_ISSUER,
+    jwksUrl: `${base}/auth/v1/.well-known/jwks.json`,
+    issuer: `${base}/auth/v1`,
     audience: env.SUPABASE_JWT_AUDIENCE ?? "authenticated",
   };
 }

@@ -30,13 +30,16 @@ Stop it with `npx supabase stop`. Database tests are skipped automatically when 
 ## Running the API
 
 ```bash
-npm run dev     # tsx watch — restarts on file change
-npm start       # one-shot, no watch
+npm run dev          # tsx watch — restarts on file change, reads .env
+npm start            # one-shot, no watch, reads .env
+npm run start:cloud  # one-shot against the cloud project, reads .env.cloud instead
 ```
 
-Reads `DATABASE_URL`, `SUPABASE_JWKS_URL`, `SUPABASE_JWT_ISSUER`/`AUDIENCE`, and `PORT` (default `3000`) from `.env` — same values as above. Loads `data/*.json` into memory once at startup (not per request) and exits if that fails.
+Reads `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_AUDIENCE`, and `PORT` (default `3000`) from `.env` — same values as above. `SUPABASE_URL` is the project base URL; the JWKS endpoint and expected token issuer are both derived from it (`src/auth/verifyToken.ts`), so there's a single value to point at local vs. cloud rather than two kept in sync by hand. Loads `data/*.json` into memory once at startup (not per request) and exits if that fails.
 
-`GET /health` needs nothing else and is what a host's health check should hit. Every route under `/api` requires `Authorization: Bearer <token>` — a Supabase-issued access token, verified against `SUPABASE_JWKS_URL`.
+`GET /health` needs nothing else and is what a host's health check should hit. Every route under `/api` requires `Authorization: Bearer <token>` — a Supabase-issued access token, verified against the JWKS endpoint derived from `SUPABASE_URL`.
+
+`npm run start:cloud` loads `.env.cloud` instead of `.env` via Node's built-in `--env-file` — no dotenv, no config framework. Keep cloud credentials in `.env.cloud` (gitignored, like `.env`) rather than switching `.env` back and forth between local and cloud values.
 
 **If database tests skip when the stack *is* up**, check the auth gateway: `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/auth/v1/.well-known/jwks.json`. A `502` means Kong is holding a stale upstream after `supabase db reset` restarted GoTrue. Fix:
 
@@ -63,7 +66,7 @@ Two settings on it are load-bearing, not defaults:
 - **Data API (PostgREST) is disabled**, and "automatically expose new tables" is off. There is no client-facing REST surface — the Node backend is the only path to household and meal data. This is what makes allergy filtering unskippable (see [ARCHITECTURE.md §4.3](docs/ARCHITECTURE.md)); do not re-enable it to "just query from the frontend."
 - **JWT signing is asymmetric (ES256)**, so the backend verifies tokens against the JWKS endpoint and never holds a signing secret.
 
-Where the values in `.env` come from: **Project Settings → Database** for the connection string, and `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json` for `SUPABASE_JWKS_URL`. The backend needs neither the service-role key nor the JWT secret — it only ever verifies tokens.
+Where the values in `.env` come from: **Project Settings → Database** for the connection string, and **Project Settings → API** for the project URL (`https://<project-ref>.supabase.co`) that `SUPABASE_URL` is set to. The backend needs neither the service-role key nor the JWT secret — it only ever verifies tokens.
 
 ### Free-tier projects pause after ~7 days of inactivity
 

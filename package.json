@@ -8,7 +8,8 @@
     "test": "vitest run",
     "validate": "tsx src/tools/validate.ts",
     "dev": "tsx watch src/api/server.ts",
-    "start": "tsx src/api/server.ts"
+    "start": "tsx src/api/server.ts",
+    "start:cloud": "tsx --env-file=.env.cloud src/api/server.ts"
   },
   "dependencies": {
     "express": "^5.2.1",
