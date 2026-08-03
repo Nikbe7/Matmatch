@@ -47,15 +47,32 @@ Reads `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_AUDIENCE`, and `PORT` (defau
 docker restart supabase_kong_matmatch
 ```
 
+## Frontend
+
+`web/` is a Vite + React + TypeScript PWA client — currently a single screen proving the auth/API chain (login → JWT → `GET /api/tonight`), not yet the real app UI.
+
+```bash
+cd web
+npm install
+cp .env.example .env    # fill in VITE_SUPABASE_ANON_KEY from `npx supabase status` (repo root)
+npm run dev              # http://127.0.0.1:5173
+```
+
+Run the backend (`npm run dev` at the repo root, port `3000`) alongside it. Vite's dev server proxies `/api/*` to `http://127.0.0.1:3000`, so the browser only ever talks to `5173` — no CORS configuration exists or is needed in development. **Production is intended to be same-origin**: one service serves the built static files and the API together, so CORS stays unnecessary there too; do not add it preemptively.
+
+The frontend never mints, stores, or refreshes its own token — it reads the session from `@supabase/supabase-js` and sends `session.access_token` as `Authorization: Bearer <token>` on each API call.
+
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `npm test` | Vitest, once |
-| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest, once — backend only, `web/` has its own suite |
+| `npm run typecheck` | `tsc --noEmit`, then the frontend's typecheck |
+| `npm run build` | Builds the frontend (`vite build`) — the backend has no build step, it runs directly under `tsx` |
 | `npm run validate` | Validates `data/*.json` against the locked schemas |
 | `npx supabase db reset` | Recreates the local database from `supabase/migrations/` |
 | `npx supabase migration new <name>` | Scaffolds a new migration file |
+| `npm test` / `npm run typecheck` (inside `web/`) | Frontend's own Vitest suite (jsdom) and `tsc -b` |
 
 ## The Supabase project
 

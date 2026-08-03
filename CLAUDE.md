@@ -94,4 +94,5 @@ Use extended thinking only for: architecture, database design, AI orchestration,
 
 ## Conventions
 - Branching: trunk-based, short-lived `type/description` branches, squash-merged into `main`. Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, etc.). Full mechanics: `docs/engineering/GIT_AND_GITHUB.md`.
-- Typecheck: `npm run typecheck`. Test: `npm test`. (No lint/build step yet — no frontend or CLI validator exists yet; add here once #15 or the frontend scaffolding lands.)
+- Typecheck: `npm run typecheck`. Test: `npm test`. Build: `npm run build` (builds the frontend under `web/`; the backend has no build step, it runs directly under `tsx`). No lint step yet.
+- Frontend lives under `web/` — Vite + React + TypeScript, its own `package.json`/`npm test`/`npm run typecheck`, wired into the root `typecheck`/`build` scripts via `--prefix web`. See README.md "Frontend" section for local setup and ports.
