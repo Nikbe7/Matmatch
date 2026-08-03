@@ -27,6 +27,17 @@ npm test
 
 Stop it with `npx supabase stop`. Database tests are skipped automatically when the stack isn't running, so `npm test` works without Docker — it just covers less.
 
+## Running the API
+
+```bash
+npm run dev     # tsx watch — restarts on file change
+npm start       # one-shot, no watch
+```
+
+Reads `DATABASE_URL`, `SUPABASE_JWKS_URL`, `SUPABASE_JWT_ISSUER`/`AUDIENCE`, and `PORT` (default `3000`) from `.env` — same values as above. Loads `data/*.json` into memory once at startup (not per request) and exits if that fails.
+
+`GET /health` needs nothing else and is what a host's health check should hit. Every route under `/api` requires `Authorization: Bearer <token>` — a Supabase-issued access token, verified against `SUPABASE_JWKS_URL`.
+
 **If database tests skip when the stack *is* up**, check the auth gateway: `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/auth/v1/.well-known/jwks.json`. A `502` means Kong is holding a stale upstream after `supabase db reset` restarted GoTrue. Fix:
 
 ```bash

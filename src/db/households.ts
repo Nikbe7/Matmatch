@@ -167,6 +167,45 @@ export async function getHousehold(
 }
 
 /**
+ * The authenticated user's own household, or undefined when they have none yet.
+ *
+ * Relies on the households_one_per_owner constraint (issue #56): under RLS the
+ * unfiltered query below can only ever see rows owned by this user, and the
+ * constraint guarantees there is at most one. If that constraint is ever relaxed for
+ * the Phase 3 multi-household feature, this function's "one household" assumption
+ * must be revisited alongside it — it is not a query-level LIMIT standing in for the
+ * invariant, it *is* the invariant being relied on.
+ */
+export async function getHouseholdForOwner(
+  sql: Sql,
+  userId: string,
+): Promise<StoredHousehold | undefined> {
+  return withUserContext(sql, userId, async (tx) => {
+    const [row] = await tx<HouseholdRow[]>`
+      select
+        id,
+        owner_user_id,
+        allergies::text[] as allergies,
+        dietary_flags::text[] as dietary_flags,
+        created_at,
+        updated_at
+      from households
+    `;
+
+    if (!row) return undefined;
+
+    const memberRows = await tx<MemberRow[]>`
+      select household_id, type, portion_factor, position
+      from household_members
+      where household_id = ${row.id}
+      order by position
+    `;
+
+    return toStoredHousehold(row, memberRows);
+  });
+}
+
+/**
  * Replaces a household's profile wholesale, returning undefined when no such row is
  * visible to this user.
  *
