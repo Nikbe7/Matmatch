@@ -29,18 +29,36 @@ export const DIETARY_FLAG_LABELS: Record<DietaryFlag, string> = {
   high_protein_preference: "Proteinrikt",
 };
 
-// Display-only mapping (DECISION_LOG 2026-07-29): glyphs are never the underlying
-// cost_tier value and never stand in for an invented kronor figure. An exhaustive
-// switch means a new tier value fails typecheck here rather than silently
-// rendering nothing.
-export function costTierGlyph(tier: CostTier): string {
+// Display-only mapping (DECISION_LOG 2026-07-29, amended for the dot meter): the
+// dots are never the underlying cost_tier value and never stand in for an invented
+// kronor figure. An exhaustive switch means a new tier value fails typecheck here
+// rather than silently rendering nothing.
+export function costTierMeter(tier: CostTier): string {
   switch (tier) {
     case "budget":
-      return "₤";
+      return "●○○";
     case "mid":
-      return "₤₤";
+      return "●●○";
     case "premium":
-      return "₤₤₤";
+      return "●●●";
+    default: {
+      const exhaustive: never = tier;
+      return exhaustive;
+    }
+  }
+}
+
+// The dot meter is purely visual — a screen reader must announce this word, not
+// three bullet characters, so the card wires this in as an aria-label rather than
+// relying on the dot string's own accessible name.
+export function costTierLabel(tier: CostTier): string {
+  switch (tier) {
+    case "budget":
+      return "Billig";
+    case "mid":
+      return "Mellan";
+    case "premium":
+      return "Dyr";
     default: {
       const exhaustive: never = tier;
       return exhaustive;
@@ -265,7 +283,10 @@ function SuggestionCard({ result, onAccept }: { result: TonightResult; onAccept:
     <div>
       <h3>{result.template.name}</h3>
       <p>
-        {costTierGlyph(result.template.cost_tier)} · {PREP_TIME_LABELS[result.template.prep_time_band]}
+        <span aria-label={costTierLabel(result.template.cost_tier)}>
+          <span aria-hidden="true">{costTierMeter(result.template.cost_tier)}</span>
+        </span>{" "}
+        · {PREP_TIME_LABELS[result.template.prep_time_band]}
       </p>
       <ul>
         {result.ingredients.map((ingredient, index) => (

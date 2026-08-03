@@ -3,6 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ALLERGIES } from "../../src/schema/vocabulary";
+import type { CostTier } from "../../src/schema/ingredient";
 
 // Covers the signed-out state (login form, never reaches the network) and the
 // household gate: no-household → onboarding, submit → Tonight, API error →
@@ -29,7 +30,7 @@ vi.mock("./supabaseClient", () => ({
 }));
 
 const { default: App } = await import("./App");
-const { ALLERGY_LABELS } = await import("./App");
+const { ALLERGY_LABELS, costTierMeter, costTierLabel } = await import("./App");
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -165,19 +166,44 @@ describe("App — household gate", () => {
   });
 });
 
+describe("costTierMeter / costTierLabel", () => {
+  const expected: Record<CostTier, { meter: string; label: string }> = {
+    budget: { meter: "●○○", label: "Billig" },
+    mid: { meter: "●●○", label: "Mellan" },
+    premium: { meter: "●●●", label: "Dyr" },
+  };
+
+  for (const [tier, { meter, label }] of Object.entries(expected) as [CostTier, { meter: string; label: string }][]) {
+    it(`maps "${tier}" to its dot meter and Swedish label`, () => {
+      expect(costTierMeter(tier)).toBe(meter);
+      expect(costTierLabel(tier)).toBe(label);
+    });
+  }
+});
+
 describe("App — Tonight suggestion card", () => {
-  it("renders the dish name, cost tier glyph, prep time, and the substituted ingredient's name", async () => {
+  it("renders the dish name, cost tier meter, prep time, and the substituted ingredient's name", async () => {
     sessionHolder.current = fakeSession;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
 
-    render(<App />);
+    const { container } = render(<App />);
 
     await screen.findByRole("heading", { name: "Kycklinggryta" });
-    expect(screen.getByText(/₤₤(?!₤)/)).toBeTruthy();
     expect(screen.getByText(/20–40 min/)).toBeTruthy();
     expect(screen.getByText("Protein: Kyckling")).toBeTruthy();
     expect(screen.getByText(/Rödlök/)).toBeTruthy();
     expect(screen.getByText(/\(ersättning\)/)).toBeTruthy();
+
+    // The raw "mid" enum value must never leak into rendered text — only the dot
+    // meter and its Swedish accessible name should appear.
+    expect(container.textContent).not.toMatch(/\bmid\b/);
+    expect(container.textContent).toContain("●●○");
+
+    const meter = container.querySelector('[aria-label="Mellan"]');
+    expect(meter).not.toBeNull();
+    const dots = meter!.querySelector('[aria-hidden="true"]');
+    expect(dots).not.toBeNull();
+    expect(dots!.textContent).toBe("●●○");
   });
 
   it("Accept moves to a confirmation state, with a way back to the suggestion", async () => {
