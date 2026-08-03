@@ -1,38 +1,154 @@
-import { act } from "react";
-import { createRoot } from "react-dom/client";
-import { describe, expect, it, vi } from "vitest";
+import type { Session } from "@supabase/supabase-js";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ALLERGIES } from "../../src/schema/vocabulary";
 
-// Smoke-level only, per CLAUDE.md: minimal UI/E2E investment until the core loop is
-// validated. This proves the signed-out state renders the login form and never
-// reaches the network — not a full auth-flow suite.
+// Covers the signed-out state (login form, never reaches the network) and the
+// household gate: no-household → onboarding, submit → Tonight, API error →
+// message + form retained, a null-result Tonight response never bounces an
+// existing household back through onboarding, and the locked allergy vocabulary
+// renders as exactly the chips shown. Smoke-level per CLAUDE.md — not a full
+// auth-flow or full-form-validation suite.
+
+const fakeSession = {
+  access_token: "token-123",
+  user: { email: "chef@example.com" },
+} as unknown as Session;
+
+const sessionHolder: { current: Session | null } = { current: null };
 
 vi.mock("./supabaseClient", () => ({
   supabase: {
     auth: {
-      getSession: () => Promise.resolve({ data: { session: null } }),
+      getSession: () => Promise.resolve({ data: { session: sessionHolder.current } }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      signOut: () => Promise.resolve({ error: null }),
     },
   },
 }));
 
 const { default: App } = await import("./App");
+const { ALLERGY_LABELS } = await import("./App");
 
-describe("App", () => {
-  it("renders the login form when signed out", async () => {
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-    const root = createRoot(container);
+function jsonResponse(status: number, body: unknown): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  } as Response;
+}
 
-    await act(async () => {
-      root.render(<App />);
-    });
-    // Let the getSession() promise resolve and the resulting state update flush.
-    await act(async () => {});
+const householdNotFound = jsonResponse(404, {
+  error: { code: "household_not_found", message: "no household exists for this user yet" },
+});
 
-    expect(container.querySelector("form")).not.toBeNull();
-    expect(container.textContent).toContain("Sign in");
+beforeEach(() => {
+  sessionHolder.current = null;
+});
 
-    root.unmount();
-    container.remove();
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+describe("App — signed out", () => {
+  it("renders the login form and never reaches the network", async () => {
+    render(<App />);
+    await screen.findByText("Sign in");
+    expect(screen.getByRole("textbox", { name: "Email" })).toBeTruthy();
+  });
+});
+
+describe("App — household gate", () => {
+  it("renders onboarding when signed in with no household", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(householdNotFound);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Skapa hushåll" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders exactly the locked allergy vocabulary as chips", async () => {
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Skapa hushåll" });
+
+    const fieldset = screen.getByText("Allergier").closest("fieldset")!;
+    const chipLabels = Array.from(fieldset.querySelectorAll("button")).map(
+      (button) => button.textContent,
+    );
+
+    expect(chipLabels).toEqual(ALLERGIES.map((allergy) => ALLERGY_LABELS[allergy]));
+  });
+
+  it("submitting a valid household calls the API and switches to Tonight", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(householdNotFound)
+      .mockResolvedValueOnce(
+        jsonResponse(201, { id: "h1", members: [], allergies: [], dietary_flags: [] }),
+      )
+      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Skapa hushåll" });
+
+    await user.click(screen.getByRole("button", { name: "Spara hushåll" }));
+
+    await screen.findByRole("heading", { name: "Tonight" });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/households");
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: "POST" });
+  });
+
+  it("keeps the form filled and shows a readable message on API error", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(householdNotFound)
+      .mockResolvedValueOnce(
+        jsonResponse(400, {
+          error: { code: "invalid_request", message: "members must contain at least 1 element(s)" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Skapa hushåll" });
+
+    await user.click(screen.getByRole("button", { name: "Lägg till medlem" }));
+    expect(screen.getAllByText("Typ")).toHaveLength(2);
+
+    await user.click(screen.getByRole("button", { name: "Spara hushåll" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("members must contain at least 1 element(s)");
+    expect(alert.textContent).not.toContain("{");
+    expect(screen.getAllByText("Typ")).toHaveLength(2);
+  });
+
+  it("keeps a household with no safe result in the Tonight no-result state, not onboarding", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Tonight" });
+    expect(screen.getByText(/no result: no_safe_templates/)).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Skapa hushåll" })).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
