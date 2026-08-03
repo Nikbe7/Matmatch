@@ -2,17 +2,29 @@ import { afterAll, describe, expect, it } from "vitest";
 import { HouseholdSchema, type Household } from "../schema/household.js";
 import type { Sql } from "./client.js";
 import { createHousehold, getHousehold, updateHousehold } from "./households.js";
-import { backendClient, createTestUser, isLocalStackAvailable } from "./__fixtures__/localStack.js";
+import {
+  appClient,
+  bypassClient,
+  createTestUser,
+  isLocalStackAvailable,
+} from "./__fixtures__/localStack.js";
 
 // Runs against the real local Supabase stack — not mocked. A mock would assert that
 // this file's own SQL strings are what this file expects, which proves nothing about
 // the constraints, domains and driver type handling that actually protect the data.
+//
+// `sql` is the application role, exactly what the backend connects as. `admin`
+// bypasses RLS and is used only where a test needs to prove something *other* than
+// RLS: the schema constraints below have to be reached without a policy rejecting the
+// write first, or they would never be exercised at all.
 
 const stackAvailable = await isLocalStackAvailable();
-const sql: Sql | undefined = stackAvailable ? backendClient() : undefined;
+const sql: Sql | undefined = stackAvailable ? appClient() : undefined;
+const admin: Sql | undefined = stackAvailable ? bypassClient() : undefined;
 
 afterAll(async () => {
   await sql?.end({ timeout: 5 });
+  await admin?.end({ timeout: 5 });
 });
 
 const profile: Household = HouseholdSchema.parse({
@@ -30,7 +42,7 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
     const owner = await createTestUser();
 
     const created = await createHousehold(sql!, owner.userId, profile);
-    const read = await getHousehold(sql!, created.id);
+    const read = await getHousehold(sql!, owner.userId, created.id);
 
     expect(read).toBeDefined();
     expect(read!.owner_user_id).toBe(owner.userId);
@@ -53,7 +65,7 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
     });
 
     const created = await createHousehold(sql!, owner.userId, ordered);
-    const read = await getHousehold(sql!, created.id);
+    const read = await getHousehold(sql!, owner.userId, created.id);
 
     expect(read!.household.members).toEqual(ordered.members);
   });
@@ -69,7 +81,7 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
     const created = await createHousehold(sql!, owner.userId, plain);
 
     expect(created.household.allergies).toEqual([]);
-    expect((await getHousehold(sql!, created.id))!.household.dietary_flags).toEqual([]);
+    expect((await getHousehold(sql!, owner.userId, created.id))!.household.dietary_flags).toEqual([]);
   });
 
   it("replaces members, allergies and flags on update", async () => {
@@ -81,10 +93,10 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
       allergies: ["soy"],
       dietary_flags: ["vegan", "vegetarian"],
     });
-    const updated = await updateHousehold(sql!, created.id, revised);
+    const updated = await updateHousehold(sql!, owner.userId, created.id, revised);
 
     expect(updated!.household).toEqual(revised);
-    expect((await getHousehold(sql!, created.id))!.household).toEqual(revised);
+    expect((await getHousehold(sql!, owner.userId, created.id))!.household).toEqual(revised);
     expect(updated!.id).toBe(created.id);
   });
 
@@ -92,7 +104,7 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
     const owner = await createTestUser();
     const created = await createHousehold(sql!, owner.userId, profile);
 
-    const updated = await updateHousehold(sql!, created.id, {
+    const updated = await updateHousehold(sql!, owner.userId, created.id, {
       ...profile,
       allergies: ["egg"],
     });
@@ -102,16 +114,18 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
   });
 
   it("returns undefined for an id that does not exist", async () => {
-    expect(await getHousehold(sql!, crypto.randomUUID())).toBeUndefined();
-    expect(await updateHousehold(sql!, crypto.randomUUID(), profile)).toBeUndefined();
+    const owner = await createTestUser();
+
+    expect(await getHousehold(sql!, owner.userId, crypto.randomUUID())).toBeUndefined();
+    expect(await updateHousehold(sql!, owner.userId, crypto.randomUUID(), profile)).toBeUndefined();
   });
 
   it("cascades member deletion when a household is deleted", async () => {
     const owner = await createTestUser();
     const created = await createHousehold(sql!, owner.userId, profile);
 
-    await sql!`delete from households where id = ${created.id}`;
-    const [row] = await sql!<{ count: string }[]>`
+    await admin!`delete from households where id = ${created.id}`;
+    const [row] = await admin!<{ count: string }[]>`
       select count(*)::text as count from household_members where household_id = ${created.id}
     `;
 
@@ -135,7 +149,7 @@ describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () =
     const owner = await createTestUser();
 
     await expect(
-      sql!`
+      admin!`
         insert into households (owner_user_id, allergies)
         values (${owner.userId}, '{"sesame"}'::text[]::allergy_value[])
       `,
@@ -146,7 +160,7 @@ describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () =
     const owner = await createTestUser();
 
     await expect(
-      sql!`
+      admin!`
         insert into households (owner_user_id, dietary_flags)
         values (${owner.userId}, '{"pescatarian"}'::text[]::dietary_flag_value[])
       `,
@@ -157,7 +171,7 @@ describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () =
     const owner = await createTestUser();
 
     await expect(
-      sql!`
+      admin!`
         insert into households (owner_user_id, allergies)
         values (${owner.userId}, '{"gluten","gluten"}'::text[]::allergy_value[])
       `,
@@ -169,7 +183,7 @@ describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () =
     const created = await createHousehold(sql!, owner.userId, profile);
 
     await expect(
-      sql!`
+      admin!`
         insert into household_members (household_id, type, portion_factor, position)
         values (${created.id}, 'adult', 0, 99)
       `,
@@ -181,7 +195,7 @@ describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () =
     const created = await createHousehold(sql!, owner.userId, profile);
 
     await expect(
-      sql!`
+      admin!`
         insert into household_members (household_id, type, portion_factor, position)
         values (${created.id}, 'teenager', 1, 98)
       `,
@@ -190,7 +204,7 @@ describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () =
 
   it("rejects a household whose owner is not a real auth user", async () => {
     await expect(
-      sql!`insert into households (owner_user_id) values (${crypto.randomUUID()})`,
+      admin!`insert into households (owner_user_id) values (${crypto.randomUUID()})`,
     ).rejects.toThrow(/owner_user_id_fkey/i);
   });
 });

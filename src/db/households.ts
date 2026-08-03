@@ -1,8 +1,14 @@
 import { HouseholdSchema, type Household } from "../schema/household.js";
 import type { Sql, SqlExecutor } from "./client.js";
+import { withUserContext } from "./context.js";
 
 // The only module that knows SQL for household data. Everything above it sees the
 // validated Household type from src/schema/household.ts — never a raw row.
+//
+// Every function runs through withUserContext, so each statement executes as
+// matmatch_app with the request's user identity set as the RLS claim. The owner
+// filtering below is therefore belt and braces: the queries say what they mean, and
+// RLS independently guarantees a forgotten filter cannot widen the result set.
 //
 // Note the `::text[]` casts on every read of allergies/dietary_flags: the columns are
 // domain arrays (allergy_value[]), and postgres.js resolves result parsers by type
@@ -81,7 +87,10 @@ async function insertMembers(
 }
 
 /**
- * Persists a new household profile for an owner.
+ * Persists a new household profile for the authenticated user, who becomes its owner.
+ *
+ * There is no parameter for creating a household on someone else's behalf: the owner
+ * is the user in context, and the INSERT policy independently rejects any other value.
  *
  * The household and its members are written in one transaction: HouseholdSchema
  * requires at least one member, and that invariant spans two tables, so a partial
@@ -89,16 +98,16 @@ async function insertMembers(
  */
 export async function createHousehold(
   sql: Sql,
-  ownerUserId: string,
+  userId: string,
   input: Household,
 ): Promise<StoredHousehold> {
   const household = HouseholdSchema.parse(input);
 
-  return sql.begin(async (tx) => {
+  return withUserContext(sql, userId, async (tx) => {
     const [row] = await tx<HouseholdRow[]>`
       insert into households (owner_user_id, allergies, dietary_flags)
       values (
-        ${ownerUserId},
+        ${userId},
         ${household.allergies}::text[]::allergy_value[],
         ${household.dietary_flags}::text[]::dietary_flag_value[]
       )
@@ -116,38 +125,50 @@ export async function createHousehold(
     const memberRows = await insertMembers(tx, row.id, household);
 
     return toStoredHousehold(row, memberRows);
-  }) as Promise<StoredHousehold>;
+  });
 }
 
-/** A household by id, or undefined when no such row is visible to this connection. */
-export async function getHousehold(sql: Sql, id: string): Promise<StoredHousehold | undefined> {
-  const [row] = await sql<HouseholdRow[]>`
-    select
-      id,
-      owner_user_id,
-      allergies::text[] as allergies,
-      dietary_flags::text[] as dietary_flags,
-      created_at,
-      updated_at
-    from households
-    where id = ${id}
-  `;
+/**
+ * A household by id, or undefined when no such row is visible to this user.
+ *
+ * "Not yours" and "does not exist" deliberately look identical to the caller — the
+ * row is invisible under RLS either way, and distinguishing them would leak which
+ * household ids exist.
+ */
+export async function getHousehold(
+  sql: Sql,
+  userId: string,
+  id: string,
+): Promise<StoredHousehold | undefined> {
+  return withUserContext(sql, userId, async (tx) => {
+    const [row] = await tx<HouseholdRow[]>`
+      select
+        id,
+        owner_user_id,
+        allergies::text[] as allergies,
+        dietary_flags::text[] as dietary_flags,
+        created_at,
+        updated_at
+      from households
+      where id = ${id}
+    `;
 
-  if (!row) return undefined;
+    if (!row) return undefined;
 
-  const memberRows = await sql<MemberRow[]>`
-    select household_id, type, portion_factor, position
-    from household_members
-    where household_id = ${id}
-    order by position
-  `;
+    const memberRows = await tx<MemberRow[]>`
+      select household_id, type, portion_factor, position
+      from household_members
+      where household_id = ${id}
+      order by position
+    `;
 
-  return toStoredHousehold(row, memberRows);
+    return toStoredHousehold(row, memberRows);
+  });
 }
 
 /**
  * Replaces a household's profile wholesale, returning undefined when no such row is
- * visible to this connection.
+ * visible to this user.
  *
  * Members are deleted and re-inserted rather than diffed: the profile is a small,
  * fully-authored value edited as a whole (UX_FLOW §6), so a diff would add moving
@@ -156,12 +177,13 @@ export async function getHousehold(sql: Sql, id: string): Promise<StoredHousehol
  */
 export async function updateHousehold(
   sql: Sql,
+  userId: string,
   id: string,
   input: Household,
 ): Promise<StoredHousehold | undefined> {
   const household = HouseholdSchema.parse(input);
 
-  return sql.begin(async (tx) => {
+  return withUserContext(sql, userId, async (tx) => {
     const [row] = await tx<HouseholdRow[]>`
       update households
       set allergies = ${household.allergies}::text[]::allergy_value[],
@@ -182,5 +204,5 @@ export async function updateHousehold(
     const memberRows = await insertMembers(tx, id, household);
 
     return toStoredHousehold(row, memberRows);
-  }) as Promise<StoredHousehold | undefined>;
+  });
 }
