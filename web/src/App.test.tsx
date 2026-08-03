@@ -43,6 +43,18 @@ const householdNotFound = jsonResponse(404, {
   error: { code: "household_not_found", message: "no household exists for this user yet" },
 });
 
+const suggestionBody = {
+  result: {
+    template: { name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min" },
+    ingredients: [
+      { role: "protein", name: "Kyckling", substituted: false },
+      { role: "aromatic", name: "Rödlök", substituted: true },
+    ],
+    substitutions: [],
+    score: 0.5,
+  },
+};
+
 beforeEach(() => {
   sessionHolder.current = null;
 });
@@ -150,5 +162,38 @@ describe("App — household gate", () => {
     expect(screen.getByText(/no result: no_safe_templates/)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Skapa hushåll" })).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("App — Tonight suggestion card", () => {
+  it("renders the dish name, cost tier glyph, prep time, and the substituted ingredient's name", async () => {
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    expect(screen.getByText(/₤₤(?!₤)/)).toBeTruthy();
+    expect(screen.getByText(/20–40 min/)).toBeTruthy();
+    expect(screen.getByText("Protein: Kyckling")).toBeTruthy();
+    expect(screen.getByText(/Rödlök/)).toBeTruthy();
+    expect(screen.getByText(/\(ersättning\)/)).toBeTruthy();
+  });
+
+  it("Accept moves to a confirmation state, with a way back to the suggestion", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Acceptera" }));
+
+    await screen.findByText("Ikväll: Kycklinggryta");
+    expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Tillbaka till förslaget" }));
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
   });
 });

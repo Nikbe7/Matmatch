@@ -1,9 +1,11 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
-import { ApiError, createHousehold, fetchTonight, type TonightResponse } from "./api";
+import { ApiError, createHousehold, fetchTonight, type TonightResponse, type TonightResult } from "./api";
 import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../../src/schema/vocabulary";
 import type { Household, HouseholdMember, HouseholdMemberType } from "../../src/schema/household";
+import type { CostTier } from "../../src/schema/ingredient";
+import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
 
 // One screen, four states: signed out (login form), household unknown (loading),
 // no household (onboarding), household exists (Tonight view). This slice is a
@@ -25,6 +27,39 @@ export const DIETARY_FLAG_LABELS: Record<DietaryFlag, string> = {
   vegetarian: "Vegetariskt",
   vegan: "Veganskt",
   high_protein_preference: "Proteinrikt",
+};
+
+// Display-only mapping (DECISION_LOG 2026-07-29): glyphs are never the underlying
+// cost_tier value and never stand in for an invented kronor figure. An exhaustive
+// switch means a new tier value fails typecheck here rather than silently
+// rendering nothing.
+export function costTierGlyph(tier: CostTier): string {
+  switch (tier) {
+    case "budget":
+      return "₤";
+    case "mid":
+      return "₤₤";
+    case "premium":
+      return "₤₤₤";
+    default: {
+      const exhaustive: never = tier;
+      return exhaustive;
+    }
+  }
+}
+
+const PREP_TIME_LABELS: Record<PrepTimeBand, string> = {
+  "<20min": "Under 20 min",
+  "20-40min": "20–40 min",
+  "40min+": "Över 40 min",
+};
+
+const INGREDIENT_ROLE_LABELS: Record<IngredientSlotRole, string> = {
+  protein: "Protein",
+  starch: "Stärkelse",
+  vegetable: "Grönsak",
+  aromatic: "Arom",
+  dairy: "Mejeri",
 };
 
 function LoginForm() {
@@ -225,12 +260,52 @@ function OnboardingForm({
   );
 }
 
+function SuggestionCard({ result, onAccept }: { result: TonightResult; onAccept: () => void }) {
+  return (
+    <div>
+      <h3>{result.template.name}</h3>
+      <p>
+        {costTierGlyph(result.template.cost_tier)} · {PREP_TIME_LABELS[result.template.prep_time_band]}
+      </p>
+      <ul>
+        {result.ingredients.map((ingredient, index) => (
+          <li key={index}>
+            {INGREDIENT_ROLE_LABELS[ingredient.role]}: {ingredient.name}
+            {ingredient.substituted ? " (ersättning)" : ""}
+          </li>
+        ))}
+      </ul>
+      <button type="button" onClick={onAccept}>
+        Acceptera
+      </button>
+    </div>
+  );
+}
+
+type TonightViewState = { status: "suggestion" } | { status: "confirmed"; dishName: string };
+
 function TonightView({ data }: { data: TonightResponse }) {
+  const [state, setState] = useState<TonightViewState>({ status: "suggestion" });
+  const result = data.result;
+
   return (
     <div>
       <h2>Tonight</h2>
-      {data.result === null && <pre>{`no result: ${data.reason}`}</pre>}
-      {data.result !== null && <pre>{JSON.stringify(data.result, null, 2)}</pre>}
+      {result === null && <pre>{`no result: ${data.reason}`}</pre>}
+      {result !== null && state.status === "suggestion" && (
+        <SuggestionCard
+          result={result}
+          onAccept={() => setState({ status: "confirmed", dishName: result.template.name })}
+        />
+      )}
+      {state.status === "confirmed" && (
+        <div>
+          <p>Ikväll: {state.dishName}</p>
+          <button type="button" onClick={() => setState({ status: "suggestion" })}>
+            Tillbaka till förslaget
+          </button>
+        </div>
+      )}
     </div>
   );
 }

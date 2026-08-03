@@ -4,14 +4,23 @@
 // itself.
 
 import type { Household } from "../../src/schema/household";
+import type { CostTier } from "../../src/schema/ingredient";
+import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
+
+export interface TonightIngredient {
+  role: IngredientSlotRole;
+  name: string;
+  substituted: boolean;
+}
 
 export interface TonightResult {
   template: {
     name: string;
-    cost_tier: string;
-    prep_time_band: string;
+    cost_tier: CostTier;
+    prep_time_band: PrepTimeBand;
     [key: string]: unknown;
   };
+  ingredients: TonightIngredient[];
   substitutions: unknown[];
   score: number;
 }
