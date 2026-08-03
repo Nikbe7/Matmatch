@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import { ApiError, createHousehold, fetchTonight, type TonightResponse } from "./api";
@@ -89,6 +89,14 @@ function LoginForm() {
 
 function toggleValue<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+}
+
+// aria-pressed alone carries no default browser styling — a selected chip must be
+// visibly distinct, not just programmatically marked, for a tap-first UI.
+function chipStyle(pressed: boolean): CSSProperties {
+  return pressed
+    ? { fontWeight: "bold", background: "#333", color: "#fff" }
+    : { fontWeight: "normal" };
 }
 
 function emptyMember(type: HouseholdMemberType): HouseholdMember {
@@ -186,6 +194,7 @@ function OnboardingForm({
             type="button"
             key={flag}
             aria-pressed={dietaryFlags.includes(flag)}
+            style={chipStyle(dietaryFlags.includes(flag))}
             onClick={() => setDietaryFlags((current) => toggleValue(current, flag))}
           >
             {DIETARY_FLAG_LABELS[flag]}
@@ -200,6 +209,7 @@ function OnboardingForm({
             type="button"
             key={allergy}
             aria-pressed={allergies.includes(allergy)}
+            style={chipStyle(allergies.includes(allergy))}
             onClick={() => setAllergies((current) => toggleValue(current, allergy))}
           >
             {ALLERGY_LABELS[allergy]}
