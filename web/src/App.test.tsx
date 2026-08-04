@@ -131,7 +131,7 @@ describe("App — household gate", () => {
 
     await user.click(screen.getByRole("button", { name: "Spara hushåll" }));
 
-    await screen.findByRole("heading", { name: "Tonight" });
+    await screen.findByRole("heading", { name: "Ikväll" });
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock.mock.calls[1][0]).toBe("/api/households");
     expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: "POST" });
@@ -173,7 +173,7 @@ describe("App — household gate", () => {
 
     render(<App />);
 
-    await screen.findByRole("heading", { name: "Tonight" });
+    await screen.findByRole("heading", { name: "Ikväll" });
     expect(screen.getByText(/no result: no_safe_templates/)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Skapa hushåll" })).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);

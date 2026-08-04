@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CuisineSchema,
   IngredientSlotRoleSchema,
+  MealTypeSchema,
   PrepTimeBandSchema,
   ProteinGroupSchema,
   RecipeTemplateSchema,
@@ -17,6 +18,7 @@ describe("RecipeTemplateSchema", () => {
       cost_tier: "mid",
       prep_time_band: "20-40min",
       dietary_tags: [],
+      meal_types: ["dinner"],
       ingredient_slots: [
         { role: "protein", ingredient_id: "ing_010", substitutable: true },
         { role: "starch", ingredient_id: "ing_020", substitutable: false },
@@ -36,6 +38,7 @@ describe("RecipeTemplateSchema", () => {
       cost_tier: "budget",
       prep_time_band: "40min+",
       dietary_tags: ["vegetarian", "vegan"],
+      meal_types: ["lunch", "dinner"],
       ingredient_slots: [
         { role: "protein", ingredient_id: "ing_040", substitutable: true },
       ],
@@ -53,6 +56,7 @@ describe("RecipeTemplateSchema", () => {
       cost_tier: "budget",
       prep_time_band: "<20min",
       dietary_tags: [],
+      meal_types: ["dinner"],
       ingredient_slots: [],
     };
 
@@ -68,12 +72,52 @@ describe("RecipeTemplateSchema", () => {
       cost_tier: "mid",
       prep_time_band: "20-40min",
       dietary_tags: [],
+      meal_types: ["dinner"],
       ingredient_slots: [
         { role: "protein", ingredient_id: "ing_010", substitutable: true },
       ],
     };
 
     expect(RecipeTemplateSchema.safeParse(fixture).success).toBe(false);
+  });
+
+  it("rejects a template missing meal_types entirely, rather than defaulting to dinner", () => {
+    const fixture = {
+      id: "recept-utan-maltid",
+      name: "Recept utan måltid",
+      protein_group: "egg_dairy_pantry",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+      prep_time_band: "<20min",
+      dietary_tags: [],
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+    };
+
+    expect(RecipeTemplateSchema.safeParse(fixture).success).toBe(false);
+  });
+
+  it("rejects duplicate meal_types", () => {
+    const fixture = {
+      id: "recept-med-dubblett",
+      name: "Recept med dubblett",
+      protein_group: "egg_dairy_pantry",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+      prep_time_band: "<20min",
+      dietary_tags: [],
+      meal_types: ["dinner", "dinner"],
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+    };
+
+    const result = RecipeTemplateSchema.safeParse(fixture);
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]!.message).toContain("must not contain duplicate values");
+  });
+});
+
+describe("MealTypeSchema", () => {
+  it("rejects a value outside the locked enum", () => {
+    expect(MealTypeSchema.safeParse("brunch").success).toBe(false);
   });
 });
 

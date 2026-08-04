@@ -26,6 +26,13 @@ export type Cuisine = z.infer<typeof CuisineSchema>;
 export const PrepTimeBandSchema = z.enum(["<20min", "20-40min", "40min+"]);
 export type PrepTimeBand = z.infer<typeof PrepTimeBandSchema>;
 
+// Authored, not derived (contrast dietary_tags/cost_tier — DECISION_LOG
+// 2026-07-31) — which meals a dish fits is a judgment call about the dish itself,
+// not something computable from ingredient_slots[]. See DECISION_LOG for why this
+// is an array rather than a boolean.
+export const MealTypeSchema = z.enum(["breakfast", "lunch", "dinner"]);
+export type MealType = z.infer<typeof MealTypeSchema>;
+
 // Slot role is its own vocabulary, distinct from Ingredient.category — "aromatic"
 // here maps conceptually to the "spice_aromatic" ingredient category, but the two
 // strings are never interchangeable in code. Translating between them (e.g. when
@@ -55,6 +62,14 @@ export const RecipeTemplateSchema = z.object({
   cost_tier: CostTierSchema,
   prep_time_band: PrepTimeBandSchema,
   dietary_tags: z.array(DietaryFlagSchema),
+  // Required, no default: a template missing this must fail validation rather
+  // than silently inherit "dinner" (see DECISION_LOG).
+  meal_types: z
+    .array(MealTypeSchema)
+    .min(1)
+    .refine((mealTypes) => new Set(mealTypes).size === mealTypes.length, {
+      message: "meal_types must not contain duplicate values",
+    }),
   ingredient_slots: z.array(IngredientSlotSchema).min(1),
 });
 export type RecipeTemplate = z.infer<typeof RecipeTemplateSchema>;

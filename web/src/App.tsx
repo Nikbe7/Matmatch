@@ -321,7 +321,7 @@ function TonightView({ data }: { data: TonightResponse }) {
 
   return (
     <div>
-      <h2>Tonight</h2>
+      <h2>Ikväll</h2>
       {result === null && <pre>{`no result: ${data.reason}`}</pre>}
       {result !== null && state.status === "suggestion" && (
         <SuggestionCard result={result} onAccept={() => setState({ status: "shopping" })} />

@@ -362,8 +362,10 @@ describe("rankCandidates — over the real candidate set", () => {
   it("ranks every candidate exactly once, in non-decreasing score order", () => {
     const ranked = rankCandidates(data, candidates, { cost: 1, time: 1 }, 8);
 
-    expect(ranked).toHaveLength(170);
-    expect(new Set(ranked.map((r) => r.template.id)).size).toBe(170);
+    // 156, not 170: the meal_types hard filter (#68) now excludes the 14
+    // breakfast/lunch-only templates from the dinner-facing candidate set.
+    expect(ranked).toHaveLength(156);
+    expect(new Set(ranked.map((r) => r.template.id)).size).toBe(156);
     for (let i = 1; i < ranked.length; i += 1) {
       expect(ranked[i]!.score).toBeGreaterThanOrEqual(ranked[i - 1]!.score);
     }

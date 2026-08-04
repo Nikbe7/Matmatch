@@ -246,6 +246,29 @@ describe("selectCandidateTemplates — dietary flags", () => {
   });
 });
 
+describe("selectCandidateTemplates — meal_types hard filter (#68)", () => {
+  const data = makeEngineData({
+    ingredients: [makeIngredient("morot")],
+    allergenMappings: [
+      { ingredient_id: "morot", allergens: [], verification_status: "verified" as const },
+    ],
+    templates: [
+      makeTemplate("bara-frukost", { meal_types: ["breakfast"] }),
+      makeTemplate("bara-lunch", { meal_types: ["lunch"] }),
+      makeTemplate("lunch-och-middag", { meal_types: ["lunch", "dinner"] }),
+      makeTemplate("bara-middag", { meal_types: ["dinner"] }),
+    ].map((template) => ({
+      ...template,
+      ingredient_slots: [{ role: "vegetable" as const, ingredient_id: "morot", substitutable: true }],
+    })),
+  });
+
+  it("excludes any template whose meal_types does not include dinner, even though it is otherwise safe", () => {
+    const ids = selectCandidateTemplates(data, household()).map((candidate) => candidate.template.id);
+    expect(ids).toEqual(["lunch-och-middag", "bara-middag"]);
+  });
+});
+
 // --- Real-data assertions ------------------------------------------------------
 // Everything below runs against data/*.json, the artifact the Phase 0 exit review
 // (#21) measured.
@@ -322,36 +345,41 @@ describe("selectCandidateTemplates — survival counts (DECISION_LOG 2026-08-02)
   // Regression pins on the Phase 0 exit review's measured numbers. A disagreement
   // here means either the review or this engine is wrong — investigate, do not
   // adjust the expected value.
+  //
+  // Updated for #68: the meal_types hard filter removes 14 breakfast/lunch-only
+  // templates from every count below, deliberately and up front, before allergy/
+  // dietary filtering ever runs — this is the one exception to "do not adjust the
+  // expected value" above, since the underlying candidate set itself changed.
   const countFor = (h: Household) => selectCandidateTemplates(data, h).length;
 
-  it("a household with no allergies and no dietary flags sees all 170 templates", () => {
-    expect(countFor(household())).toBe(170);
+  it("a household with no allergies and no dietary flags sees all 156 dinner-eligible templates", () => {
+    expect(countFor(household())).toBe(156);
   });
 
-  it("gluten alone leaves 108 templates after substitution rescue", () => {
-    expect(countFor(household({ allergies: ["gluten"] }))).toBe(108);
+  it("gluten alone leaves 102 templates after substitution rescue", () => {
+    expect(countFor(household({ allergies: ["gluten"] }))).toBe(102);
   });
 
-  it("vegan + gluten leaves 17 templates", () => {
-    expect(countFor(household({ allergies: ["gluten"], dietary_flags: ["vegan"] }))).toBe(17);
+  it("vegan + gluten leaves 16 templates", () => {
+    expect(countFor(household({ allergies: ["gluten"], dietary_flags: ["vegan"] }))).toBe(16);
   });
 
-  it("vegan + soy leaves 19 templates, with zero rescued", () => {
+  it("vegan + soy leaves 18 templates, with zero rescued", () => {
     const candidates = selectCandidateTemplates(
       data,
       household({ allergies: ["soy"], dietary_flags: ["vegan"] }),
     );
 
-    expect(candidates).toHaveLength(19);
+    expect(candidates).toHaveLength(18);
     expect(candidates.filter((candidate) => candidate.substitutions.length > 0)).toEqual([]);
   });
 
-  it("gluten rescue adds 34 templates over raw survival", () => {
+  it("gluten rescue adds 30 templates over raw survival", () => {
     const candidates = selectCandidateTemplates(data, household({ allergies: ["gluten"] }));
     const rescued = candidates.filter((candidate) => candidate.substitutions.length > 0);
 
-    expect(candidates.length - rescued.length).toBe(74);
-    expect(rescued).toHaveLength(34);
+    expect(candidates.length - rescued.length).toBe(72);
+    expect(rescued).toHaveLength(30);
   });
 });
 

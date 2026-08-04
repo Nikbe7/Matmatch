@@ -85,6 +85,11 @@ export function selectCandidateTemplates(
   const candidates: CandidateTemplate[] = [];
 
   for (const template of data.templates) {
+    // Hardcoded to "dinner" rather than a parameter: Tonight is the only caller
+    // today (#68) and no lunch surface exists yet to inform what that parameter's
+    // shape should even be. If/when a lunch flow is built, this is the line to
+    // parameterize — do not guess the interface ahead of that caller existing.
+    if (!template.meal_types.includes("dinner")) continue;
     if (!passesDietaryFilter(template, household.dietary_flags)) continue;
 
     const substitutions: SlotSubstitution[] = [];
