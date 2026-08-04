@@ -9,6 +9,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../httpError.js";
 import { parseWeightsFromQuery } from "../weights.js";
 import { buildTonightIngredients } from "../tonightIngredients.js";
+import { totalPortions } from "../../engine/portions.js";
 
 export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: TokenVerifier): Router {
   const router = Router();
@@ -32,13 +33,14 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
 
       const candidates = selectCandidateTemplates(engineData, stored.household);
       const picked = pickTonight(engineData, candidates, weights, month);
+      const portions = totalPortions(stored.household);
 
       if (!picked) {
         // Not an error: UX_FLOW §9 says never dead-end the user. A vegan+gluten
         // household hits this today (DECISION_LOG 2026-08-02, #46) and the client
         // needs a machine-readable reason to render "loosen constraints" rather than
         // treat this as a failed request.
-        res.status(200).json({ result: null, reason: "no_safe_templates" });
+        res.status(200).json({ result: null, reason: "no_safe_templates", portions });
         return;
       }
 
@@ -49,6 +51,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
           ingredients: buildTonightIngredients(engineData, picked),
           score: picked.score,
         },
+        portions,
       });
     } catch (error) {
       next(error);

@@ -229,6 +229,27 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     }
   });
 
+  it("sums portion_factor across all members, including a child at 0.5, into `portions`", async () => {
+    const user = await createTestUser();
+    await request(app!)
+      .post("/api/households")
+      .set(authHeader(user.accessToken))
+      .send({
+        members: [
+          { type: "adult", portion_factor: 1 },
+          { type: "adult", portion_factor: 1 },
+          { type: "child", portion_factor: 0.5 },
+        ],
+        allergies: [],
+        dietary_flags: [],
+      });
+
+    const response = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.portions).toBe(2.5);
+  });
+
   it("returns a null result with a reason for a household with no safe templates", async () => {
     // Even the worst real profile (all 8 allergies + vegan) still leaves 14 of 170
     // templates (verified while writing this test) — the catalog cannot currently

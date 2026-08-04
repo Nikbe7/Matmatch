@@ -14,5 +14,14 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // jsdom's localStorage is unavailable for the opaque "about:blank" origin it
+    // defaults to without an explicit url — the shopping list's persistence tests
+    // need a real one. Separately, Node >=22's own built-in `localStorage` global
+    // (stable, always present) shadows jsdom's and is non-functional without a
+    // `--localstorage-file`, so the "test" script in package.json also disables it
+    // via NODE_OPTIONS=--no-experimental-webstorage — both are needed together.
+    environmentOptions: {
+      jsdom: { url: "http://localhost/" },
+    },
   },
 });

@@ -46,7 +46,7 @@ const householdNotFound = jsonResponse(404, {
 
 const suggestionBody = {
   result: {
-    template: { name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min" },
+    template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min" },
     ingredients: [
       { role: "protein", name: "Kyckling", substituted: false },
       { role: "aromatic", name: "Rödlök", substituted: true },
@@ -54,21 +54,24 @@ const suggestionBody = {
     substitutions: [],
     score: 0.5,
   },
+  portions: 2,
 };
 
 function suggestionBodyForTier(tier: CostTier) {
   return {
     result: {
-      template: { name: "Kycklinggryta", cost_tier: tier, prep_time_band: "20-40min" },
+      template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: tier, prep_time_band: "20-40min" },
       ingredients: [{ role: "protein", name: "Kyckling", substituted: false }],
       substitutions: [],
       score: 0.5,
     },
+    portions: 2,
   };
 }
 
 beforeEach(() => {
   sessionHolder.current = null;
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -221,21 +224,28 @@ describe("App — Tonight suggestion card", () => {
     expect(dots!.textContent).toBe("●●○");
   });
 
-  it("Accept moves to a confirmation state, with a way back to the suggestion", async () => {
+  it("Accept moves to the shopping list, and a page reload restores it directly", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
 
-    render(<App />);
+    const { unmount } = render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
     await user.click(screen.getByRole("button", { name: "Acceptera" }));
 
-    await screen.findByText("Ikväll: Kycklinggryta");
-    expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
+    // The shopping list, not the old dead-end confirmation text.
+    await screen.findByRole("heading", { name: "Att köpa (2)" });
+    expect(screen.getByText("För 2 portioner")).toBeTruthy();
 
-    await user.click(screen.getByRole("button", { name: "Tillbaka till förslaget" }));
-    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    // Simulate a reload: unmount and mount a fresh App against the same session
+    // and the same fetch response. It must land straight back on the shopping
+    // list, not the suggestion card, because a stored list for this template id
+    // already exists.
+    unmount();
+    render(<App />);
+    await screen.findByRole("heading", { name: "Att köpa (2)" });
+    expect(screen.queryByRole("heading", { name: "Kycklinggryta", level: 3 })).toBeNull();
   });
 
   const labelByTier: Record<CostTier, string> = { budget: "Billig", mid: "Mellan", premium: "Dyr" };
