@@ -5,7 +5,23 @@
 
 import type { Household } from "../../src/schema/household";
 import type { CostTier } from "../../src/schema/ingredient";
-import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
+import type { Cuisine, IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
+
+/**
+ * The session weight vector, structurally identical to `RankingWeights` in
+ * `src/engine/ranking.ts` — declared here rather than imported because that module
+ * reaches `src/engine/data.ts`, which imports `node:fs`. `web/` compiles without
+ * Node types on purpose (a browser bundle should not be able to reach a filesystem
+ * API), and pulling the engine's type in would mean relaxing that.
+ *
+ * Two numeric axes that the 2026-07-31 decision fixes in place is about as stable
+ * as a shape gets, and drift is caught immediately: an axis this file knows about
+ * and the server does not comes back as a 400 from the first request that sends it.
+ */
+export interface SessionWeights {
+  cost: number;
+  time: number;
+}
 
 export interface TonightIngredient {
   role: IngredientSlotRole;
@@ -27,6 +43,9 @@ export interface TonightResult {
     name: string;
     cost_tier: CostTier;
     prep_time_band: PrepTimeBand;
+    // Read by the "Annat kök" chip, which resolves cuisine to template-id
+    // exclusions client-side rather than sending it as a request parameter.
+    cuisine: Cuisine;
     [key: string]: unknown;
   };
   ingredients: TonightIngredient[];
@@ -65,6 +84,11 @@ export interface FetchTonightOptions {
   // principle in CLAUDE.md.
   exclude?: readonly string[];
   previous?: string;
+  // The session weight vector the adjustment chips mutate (DECISION_LOG
+  // 2026-07-31). Omitted entirely at the defaults so an untouched session sends no
+  // weight parameters at all, matching the server's `{cost: 0, time: 0}` default
+  // rather than restating it here.
+  weights?: SessionWeights;
 }
 
 export async function fetchTonight(
@@ -74,6 +98,8 @@ export async function fetchTonight(
   const params = new URLSearchParams();
   if (options.exclude && options.exclude.length > 0) params.set("exclude", options.exclude.join(","));
   if (options.previous) params.set("previous", options.previous);
+  if (options.weights?.cost) params.set("cost", String(options.weights.cost));
+  if (options.weights?.time) params.set("time", String(options.weights.time));
   const query = params.toString();
 
   const response = await fetch(`/api/tonight${query ? `?${query}` : ""}`, {
