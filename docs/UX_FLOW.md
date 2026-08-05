@@ -32,10 +32,8 @@ The original vision describes a conversational, turn-by-turn dialogue. That *ton
 This is the single most important screen in the product, and should be positioned as the default landing view, not an afterthought behind a "surprise me" button in a list of options.
 
 - A single card: **"Tonight: [Meal Name]"** — generated automatically from household + day-of-week + season + recent history (avoiding repeats), requiring zero taps to see and one tap to accept.
-- Below it: three lightweight entry points if the user wants to redirect instead of accepting:
-  - "Something cheaper"
-  - "Use what I have"
-  - "Something different"
+- Below it: a horizontal row of one-tap adjustment chips if the user wants to redirect instead of accepting. Shipped as **Billigare** (+1 `cost`), **Snabbare** (+1 `time`), **Annat kök**, **Något annat** and **Återställ** — each producing a new suggestion immediately, with the two weight chips staying visibly pressed at their level for the rest of the session. Refinement is chip-driven only: no customize sheet, no sliders, no cuisine filter, no user-facing difficulty control (DECISION_LOG 2026-07-31 and 2026-08-05).
+- "Use what I have" is *not* one of these chips — pantry input is the guided flow's step 3 (§5), not a Tonight-card redirect.
 - Accepting the card goes straight into portion confirmation → shopping list. This is the "I don't want to think, just tell me" path, and it should be the fastest possible route through the app.
 
 ## 5. Guided Quick-Select Flow (Primary Alternative Path)

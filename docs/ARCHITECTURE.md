@@ -234,13 +234,13 @@ Storage: `data/substitutions.json`. Validated via the CLI validator (#15) as `--
 
 Shipped (`src/api/routes/`):
 - `POST /api/households` — create a household profile
-- `GET /api/tonight` — zero-input flagship suggestion (Tier 0 first, falling back to Tier 1 if needed)
+- `GET /api/tonight` — zero-input flagship suggestion (Tier 0 first, falling back to Tier 1 if needed). Optional query parameters carry the session's refinement state, nothing else: `cost`/`time` (the weight vector the adjustment chips mutate), `exclude` (comma-separated template ids already shown), `previous` (the id just rejected). Wrong-typed values are 400s; unknown or stale ids are ignored. There is deliberately no cuisine parameter — see the "Annat kök" note below.
 - `POST /api/instructions` — Tier 1 cooking instructions for a suggestion, cached by template + substitution set
 
 Planned, not yet built:
 - `GET /households/:id` / `PATCH /households/:id/members`
 - `POST /suggestions/directions` — given intent + main ingredient + pantry input, returns 3 direction candidates (Meal Engine filters first, AI Orchestrator fills in only if needed)
-- `POST /meals/:id/adjust` — apply an adjustment chip (cheaper/more protein/more flavor) or free-text tweak
+- `POST /meals/:id/adjust` — apply a **guided-flow** (§5.5) adjustment chip or a free-text tweak. Tonight-card refinement does *not* use this: it re-requests `GET /api/tonight` with the query parameters above, so a chip tap stays a plain re-rank rather than server-side mutable meal state. Cuisine is never a parameter on either — "Annat kök" resolves it to template-id exclusions client-side, so no new filter dimension enters the API (DECISION_LOG 2026-08-05).
 - `POST /meals/:id/confirm` — finalize portions, generate shopping list
 - `GET/PATCH /shopping-lists/:id` — retrieve and update checked state
 - `POST /meals/:id/save` — mark cooked/save to history
