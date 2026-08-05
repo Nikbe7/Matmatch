@@ -124,6 +124,125 @@ const FAMILIARITY_STEP_WEIGHT = 1.5;
 // household that has declared `vegetarian` or `vegan` gets no penalty at all.
 const OMNIVORE_PREFERENCE_WEIGHT = FAMILIARITY_STEP_WEIGHT;
 
+// Repeat-avoidance (issue #88, UX_FLOW §4 "avoiding repeats"). Penalty for a template
+// this household cooked recently, decaying linearly to nothing over the window below.
+// A *penalty*, never a filter: a hard exclusion empties the candidate set for exactly
+// the constrained households `selectCandidateTemplates` is careful to keep options for
+// (all 8 allergies + vegan leaves 14 of ~170 templates), and an empty Tonight is the
+// dead end UX_FLOW §9 forbids. Cooking the same dish twice in a fortnight is a
+// preference, not a safety rule — so it belongs in the score, where something better
+// can outweigh it.
+//
+// Chosen at 5.0, bounded on both sides by the constants above:
+//
+//  * Above 4.75 — the entire score spread available at `DEFAULT_WEIGHTS`
+//    (src/api/weights.ts, `{cost: 0, time: 0}`), which is two familiarity steps
+//    (2 * 1.5 = 3.0) plus the omnivore preference (1.5) plus a full seasonality swing
+//    (0.25). Anything above that total guarantees a dish cooked *tonight* ranks below
+//    EVERY uncooked candidate for a household that has tapped no chips — which is the
+//    bug this exists to fix (open the app three evenings running, get the same dish
+//    three times). Below 4.75 it would merely be a nudge, and an adventurous
+//    vegetarian dish could still lose to the meal cooked yesterday.
+//  * Below 6.0 — one maxed adjustment chip (`WEIGHT_LEVELS` level 2 = weight 3, see
+//    web/src/refinement.ts) across a two-step cost-tier or prep-band gap. Staying
+//    under it keeps repeat-avoidance beatable by the strongest preference a household
+//    can actually express, the same yield-to-a-real-preference property
+//    SEASONALITY_WEIGHT and FAMILIARITY_STEP_WEIGHT are both calibrated for: a
+//    household that taps "Billigare" to max and means it can still be shown last
+//    night's cheap dish over an expensive new one.
+//
+// If FAMILIARITY_STEP_WEIGHT, OMNIVORE_PREFERENCE_WEIGHT, SEASONALITY_WEIGHT or the
+// chip levels change, re-derive both bounds and re-pick this value inside the new band
+// rather than leaving it calibrated to stale numbers.
+const RECENCY_PENALTY_WEIGHT = 5.0;
+
+// How long a cooked meal keeps depressing its own score. Fourteen days for two
+// reasons. First, the decay step: 5.0 / 14 ≈ 0.36 of score per day elapsed, just above
+// SEASONALITY_WEIGHT (0.25), so among several recently cooked dishes one extra day of
+// staleness outweighs a full seasonality swing — the ordering inside the recently-cooked
+// group is by recency rather than by seasonality noise. A much longer window would
+// invert that. Second, two weeks is roughly one household's whole dinner rotation, so a
+// dish is back at full standing about when it stops feeling repetitive.
+//
+// Beyond the window the penalty is exactly 0, not a small residue: a template cooked
+// three weeks ago competes on its merits. Recency still breaks *ties* past the window
+// (see rankCandidates), which is where old history keeps a say without distorting scores.
+const RECENCY_WINDOW_DAYS = 14;
+
+/** The penalty window, in days, so callers can bound the history they load. */
+export const RECENCY_HISTORY_WINDOW_DAYS = RECENCY_WINDOW_DAYS;
+
+/**
+ * When each template was most recently cooked by this household: template id → the
+ * latest `cooked_at`. A map, not a row list, because the score depends only on the most
+ * recent cooking of a given dish — how *often* it has been cooked is deliberately not a
+ * signal (that would be preference learning, out of scope for #88).
+ */
+export type CookingHistory = ReadonlyMap<string, Date>;
+
+/**
+ * History plus the instant to measure it against.
+ *
+ * `now` is a parameter for the same reason `month` is: src/engine/ stays pure and never
+ * reads the clock itself, so the route supplies both. Bundled with the history rather
+ * than added as a seventh positional parameter — and optional throughout, so a caller
+ * with no history (the guided flow, every existing test) passes nothing and gets the
+ * pre-#88 behaviour exactly.
+ */
+export interface RecencyContext {
+  history: CookingHistory;
+  now: Date;
+}
+
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Most recent cooking per template, from rows in any order.
+ *
+ * Takes the plain `{ template_id, cooked_at }` shape the repository returns rather than
+ * importing a database type — the engine takes history as data, exactly as it takes
+ * SeasonalityData.
+ */
+export function buildCookingHistory(
+  rows: readonly { template_id: string; cooked_at: Date }[],
+): CookingHistory {
+  const latest = new Map<string, Date>();
+
+  for (const row of rows) {
+    const known = latest.get(row.template_id);
+    if (!known || row.cooked_at > known) latest.set(row.template_id, row.cooked_at);
+  }
+
+  return latest;
+}
+
+/**
+ * Whole days elapsed since `cookedAt`, floored — so a score is stable for a whole day
+ * and does not drift minute to minute while a household is looking at the card.
+ *
+ * A `cooked_at` in the future (clock skew between the database and this process) floors
+ * to 0, i.e. treated as just cooked, rather than producing a negative day count that
+ * would turn the penalty into a bonus.
+ */
+function daysSince(cookedAt: Date, now: Date): number {
+  return Math.max(0, Math.floor((now.getTime() - cookedAt.getTime()) / MILLISECONDS_PER_DAY));
+}
+
+/**
+ * The repeat-avoidance penalty for `templateId`: RECENCY_PENALTY_WEIGHT on the day it
+ * was cooked, decaying linearly to 0 at RECENCY_WINDOW_DAYS, and 0 for a template with
+ * no history at all.
+ */
+export function recencyPenalty(templateId: string, recency: RecencyContext): number {
+  const cookedAt = recency.history.get(templateId);
+  if (!cookedAt) return 0;
+
+  const elapsed = daysSince(cookedAt, recency.now);
+  if (elapsed >= RECENCY_WINDOW_DAYS) return 0;
+
+  return RECENCY_PENALTY_WEIGHT * (1 - elapsed / RECENCY_WINDOW_DAYS);
+}
+
 /**
  * The ingredient actually eaten in each slot: the substitute where the filtering
  * slice rescued the slot, otherwise the template's own ingredient.
@@ -178,6 +297,9 @@ export function inSeasonFraction(
  * `householdDietaryFlags` is the household's own declared flags (§5.2), used only
  * to decide whether the omnivore preference applies — it is never a filter here;
  * `selectCandidateTemplates` already decides what is safe to show at all.
+ *
+ * `recency` is optional: omitted (no persisted history, or a caller that does not load
+ * it) means no repeat-avoidance penalty, not a penalty of zero days.
  */
 export function scoreCandidate(
   data: SeasonalityData,
@@ -185,6 +307,7 @@ export function scoreCandidate(
   weights: RankingWeights,
   month: number,
   householdDietaryFlags: readonly DietaryFlag[] = [],
+  recency?: RecencyContext,
 ): number {
   const costPenalty = costTierIndex(candidate.template.cost_tier) * weights.cost;
   const timePenalty = prepTimeIndex(candidate.template.prep_time_band) * weights.time;
@@ -200,11 +323,46 @@ export function scoreCandidate(
   const omnivorePenalty =
     templateIsVegetarianOrVegan && !householdIsVegetarianOrVegan ? OMNIVORE_PREFERENCE_WEIGHT : 0;
 
-  return costPenalty + timePenalty - seasonalityBonus + familiarityPenalty + omnivorePenalty;
+  const repeatPenalty = recency ? recencyPenalty(candidate.template.id, recency) : 0;
+
+  return (
+    costPenalty +
+    timePenalty -
+    seasonalityBonus +
+    familiarityPenalty +
+    omnivorePenalty +
+    repeatPenalty
+  );
 }
 
 function compareTemplateIds(a: RecipeTemplate, b: RecipeTemplate): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+/**
+ * Least-recently-cooked first among candidates with identical scores: never cooked
+ * beats cooked at all, and older beats newer.
+ *
+ * This is a *tie-break*, doing work the penalty cannot. The penalty is quantised to
+ * whole days (deliberately — see daysSince), so two dishes cooked on the *same* day
+ * carry an identical penalty and tie on score; this orders them by the actual hour they
+ * were cooked. It also decides between a within-history dish whose penalty has decayed
+ * to 0 and one never cooked at all, which score identically by construction. Returns 0
+ * when both were cooked at the same instant, leaving the id fallback to decide.
+ */
+function compareByLeastRecentlyCooked(
+  a: RecipeTemplate,
+  b: RecipeTemplate,
+  recency: RecencyContext,
+): number {
+  const cookedA = recency.history.get(a.id);
+  const cookedB = recency.history.get(b.id);
+
+  if (!cookedA && !cookedB) return 0;
+  if (!cookedA) return -1;
+  if (!cookedB) return 1;
+
+  return cookedA.getTime() - cookedB.getTime();
 }
 
 /**
@@ -218,23 +376,31 @@ export function rankCandidates(
   weights: RankingWeights,
   month: number,
   householdDietaryFlags: readonly DietaryFlag[] = [],
+  recency?: RecencyContext,
 ): RankedCandidate[] {
   const scored = candidates.map((candidate) => ({
     ...candidate,
-    score: scoreCandidate(data, candidate, weights, month, householdDietaryFlags),
+    score: scoreCandidate(data, candidate, weights, month, householdDietaryFlags, recency),
   }));
 
   return scored.sort((a, b) => {
     if (a.score !== b.score) return a.score - b.score;
 
-    // Tie-break on template id: a deterministic placeholder, NOT a quality signal —
+    // Repeat-avoidance is the real tie-break (UX_FLOW §4, §9), and since #88 there is
+    // persisted history to do it with: least recently cooked first, never-cooked ahead
+    // of cooked. This replaces the template-id rule that stood here as a placeholder
+    // for exactly this.
+    if (recency) {
+      const byRecency = compareByLeastRecentlyCooked(a.template, b.template, recency);
+      if (byRecency !== 0) return byRecency;
+    }
+
+    // Template id remains the last resort, and only that: it is NOT a quality signal —
     // nothing about a lexicographically earlier id makes a meal better. It exists so
-    // Tonight never flip-flops between runs for the same household, weights and
-    // month, which would read as the app being indecisive. The real tie-break is
-    // repeat-avoidance (UX_FLOW §4, §9), which needs persisted history and therefore
-    // the still-open DB decision (DECISION_LOG 2026-07-28); the priorities entry's
-    // revisit trigger (DECISION_LOG 2026-07-31, cohort data showing repeated
-    // redirects) is what should replace this rule rather than extend it.
+    // Tonight never flip-flops between runs for the same household, weights, month and
+    // history, which would read as the app being indecisive. Two candidates reaching
+    // here are equally scored and equally recently cooked (or both never cooked), so
+    // *something* deterministic has to choose, and this is it.
     return compareTemplateIds(a.template, b.template);
   });
 }
@@ -250,7 +416,11 @@ export function rankCandidates(
  * exists; fall back to the best-scoring candidate with just a different
  * `protein_group`; fall back further to the best-scoring remaining candidate.
  * `ranked` is assumed best-first (rankCandidates' output), so `.find` on it is
- * itself a "best-scoring that matches" search — no extra sort needed here.
+ * itself a "best-scoring that matches" search — no extra sort needed here. That
+ * ordering already carries repeat-avoidance, both as the recency penalty in the score
+ * and as the least-recently-cooked tie-break, so this function needs no history of its
+ * own: keeping one ordering source of truth in rankCandidates is what stops Tonight and
+ * the guided flow from disagreeing about what "next" means.
  *
  * Returns `undefined` when nothing remains after exclusion — the caller decides
  * what that means, this function does not special-case it.
@@ -293,7 +463,8 @@ export function pickTonight(
   weights: RankingWeights,
   month: number,
   householdDietaryFlags: readonly DietaryFlag[] = [],
+  recency?: RecencyContext,
 ): RankedCandidate | undefined {
-  const ranked = rankCandidates(data, candidates, weights, month, householdDietaryFlags);
+  const ranked = rankCandidates(data, candidates, weights, month, householdDietaryFlags, recency);
   return pickNextSuggestion(ranked, new Set(), undefined);
 }

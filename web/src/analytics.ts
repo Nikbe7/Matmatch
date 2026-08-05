@@ -38,7 +38,23 @@ export interface SessionAbandonedEvent {
   rerollDepth: number;
 }
 
-export type AnalyticsEvent = ChipTapEvent | SessionAbandonedEvent;
+/**
+ * The household marked the suggestion as cooked (#88) — the closest thing the app has
+ * to a completed loop, and therefore the event the roadmap's Weekly Active Deciders and
+ * repeat-use metrics are counted from. This is the third event the module comment
+ * reserves: a real question needs it, not symmetry with the two above.
+ *
+ * `rerollDepth` comes along because "cooked the first suggestion" and "cooked the sixth"
+ * are the same outcome reached very differently, and that difference is the same
+ * control-vs-coverage question the chip events exist to answer.
+ */
+export interface MealCookedEvent {
+  name: "meal_cooked";
+  templateId: string;
+  rerollDepth: number;
+}
+
+export type AnalyticsEvent = ChipTapEvent | SessionAbandonedEvent | MealCookedEvent;
 
 export type AnalyticsSink = (event: AnalyticsEvent) => void;
 

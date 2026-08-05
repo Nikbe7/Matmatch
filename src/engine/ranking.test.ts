@@ -6,6 +6,7 @@ import type { CandidateTemplate } from "./candidates.js";
 import { selectCandidateTemplates } from "./candidates.js";
 import { loadEngineData } from "./data.js";
 import {
+  buildCookingHistory,
   costTierIndex,
   familiarityIndex,
   inSeasonFraction,
@@ -13,8 +14,10 @@ import {
   pickTonight,
   prepTimeIndex,
   rankCandidates,
+  recencyPenalty,
   scoreCandidate,
   type RankingWeights,
+  type RecencyContext,
 } from "./ranking.js";
 import { makeEngineData, makeIngredient, makeTemplate } from "./__fixtures__/engineData.js";
 
@@ -654,5 +657,306 @@ describe("rankCandidates — over the real candidate set", () => {
     const changed = july.filter((r) => scoreById.get(r.template.id) !== r.score);
 
     expect(changed.length).toBeGreaterThan(0);
+  });
+});
+
+// Repeat-avoidance (#88) -------------------------------------------------------
+//
+// A fixed `now` throughout: `RecencyContext` carries the instant as data precisely so
+// these tests need no clock mocking and no tolerance for a test running across midnight.
+
+const NOW = new Date("2026-08-05T18:00:00Z");
+
+function daysAgo(days: number, hours = 0): Date {
+  return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000 - hours * 60 * 60 * 1000);
+}
+
+function recency(entries: Record<string, Date>): RecencyContext {
+  return { history: new Map(Object.entries(entries)), now: NOW };
+}
+
+describe("buildCookingHistory", () => {
+  it("keeps only the most recent cooking of each template, whatever order rows arrive in", () => {
+    const history = buildCookingHistory([
+      { template_id: "a", cooked_at: daysAgo(3) },
+      { template_id: "b", cooked_at: daysAgo(1) },
+      { template_id: "a", cooked_at: daysAgo(10) },
+    ]);
+
+    expect(history.get("a")).toEqual(daysAgo(3));
+    expect(history.get("b")).toEqual(daysAgo(1));
+    expect(history.size).toBe(2);
+  });
+
+  it("is empty for a household with no history, rather than undefined", () => {
+    expect(buildCookingHistory([]).size).toBe(0);
+  });
+});
+
+describe("recencyPenalty", () => {
+  it("is the full weight for a meal cooked today", () => {
+    expect(recencyPenalty("a", recency({ a: daysAgo(0) }))).toBeCloseTo(5.0);
+  });
+
+  it("decays linearly across the window", () => {
+    // 5.0 * (1 - d/14): half the weight at day 7, one 14th of it left on day 13.
+    expect(recencyPenalty("a", recency({ a: daysAgo(7) }))).toBeCloseTo(2.5);
+    expect(recencyPenalty("a", recency({ a: daysAgo(13) }))).toBeCloseTo(5.0 / 14);
+  });
+
+  it("is exactly zero at the window edge and beyond — no residue", () => {
+    expect(recencyPenalty("a", recency({ a: daysAgo(14) }))).toBe(0);
+    expect(recencyPenalty("a", recency({ a: daysAgo(40) }))).toBe(0);
+  });
+
+  it("is quantised to whole days, so a score does not drift hour by hour", () => {
+    const morning = recencyPenalty("a", recency({ a: daysAgo(3, 1) }));
+    const evening = recencyPenalty("a", recency({ a: daysAgo(3, 20) }));
+
+    expect(morning).toBe(evening);
+  });
+
+  it("is zero for a template with no history at all", () => {
+    expect(recencyPenalty("never-cooked", recency({ a: daysAgo(1) }))).toBe(0);
+  });
+
+  it("treats a future timestamp as just cooked rather than turning the penalty into a bonus", () => {
+    // Clock skew between the database and this process must not be able to *promote* a
+    // dish the household just cooked.
+    const future = new Date(NOW.getTime() + 60 * 60 * 1000);
+
+    expect(recencyPenalty("a", recency({ a: future }))).toBeCloseTo(5.0);
+  });
+});
+
+describe("rankCandidates — repeat avoidance", () => {
+  const zero = { cost: 0, time: 0 };
+
+  it("ranks a recently cooked template below an otherwise identical uncooked one", () => {
+    const cooked = neutralCandidate("a-cooked");
+    const fresh = neutralCandidate("b-fresh");
+
+    // Note the ids: without recency the id tie-break would put "a-cooked" first, so a
+    // pass here cannot come from lexical ordering.
+    const ranked = rankCandidates(seasonalityData, [cooked, fresh], zero, 1, [], recency({
+      "a-cooked": daysAgo(0),
+    }));
+
+    expect(ids(ranked)).toEqual(["b-fresh", "a-cooked"]);
+  });
+
+  it("orders several cooked templates by how long ago, least recent first", () => {
+    const candidates = [
+      neutralCandidate("yesterday"),
+      neutralCandidate("last-week"),
+      neutralCandidate("never"),
+    ];
+
+    const ranked = rankCandidates(seasonalityData, candidates, zero, 1, [], recency({
+      yesterday: daysAgo(1),
+      "last-week": daysAgo(7),
+    }));
+
+    expect(ids(ranked)).toEqual(["never", "last-week", "yesterday"]);
+  });
+
+  it("stops penalising once the template leaves the window", () => {
+    const stale = neutralCandidate("a-stale");
+    const fresh = neutralCandidate("b-fresh");
+
+    const ranked = rankCandidates(seasonalityData, [stale, fresh], zero, 1, [], recency({
+      "a-stale": daysAgo(14),
+    }));
+
+    // Scores are equal again — the penalty really is gone, not merely small. Ordering
+    // then falls to the least-recently-cooked tie-break, which still prefers the
+    // never-cooked dish; that is a free choice between equals, not a penalty.
+    expect(ranked.map((r) => r.score)).toEqual([ranked[0]!.score, ranked[0]!.score]);
+    expect(ids(ranked)).toEqual(["b-fresh", "a-stale"]);
+  });
+
+  it("beats the largest non-recency spread available at default weights (the 4.75 lower bound)", () => {
+    // The worst possible uncooked candidate — adventurous *and* vegetarian for an
+    // omnivore household, 3.0 + 1.5 = 4.5 of penalty — must still outrank a dish cooked
+    // tonight. This is the bound RECENCY_PENALTY_WEIGHT is derived against; drop the
+    // weight below 4.75 and this test fails.
+    const cookedTonight = neutralCandidate("a-cooked-tonight", {
+      familiarity: "everyday",
+      dietary_tags: [],
+    });
+    const worstFresh = neutralCandidate("b-adventurous-veg", {
+      familiarity: "adventurous",
+      dietary_tags: ["vegetarian"],
+    });
+
+    const ranked = rankCandidates(
+      seasonalityData,
+      [cookedTonight, worstFresh],
+      zero,
+      1,
+      [],
+      recency({ "a-cooked-tonight": daysAgo(0) }),
+    );
+
+    expect(ids(ranked)).toEqual(["b-adventurous-veg", "a-cooked-tonight"]);
+  });
+
+  it("still yields to a maxed adjustment chip across two enum steps (the 6.0 upper bound)", () => {
+    // A household that taps "Billigare" to level 2 (weight 3) and means it can still be
+    // shown last night's budget dish ahead of an untried premium one: 2 * 3 = 6.0 of
+    // cost penalty beats the 5.0 recency penalty. Repeat-avoidance is strong, not absolute.
+    const cookedBudget = neutralCandidate("cooked-budget", { cost_tier: "budget" });
+    const freshPremium = neutralCandidate("fresh-premium", { cost_tier: "premium" });
+
+    const ranked = rankCandidates(
+      seasonalityData,
+      [cookedBudget, freshPremium],
+      { cost: 3, time: 0 },
+      1,
+      [],
+      recency({ "cooked-budget": daysAgo(0) }),
+    );
+
+    expect(ids(ranked)).toEqual(["cooked-budget", "fresh-premium"]);
+  });
+
+  it("penalises rather than filters — a household that cooked everything still gets a full set", () => {
+    const candidates = [
+      neutralCandidate("alpha"),
+      neutralCandidate("beta"),
+      neutralCandidate("gamma"),
+    ];
+
+    const ranked = rankCandidates(seasonalityData, candidates, zero, 1, [], recency({
+      alpha: daysAgo(0),
+      beta: daysAgo(0),
+      gamma: daysAgo(0),
+    }));
+
+    expect(ids(ranked)).toEqual(["alpha", "beta", "gamma"]);
+  });
+
+  it("scores identically to a call with no history when the recency argument is omitted", () => {
+    const candidates = [neutralCandidate("a"), neutralCandidate("b")];
+
+    const without = rankCandidates(seasonalityData, candidates, zero, 1, []);
+    const emptyHistory = rankCandidates(seasonalityData, candidates, zero, 1, [], recency({}));
+
+    expect(emptyHistory.map((r) => r.score)).toEqual(without.map((r) => r.score));
+    expect(ids(emptyHistory)).toEqual(ids(without));
+  });
+});
+
+describe("rankCandidates — recency tie-break", () => {
+  const zero = { cost: 0, time: 0 };
+
+  it("prefers the least recently cooked of two dishes cooked on the same day", () => {
+    // Same day means an identical (day-quantised) penalty, so scores tie and the
+    // tie-break is the only thing separating them.
+    const early = neutralCandidate("b-early-yesterday");
+    const late = neutralCandidate("a-late-yesterday");
+
+    const ranked = rankCandidates(seasonalityData, [late, early], zero, 1, [], recency({
+      "a-late-yesterday": daysAgo(1, 1),
+      "b-early-yesterday": daysAgo(1, 20),
+    }));
+
+    // Ids would order these the other way round; recency wins.
+    expect(ids(ranked)).toEqual(["b-early-yesterday", "a-late-yesterday"]);
+  });
+
+  it("prefers a never-cooked template over one whose penalty has fully decayed", () => {
+    const stale = neutralCandidate("a-stale");
+    const never = neutralCandidate("b-never");
+
+    const ranked = rankCandidates(seasonalityData, [stale, never], zero, 1, [], recency({
+      "a-stale": daysAgo(60),
+    }));
+
+    expect(ids(ranked)).toEqual(["b-never", "a-stale"]);
+  });
+
+  it("falls back to the template id when neither candidate was ever cooked", () => {
+    const ranked = rankCandidates(
+      seasonalityData,
+      [neutralCandidate("zucchinipasta"), neutralCandidate("agggratang")],
+      zero,
+      1,
+      [],
+      recency({ something: daysAgo(2) }),
+    );
+
+    expect(ids(ranked)).toEqual(["agggratang", "zucchinipasta"]);
+  });
+
+  it("picks the same order across repeated runs, so Tonight never flip-flops", () => {
+    const candidates = [
+      neutralCandidate("alpha"),
+      neutralCandidate("beta"),
+      neutralCandidate("gamma"),
+    ];
+    const history = recency({ alpha: daysAgo(1), beta: daysAgo(1) });
+
+    const first = ids(rankCandidates(seasonalityData, candidates, zero, 1, [], history));
+
+    for (let run = 0; run < 5; run += 1) {
+      expect(ids(rankCandidates(seasonalityData, candidates, zero, 1, [], history))).toEqual(first);
+    }
+  });
+});
+
+describe("pickTonight — repeat avoidance", () => {
+  const zero = { cost: 0, time: 0 };
+
+  it("suggests a different dish the evening after one was cooked", () => {
+    const candidates = [neutralCandidate("a-kottbullar"), neutralCandidate("b-fisksoppa")];
+
+    const first = pickTonight(seasonalityData, candidates, zero, 1);
+    expect(first?.template.id).toBe("a-kottbullar");
+
+    const second = pickTonight(seasonalityData, candidates, zero, 1, [], recency({
+      "a-kottbullar": daysAgo(0),
+    }));
+    expect(second?.template.id).toBe("b-fisksoppa");
+  });
+
+  it("still returns a suggestion when every candidate was cooked today", () => {
+    // The failure mode a hard filter would produce: an empty Tonight for a household
+    // whose candidate set is small (UX_FLOW §9 — never dead-end the user).
+    const candidates = [neutralCandidate("alpha"), neutralCandidate("beta")];
+
+    const picked = pickTonight(seasonalityData, candidates, zero, 1, [], recency({
+      alpha: daysAgo(0),
+      beta: daysAgo(0),
+    }));
+
+    expect(picked).toBeDefined();
+    expect(picked?.template.id).toBe("alpha");
+  });
+
+  it("still returns a suggestion for a single-candidate household that just cooked it", () => {
+    const only = neutralCandidate("enda-ratten");
+
+    const picked = pickTonight(seasonalityData, [only], zero, 1, [], recency({
+      "enda-ratten": daysAgo(0),
+    }));
+
+    expect(picked?.template.id).toBe("enda-ratten");
+  });
+
+  it("rotates through the real candidate set instead of repeating one dish three nights running", () => {
+    const candidates = selectCandidateTemplates(data, noRestrictions);
+    const history = new Map<string, Date>();
+    const picks: string[] = [];
+
+    for (let evening = 0; evening < 3; evening += 1) {
+      const picked = pickTonight(data, candidates, zero, 8, [], { history, now: NOW });
+      expect(picked).toBeDefined();
+      picks.push(picked!.template.id);
+      // The household cooks what it was shown, that same evening.
+      history.set(picked!.template.id, NOW);
+    }
+
+    expect(new Set(picks).size).toBe(3);
   });
 });
