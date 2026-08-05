@@ -354,14 +354,20 @@ describe("selectCandidateTemplates — survival counts (DECISION_LOG 2026-08-02)
   // Updated again for the ranking-defaults fix: pannkakor-med-vaniljsocker and
   // artsoppa-med-senap lost "dinner" from meal_types (data correction, not a new
   // exclusion rule), dropping every count below that included them by one more.
+  //
+  // Updated again for the meal_types dinner-bar tightening (see DECISION_LOG):
+  // raggmunk-med-graddfil, potatisgratang-med-vasterbottensost,
+  // purjolokssoppa-med-creme-fraiche, ostsoppa-med-brod-och-vitlok,
+  // gravad-lax-med-senapssas-och-ragbrod and rakceviche-med-lime-och-koriander
+  // lost "dinner", dropping every count below that included them by one more.
   const countFor = (h: Household) => selectCandidateTemplates(data, h).length;
 
-  it("a household with no allergies and no dietary flags sees all 154 dinner-eligible templates", () => {
-    expect(countFor(household())).toBe(154);
+  it("a household with no allergies and no dietary flags sees all 148 dinner-eligible templates", () => {
+    expect(countFor(household())).toBe(148);
   });
 
-  it("gluten alone leaves 101 templates after substitution rescue", () => {
-    expect(countFor(household({ allergies: ["gluten"] }))).toBe(101);
+  it("gluten alone leaves 98 templates after substitution rescue", () => {
+    expect(countFor(household({ allergies: ["gluten"] }))).toBe(98);
   });
 
   it("vegan + gluten leaves 16 templates", () => {
@@ -382,7 +388,7 @@ describe("selectCandidateTemplates — survival counts (DECISION_LOG 2026-08-02)
     const candidates = selectCandidateTemplates(data, household({ allergies: ["gluten"] }));
     const rescued = candidates.filter((candidate) => candidate.substitutions.length > 0);
 
-    expect(candidates.length - rescued.length).toBe(72);
+    expect(candidates.length - rescued.length).toBe(69);
     expect(rescued).toHaveLength(29);
   });
 });
