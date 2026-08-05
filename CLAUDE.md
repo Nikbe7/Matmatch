@@ -22,8 +22,8 @@ Deterministic app logic (the "Meal Engine": ingredient matching, cost tiering, s
 - Payments: Stripe (evaluate Swish/Klarna for the Swedish market)
 - Analytics: instrumented from day one (see MVP_ROADMAP.md success metrics)
 
-## Current phase: Phase 0 — data foundation
-Building: ingredient catalog, recipe template library (structured skeletons — NOT full written recipes), allergy/dietary taxonomy, ingredient substitution relationships. Recipe templates are generated in small batches against a coverage matrix (protein x cuisine x cost tier x prep-time), never one broad prompt. See MVP_ROADMAP.md for the full data model examples and day-by-day plan. All Phase 0 work is tracked as GitHub Issues on the project board, not in this file.
+## Current phase: Phase 1 — MVP core loop
+Phase 0 closed 2026-08-02 (DECISION_LOG). Building the single loop MVP_ROADMAP.md's Phase 1 section describes — household onboarding through shopping list, save/history, freemium gating, PWA install — with the deterministic engine and persistence already in place. See MVP_ROADMAP.md for current status and DECISION_LOG.md for how each piece landed. Phase 1 work is tracked as GitHub Issues on the project board, not in this file.
 
 ## Non-negotiables
 - Ingredient-to-allergen mappings require 100% manual verification — never trust AI-drafted allergen data without review, no sampling.

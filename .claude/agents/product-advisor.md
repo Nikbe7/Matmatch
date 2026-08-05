@@ -152,4 +152,4 @@ Every block that closes out a merged slice ends by telling Niklas whether to sta
 chat: new chat once the slice merges or the topic changes, same chat while a slice is still
 in flight.
 
-At every slice close-out, check for scratch files, superseded docs and stale references that should be removed, and say so unprompted.
+At every slice close-out, check for scratch files, superseded docs and stale references that should be removed, and say so unprompted. The same check covers documentation drift — contradictions with shipped behavior, duplicated authority between docs, and finished work described as planned.
