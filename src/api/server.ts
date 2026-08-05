@@ -1,3 +1,4 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { createTokenVerifier, tokenVerifierConfigFromEnv } from "../auth/verifyToken.js";
 import { connectionStringFromEnv, createDbClient } from "../db/client.js";
 import { loadEngineData } from "../engine/data.js";
@@ -13,8 +14,15 @@ async function main() {
   const engineData = await loadEngineData();
   const sql = createDbClient({ connectionString: connectionStringFromEnv() });
   const verifyToken = createTokenVerifier(tokenVerifierConfigFromEnv());
+  // Unset locally/in CI on purpose (see .env.example) — the Anthropic SDK client
+  // itself requires no network call to construct, so building it eagerly here costs
+  // nothing, and its absence is what the instructions route uses to answer the
+  // null-instructions failure path instead of ever calling out.
+  const anthropicClient = process.env.ANTHROPIC_API_KEY
+    ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    : undefined;
 
-  const app = createApp({ sql, engineData, verifyToken });
+  const app = createApp({ sql, engineData, verifyToken, anthropicClient });
 
   app.listen(port, () => {
     console.log(`matmatch api listening on :${port}`);

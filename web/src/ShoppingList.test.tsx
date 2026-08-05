@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ShoppingList, formatPortions } from "./ShoppingList";
@@ -6,9 +6,10 @@ import { loadShoppingList } from "./shoppingListStorage";
 import type { TonightResult } from "./api";
 
 // Component-level coverage for the shopping list, independent of the Tonight
-// gate/suggestion flow (that wiring is covered in App.test.tsx). No network here —
-// the only I/O is localStorage, which is why every test clears it first: these
-// tests share a real jsdom localStorage instance across the file.
+// gate/suggestion flow (that wiring is covered in App.test.tsx). Two kinds of I/O
+// happen here now: localStorage (the list's own state, unmocked — real jsdom
+// storage, cleared every test) and the instructions fetch (mocked globally, since a
+// real network call has no server to answer it in this environment).
 
 function result(overrides: Partial<TonightResult> = {}): TonightResult {
   return {
@@ -23,17 +24,35 @@ function result(overrides: Partial<TonightResult> = {}): TonightResult {
   };
 }
 
+/** A controllable stand-in for global fetch, deferred by default so tests that don't
+ * care about instructions aren't racing an unresolved promise past cleanup. */
+function mockFetch() {
+  const fetchMock = vi.fn(() => new Promise<Response>(() => {})); // never resolves by default
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+function jsonResponse(body: unknown, init: { ok?: boolean; status?: number } = {}) {
+  return {
+    ok: init.ok ?? true,
+    status: init.status ?? 200,
+    json: async () => body,
+  } as Response;
+}
+
 beforeEach(() => {
   localStorage.clear();
 });
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
 describe("ShoppingList", () => {
   it("starts every ingredient in Att köpa", () => {
-    render(<ShoppingList result={result()} portions={2} onNewSuggestion={vi.fn()} />);
+    mockFetch();
+    render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
     expect(screen.getByRole("heading", { name: "Att köpa (2)" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Har hemma (0)" })).toBeTruthy();
@@ -42,8 +61,9 @@ describe("ShoppingList", () => {
   });
 
   it("moving an item puts it in Har hemma and updates both counts", async () => {
+    mockFetch();
     const user = userEvent.setup();
-    render(<ShoppingList result={result()} portions={2} onNewSuggestion={vi.fn()} />);
+    render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
     const row = screen.getByText("Kyckling").closest("li")!;
     await user.click(row.querySelector("button")!);
@@ -58,8 +78,9 @@ describe("ShoppingList", () => {
   });
 
   it("checking an item marks it bought without moving it between sections", async () => {
+    mockFetch();
     const user = userEvent.setup();
-    render(<ShoppingList result={result()} portions={2} onNewSuggestion={vi.fn()} />);
+    render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
     const row = screen.getByText("Kyckling").closest("li")!;
     const checkbox = row.querySelector('input[type="checkbox"]') as HTMLInputElement;
@@ -75,9 +96,10 @@ describe("ShoppingList", () => {
   });
 
   it("restores sections and check marks on remount (simulated reload)", async () => {
+    mockFetch();
     const user = userEvent.setup();
     const { unmount } = render(
-      <ShoppingList result={result()} portions={2} onNewSuggestion={vi.fn()} />,
+      <ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />,
     );
 
     await user.click(screen.getByText("Morot").closest("li")!.querySelector("button")!);
@@ -86,7 +108,7 @@ describe("ShoppingList", () => {
     );
     unmount();
 
-    render(<ShoppingList result={result()} portions={2} onNewSuggestion={vi.fn()} />);
+    render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
     expect(screen.getByRole("heading", { name: "Att köpa (1)" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Har hemma (1)" })).toBeTruthy();
@@ -98,9 +120,10 @@ describe("ShoppingList", () => {
   });
 
   it("starts a fresh list for a different template id rather than merging", async () => {
+    mockFetch();
     const user = userEvent.setup();
     const { unmount } = render(
-      <ShoppingList result={result()} portions={2} onNewSuggestion={vi.fn()} />,
+      <ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />,
     );
     await user.click(screen.getByText("Morot").closest("li")!.querySelector("button")!);
     unmount();
@@ -112,6 +135,7 @@ describe("ShoppingList", () => {
           ingredients: [{ role: "protein", name: "Torsk", substituted: false }],
         })}
         portions={2}
+        accessToken="tok"
         onNewSuggestion={vi.fn()}
       />,
     );
@@ -123,9 +147,10 @@ describe("ShoppingList", () => {
   });
 
   it("clears the stored list and calls onNewSuggestion when Ny förslag is clicked", async () => {
+    mockFetch();
     const user = userEvent.setup();
     const onNewSuggestion = vi.fn();
-    render(<ShoppingList result={result()} portions={2} onNewSuggestion={onNewSuggestion} />);
+    render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={onNewSuggestion} />);
 
     await user.click(screen.getByRole("button", { name: "Ny förslag" }));
 
@@ -134,12 +159,65 @@ describe("ShoppingList", () => {
   });
 
   it("never renders a numeric quantity or currency string in an ingredient row", () => {
-    render(<ShoppingList result={result()} portions={2} onNewSuggestion={vi.fn()} />);
+    mockFetch();
+    render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
     for (const row of screen.getAllByRole("listitem")) {
       expect(row.textContent).not.toMatch(/\d/);
       expect(row.textContent).not.toMatch(/kr|kronor|₤/i);
     }
+  });
+
+  describe("instructions", () => {
+    it("renders instructions when the fetch returns them, without blocking the shopping list", async () => {
+      const fetchMock = mockFetch();
+      let resolveFetch!: (response: Response) => void;
+      fetchMock.mockImplementation(
+        () => new Promise<Response>((resolve) => { resolveFetch = resolve; }),
+      );
+      const user = userEvent.setup();
+      render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
+
+      // Loading state, and the list itself is fully interactive while it's showing.
+      expect(screen.getByText("Skapar instruktioner…")).toBeTruthy();
+      const row = screen.getByText("Kyckling").closest("li")!;
+      await user.click(row.querySelector("button")!);
+      expect(screen.getByRole("heading", { name: "Har hemma (1)" })).toBeTruthy();
+
+      await act(async () => {
+        resolveFetch(jsonResponse({ instructions: ["Skär kycklingen.", "Stek i panna.", "Servera."] }));
+      });
+
+      await waitFor(() => expect(screen.queryByText("Skapar instruktioner…")).toBeNull());
+      expect(screen.getByText("Skär kycklingen.")).toBeTruthy();
+      expect(screen.getByText("Stek i panna.")).toBeTruthy();
+      expect(screen.getByText("Servera.")).toBeTruthy();
+    });
+
+    it("renders the failure message and a retry control when instructions can't be generated", async () => {
+      const fetchMock = mockFetch();
+      fetchMock.mockResolvedValue(jsonResponse({ instructions: null, reason: "timeout" }));
+      render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
+
+      await waitFor(() =>
+        expect(screen.getByText("Det gick inte att skapa instruktioner just nu.")).toBeTruthy(),
+      );
+      const retryButton = screen.getByRole("button", { name: "Försök igen" });
+      expect(retryButton).toBeTruthy();
+
+      // The shopping list stays interactive throughout the failure state too.
+      const user = userEvent.setup();
+      const checkbox = screen
+        .getByText("Kyckling")
+        .closest("li")!
+        .querySelector('input[type="checkbox"]') as HTMLInputElement;
+      await user.click(checkbox);
+      expect(checkbox.checked).toBe(true);
+
+      fetchMock.mockClear();
+      await user.click(retryButton);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
   });
 });
 

@@ -13,6 +13,14 @@ export interface TonightIngredient {
   substituted: boolean;
 }
 
+// Only the fields the frontend actually reads (slot_index + substitute_ingredient_id,
+// forwarded verbatim to POST /api/instructions). The backend's SlotSubstitution also
+// carries a `slot` object — allowed here as an excess property, never read.
+export interface TonightSubstitution {
+  slot_index: number;
+  substitute_ingredient_id: string;
+}
+
 export interface TonightResult {
   template: {
     id: string;
@@ -22,7 +30,7 @@ export interface TonightResult {
     [key: string]: unknown;
   };
   ingredients: TonightIngredient[];
-  substitutions: unknown[];
+  substitutions: TonightSubstitution[];
   score: number;
 }
 
@@ -80,6 +88,45 @@ export async function fetchTonight(
   }
 
   return body as TonightResponse;
+}
+
+// The Tier 1 cooking-instructions result (issue #78). `instructions` is null on any
+// generation failure — missing key, timeout, invalid AI response — never an error the
+// caller has to catch; `reason` is machine-readable, shown as a fixed Swedish message
+// by the caller, never rendered verbatim.
+export interface InstructionsResult {
+  instructions: string[] | null;
+  reason?: string;
+}
+
+export async function fetchInstructions(
+  accessToken: string,
+  templateId: string,
+  substitutions: readonly TonightSubstitution[],
+): Promise<InstructionsResult> {
+  const response = await fetch("/api/instructions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      templateId,
+      substitutions: substitutions.map((substitution) => ({
+        slot_index: substitution.slot_index,
+        substitute_ingredient_id: substitution.substitute_ingredient_id,
+      })),
+    }),
+  });
+
+  const body: unknown = await response.json();
+
+  if (!response.ok) {
+    const { error } = body as ApiErrorEnvelope;
+    throw new ApiError(response.status, error.code, error.message);
+  }
+
+  return body as InstructionsResult;
 }
 
 export async function createHousehold(accessToken: string, household: Household): Promise<void> {
