@@ -48,4 +48,16 @@ describe("loadEngineData", () => {
     // see DECISION_LOG for the familiarity classification pass.
     expect(byFamiliarity.everyday).toBeGreaterThanOrEqual(60);
   });
+
+  it("never tags a pancake, waffle, raggmunk or sandwich template as dinner", () => {
+    // Cheap guard against the class of dish the meal_types dinner-bar tightening
+    // removed (see DECISION_LOG) reappearing in a future template batch.
+    const offenders = data.templates.filter(
+      (template) =>
+        /pannkak|våffl|raggmunk|macka/i.test(template.name) &&
+        template.meal_types.includes("dinner"),
+    );
+
+    expect(offenders).toEqual([]);
+  });
 });

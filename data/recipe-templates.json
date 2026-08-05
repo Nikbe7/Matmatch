@@ -3350,8 +3350,7 @@
       }
     ],
     "meal_types": [
-      "lunch",
-      "dinner"
+      "lunch"
     ],
     "familiarity": "occasional"
   },
@@ -4091,8 +4090,7 @@
       }
     ],
     "meal_types": [
-      "lunch",
-      "dinner"
+      "lunch"
     ],
     "familiarity": "adventurous"
   },
@@ -6185,8 +6183,7 @@
       }
     ],
     "meal_types": [
-      "lunch",
-      "dinner"
+      "lunch"
     ],
     "familiarity": "everyday"
   },
@@ -6604,8 +6601,7 @@
       }
     ],
     "meal_types": [
-      "lunch",
-      "dinner"
+      "lunch"
     ],
     "familiarity": "adventurous"
   },
@@ -7214,7 +7210,7 @@
       }
     ],
     "meal_types": [
-      "dinner"
+      "lunch"
     ],
     "familiarity": "occasional"
   },
@@ -7296,8 +7292,7 @@
       }
     ],
     "meal_types": [
-      "lunch",
-      "dinner"
+      "lunch"
     ],
     "familiarity": "occasional"
   }
