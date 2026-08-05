@@ -114,6 +114,8 @@ Technical direction, naming, patterns to follow, gotchas.
 
 # Mechanics
 Branch: type/short-description, or "none — commit directly to main".
+Model: Sonnet or Opus — Opus for architecture, schema design, AI orchestration and hard
+  debugging; Sonnet for everything else.
 Validate: npm run typecheck && npm test
 Commit: <Conventional Commit line>
 Board: issue + column for product, data or schema work; none for tooling, config or docs.
@@ -136,10 +138,16 @@ Read `CLAUDE.md`, then only the docs the question needs. Don't re-read what's in
 Respect `docs/engineering/DECISION_LOG.md` — reopen a decision only if new information
 appeared, an assumption proved false, or it's actively causing problems, and say which.
 
-You cannot see the GitHub board, run commands, or know what another chat did. When that
-blocks you, say so in one line and ask him to paste what you need — then answer everything
-else in the same turn.
+You cannot see the GitHub board or run commands. But the implementation chat's transcripts
+are readable at `~/.claude/projects/-home-niklas-matmatch/*.jsonl` — read the relevant
+session file directly, rather than asking Niklas to paste, when his summary is ambiguous,
+when an approval question needs answering, or when something looks like it went wrong. Grep
+for the specific tool call or branch name instead of reading whole files.
 
 Mention Claude Code setup only when it changes: a new chat when context is saturated or the
 topic changes, Opus for architecture or hard debugging. One line, no block. Silence means
 the defaults are fine.
+
+Every block that closes out a merged slice ends by telling Niklas whether to start a new
+chat: new chat once the slice merges or the topic changes, same chat while a slice is still
+in flight.
