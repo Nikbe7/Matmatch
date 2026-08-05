@@ -18,6 +18,13 @@ export interface ChipTapEvent {
   chip: ChipId;
   /** Weights *after* the tap, so a single event says what is now in effect. */
   weights: SessionWeights;
+  /**
+   * The 0–2 level the tapped axis is now at, alongside its raw weight — separates
+   * "tapped once" from "tapped to max" without every consumer having to know the
+   * weight-to-level mapping in `refinement.ts`. Absent for chips with no axis
+   * (`other_cuisine`, `something_else`, `reset`).
+   */
+  level?: number;
   rerollDepth: number;
 }
 
