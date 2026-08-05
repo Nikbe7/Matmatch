@@ -36,4 +36,16 @@ describe("loadEngineData", () => {
   it("rejects a data directory that does not exist rather than returning empty indexes", async () => {
     await expect(loadEngineData("src/engine/__fixtures__/nonexistent")).rejects.toThrow();
   });
+
+  it("gives every template a valid familiarity value, with a sizable everyday pool", () => {
+    const byFamiliarity = { everyday: 0, occasional: 0, adventurous: 0 };
+    for (const template of data.templates) {
+      expect(["everyday", "occasional", "adventurous"]).toContain(template.familiarity);
+      byFamiliarity[template.familiarity] += 1;
+    }
+
+    // The floor that keeps the everyday pool from being quietly emptied out —
+    // see DECISION_LOG for the familiarity classification pass.
+    expect(byFamiliarity.everyday).toBeGreaterThanOrEqual(60);
+  });
 });

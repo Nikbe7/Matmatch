@@ -6,10 +6,19 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "dietary_tags": ["vegetarian"],
-    "meal_types": ["dinner"],
+    "dietary_tags": [
+      "vegetarian"
+    ],
+    "meal_types": [
+      "dinner"
+    ],
     "ingredient_slots": [
-      { "role": "protein", "ingredient_id": "nonexistent-ingredient", "substitutable": false }
-    ]
+      {
+        "role": "protein",
+        "ingredient_id": "nonexistent-ingredient",
+        "substitutable": false
+      }
+    ],
+    "familiarity": "everyday"
   }
 ]

@@ -7,6 +7,7 @@ import { selectCandidateTemplates } from "./candidates.js";
 import { loadEngineData } from "./data.js";
 import {
   costTierIndex,
+  familiarityIndex,
   inSeasonFraction,
   pickNextSuggestion,
   pickTonight,
@@ -67,6 +68,12 @@ describe("costTierIndex / prepTimeIndex", () => {
   it("orders strictly, so one enum step is always a real score difference", () => {
     expect(CostTierSchema.options.map(costTierIndex)).toEqual([0, 1, 2]);
     expect(PrepTimeBandSchema.options.map(prepTimeIndex)).toEqual([0, 1, 2]);
+  });
+
+  it("gives every familiarity value an ordinal, most familiar first", () => {
+    expect(familiarityIndex("everyday")).toBe(0);
+    expect(familiarityIndex("occasional")).toBe(1);
+    expect(familiarityIndex("adventurous")).toBe(2);
   });
 });
 
@@ -131,6 +138,19 @@ describe("scoreCandidate", () => {
 
     expect(spread).toBeCloseTo(0.25);
     expect(spread).toBeLessThan(1);
+  });
+
+  it("adds 1.5 per familiarity step, regardless of weights", () => {
+    const everyday = neutralCandidate("t", { familiarity: "everyday" });
+    const occasional = neutralCandidate("t", { familiarity: "occasional" });
+    const adventurous = neutralCandidate("t", { familiarity: "adventurous" });
+    const weights = { cost: 0, time: 0 };
+
+    // neutralCandidate's slot is always in season, so each score also carries the
+    // full -0.25 seasonality bonus.
+    expect(scoreCandidate(seasonalityData, everyday, weights, 1)).toBeCloseTo(-0.25);
+    expect(scoreCandidate(seasonalityData, occasional, weights, 1)).toBeCloseTo(1.25);
+    expect(scoreCandidate(seasonalityData, adventurous, weights, 1)).toBeCloseTo(2.75);
   });
 });
 
@@ -204,6 +224,80 @@ describe("rankCandidates — tie-break", () => {
       "a-ratt",
       "b-ratt",
     ]);
+  });
+});
+
+describe("rankCandidates — familiarity", () => {
+  it("puts the more familiar template first when everything else is equal", () => {
+    const everyday = neutralCandidate("everyday-dish", { familiarity: "everyday" });
+    const adventurous = neutralCandidate("adventurous-dish", { familiarity: "adventurous" });
+
+    expect(ids(rankCandidates(seasonalityData, [adventurous, everyday], { cost: 1, time: 1 }, 1))).toEqual([
+      "everyday-dish",
+      "adventurous-dish",
+    ]);
+  });
+
+  it("outranks a full seasonality swing with a single familiarity step", () => {
+    // "occasional-in-season" beats seasonality's max 0.25 bonus on its own,
+    // so scoring purely on familiarity vs. seasonality still favors familiarity.
+    const everydayOutOfSeason = candidate("everyday-out-of-season", {
+      familiarity: "everyday",
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "sommar", substitutable: true }],
+    });
+    const occasionalInSeason = candidate("occasional-in-season", {
+      familiarity: "occasional",
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }],
+    });
+
+    expect(
+      ids(rankCandidates(seasonalityData, [occasionalInSeason, everydayOutOfSeason], { cost: 0, time: 0 }, 1)),
+    ).toEqual(["everyday-out-of-season", "occasional-in-season"]);
+  });
+
+  it("lets a strong enough expressed cost preference beat a familiarity gap", () => {
+    const everydayExpensive = neutralCandidate("everyday-expensive", {
+      familiarity: "everyday",
+      cost_tier: "premium",
+    });
+    const adventurousCheap = neutralCandidate("adventurous-cheap", {
+      familiarity: "adventurous",
+      cost_tier: "budget",
+    });
+    const weights = { cost: 3, time: 0 };
+
+    // 2 cost-tier steps * weight 3 = 6, which beats the 3.0 two-step familiarity gap.
+    expect(ids(rankCandidates(seasonalityData, [everydayExpensive, adventurousCheap], weights, 1))).toEqual([
+      "adventurous-cheap",
+      "everyday-expensive",
+    ]);
+  });
+
+  it("ranks an everyday premium template above an adventurous budget one at default weights", () => {
+    // The concrete regression this slice fixes: at the API's default {cost: 1,
+    // time: 1} (src/api/weights.ts), a cheap unusual dish must not beat an
+    // ordinary one just because it happens to be cheaper.
+    const everydayPremium = neutralCandidate("everyday-premium", {
+      familiarity: "everyday",
+      cost_tier: "premium",
+    });
+    const adventurousBudget = neutralCandidate("adventurous-budget", {
+      familiarity: "adventurous",
+      cost_tier: "budget",
+    });
+    const defaultWeights = { cost: 1, time: 1 };
+
+    expect(
+      ids(rankCandidates(seasonalityData, [adventurousBudget, everydayPremium], defaultWeights, 1)),
+    ).toEqual(["everyday-premium", "adventurous-budget"]);
+  });
+
+  it("still returns an adventurous template when it is the only candidate", () => {
+    const onlyOption = neutralCandidate("only-adventurous", { familiarity: "adventurous" });
+
+    const tonight = pickTonight(seasonalityData, [onlyOption], { cost: 1, time: 1 }, 1);
+
+    expect(tonight?.template.id).toBe("only-adventurous");
   });
 });
 

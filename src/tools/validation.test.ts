@@ -40,6 +40,13 @@ describe("validateFiles", () => {
     expect(result.errors[0]).toMatchObject({ path: "seasonality_strength" });
   });
 
+  it("fails a recipe template missing the required familiarity field", () => {
+    const result = validateFiles([fixture("recipe-template-missing-familiarity.json", "recipe-template")]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({ path: "familiarity" });
+  });
+
   it("fails a malformed id slug", () => {
     const result = validateFiles([fixture("bad-slug-ingredient.json", "ingredient")]);
 

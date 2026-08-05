@@ -32,6 +32,7 @@ export function makeTemplate(id: string, overrides: Partial<RecipeTemplate> = {}
     prep_time_band: "<20min",
     dietary_tags: [],
     meal_types: ["dinner"],
+    familiarity: "everyday",
     ingredient_slots: [],
     ...overrides,
   };

@@ -7,10 +7,21 @@
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
-    "meal_types": ["dinner"],
+    "meal_types": [
+      "dinner"
+    ],
     "ingredient_slots": [
-      { "role": "protein", "ingredient_id": "kyckling", "substitutable": false },
-      { "role": "aromatic", "ingredient_id": "gul-lok", "substitutable": true }
-    ]
+      {
+        "role": "protein",
+        "ingredient_id": "kyckling",
+        "substitutable": false
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "gul-lok",
+        "substitutable": true
+      }
+    ],
+    "familiarity": "everyday"
   }
 ]
