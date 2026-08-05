@@ -72,6 +72,8 @@ An issue is considered complete when:
 
 Only then should the issue move to Review.
 
+Whenever AskUserQuestion is used, immediately follow it with the same question and options as plain text in the response body — the tool's content can't be copied into the product-advisor chat, and this has repeatedly required digging through session transcripts to answer a question that should have been one paste.
+
 ## Task sizing
 Never implement multiple unrelated features in the same session. Prefer small, reviewable changes — one issue, one branch, one PR. If a task turns out to bundle unrelated work, split it into separate issues rather than shipping it as one large change.
 
@@ -83,6 +85,8 @@ Never implement multiple unrelated features in the same session. Prefer small, r
 5. Update relevant docs only if architecture or long-term behavior actually changed.
 6. Suggest a commit message (Conventional Commits).
 7. Flag when the issue is ready to move to Review — and remind to move it to Done once verified.
+
+Every PR description ends with a "Verifiera i webbläsaren" checklist for Niklas: 3–5 concrete, ordered steps covering what could actually break in this change, expected result for each, and a note on which step is the blocker. The change's author knows its failure modes best — this saves a review round trip.
 
 ## Engineering mindset
 Optimize for simplicity, maintainability, readability, low AI cost, fast iteration, and production quality, in that rough order for a pre-PMF solo project. Prefer the simplest solution that satisfies current requirements; don't build infrastructure for hypothetical future features.
