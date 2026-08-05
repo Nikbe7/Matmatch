@@ -49,7 +49,7 @@ docker restart supabase_kong_matmatch
 
 ## Frontend
 
-`web/` is a Vite + React + TypeScript PWA client — household onboarding, the Tonight card with its adjustment chips and reroll, the shopping list, and instructions, all backed by the real auth/API chain (login → JWT → `GET /api/tonight`).
+`web/` is a Vite + React + TypeScript PWA client — household onboarding, the Tonight card with its adjustment chips, reroll and "Lagad ikväll", the shopping list, and instructions, all backed by the real auth/API chain (login → JWT → `GET /api/tonight`).
 
 ```bash
 cd web
@@ -106,6 +106,8 @@ Plain SQL in `supabase/migrations/`, applied in filename order. No ORM schema la
 > ```
 >
 > Forget the **grant** and you get `permission denied` — loud and obvious. Forget the role in the **`TO` clause** and RLS matches no policy for it, which is *not* an error: the backend reads **zero rows, forever, with no failure**. That silence is the slowest possible thing to diagnose, which is why this warning is here and repeated in `supabase/migrations/20260803120000_least_privilege_app_role.sql`.
+>
+> Grant only the verbs the table actually needs, rather than all four by reflex — and give it a policy per granted verb. `cooked_meals` (#88) grants `select, insert` and has exactly those two policies, because cooked history is append-only and nothing in the application rewrites a past evening; a `delete` grant it never uses is only a way for a future bug to erase data. Note the asymmetry the trap above creates: a *missing* grant fails loudly, so narrowing is safe, while a granted verb with no matching policy is the silent-zero-rows case.
 
 RLS is enabled **and forced** on every table holding household data, and since #53 it genuinely constrains the backend: repository calls run inside a transaction that sets the request's user as the RLS claim (`src/db/context.ts`), so a query that forgets an owner filter returns nothing rather than another household's rows.
 
