@@ -355,4 +355,90 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe("invalid_weights");
   });
+
+  it("excludes the given template ids from the result", async () => {
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+    const first = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+    const excludedId = first.body.result.template.id as string;
+
+    const second = await request(app!)
+      .get("/api/tonight")
+      .query({ exclude: excludedId })
+      .set(authHeader(user.accessToken));
+
+    expect(second.status).toBe(200);
+    expect(second.body.result.template.id).not.toBe(excludedId);
+  });
+
+  it("lets `previous` influence which dish comes back", async () => {
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+    const first = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+    const previousId = first.body.result.template.id as string;
+
+    const withoutPrevious = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+    const withPrevious = await request(app!)
+      .get("/api/tonight")
+      .query({ previous: previousId })
+      .set(authHeader(user.accessToken));
+
+    expect(withPrevious.status).toBe(200);
+    // Same top-of-list result without `previous`, but `previous` alone (no
+    // exclusion) is enough to steer the pick toward a different protein_group.
+    expect(withoutPrevious.body.result.template.id).toBe(previousId);
+    expect(withPrevious.body.result.template.id).not.toBe(previousId);
+  });
+
+  it("does not error when the exclude list is over 30 ids, and ignores unknown ids", async () => {
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+    const manyUnknownIds = Array.from({ length: 40 }, (_, i) => `not-a-real-template-${i}`).join(",");
+
+    const response = await request(app!)
+      .get("/api/tonight")
+      .query({ exclude: manyUnknownIds })
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.result).not.toBeNull();
+  });
+
+  it("returns `no_more_suggestions` (not `no_safe_templates`) once every safe template is excluded", async () => {
+    // A minimal, real EngineData (two dinner templates, no restrictions needed to
+    // pass) so "exclude everything" stays well under the 30-id cap and this test
+    // doesn't depend on the size of the real catalog — same rationale as the
+    // no_safe_templates test above using a fabricated EngineData rather than trying
+    // to hit a genuinely empty state through real data.
+    const { makeEngineData, makeIngredient, makeTemplate } = await import(
+      "../engine/__fixtures__/engineData.js"
+    );
+    const twoTemplateEngineData: EngineData = makeEngineData({
+      ingredients: [makeIngredient("morot")],
+      templates: [
+        makeTemplate("morotssoppa", {
+          ingredient_slots: [{ role: "vegetable", ingredient_id: "morot", substitutable: false }],
+        }),
+        makeTemplate("morotsgryta", {
+          ingredient_slots: [{ role: "vegetable", ingredient_id: "morot", substitutable: false }],
+        }),
+      ],
+    });
+    const twoTemplateApp = createApp({ sql: sql!, engineData: twoTemplateEngineData, verifyToken: verifyToken! });
+
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+    const response = await request(twoTemplateApp)
+      .get("/api/tonight")
+      .query({ exclude: "morotssoppa,morotsgryta" })
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.result).toBeNull();
+    expect(response.body.reason).toBe("no_more_suggestions");
+  });
 });

@@ -8,6 +8,7 @@ import { loadEngineData } from "./data.js";
 import {
   costTierIndex,
   inSeasonFraction,
+  pickNextSuggestion,
   pickTonight,
   prepTimeIndex,
   rankCandidates,
@@ -343,6 +344,112 @@ describe("pickTonight", () => {
 
         expect(pickTonight(seasonalityData, candidates, weights, month)).toEqual(ranked[0]);
       }
+    }
+  });
+});
+
+describe("pickNextSuggestion", () => {
+  const weights = { cost: 1, time: 1 };
+
+  it("never returns an excluded template id", () => {
+    const candidates = [neutralCandidate("a"), neutralCandidate("b"), neutralCandidate("c")];
+    const ranked = rankCandidates(seasonalityData, candidates, weights, 1);
+
+    const picked = pickNextSuggestion(ranked, new Set(["agggratang", "a", "b"]), undefined);
+
+    expect(picked?.template.id).toBe("c");
+  });
+
+  it("prefers a different protein_group over a better-scoring same-protein_group candidate", () => {
+    const previous = makeTemplate("previous", { protein_group: "beef_pork", cuisine: "swedish_nordic" });
+    const sameProteinBetter = neutralCandidate("same-protein-better", {
+      protein_group: "beef_pork",
+      cuisine: "italian_mediterranean",
+      cost_tier: "budget",
+    });
+    const differentProteinWorse = neutralCandidate("different-protein-worse", {
+      protein_group: "fish_seafood",
+      cuisine: "italian_mediterranean",
+      cost_tier: "premium",
+    });
+    const ranked = rankCandidates(
+      seasonalityData,
+      [sameProteinBetter, differentProteinWorse],
+      weights,
+      1,
+    );
+
+    expect(ranked[0]!.template.id).toBe("same-protein-better");
+
+    const picked = pickNextSuggestion(ranked, new Set(), previous);
+
+    expect(picked?.template.id).toBe("different-protein-worse");
+  });
+
+  it("uses cuisine as the secondary preference among different-protein candidates", () => {
+    const previous = makeTemplate("previous", { protein_group: "beef_pork", cuisine: "swedish_nordic" });
+    const differentProteinSameCuisine = neutralCandidate("different-protein-same-cuisine", {
+      protein_group: "fish_seafood",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+    });
+    const differentProteinAndCuisine = neutralCandidate("different-protein-and-cuisine", {
+      protein_group: "chicken_poultry",
+      cuisine: "asian",
+      cost_tier: "premium",
+    });
+    const ranked = rankCandidates(
+      seasonalityData,
+      [differentProteinSameCuisine, differentProteinAndCuisine],
+      weights,
+      1,
+    );
+
+    expect(ranked[0]!.template.id).toBe("different-protein-same-cuisine");
+
+    const picked = pickNextSuggestion(ranked, new Set(), previous);
+
+    expect(picked?.template.id).toBe("different-protein-and-cuisine");
+  });
+
+  it("falls back to the best-scoring remaining candidate when no diverse option exists", () => {
+    const previous = makeTemplate("previous", { protein_group: "beef_pork", cuisine: "swedish_nordic" });
+    const best = neutralCandidate("best", {
+      protein_group: "beef_pork",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+    });
+    const worst = neutralCandidate("worst", {
+      protein_group: "beef_pork",
+      cuisine: "swedish_nordic",
+      cost_tier: "premium",
+    });
+    const ranked = rankCandidates(seasonalityData, [best, worst], weights, 1);
+
+    const picked = pickNextSuggestion(ranked, new Set(), previous);
+
+    expect(picked?.template.id).toBe("best");
+  });
+
+  it("returns undefined when every candidate is excluded", () => {
+    const candidates = [neutralCandidate("a"), neutralCandidate("b")];
+    const ranked = rankCandidates(seasonalityData, candidates, weights, 1);
+
+    expect(pickNextSuggestion(ranked, new Set(["a", "b"]), undefined)).toBeUndefined();
+  });
+
+  it("is deterministic across repeated calls with identical inputs", () => {
+    const previous = makeTemplate("previous", { protein_group: "beef_pork", cuisine: "swedish_nordic" });
+    const candidates = [
+      neutralCandidate("a", { protein_group: "fish_seafood" }),
+      neutralCandidate("b", { protein_group: "chicken_poultry" }),
+      neutralCandidate("c", { protein_group: "beef_pork" }),
+    ];
+    const ranked = rankCandidates(seasonalityData, candidates, weights, 1);
+
+    const first = pickNextSuggestion(ranked, new Set(["a"]), previous)?.template.id;
+    for (let run = 0; run < 5; run += 1) {
+      expect(pickNextSuggestion(ranked, new Set(["a"]), previous)?.template.id).toBe(first);
     }
   });
 });

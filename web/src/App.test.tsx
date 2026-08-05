@@ -262,3 +262,90 @@ describe("App — Tonight suggestion card", () => {
     });
   }
 });
+
+function suggestionBodyFor(id: string, name: string) {
+  return {
+    result: {
+      template: { id, name, cost_tier: "budget", prep_time_band: "<20min" },
+      ingredients: [{ role: "protein", name: "Torsk", substituted: false }],
+      substitutions: [],
+      score: 0.3,
+    },
+    portions: 2,
+  };
+}
+
+const exhaustedBody = { result: null, reason: "no_more_suggestions", portions: 2 };
+
+describe("App — Nytt förslag", () => {
+  it("sends everything shown so far as exclude and the current dish as previous, and renders the new dish", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("fisksoppa", "Fisksoppa")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+
+    await screen.findByRole("heading", { name: "Fisksoppa" });
+    const nextUrl = fetchMock.mock.calls[1]![0] as string;
+    expect(nextUrl).toContain("exclude=kycklinggryta");
+    expect(nextUrl).toContain("previous=kycklinggryta");
+  });
+
+  it("never repeats a dish across repeated presses, accumulating exclude each time", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("fisksoppa", "Fisksoppa")))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+    await screen.findByRole("heading", { name: "Fisksoppa" });
+    expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+    await screen.findByRole("heading", { name: "Linssoppa" });
+    expect(screen.queryByRole("heading", { name: "Fisksoppa" })).toBeNull();
+
+    const thirdUrl = fetchMock.mock.calls[2]![0] as string;
+    expect(thirdUrl).toContain("exclude=kycklinggryta%2Cfisksoppa");
+    expect(thirdUrl).toContain("previous=fisksoppa");
+  });
+
+  it("renders the exhausted message, and the reset control restores a fresh suggestion", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, exhaustedBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+    await screen.findByText("Du har sett allt vi har för ikväll");
+    expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Börja om" }));
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    // Reset re-requests with no exclusions at all.
+    const resetUrl = fetchMock.mock.calls[2]![0] as string;
+    expect(resetUrl).not.toContain("exclude=");
+  });
+});

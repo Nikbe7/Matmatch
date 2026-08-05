@@ -51,8 +51,24 @@ export class ApiError extends Error {
   }
 }
 
-export async function fetchTonight(accessToken: string): Promise<TonightResponse> {
-  const response = await fetch("/api/tonight", {
+export interface FetchTonightOptions {
+  // Everything shown so far this session (App.tsx's React-state-only list) — never
+  // read from or written to localStorage/the URL, per the ephemeral-session
+  // principle in CLAUDE.md.
+  exclude?: readonly string[];
+  previous?: string;
+}
+
+export async function fetchTonight(
+  accessToken: string,
+  options: FetchTonightOptions = {},
+): Promise<TonightResponse> {
+  const params = new URLSearchParams();
+  if (options.exclude && options.exclude.length > 0) params.set("exclude", options.exclude.join(","));
+  if (options.previous) params.set("previous", options.previous);
+  const query = params.toString();
+
+  const response = await fetch(`/api/tonight${query ? `?${query}` : ""}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
