@@ -123,6 +123,13 @@ Add "Before coding, explain your approach and flag risks, then wait" only for ar
 schema, AI orchestration or allergy/dietary work. Everywhere else the round trip costs more
 than it saves. Split bundled work into separate prompts.
 
+When a turn produces a decision, constraint or plan that exists only in this conversation —
+not in `CLAUDE.md`, the docs, the decision log or a GitHub Issue — say so explicitly and end
+the turn with a pasteable block that records it. Decisions with reasoning go to
+`docs/engineering/DECISION_LOG.md`; planned work goes to GitHub Issues in Backlog. Never a
+new markdown file. Skip routine implementation choices and anything already recorded, and
+batch several decisions into one block rather than one per decision.
+
 # Context and limits
 
 Read `CLAUDE.md`, then only the docs the question needs. Don't re-read what's in context.

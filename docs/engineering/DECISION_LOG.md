@@ -8,6 +8,28 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-05 — AI tiering, cost control and monetization sequencing
+
+**Tier 2 is the fallback, not the coverage ceiling.** When a user asks for a dish the template library doesn't have, Tier 2 open-ended generation invents the dish. The template library (Tier 0) stays the free fast path that's supposed to cover the common case; Tier 2 exists to catch what it doesn't, not to be a second, AI-authored template catalog running alongside it.
+
+**Hard rule: Tier 2 may invent the dish, never the ingredients.** Every ingredient in a Tier 2 response must resolve to an `ingredient_id` in `data/ingredients.json`; anything that doesn't map is dropped from the response, or the whole response is rejected if dropping it breaks the dish. This isn't a quality preference — allergen filtering (§4.3's fail-safe rule) resolves allergens per `ingredient_id`. A free-text ingredient the filter has never seen is invisible to it, and "invisible to the allergy filter" is exactly the failure mode §4.3 exists to prevent. There is no version of Tier 2 that's allowed to skip this.
+
+**Caching: generated results are shared, personalization is not baked in.** A Tier 2 result is cached keyed on the normalized request phrase, with no household data in the key, so two households asking for the same thing share the cache entry. Personalization (swaps, portion math) is applied deterministically on top of the cache hit, not regenerated per household. Tier 1 instruction text is cached per template, matching how Tier 1 already works as templated personalization rather than open generation.
+
+**Tier 2 output never auto-promotes into `data/recipe-templates.json`.** A generated dish staying popular is a signal, not a merge. Misses are logged; a repeated miss on the same dish is what triggers a deliberate, reviewed template batch using the #10–14 coverage-matrix method — the same authoring and evidence bar every existing template went through, not a shortcut around it.
+
+**Tier 2 ships with a per-user monthly cap and a global spend ceiling, or it doesn't ship.** Both degrade to Tier 0 plus cache when hit, never to a failure or to unmetered spend. This is the cost-control half of §4's tiering strategy actually being load-bearing rather than aspirational.
+
+**Web scraping of recipe sites is rejected as an ingredient/coverage source.** Scraped ingredients arrive with no verified allergen mapping row — the same problem free-text Tier 2 ingredients would have, for a data source that also carries copyright exposure and ongoing scraper-maintenance cost for no offsetting benefit over generation-then-cache.
+
+**Monetization sequencing: freemium caps on Tier 2 are the MVP revenue mechanism; ads are deferred to Phase 3.** Ads add a second, unrelated product surface and revenue path before there's evidence anyone wants the core loop enough to pay for it. Revisit trigger: measured premium conversion plus several thousand active users — not a fixed date.
+
+**Feedback is binary (thumbs up/down), not a 1–5 star scale, and personal before global.** Binary needs no calibration and is useful starting from a single user's first rating; a star scale only means something once there's enough volume to normalize against, which the MVP doesn't have yet. Personal feedback (did *this household* like this suggestion) feeds ranking immediately; global aggregation is a later layer once there's enough signal for it to be meaningful.
+
+**How to apply:** do not build Tier 2 without both the ingredient-mapping hard rule and the spend caps in place together — neither is optional, and shipping one without the other reintroduces the exact risk (unsafe suggestion, or unbounded cost) tiering was supposed to prevent. Do not reach for scraping as a coverage shortcut if Tier 2 generation feels slow to build out — the reasons it was rejected apply regardless of how tempting the ingredient volume looks.
+
+---
+
 ## 2026-08-05 — `meal_types` dinner bar tightened again, this time to a stated rule (amends the 2026-08-05 `meal_types` entry)
 
 **Decision:** The two prior corrections (this same day: `pannkakor-med-vaniljsocker`, `artsoppa-med-senap`) were still one-off judgment calls, and dogfooding kept surfacing the same *class* of dish as a Tonight suggestion — pancake-style dishes, thin bread-accompanied soups, and stand-alone sides. Rather than correct another instance one at a time, `"dinner"` is now gated by a stated rule, re-applied to all 170 templates rather than only the ones currently tagged `dinner`:
