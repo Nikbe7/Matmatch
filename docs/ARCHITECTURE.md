@@ -83,8 +83,8 @@ Allergy and hard dietary restriction filtering happens in the **Meal Engine**, b
 ## 5. Database Design (Conceptual Schema)
 
 - **User** — id, email, auth provider info, subscription status
-- **Household** — id, owner_user_id, name
-- **HouseholdMember** — id, household_id, type (adult/child), portion_size, dietary_flags[], allergies[] (distinct field, treated as sensitive) — see "Allergy & dietary vocabulary" below for the locked value lists
+- **Household** — id, owner_user_id, allergies[], dietary_flags[] (distinct fields, treated as sensitive — shared across the household, not per-member) — see "Allergy & dietary vocabulary" below for the locked value lists
+- **HouseholdMember** — id, household_id, type (adult/child), portion_factor
 - **Ingredient** — id, name, category, default_cost_tier, peak_months[], available_year_round, seasonality_strength (curated/maintained data, not AI-generated; see "Ingredient schema" below for the locked vocabularies)
 - **RecipeTemplate** — id, name, protein_group, cuisine, cost_tier, prep_time_band, dietary_tags[], ingredient_slots[] (role, ingredient_id, substitutable) — see "RecipeTemplate schema & coverage matrix" below for the locked vocabularies and matrix
 - **IngredientAllergenMapping** — ingredient_id (FK to Ingredient.id), allergens[], verification_status — the sole source of truth for allergy filtering (§4.3); see "Ingredient-to-allergen mapping" below
@@ -114,7 +114,7 @@ Locked against a 30-ingredient spot-check spanning proteins, vegetables, dairy, 
 - `fat_oil` — cooking oils and non-dairy fats (olive oil, rapeseed oil, lard)
 - `condiment` — sauces, vinegars, mustards, and other small-quantity flavor additions
 
-**`default_cost_tier` (enum):** `budget` / `mid` / `premium` — curated, team-maintained, per CLAUDE.md (never AI-inferred as a specific price). Approximate Swedish-grocery bands for calibration, reviewed periodically rather than tied to live prices. Displayed to users as `₤`/`₤₤`/`₤₤₤` — see UX_FLOW.md §4 note on the display mapping.
+**`default_cost_tier` (enum):** `budget` / `mid` / `premium` — curated, team-maintained, per CLAUDE.md (never AI-inferred as a specific price). Approximate Swedish-grocery bands for calibration, reviewed periodically rather than tied to live prices. Displayed to users as a three-dot meter with a Swedish `aria-label` stating the tier, not the raw enum value — see UX_FLOW.md §4 note on the display mapping (amends DECISION_LOG 2026-07-29's original `₤`/`₤₤`/`₤₤₤` glyph mapping).
 - `budget` — everyday staples, roughly <40 kr/kg or <15 kr/unit (potatoes, onions, pasta, rice, oats, milk, eggs)
 - `mid` — routine but pricier (chicken breast, ground beef, cheese, off-season peppers)
 - `premium` — premium or import-heavy (entrecôte, oxfilé, shrimp, out-of-season specialty produce)
@@ -230,10 +230,15 @@ Lookup is derived, not stored: for a slot, the candidate swaps are the members o
 
 Storage: `data/substitutions.json`. Validated via the CLI validator (#15) as `--type substitution`: schema conformance, duplicate group ids and names, member resolution against the ingredient catalog, no duplicate members within a group, minimum 2 members. As with the other cross-file checks, an invocation passing no ingredient file *warns* rather than passing silently.
 
-## 6. API Surface (High Level, No Implementation Yet)
+## 6. API Surface (High Level)
 
-- `POST /households` / `GET /households/:id` / `PATCH /households/:id/members`
-- `GET /suggestions/tonight` — zero-input flagship suggestion (Tier 0 first, falling back to Tier 1 if needed)
+Shipped (`src/api/routes/`):
+- `POST /api/households` — create a household profile
+- `GET /api/tonight` — zero-input flagship suggestion (Tier 0 first, falling back to Tier 1 if needed)
+- `POST /api/instructions` — Tier 1 cooking instructions for a suggestion, cached by template + substitution set
+
+Planned, not yet built:
+- `GET /households/:id` / `PATCH /households/:id/members`
 - `POST /suggestions/directions` — given intent + main ingredient + pantry input, returns 3 direction candidates (Meal Engine filters first, AI Orchestrator fills in only if needed)
 - `POST /meals/:id/adjust` — apply an adjustment chip (cheaper/more protein/more flavor) or free-text tweak
 - `POST /meals/:id/confirm` — finalize portions, generate shopping list

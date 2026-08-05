@@ -23,7 +23,7 @@ Deterministic app logic (the "Meal Engine": ingredient matching, cost tiering, s
 - Analytics: instrumented from day one (see MVP_ROADMAP.md success metrics)
 
 ## Current phase: Phase 1 — MVP core loop
-Phase 0 closed 2026-08-02 (DECISION_LOG). Building the single loop MVP_ROADMAP.md's Phase 1 section describes — household onboarding through shopping list, save/history, freemium gating, PWA install — with the deterministic engine and persistence already in place. See MVP_ROADMAP.md for current status and DECISION_LOG.md for how each piece landed. Phase 1 work is tracked as GitHub Issues on the project board, not in this file.
+Phase 0 closed 2026-08-02 (DECISION_LOG). Building the single loop MVP_ROADMAP.md's Phase 1 section describes — household onboarding through shopping list, save/history, freemium gating, PWA install — with the deterministic engine and persistence already in place. See MVP_ROADMAP.md for scope and sequence, DECISION_LOG.md for how each piece landed, and the GitHub Project board for current status — not this file.
 
 ## Non-negotiables
 - Ingredient-to-allergen mappings require 100% manual verification — never trust AI-drafted allergen data without review, no sampling.

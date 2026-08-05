@@ -49,7 +49,7 @@ For users who want more control than the zero-input suggestion, but still don't 
    - "Creamy chicken pasta"
    - "Chicken stew with rice"
    - "Chicken fried rice"
-   Each card shows a one-line description and a rough cost tier indicator (₤ / ₤₤ / ₤₤₤), not a specific invented price. These glyphs are a display-only mapping in frontend code (`budget → ₤`, `mid → ₤₤`, `premium → ₤₤₤`) — never the underlying `cost_tier` data value, see ARCHITECTURE.md §5.1.
+   Each card shows a one-line description and a rough cost tier indicator, not a specific invented price — a display-only rendering of `cost_tier`, never the raw data value itself; see ARCHITECTURE.md §5.1 for the current display mapping.
 5. **Build & adjust** — after picking a direction, show what's already covered (✓ rice, ✓ cream, ✓ onion) and what's suggested to add (carrots, garlic, chicken), with adjustment chips: **Cheaper / More protein / More flavor**. Tapping a chip regenerates the suggestion set live.
 6. **Portion confirmation** — household composition is pre-filled from the profile (e.g., "2 adults + 2 children + 4 lunch boxes"); user can adjust with steppers, not typing.
 7. **Shopping list** — auto-split into "Already have" and "Need to buy," with checkboxes designed for in-store use (large tap targets, works offline).

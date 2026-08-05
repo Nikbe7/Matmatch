@@ -39,6 +39,8 @@ Exit criterion: enough template/ingredient coverage, verified for safety and spo
 
 ## Phase 1 — MVP Core Loop
 
+This section describes scope and sequence only — what's in this phase and in what order. Current status (what's actually done) lives on the GitHub Project board, not here.
+
 Build only the single loop described in the Product Plan and UX Flow documents:
 
 1. Household onboarding (members, portions, dietary flags, allergies)
