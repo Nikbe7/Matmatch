@@ -474,11 +474,12 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
     if (response.result) apply({ type: "suggestion_shown", templateId: response.result.template.id });
   }
 
-  function reportChipTap(chip: ChipId, next: RefinementState) {
+  function reportChipTap(chip: ChipId, next: RefinementState, level?: number) {
     track({
       name: "refinement_chip_tap",
       chip,
       weights: next.weights,
+      level,
       rerollDepth: next.rerollDepth,
     });
   }
@@ -509,17 +510,10 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
   }
 
   function handleIncrement(axis: WeightAxis) {
-    const before = refinementRef.current;
     const next = apply({ type: "increment", axis });
     const chip: ChipId = axis === "cost" ? "cheaper" : "faster";
 
-    // A tap at the cap is a no-op: re-requesting with identical parameters would
-    // return the identical dish, which reads as the app ignoring the tap. The tap
-    // is still reported — "kept tapping Billigare at max" is precisely the control
-    // signal this instrumentation exists to catch.
-    reportChipTap(chip, next);
-    if (next === before) return;
-
+    reportChipTap(chip, next, weightLevel(next, axis));
     void requestSuggestion(next, current.result?.template.id);
   }
 

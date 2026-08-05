@@ -106,6 +106,14 @@ const SEASONALITY_WEIGHT = 0.25;
 // a real preference. If the chip-tap increment ever changes, re-derive this
 // constant against the new increment rather than leaving it calibrated to a
 // stale value.
+//
+// `WEIGHT_LEVELS` in web/src/refinement.ts hardcodes its two active chip levels as
+// `[0, 1, 3]`, calibrated against this constant (1 = "loses to one familiarity
+// step", 3 = `FAMILIARITY_STEP_WEIGHT * 2` = "beats the largest possible
+// familiarity gap") — not imported, because that module's type-only imports pull
+// in this file's Node-only dependencies through tsc -b's type graph, which web/'s
+// browser tsconfig cannot resolve. Re-derive that literal by hand if this value
+// changes.
 const FAMILIARITY_STEP_WEIGHT = 1.5;
 
 // Penalty applied to a template tagged `vegetarian` or `vegan` when the household

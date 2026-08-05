@@ -342,24 +342,24 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    expect(screen.getByRole("button", { name: "Billigare, nivå 0 av 5" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }).getAttribute("aria-pressed")).toBe("false");
 
-    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 5" }));
+    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
     expect((fetchMock.mock.calls[1]![0] as string)).toContain("cost=1");
 
     // Still pressed and still showing its level a reroll later — the whole point
     // of chip state being session-persistent rather than per-request.
-    const pressed = screen.getByRole("button", { name: "Billigare, nivå 1 av 5" });
+    const pressed = screen.getByRole("button", { name: "Billigare, nivå 1 av 2" });
     expect(pressed.getAttribute("aria-pressed")).toBe("true");
 
     await user.click(screen.getByRole("button", { name: "Något annat" }));
     await screen.findByRole("heading", { name: "Ärtsoppa" });
-    expect(screen.getByRole("button", { name: "Billigare, nivå 1 av 5" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Billigare, nivå 1 av 2" })).toBeTruthy();
     expect((fetchMock.mock.calls[2]![0] as string)).toContain("cost=1");
   });
 
-  it("caps at 5 and makes a tap at the cap a no-op with no extra request", async () => {
+  it("cycles through both levels and wraps back to 0 in one more tap, each tap requesting a new suggestion", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (url: string) =>
@@ -371,20 +371,20 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    for (let level = 0; level < 5; level += 1) {
-      const suffix = level + 1 === 5 ? ", högsta nivån" : "";
-      await user.click(screen.getByRole("button", { name: `Snabbare, nivå ${level} av 5` }));
-      await screen.findByRole("button", { name: `Snabbare, nivå ${level + 1} av 5${suffix}` });
-    }
+    await user.click(screen.getByRole("button", { name: "Snabbare, nivå 0 av 2" }));
+    await screen.findByRole("button", { name: "Snabbare, nivå 1 av 2" });
 
-    const callsAtCap = fetchMock.mock.calls.length;
-    const capped = screen.getByRole("button", { name: "Snabbare, nivå 5 av 5, högsta nivån" });
-    expect(capped.getAttribute("aria-pressed")).toBe("true");
+    await user.click(screen.getByRole("button", { name: "Snabbare, nivå 1 av 2" }));
+    const atMax = await screen.findByRole("button", { name: "Snabbare, nivå 2 av 2, högsta nivån" });
+    expect(atMax.getAttribute("aria-pressed")).toBe("true");
 
-    await user.click(capped);
+    const callsAtMax = fetchMock.mock.calls.length;
+    await user.click(atMax);
 
-    expect(fetchMock.mock.calls.length).toBe(callsAtCap);
-    expect(screen.getByRole("button", { name: "Snabbare, nivå 5 av 5, högsta nivån" })).toBeTruthy();
+    const wrapped = await screen.findByRole("button", { name: "Snabbare, nivå 0 av 2" });
+    expect(wrapped.getAttribute("aria-pressed")).toBe("false");
+    // The wrap-to-0 tap is not a no-op — it re-requests like every other tap.
+    expect(fetchMock.mock.calls.length).toBe(callsAtMax + 1);
   });
 
   it("Annat kök skips a same-cuisine suggestion and excludes it too", async () => {
@@ -452,13 +452,13 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 5" }));
-    await screen.findByRole("button", { name: "Billigare, nivå 1 av 5" });
+    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }));
+    await screen.findByRole("button", { name: "Billigare, nivå 1 av 2" });
 
     await user.click(screen.getByRole("button", { name: "Återställ" }));
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    const restored = screen.getByRole("button", { name: "Billigare, nivå 0 av 5" });
+    const restored = screen.getByRole("button", { name: "Billigare, nivå 0 av 2" });
     expect(restored.getAttribute("aria-pressed")).toBe("false");
   });
 });
@@ -482,14 +482,26 @@ describe("App — refinement instrumentation", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 5" }));
+    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
     await user.click(screen.getByRole("button", { name: "Något annat" }));
     await screen.findByRole("heading", { name: "Ärtsoppa" });
 
     expect(events).toEqual([
-      { name: "refinement_chip_tap", chip: "cheaper", weights: { cost: 1, time: 0 }, rerollDepth: 1 },
-      { name: "refinement_chip_tap", chip: "something_else", weights: { cost: 1, time: 0 }, rerollDepth: 2 },
+      {
+        name: "refinement_chip_tap",
+        chip: "cheaper",
+        weights: { cost: 1, time: 0 },
+        level: 1,
+        rerollDepth: 1,
+      },
+      {
+        name: "refinement_chip_tap",
+        chip: "something_else",
+        weights: { cost: 1, time: 0 },
+        level: undefined,
+        rerollDepth: 2,
+      },
     ]);
   });
 

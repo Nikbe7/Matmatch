@@ -2,10 +2,10 @@ import type { Cuisine } from "../../src/schema/recipeTemplate";
 import type { SessionWeights, TonightResponse } from "./api";
 
 // Session refinement state for the Tonight card's adjustment chips (UX_FLOW §4/§5
-// step 5, DECISION_LOG 2026-07-31 and the 2026-08-05 chip entry). One reducer rather than four
-// useStates because every chip mutates the same session object: a tap changes
-// weights, the exclusion set and the reroll depth together, and they must never
-// drift apart.
+// step 5, DECISION_LOG 2026-07-31, the 2026-08-05 chip entry and the 2026-08-05
+// level-calibration entry). One reducer rather than four useStates because every
+// chip mutates the same session object: a tap changes weights, the exclusion set
+// and the reroll depth together, and they must never drift apart.
 //
 // Nothing here is persisted. There is deliberately no load/save pair the way
 // shoppingListStorage.ts has one — refinements are session-scoped by decision, not
@@ -13,20 +13,30 @@ import type { SessionWeights, TonightResponse } from "./api";
 // filling a gap.
 
 /**
- * The highest level a chip can raise a weight to. The ranking constants
- * (`FAMILIARITY_STEP_WEIGHT`, `SEASONALITY_WEIGHT` in `src/engine/ranking.ts`) are
- * calibrated against chip-driven weights in roughly the 1–5 range; past 5 a single
- * expressed preference simply dominates everything else and further taps stop
- * changing the order at all, so the cap is where the control stops being a control.
+ * The weight a "Billigare"/"Snabbare" chip carries at each of its levels — level 0
+ * is off. Two active levels, not five: `cost_tier` and `prep_time_band` each have
+ * three values, so the only ranking-relevant weight thresholds are "beats one
+ * familiarity step" and "beats the largest possible familiarity gap (two steps)".
+ *
+ * Level 1 = 1: the smallest expressed preference, calibrated to lose to a single
+ * `FAMILIARITY_STEP_WEIGHT` step (`src/engine/ranking.ts`, currently 1.5) — a
+ * household that taps once is nudging the order, not overriding it.
+ *
+ * Level 2 = 3, i.e. `FAMILIARITY_STEP_WEIGHT * 2`: enough to beat even the largest
+ * familiarity gap (adventurous vs. everyday, two steps), so the expressed
+ * preference dominates. Not imported from `src/engine/ranking.ts` — that module's
+ * type-only imports pull in `src/engine/data.ts`'s `node:fs`/`node:url` usage
+ * through `tsc -b`'s type graph, which `web/`'s browser tsconfig (no `node` types)
+ * cannot resolve. If `FAMILIARITY_STEP_WEIGHT` is ever re-derived, re-derive this
+ * literal (`FAMILIARITY_STEP_WEIGHT * 2`) alongside it — do not let it drift stale.
+ *
+ * Levels 4 and 5 of the old five-level scale produced no observable change in
+ * ranking order — see DECISION_LOG 2026-08-05 — so this is the full range now.
  */
-export const MAX_WEIGHT_LEVEL = 5;
+export const WEIGHT_LEVELS = [0, 1, 3] as const;
 
-/**
- * What one chip tap adds to a weight. Exactly the increment
- * `FAMILIARITY_STEP_WEIGHT` (1.5) is calibrated against — see its comment in
- * `src/engine/ranking.ts`. Changing this means re-deriving that constant.
- */
-export const WEIGHT_STEP = 1;
+/** The highest level a chip can cycle to (index into `WEIGHT_LEVELS`). */
+export const MAX_WEIGHT_LEVEL = WEIGHT_LEVELS.length - 1;
 
 export type WeightAxis = "cost" | "time";
 
@@ -58,7 +68,7 @@ export const INITIAL_REFINEMENT: RefinementState = {
 export type RefinementAction =
   /** A chip that re-requests without changing the weight vector. */
   | { type: "reroll"; chip: Extract<ChipId, "something_else" | "other_cuisine"> }
-  /** "Billigare" / "Snabbare": +1 on one axis, capped. */
+  /** "Billigare" / "Snabbare": cycles one axis 0 → 1 → 2 → 0. */
   | { type: "increment"; axis: WeightAxis }
   /** A suggestion reached the screen — it must not come back this session. */
   | { type: "suggestion_shown"; templateId: string }
@@ -78,25 +88,19 @@ function withExcluded(
   return { ...state, excludedTemplateIds: [...merged], rerollDepth };
 }
 
-/**
- * Returns the *same state object* when a tap cannot change anything — an increment
- * already at `MAX_WEIGHT_LEVEL`. Callers use that identity check to skip the
- * network round trip: re-requesting with identical parameters would return the
- * identical dish, which reads as the app ignoring the tap rather than as a cap.
- */
 export function refinementReducer(
   state: RefinementState,
   action: RefinementAction,
 ): RefinementState {
   switch (action.type) {
     case "increment": {
-      const current = state.weights[action.axis];
-      if (current >= MAX_WEIGHT_LEVEL) return state;
+      const currentLevel = weightLevel(state, action.axis);
+      const nextLevel = (currentLevel + 1) % WEIGHT_LEVELS.length;
       return {
         ...state,
         weights: {
           ...state.weights,
-          [action.axis]: Math.min(current + WEIGHT_STEP, MAX_WEIGHT_LEVEL),
+          [action.axis]: WEIGHT_LEVELS[nextLevel],
         },
         rerollDepth: state.rerollDepth + 1,
       };
@@ -122,9 +126,9 @@ export function refinementReducer(
   }
 }
 
-/** The 0–5 level a chip renders, for the dot meter and its accessible name. */
+/** The 0–`MAX_WEIGHT_LEVEL` level a chip renders, for the dot meter and its accessible name. */
 export function weightLevel(state: RefinementState, axis: WeightAxis): number {
-  return state.weights[axis] / WEIGHT_STEP;
+  return WEIGHT_LEVELS.indexOf(state.weights[axis] as (typeof WEIGHT_LEVELS)[number]);
 }
 
 /**

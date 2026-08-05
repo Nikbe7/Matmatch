@@ -8,6 +8,7 @@ import {
   refinementReducer,
   searchOtherCuisine,
   weightLevel,
+  WEIGHT_LEVELS,
   type RefinementState,
 } from "./refinement";
 
@@ -50,24 +51,33 @@ describe("refinementReducer — Billigare / Snabbare", () => {
     expect(afterTime.rerollDepth).toBe(2);
   });
 
-  it("keeps incrementing up to the cap", () => {
+  it("cycles through both levels and wraps back to 0", () => {
     let state = INITIAL_REFINEMENT;
-    for (let tap = 0; tap < MAX_WEIGHT_LEVEL; tap += 1) {
-      state = refinementReducer(state, { type: "increment", axis: "cost" });
-    }
 
-    expect(state.weights.cost).toBe(MAX_WEIGHT_LEVEL);
+    state = refinementReducer(state, { type: "increment", axis: "cost" });
+    expect(weightLevel(state, "cost")).toBe(1);
+    expect(state.weights.cost).toBe(WEIGHT_LEVELS[1]);
+
+    state = refinementReducer(state, { type: "increment", axis: "cost" });
     expect(weightLevel(state, "cost")).toBe(MAX_WEIGHT_LEVEL);
+    expect(state.weights.cost).toBe(WEIGHT_LEVELS[MAX_WEIGHT_LEVEL]);
+
+    state = refinementReducer(state, { type: "increment", axis: "cost" });
+    expect(weightLevel(state, "cost")).toBe(0);
+    expect(state.weights.cost).toBe(0);
   });
 
-  it("is a no-op at the cap — same state object, so the caller can skip the request", () => {
-    const atCap = stateWith({ weights: { cost: MAX_WEIGHT_LEVEL, time: 0 }, rerollDepth: 5 });
+  it("every tap changes the state — a chip resets itself in one tap at the top level", () => {
+    const atMax = stateWith({
+      weights: { cost: WEIGHT_LEVELS[MAX_WEIGHT_LEVEL], time: 0 },
+      rerollDepth: 5,
+    });
 
-    const next = refinementReducer(atCap, { type: "increment", axis: "cost" });
+    const next = refinementReducer(atMax, { type: "increment", axis: "cost" });
 
-    expect(next).toBe(atCap);
-    expect(next.weights.cost).toBe(MAX_WEIGHT_LEVEL);
-    expect(next.rerollDepth).toBe(5);
+    expect(next).not.toBe(atMax);
+    expect(next.weights.cost).toBe(0);
+    expect(next.rerollDepth).toBe(6);
   });
 });
 

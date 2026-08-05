@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-05 — Billigare/Snabbare chips reduced to two calibrated levels (#86)
+
+**Decision:** The "Billigare"/"Snabbare" chips now cycle 0 → 1 → 2 → 0 on tap, mapping to weights `[0, 1, 3]`, not a 0–5 dial. `WEIGHT_LEVELS` (`web/src/refinement.ts`) is a literal, not an import of `FAMILIARITY_STEP_WEIGHT` from `src/engine/ranking.ts`: that module's type-only imports pull in `src/engine/data.ts`'s `node:fs`/`node:url` usage through `tsc -b`'s type graph, which `web/`'s browser tsconfig (no `node` types) cannot resolve. Both sides carry a comment pointing at the other so the two don't drift silently. The chip renders two dots and its accessible name states the level ("Billigare, nivå 1 av 2"). The same-state-object no-op at the cap is gone — every tap now changes the weight, so there is no cap to no-op at.
+
+**Why:** `cost_tier`/`prep_time_band` are three-value enums, so only two weight thresholds are ever ranking-relevant: "loses to one familiarity step" (weight 1) and "beats the largest possible familiarity gap, two steps" (weight `FAMILIARITY_STEP_WEIGHT * 2` = 3). Levels 4 and 5 of the old five-dot scale produced no observable change in suggestion order — two of five dots did nothing, which is exactly the uncalibratable control the 2026-07-31 sliders decision rejected, just re-introduced one axis at a time instead of continuously.
+
+**How to apply:** If `FAMILIARITY_STEP_WEIGHT` or the `cost_tier`/`prep_time_band` vocabularies change, re-derive `WEIGHT_LEVELS` from the new values rather than leaving level 2 stale. Never add a level whose ranking effect is indistinguishable from the level below it — verify a new level actually changes candidate order before adding it, the same check that caught this.
+
+---
+
 ## 2026-08-05 — Refinement stays chip-driven; no customize sheet, no cuisine filter, no user-facing difficulty (#82)
 
 **Decision:** Session refinement on the Tonight card is expressed *only* through chips that each produce an immediately visible new suggestion — **Billigare** (+1 `cost`), **Snabbare** (+1 `time`), **Annat kök**, **Något annat**, **Återställ**. Chip state is visibly persistent for the whole session: a raised weight keeps its pressed styling and a 0–5 level marker (dots, with the level in the chip's accessible name — never conveyed by fill alone) until reset, so a household several rerolls deep can still see what it asked for. Increments cap at 5, and a tap at the cap is a genuine no-op that skips the request rather than re-fetching an identical dish. Reroll depth is instrumented (`web/src/analytics.ts`): one event per chip tap carrying the resulting weights and depth, one when a session ends without an acceptance carrying the final depth. Everything is React state — never the household profile, localStorage, or the database.
