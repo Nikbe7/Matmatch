@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CuisineSchema,
+  FamiliaritySchema,
   IngredientSlotRoleSchema,
   MealTypeSchema,
   PrepTimeBandSchema,
@@ -19,6 +20,7 @@ describe("RecipeTemplateSchema", () => {
       prep_time_band: "20-40min",
       dietary_tags: [],
       meal_types: ["dinner"],
+      familiarity: "everyday",
       ingredient_slots: [
         { role: "protein", ingredient_id: "ing_010", substitutable: true },
         { role: "starch", ingredient_id: "ing_020", substitutable: false },
@@ -39,6 +41,7 @@ describe("RecipeTemplateSchema", () => {
       prep_time_band: "40min+",
       dietary_tags: ["vegetarian", "vegan"],
       meal_types: ["lunch", "dinner"],
+      familiarity: "everyday",
       ingredient_slots: [
         { role: "protein", ingredient_id: "ing_040", substitutable: true },
       ],
@@ -57,6 +60,7 @@ describe("RecipeTemplateSchema", () => {
       prep_time_band: "<20min",
       dietary_tags: [],
       meal_types: ["dinner"],
+      familiarity: "everyday",
       ingredient_slots: [],
     };
 
@@ -73,6 +77,7 @@ describe("RecipeTemplateSchema", () => {
       prep_time_band: "20-40min",
       dietary_tags: [],
       meal_types: ["dinner"],
+      familiarity: "everyday",
       ingredient_slots: [
         { role: "protein", ingredient_id: "ing_010", substitutable: true },
       ],
@@ -90,6 +95,7 @@ describe("RecipeTemplateSchema", () => {
       cost_tier: "budget",
       prep_time_band: "<20min",
       dietary_tags: [],
+      familiarity: "everyday",
       ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
     };
 
@@ -106,6 +112,7 @@ describe("RecipeTemplateSchema", () => {
       prep_time_band: "<20min",
       dietary_tags: [],
       meal_types: ["dinner", "dinner"],
+      familiarity: "everyday",
       ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
     };
 
@@ -113,11 +120,73 @@ describe("RecipeTemplateSchema", () => {
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]!.message).toContain("must not contain duplicate values");
   });
+
+  it("rejects a template missing familiarity entirely, rather than defaulting to everyday", () => {
+    const fixture = {
+      id: "recept-utan-familiarity",
+      name: "Recept utan familiarity",
+      protein_group: "egg_dairy_pantry",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+      prep_time_band: "<20min",
+      dietary_tags: [],
+      meal_types: ["dinner"],
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+    };
+
+    const result = RecipeTemplateSchema.safeParse(fixture);
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]!.path).toEqual(["familiarity"]);
+  });
+
+  it("rejects a familiarity value outside the locked enum", () => {
+    const fixture = {
+      id: "recept-med-ogiltig-familiarity",
+      name: "Recept med ogiltig familiarity",
+      protein_group: "egg_dairy_pantry",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+      prep_time_band: "<20min",
+      dietary_tags: [],
+      meal_types: ["dinner"],
+      familiarity: "exotic",
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+    };
+
+    expect(RecipeTemplateSchema.safeParse(fixture).success).toBe(false);
+  });
+
+  it.each(FamiliaritySchema.options)("accepts familiarity value %s", (familiarity) => {
+    const fixture = {
+      id: "recept-med-familiarity",
+      name: "Recept med familiarity",
+      protein_group: "egg_dairy_pantry",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+      prep_time_band: "<20min",
+      dietary_tags: [],
+      meal_types: ["dinner"],
+      familiarity,
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+    };
+
+    expect(RecipeTemplateSchema.safeParse(fixture).success).toBe(true);
+  });
 });
 
 describe("MealTypeSchema", () => {
   it("rejects a value outside the locked enum", () => {
     expect(MealTypeSchema.safeParse("brunch").success).toBe(false);
+  });
+});
+
+describe("FamiliaritySchema", () => {
+  it("rejects a value outside the locked enum", () => {
+    expect(FamiliaritySchema.safeParse("exotic").success).toBe(false);
+  });
+
+  it("has exactly the three locked values", () => {
+    expect(FamiliaritySchema.options).toEqual(["everyday", "occasional", "adventurous"]);
   });
 });
 

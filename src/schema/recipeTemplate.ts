@@ -33,6 +33,14 @@ export type PrepTimeBand = z.infer<typeof PrepTimeBandSchema>;
 export const MealTypeSchema = z.enum(["breakfast", "lunch", "dinner"]);
 export type MealType = z.infer<typeof MealTypeSchema>;
 
+// Authored, not derived, same rationale as meal_types above: how familiar a dish is
+// to a typical Swedish household on an ordinary weekday is a judgment call about the
+// dish as a whole, not something computable from ingredient_slots[]. See
+// DECISION_LOG for the ranking use (src/engine/ranking.ts) and the evidence bar this
+// was assigned under.
+export const FamiliaritySchema = z.enum(["everyday", "occasional", "adventurous"]);
+export type Familiarity = z.infer<typeof FamiliaritySchema>;
+
 // Slot role is its own vocabulary, distinct from Ingredient.category — "aromatic"
 // here maps conceptually to the "spice_aromatic" ingredient category, but the two
 // strings are never interchangeable in code. Translating between them (e.g. when
@@ -70,6 +78,9 @@ export const RecipeTemplateSchema = z.object({
     .refine((mealTypes) => new Set(mealTypes).size === mealTypes.length, {
       message: "meal_types must not contain duplicate values",
     }),
+  // Required, no default: a ranking weight this consequential must not silently
+  // default to "everyday" for an unclassified row (see DECISION_LOG).
+  familiarity: FamiliaritySchema,
   ingredient_slots: z.array(IngredientSlotSchema).min(1),
 });
 export type RecipeTemplate = z.infer<typeof RecipeTemplateSchema>;

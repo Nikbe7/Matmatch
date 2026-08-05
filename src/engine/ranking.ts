@@ -1,5 +1,5 @@
 import type { CostTier } from "../schema/ingredient.js";
-import type { PrepTimeBand, RecipeTemplate } from "../schema/recipeTemplate.js";
+import type { Familiarity, PrepTimeBand, RecipeTemplate } from "../schema/recipeTemplate.js";
 import type { CandidateTemplate } from "./candidates.js";
 import type { EngineData } from "./data.js";
 
@@ -46,6 +46,12 @@ const PREP_TIME_INDEX: Readonly<Record<PrepTimeBand, number>> = {
   "40min+": 2,
 };
 
+const FAMILIARITY_INDEX: Readonly<Record<Familiarity, number>> = {
+  everyday: 0,
+  occasional: 1,
+  adventurous: 2,
+};
+
 /** Ordinal view of the curated cost-tier enum: budget 0, mid 1, premium 2. */
 export function costTierIndex(tier: CostTier): number {
   return COST_TIER_INDEX[tier];
@@ -54,6 +60,11 @@ export function costTierIndex(tier: CostTier): number {
 /** Ordinal view of the prep-time band enum: <20min 0, 20-40min 1, 40min+ 2. */
 export function prepTimeIndex(band: PrepTimeBand): number {
   return PREP_TIME_INDEX[band];
+}
+
+/** Ordinal view of the authored familiarity enum: everyday 0, occasional 1, adventurous 2. */
+export function familiarityIndex(familiarity: Familiarity): number {
+  return FAMILIARITY_INDEX[familiarity];
 }
 
 // Maximum score improvement a fully in-season template can earn. Not user-adjustable
@@ -70,6 +81,26 @@ export function prepTimeIndex(band: PrepTimeBand): number {
 // signal, which is exactly the zero-input Tonight behavior UX_FLOW §9 describes for
 // a new user with no history: "season + popularity + declared preferences only."
 const SEASONALITY_WEIGHT = 0.25;
+
+// Penalty per familiarity step (everyday -> occasional -> adventurous), added to
+// the score so unusual dishes rank below ordinary ones by default. Unlike
+// seasonality, this is deliberately calibrated to sit *above* a single expressed
+// cost/time preference step, not below it — the ranking gap it corrects
+// (musselgryta beating köttbullar on a household that only asked for "cheaper")
+// is a familiarity problem, not a seasonality-sized one.
+//
+// Chosen at 1.5 explicitly against `DEFAULT_WEIGHTS = { cost: 1, time: 1 }` in
+// src/api/weights.ts: at those defaults, one familiarity step (1.5) already beats
+// one cost-tier or prep-band step (1 * 1), and a full two-step gap
+// (adventurous vs. everyday, 3.0) beats two. At 0.5 a two-step gap would only tie
+// a single cost-tier step, letting a budget adventurous dish still outrank a mid
+// everyday one — the exact failure this constant exists to fix. It is still not
+// unbeatable: a chip that pushes cost or time weight to 3 or more makes that
+// expressed preference dominate a familiarity gap again, same as the seasonality
+// constant is designed to yield to a real preference. If DEFAULT_WEIGHTS ever
+// changes, re-derive this constant against the new default rather than leaving it
+// calibrated to a stale value.
+const FAMILIARITY_STEP_WEIGHT = 1.5;
 
 /**
  * The ingredient actually eaten in each slot: the substitute where the filtering
@@ -131,8 +162,10 @@ export function scoreCandidate(
   const costPenalty = costTierIndex(candidate.template.cost_tier) * weights.cost;
   const timePenalty = prepTimeIndex(candidate.template.prep_time_band) * weights.time;
   const seasonalityBonus = inSeasonFraction(data, candidate, month) * SEASONALITY_WEIGHT;
+  const familiarityPenalty =
+    familiarityIndex(candidate.template.familiarity) * FAMILIARITY_STEP_WEIGHT;
 
-  return costPenalty + timePenalty - seasonalityBonus;
+  return costPenalty + timePenalty - seasonalityBonus + familiarityPenalty;
 }
 
 function compareTemplateIds(a: RecipeTemplate, b: RecipeTemplate): number {
