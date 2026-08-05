@@ -43,6 +43,9 @@
         "ingredient_id": "matlagningsgradde",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -79,6 +82,9 @@
         "ingredient_id": "farsk-dill",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -120,6 +126,9 @@
         "ingredient_id": "svartpeppar",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -156,6 +165,9 @@
         "ingredient_id": "artor",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -197,6 +209,10 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -235,6 +251,9 @@
         "ingredient_id": "farsk-rosmarin",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -271,6 +290,10 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -307,6 +330,9 @@
         "ingredient_id": "ingefara",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -348,6 +374,9 @@
         "ingredient_id": "parmesan",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -384,6 +413,9 @@
         "ingredient_id": "spenat",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -420,6 +452,9 @@
         "ingredient_id": "oregano",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -456,6 +491,9 @@
         "ingredient_id": "parmesan",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -494,6 +532,10 @@
         "ingredient_id": "citron",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -535,6 +577,9 @@
         "ingredient_id": "nypotatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -576,6 +621,9 @@
         "ingredient_id": "couscous",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -612,6 +660,9 @@
         "ingredient_id": "spagetti",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -658,6 +709,9 @@
         "ingredient_id": "cashewnotter",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -704,6 +758,9 @@
         "ingredient_id": "kokosmjolk",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -745,6 +802,9 @@
         "ingredient_id": "broccoli",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -786,6 +846,9 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -827,6 +890,10 @@
         "ingredient_id": "soja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -868,6 +935,9 @@
         "ingredient_id": "sweet-chilisas",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -904,6 +974,9 @@
         "ingredient_id": "jasminris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -945,6 +1018,9 @@
         "ingredient_id": "jordnotter",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -986,6 +1062,10 @@
         "ingredient_id": "soja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -1027,6 +1107,9 @@
         "ingredient_id": "risnudlar",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1068,6 +1151,9 @@
         "ingredient_id": "lime",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1109,6 +1195,9 @@
         "ingredient_id": "spiskummin",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1145,6 +1234,10 @@
         "ingredient_id": "farsk-chili",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -1186,6 +1279,9 @@
         "ingredient_id": "hushallsost",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1227,6 +1323,10 @@
         "ingredient_id": "lime",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -1270,6 +1370,9 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1311,6 +1414,9 @@
         "ingredient_id": "citron",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1357,6 +1463,9 @@
         "ingredient_id": "bulgur",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1398,6 +1507,9 @@
         "ingredient_id": "bulgur",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1439,6 +1551,10 @@
         "ingredient_id": "mandel",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -1480,6 +1596,10 @@
         "ingredient_id": "farsk-persilja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -1521,6 +1641,9 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1564,6 +1687,9 @@
         "ingredient_id": "majonnas",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1605,6 +1731,10 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -1646,6 +1776,9 @@
         "ingredient_id": "svartpeppar",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1677,6 +1810,9 @@
         "ingredient_id": "agg",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1713,6 +1849,9 @@
         "ingredient_id": "rodbeta",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1749,6 +1888,9 @@
         "ingredient_id": "svartpeppar",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1780,6 +1922,9 @@
         "ingredient_id": "smor",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1811,6 +1956,9 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1842,6 +1990,9 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1873,6 +2024,9 @@
         "ingredient_id": "senap",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1914,6 +2068,9 @@
         "ingredient_id": "prastost",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1952,6 +2109,9 @@
         "ingredient_id": "zucchini",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -1988,6 +2148,9 @@
         "ingredient_id": "nypotatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2019,6 +2182,9 @@
         "ingredient_id": "prastost",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2050,6 +2216,9 @@
         "ingredient_id": "smor",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2091,6 +2260,9 @@
         "ingredient_id": "potatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2127,6 +2299,9 @@
         "ingredient_id": "spagetti",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2168,6 +2343,9 @@
         "ingredient_id": "ris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2204,6 +2382,9 @@
         "ingredient_id": "jasminris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2240,6 +2421,9 @@
         "ingredient_id": "ris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2281,6 +2465,10 @@
         "ingredient_id": "sambal-oelek",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -2317,6 +2505,9 @@
         "ingredient_id": "jasminris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2353,6 +2544,9 @@
         "ingredient_id": "tortillabrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2389,6 +2583,9 @@
         "ingredient_id": "tortillabrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2430,6 +2627,9 @@
         "ingredient_id": "paprikapulver",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2473,6 +2673,9 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2509,6 +2712,9 @@
         "ingredient_id": "farsk-chili",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2550,6 +2756,9 @@
         "ingredient_id": "ris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2586,6 +2795,9 @@
         "ingredient_id": "farsk-persilja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2622,6 +2834,9 @@
         "ingredient_id": "tomat",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2663,6 +2878,9 @@
         "ingredient_id": "couscous",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2704,6 +2922,9 @@
         "ingredient_id": "isbergssallat",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2742,6 +2963,9 @@
         "ingredient_id": "majs",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2783,6 +3007,9 @@
         "ingredient_id": "formbrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2824,6 +3051,9 @@
         "ingredient_id": "smor",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2860,6 +3090,9 @@
         "ingredient_id": "hushallsost",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2891,6 +3124,9 @@
         "ingredient_id": "potatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2927,6 +3163,9 @@
         "ingredient_id": "farsk-persilja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2963,6 +3202,9 @@
         "ingredient_id": "farsk-dill",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -2994,6 +3236,9 @@
         "ingredient_id": "matlagningsgradde",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3025,6 +3270,10 @@
         "ingredient_id": "ragbrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -3061,6 +3310,10 @@
         "ingredient_id": "isbergssallat",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "breakfast",
+      "lunch"
     ]
   },
   {
@@ -3102,6 +3355,9 @@
         "ingredient_id": "potatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3133,6 +3389,9 @@
         "ingredient_id": "potatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3169,6 +3428,9 @@
         "ingredient_id": "formbrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3205,6 +3467,9 @@
         "ingredient_id": "farsk-persilja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3236,6 +3501,9 @@
         "ingredient_id": "nypotatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3272,6 +3540,9 @@
         "ingredient_id": "citron",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3310,6 +3581,10 @@
         "ingredient_id": "farsk-basilika",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -3346,6 +3621,9 @@
         "ingredient_id": "formbrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3384,6 +3662,10 @@
         "ingredient_id": "citron",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -3420,6 +3702,9 @@
         "ingredient_id": "ris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3456,6 +3741,9 @@
         "ingredient_id": "rod-paprika",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3497,6 +3785,10 @@
         "ingredient_id": "sesamfron",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -3533,6 +3825,9 @@
         "ingredient_id": "risnudlar",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3569,6 +3864,9 @@
         "ingredient_id": "morot",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3610,6 +3908,9 @@
         "ingredient_id": "risnudlar",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3646,6 +3947,9 @@
         "ingredient_id": "farsk-koriander",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3689,6 +3993,10 @@
         "ingredient_id": "tomat",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -3725,6 +4033,9 @@
         "ingredient_id": "bulgur",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3761,6 +4072,9 @@
         "ingredient_id": "paprikapulver",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3797,6 +4111,9 @@
         "ingredient_id": "majonnas",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3841,6 +4158,10 @@
         "ingredient_id": "potatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -3879,6 +4200,9 @@
         "ingredient_id": "potatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3917,6 +4241,9 @@
         "ingredient_id": "potatis",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3955,6 +4282,9 @@
         "ingredient_id": "morot",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -3993,6 +4323,10 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4032,6 +4366,9 @@
         "ingredient_id": "farsk-basilika",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4070,6 +4407,9 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4109,6 +4449,9 @@
         "ingredient_id": "oregano",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4148,6 +4491,9 @@
         "ingredient_id": "fullkornspasta",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4187,6 +4533,9 @@
         "ingredient_id": "farsk-koriander",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4221,6 +4570,9 @@
         "ingredient_id": "balsamvinager",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch"
     ]
   },
   {
@@ -4265,6 +4617,10 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4304,6 +4660,9 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch"
     ]
   },
   {
@@ -4342,6 +4701,10 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4386,6 +4749,9 @@
         "ingredient_id": "ris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4425,6 +4791,9 @@
         "ingredient_id": "tomat",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4474,6 +4843,10 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4518,6 +4891,10 @@
         "ingredient_id": "sesamfron",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4562,6 +4939,10 @@
         "ingredient_id": "sambal-oelek",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4606,6 +4987,9 @@
         "ingredient_id": "ris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4645,6 +5029,9 @@
         "ingredient_id": "ris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4694,6 +5081,10 @@
         "ingredient_id": "soja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4737,6 +5128,10 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4781,6 +5176,9 @@
         "ingredient_id": "gurka",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4826,6 +5224,9 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4865,6 +5266,9 @@
         "ingredient_id": "lime",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -4903,6 +5307,10 @@
         "ingredient_id": "farsk-chili",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4947,6 +5355,10 @@
         "ingredient_id": "farsk-koriander",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -4985,6 +5397,9 @@
         "ingredient_id": "paprikapulver",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5023,6 +5438,9 @@
         "ingredient_id": "farsk-chili",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5067,6 +5485,10 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5111,6 +5533,10 @@
         "ingredient_id": "gurkmeja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5155,6 +5581,9 @@
         "ingredient_id": "couscous",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5194,6 +5623,9 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5232,6 +5664,9 @@
         "ingredient_id": "zucchini",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5276,6 +5711,10 @@
         "ingredient_id": "citron",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5320,6 +5759,10 @@
         "ingredient_id": "ris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5364,6 +5807,9 @@
         "ingredient_id": "ketchup",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5402,6 +5848,9 @@
         "ingredient_id": "muskotnot",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5446,6 +5895,9 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5479,6 +5931,11 @@
         "ingredient_id": "vaniljsocker",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "breakfast",
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5512,6 +5969,10 @@
         "ingredient_id": "farsk-persilja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "breakfast",
+      "lunch"
     ]
   },
   {
@@ -5543,6 +6004,10 @@
         "ingredient_id": "formbrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "breakfast",
+      "lunch"
     ]
   },
   {
@@ -5576,6 +6041,10 @@
         "ingredient_id": "standardmjolk",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5610,6 +6079,10 @@
         "ingredient_id": "formbrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5648,6 +6121,10 @@
         "ingredient_id": "agg",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5684,6 +6161,9 @@
         "ingredient_id": "ris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5720,6 +6200,9 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5758,6 +6241,9 @@
         "ingredient_id": "farsk-persilja",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -5792,6 +6278,10 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5835,6 +6325,9 @@
         "ingredient_id": "farsk-basilika",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch"
     ]
   },
   {
@@ -5873,6 +6366,10 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5913,6 +6410,9 @@
         "ingredient_id": "vitlok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch"
     ]
   },
   {
@@ -5951,6 +6451,10 @@
         "ingredient_id": "formbrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -5994,6 +6498,10 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -6037,6 +6545,9 @@
         "ingredient_id": "ingefara",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -6075,6 +6586,9 @@
         "ingredient_id": "jasminris",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -6119,6 +6633,10 @@
         "ingredient_id": "morot",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -6162,6 +6680,10 @@
         "ingredient_id": "hushallsost",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "breakfast",
+      "lunch"
     ]
   },
   {
@@ -6200,6 +6722,10 @@
         "ingredient_id": "farsk-koriander",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "breakfast",
+      "lunch"
     ]
   },
   {
@@ -6233,6 +6759,9 @@
         "ingredient_id": "farsk-chili",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch"
     ]
   },
   {
@@ -6277,6 +6806,11 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "breakfast",
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -6315,6 +6849,10 @@
         "ingredient_id": "farsk-mynta",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   },
   {
@@ -6353,6 +6891,9 @@
         "ingredient_id": "knackebrod",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch"
     ]
   },
   {
@@ -6391,6 +6932,9 @@
         "ingredient_id": "gul-lok",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch"
     ]
   },
   {
@@ -6424,6 +6968,10 @@
         "ingredient_id": "farsk-dill",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "breakfast",
+      "lunch"
     ]
   },
   {
@@ -6457,6 +7005,10 @@
         "ingredient_id": "agg",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "breakfast",
+      "lunch"
     ]
   },
   {
@@ -6495,6 +7047,9 @@
         "ingredient_id": "svartpeppar",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -6531,6 +7086,9 @@
         "ingredient_id": "tomatpure",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "dinner"
     ]
   },
   {
@@ -6569,6 +7127,10 @@
         "ingredient_id": "svartpeppar",
         "substitutable": true
       }
+    ],
+    "meal_types": [
+      "lunch",
+      "dinner"
     ]
   }
 ]

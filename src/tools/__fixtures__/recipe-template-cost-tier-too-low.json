@@ -7,6 +7,7 @@
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
     "dietary_tags": ["high_protein_preference"],
+    "meal_types": ["dinner"],
     "ingredient_slots": [
       { "role": "protein", "ingredient_id": "kyckling", "substitutable": false },
       { "role": "dairy", "ingredient_id": "parmesan", "substitutable": true }

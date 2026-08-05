@@ -7,6 +7,7 @@
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
     "dietary_tags": [],
+    "meal_types": ["dinner"],
     "ingredient_slots": [
       { "role": "aromatic", "ingredient_id": "gul-lok", "substitutable": true },
       { "role": "starch", "ingredient_id": "ris", "substitutable": true }

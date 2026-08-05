@@ -31,6 +31,7 @@ export function makeTemplate(id: string, overrides: Partial<RecipeTemplate> = {}
     cost_tier: "budget",
     prep_time_band: "<20min",
     dietary_tags: [],
+    meal_types: ["dinner"],
     ingredient_slots: [],
     ...overrides,
   };
