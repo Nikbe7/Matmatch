@@ -473,7 +473,6 @@ describe("App — refinement instrumentation", () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const events: AnalyticsEvent[] = [];
-    setAnalyticsSink((event) => events.push(event));
 
     const fetchMock = vi
       .fn()
@@ -484,6 +483,9 @@ describe("App — refinement instrumentation", () => {
 
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
+    // Installed after mount, so it overrides the real HTTP sink TonightView's own
+    // effect just installed.
+    setAnalyticsSink((event) => events.push(event));
 
     await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
@@ -512,7 +514,6 @@ describe("App — refinement instrumentation", () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const events: AnalyticsEvent[] = [];
-    setAnalyticsSink((event) => events.push(event));
 
     const fetchMock = vi
       .fn()
@@ -522,6 +523,7 @@ describe("App — refinement instrumentation", () => {
 
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
+    setAnalyticsSink((event) => events.push(event));
     await user.click(screen.getByRole("button", { name: "Något annat" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
 
@@ -534,13 +536,13 @@ describe("App — refinement instrumentation", () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const events: AnalyticsEvent[] = [];
-    setAnalyticsSink((event) => events.push(event));
 
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody));
     vi.stubGlobal("fetch", fetchMock);
 
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
+    setAnalyticsSink((event) => events.push(event));
     await user.click(screen.getByRole("button", { name: "Acceptera" }));
 
     window.dispatchEvent(new Event("pagehide"));
@@ -663,7 +665,6 @@ describe("App — Lagad ikväll", () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const events: AnalyticsEvent[] = [];
-    setAnalyticsSink((event) => events.push(event));
 
     const fetchMock = vi
       .fn()
@@ -676,6 +677,10 @@ describe("App — Lagad ikväll", () => {
 
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
+    // Installed after mount, so it overrides the real HTTP sink TonightView's own
+    // effect just installed — the same override order setAnalyticsSink is always
+    // used with in these tests, per its own doc comment.
+    setAnalyticsSink((event) => events.push(event));
     await user.click(screen.getByRole("button", { name: "Något annat" }));
     await screen.findByRole("heading", { name: "Fisksoppa" });
     await user.click(screen.getByRole("button", { name: "Lagad ikväll" }));

@@ -21,7 +21,8 @@ import type { CostTier } from "../../src/schema/ingredient";
 import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
 import { ShoppingList } from "./ShoppingList";
 import { loadShoppingList } from "./shoppingListStorage";
-import { track } from "./analytics";
+import { setAnalyticsSink, track } from "./analytics";
+import { createHttpAnalyticsSink } from "./analyticsSink";
 import {
   INITIAL_REFINEMENT,
   MAX_WEIGHT_LEVEL,
@@ -513,6 +514,20 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
     window.addEventListener("pagehide", reportAbandonedSession);
     return () => window.removeEventListener("pagehide", reportAbandonedSession);
   }, []);
+
+  // Installs the real transport (issue #91) — analytics.ts's default sink just logs
+  // in dev otherwise. Declared after the abandoned-session effect above so its own
+  // pagehide flush listener registers second and therefore *runs* second: the
+  // abandoned-session event must be pushed into the buffer before this flushes it,
+  // and pagehide listeners fire in registration order.
+  useEffect(() => {
+    const handle = createHttpAnalyticsSink(accessToken);
+    setAnalyticsSink(handle.sink);
+    return () => {
+      handle.stop();
+      setAnalyticsSink(null);
+    };
+  }, [accessToken]);
 
   function showResponse(response: TonightResponse) {
     setCurrent(response);
