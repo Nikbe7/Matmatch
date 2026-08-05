@@ -4,10 +4,11 @@ import type { Sql } from "../../db/client.js";
 import { getHouseholdForOwner } from "../../db/households.js";
 import { selectCandidateTemplates } from "../../engine/candidates.js";
 import type { EngineData } from "../../engine/data.js";
-import { pickTonight } from "../../engine/ranking.js";
+import { pickNextSuggestion, rankCandidates } from "../../engine/ranking.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../httpError.js";
 import { parseWeightsFromQuery } from "../weights.js";
+import { parseExcludeFromQuery, parsePreviousFromQuery } from "../tonightSelection.js";
 import { buildTonightIngredients } from "../tonightIngredients.js";
 import { totalPortions } from "../../engine/portions.js";
 
@@ -17,6 +18,8 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
   router.get("/api/tonight", requireAuth(verifyToken), async (req, res, next) => {
     try {
       const weights = parseWeightsFromQuery(req.query as Record<string, unknown>);
+      const excludedTemplateIds = parseExcludeFromQuery((req.query as Record<string, unknown>).exclude);
+      const previousTemplateId = parsePreviousFromQuery((req.query as Record<string, unknown>).previous);
 
       const stored = await getHouseholdForOwner(sql, req.userId!);
       if (!stored) {
@@ -32,15 +35,29 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       const month = new Date().getMonth() + 1;
 
       const candidates = selectCandidateTemplates(engineData, stored.household);
-      const picked = pickTonight(engineData, candidates, weights, month);
+      const ranked = rankCandidates(engineData, candidates, weights, month);
       const portions = totalPortions(stored.household);
 
-      if (!picked) {
+      if (ranked.length === 0) {
         // Not an error: UX_FLOW §9 says never dead-end the user. A vegan+gluten
         // household hits this today (DECISION_LOG 2026-08-02, #46) and the client
         // needs a machine-readable reason to render "loosen constraints" rather than
         // treat this as a failed request.
         res.status(200).json({ result: null, reason: "no_safe_templates", portions });
+        return;
+      }
+
+      // An unknown/stale previous id (e.g. from a household whose constraints
+      // changed mid-session) simply matches nothing here — ignored, not rejected.
+      const previousTemplate = previousTemplateId
+        ? ranked.find((candidate) => candidate.template.id === previousTemplateId)?.template
+        : undefined;
+      const picked = pickNextSuggestion(ranked, excludedTemplateIds, previousTemplate);
+
+      if (!picked) {
+        // Distinct from no_safe_templates: the household has safe options, the
+        // client has just already been shown all of them this session (#70).
+        res.status(200).json({ result: null, reason: "no_more_suggestions", portions });
         return;
       }
 

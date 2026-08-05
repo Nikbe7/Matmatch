@@ -171,12 +171,52 @@ export function rankCandidates(
 }
 
 /**
+ * The next Tonight suggestion out of an already-ranked list, given what has been
+ * shown already (`excludedTemplateIds`) and what was just rejected
+ * (`previousTemplate`, or `undefined` on a first request).
+ *
+ * Selection rule, in order: drop every excluded candidate; among what remains,
+ * prefer the best-scoring candidate whose `protein_group` differs from
+ * `previousTemplate`'s, and whose `cuisine` also differs if such a candidate
+ * exists; fall back to the best-scoring candidate with just a different
+ * `protein_group`; fall back further to the best-scoring remaining candidate.
+ * `ranked` is assumed best-first (rankCandidates' output), so `.find` on it is
+ * itself a "best-scoring that matches" search — no extra sort needed here.
+ *
+ * Returns `undefined` when nothing remains after exclusion — the caller decides
+ * what that means, this function does not special-case it.
+ */
+export function pickNextSuggestion(
+  ranked: readonly RankedCandidate[],
+  excludedTemplateIds: ReadonlySet<string>,
+  previousTemplate: RecipeTemplate | undefined,
+): RankedCandidate | undefined {
+  const remaining = ranked.filter((candidate) => !excludedTemplateIds.has(candidate.template.id));
+  if (remaining.length === 0) return undefined;
+  if (previousTemplate === undefined) return remaining[0];
+
+  const differentProteinAndCuisine = remaining.find(
+    (candidate) =>
+      candidate.template.protein_group !== previousTemplate.protein_group &&
+      candidate.template.cuisine !== previousTemplate.cuisine,
+  );
+  if (differentProteinAndCuisine) return differentProteinAndCuisine;
+
+  const differentProtein = remaining.find(
+    (candidate) => candidate.template.protein_group !== previousTemplate.protein_group,
+  );
+  if (differentProtein) return differentProtein;
+
+  return remaining[0];
+}
+
+/**
  * The single meal for the Tonight card (UX_FLOW §4), or `undefined` when the
  * household has no safe candidates at all.
  *
- * Deliberately a thin wrapper over rankCandidates rather than its own selection
- * logic: Tonight is the top of the same order the guided flow shows, so the two
- * cannot drift apart.
+ * Deliberately a thin wrapper over rankCandidates + pickNextSuggestion rather than
+ * its own selection logic: Tonight is the top of the same order the guided flow
+ * shows (no exclusions, no previous pick), so the two cannot drift apart.
  */
 export function pickTonight(
   data: SeasonalityData,
@@ -184,5 +224,6 @@ export function pickTonight(
   weights: RankingWeights,
   month: number,
 ): RankedCandidate | undefined {
-  return rankCandidates(data, candidates, weights, month)[0];
+  const ranked = rankCandidates(data, candidates, weights, month);
+  return pickNextSuggestion(ranked, new Set(), undefined);
 }

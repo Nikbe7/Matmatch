@@ -280,7 +280,17 @@ function OnboardingForm({
   );
 }
 
-function SuggestionCard({ result, onAccept }: { result: TonightResult; onAccept: () => void }) {
+function SuggestionCard({
+  result,
+  onAccept,
+  onNextSuggestion,
+  fetchingNext,
+}: {
+  result: TonightResult;
+  onAccept: () => void;
+  onNextSuggestion: () => void;
+  fetchingNext: boolean;
+}) {
   return (
     <div>
       <h3>{result.template.name}</h3>
@@ -301,14 +311,18 @@ function SuggestionCard({ result, onAccept }: { result: TonightResult; onAccept:
       <button type="button" onClick={onAccept}>
         Acceptera
       </button>
+      <button type="button" onClick={onNextSuggestion} disabled={fetchingNext}>
+        Nytt förslag
+      </button>
+      {fetchingNext && <p>Hämtar…</p>}
     </div>
   );
 }
 
 type TonightViewState = { status: "suggestion" } | { status: "shopping" };
 
-function TonightView({ data }: { data: TonightResponse }) {
-  const result = data.result;
+function TonightView({ data, accessToken }: { data: TonightResponse; accessToken: string }) {
+  const initialResult = data.result;
 
   // A page reload in the shop must land back on the shopping list, not the
   // suggestion card — so the initial state checks for a stored list matching this
@@ -316,20 +330,69 @@ function TonightView({ data }: { data: TonightResponse }) {
   // on every "ready" transition (see Gate below), so this lazy initializer always
   // sees the current result.
   const [state, setState] = useState<TonightViewState>(() =>
-    result !== null && loadShoppingList(result.template.id) ? { status: "shopping" } : { status: "suggestion" },
+    initialResult !== null && loadShoppingList(initialResult.template.id)
+      ? { status: "shopping" }
+      : { status: "suggestion" },
   );
+
+  // "Nytt förslag" cycling state — React state only, per CLAUDE.md's session-scoped
+  // rule for ephemeral input: nothing here touches localStorage or the URL, so a
+  // reload starts fresh (a fresh `data` prop from a remounted TonightView, too).
+  const [current, setCurrent] = useState<TonightResponse>(data);
+  const [shownTemplateIds, setShownTemplateIds] = useState<string[]>(
+    initialResult ? [initialResult.template.id] : [],
+  );
+  const [fetchingNext, setFetchingNext] = useState(false);
+  const [nextError, setNextError] = useState<string | null>(null);
+
+  async function requestNext(exclude: readonly string[]) {
+    setFetchingNext(true);
+    setNextError(null);
+    try {
+      const next = await fetchTonight(accessToken, { exclude, previous: current.result?.template.id });
+      setCurrent(next);
+      if (next.result) setShownTemplateIds((ids) => [...ids, next.result!.template.id]);
+    } catch (err) {
+      setNextError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setFetchingNext(false);
+    }
+  }
+
+  function handleReset() {
+    setShownTemplateIds([]);
+    void requestNext([]);
+  }
+
+  const result = current.result;
 
   return (
     <div>
       <h2>Ikväll</h2>
-      {result === null && <pre>{`no result: ${data.reason}`}</pre>}
+      {nextError && <p role="alert">{nextError}</p>}
+      {result === null && current.reason === "no_more_suggestions" && (
+        <div>
+          <p>Du har sett allt vi har för ikväll</p>
+          <button type="button" onClick={handleReset} disabled={fetchingNext}>
+            Börja om
+          </button>
+        </div>
+      )}
+      {result === null && current.reason !== "no_more_suggestions" && (
+        <pre>{`no result: ${current.reason}`}</pre>
+      )}
       {result !== null && state.status === "suggestion" && (
-        <SuggestionCard result={result} onAccept={() => setState({ status: "shopping" })} />
+        <SuggestionCard
+          result={result}
+          onAccept={() => setState({ status: "shopping" })}
+          onNextSuggestion={() => void requestNext(shownTemplateIds)}
+          fetchingNext={fetchingNext}
+        />
       )}
       {result !== null && state.status === "shopping" && (
         <ShoppingList
           result={result}
-          portions={data.portions}
+          portions={current.portions}
           onNewSuggestion={() => setState({ status: "suggestion" })}
         />
       )}
@@ -393,7 +456,7 @@ function Gate({ session }: { session: Session }) {
       {state.status === "no_household" && (
         <OnboardingForm session={session} onCreated={handleCreated} />
       )}
-      {state.status === "ready" && <TonightView data={state.data} />}
+      {state.status === "ready" && <TonightView data={state.data} accessToken={session.access_token} />}
     </div>
   );
 }
