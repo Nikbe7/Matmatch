@@ -393,6 +393,7 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
         <ShoppingList
           result={result}
           portions={current.portions}
+          accessToken={accessToken}
           onNewSuggestion={() => setState({ status: "suggestion" })}
         />
       )}
