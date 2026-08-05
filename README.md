@@ -49,7 +49,7 @@ docker restart supabase_kong_matmatch
 
 ## Frontend
 
-`web/` is a Vite + React + TypeScript PWA client — currently a single screen proving the auth/API chain (login → JWT → `GET /api/tonight`), not yet the real app UI.
+`web/` is a Vite + React + TypeScript PWA client — household onboarding, the Tonight card with its adjustment chips and reroll, the shopping list, and instructions, all backed by the real auth/API chain (login → JWT → `GET /api/tonight`).
 
 ```bash
 cd web
