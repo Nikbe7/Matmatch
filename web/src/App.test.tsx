@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ALLERGIES } from "../../src/schema/vocabulary";
 import type { CostTier } from "../../src/schema/ingredient";
+import { setAnalyticsSink, type AnalyticsEvent } from "./analytics";
 
 // Covers the signed-out state (login form, never reaches the network) and the
 // household gate: no-household → onboarding, submit → Tonight, API error →
@@ -46,7 +47,7 @@ const householdNotFound = jsonResponse(404, {
 
 const suggestionBody = {
   result: {
-    template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min" },
+    template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min", cuisine: "swedish_nordic" },
     ingredients: [
       { role: "protein", name: "Kyckling", substituted: false },
       { role: "aromatic", name: "Rödlök", substituted: true },
@@ -60,7 +61,7 @@ const suggestionBody = {
 function suggestionBodyForTier(tier: CostTier) {
   return {
     result: {
-      template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: tier, prep_time_band: "20-40min" },
+      template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: tier, prep_time_band: "20-40min", cuisine: "swedish_nordic" },
       ingredients: [{ role: "protein", name: "Kyckling", substituted: false }],
       substitutions: [],
       score: 0.5,
@@ -263,10 +264,10 @@ describe("App — Tonight suggestion card", () => {
   }
 });
 
-function suggestionBodyFor(id: string, name: string) {
+function suggestionBodyFor(id: string, name: string, cuisine = "swedish_nordic") {
   return {
     result: {
-      template: { id, name, cost_tier: "budget", prep_time_band: "<20min" },
+      template: { id, name, cost_tier: "budget", prep_time_band: "<20min", cuisine },
       ingredients: [{ role: "protein", name: "Torsk", substituted: false }],
       substitutions: [],
       score: 0.3,
@@ -277,7 +278,11 @@ function suggestionBodyFor(id: string, name: string) {
 
 const exhaustedBody = { result: null, reason: "no_more_suggestions", portions: 2 };
 
-describe("App — Nytt förslag", () => {
+
+// The chip row's state machine is unit-tested in refinement.test.ts; these cover
+// the wiring the reducer can't see — what reaches the network, what the chip's
+// accessible name says, and that the exhausted path stays recoverable.
+describe("App — adjustment chips", () => {
   it("sends everything shown so far as exclude and the current dish as previous, and renders the new dish", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
@@ -290,7 +295,7 @@ describe("App — Nytt förslag", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+    await user.click(screen.getByRole("button", { name: "Något annat" }));
 
     await screen.findByRole("heading", { name: "Fisksoppa" });
     const nextUrl = fetchMock.mock.calls[1]![0] as string;
@@ -311,11 +316,11 @@ describe("App — Nytt förslag", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+    await user.click(screen.getByRole("button", { name: "Något annat" }));
     await screen.findByRole("heading", { name: "Fisksoppa" });
     expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+    await user.click(screen.getByRole("button", { name: "Något annat" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
     expect(screen.queryByRole("heading", { name: "Fisksoppa" })).toBeNull();
 
@@ -324,7 +329,89 @@ describe("App — Nytt förslag", () => {
     expect(thirdUrl).toContain("previous=fisksoppa");
   });
 
-  it("renders the exhausted message, and the reset control restores a fresh suggestion", async () => {
+  it("raises the cost weight, keeps the chip pressed, and announces its level", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("artsoppa", "Ärtsoppa")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    expect(screen.getByRole("button", { name: "Billigare, nivå 0 av 5" }).getAttribute("aria-pressed")).toBe("false");
+
+    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 5" }));
+    await screen.findByRole("heading", { name: "Linssoppa" });
+    expect((fetchMock.mock.calls[1]![0] as string)).toContain("cost=1");
+
+    // Still pressed and still showing its level a reroll later — the whole point
+    // of chip state being session-persistent rather than per-request.
+    const pressed = screen.getByRole("button", { name: "Billigare, nivå 1 av 5" });
+    expect(pressed.getAttribute("aria-pressed")).toBe("true");
+
+    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await screen.findByRole("heading", { name: "Ärtsoppa" });
+    expect(screen.getByRole("button", { name: "Billigare, nivå 1 av 5" })).toBeTruthy();
+    expect((fetchMock.mock.calls[2]![0] as string)).toContain("cost=1");
+  });
+
+  it("caps at 5 and makes a tap at the cap a no-op with no extra request", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (url: string) =>
+      jsonResponse(200, suggestionBodyFor(`dish-${url.length}`, `Dish ${url.length}`)),
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, suggestionBody));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    for (let level = 0; level < 5; level += 1) {
+      const suffix = level + 1 === 5 ? ", högsta nivån" : "";
+      await user.click(screen.getByRole("button", { name: `Snabbare, nivå ${level} av 5` }));
+      await screen.findByRole("button", { name: `Snabbare, nivå ${level + 1} av 5${suffix}` });
+    }
+
+    const callsAtCap = fetchMock.mock.calls.length;
+    const capped = screen.getByRole("button", { name: "Snabbare, nivå 5 av 5, högsta nivån" });
+    expect(capped.getAttribute("aria-pressed")).toBe("true");
+
+    await user.click(capped);
+
+    expect(fetchMock.mock.calls.length).toBe(callsAtCap);
+    expect(screen.getByRole("button", { name: "Snabbare, nivå 5 av 5, högsta nivån" })).toBeTruthy();
+  });
+
+  it("Annat kök skips a same-cuisine suggestion and excludes it too", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("raggmunk", "Raggmunk")))
+      .mockResolvedValueOnce(
+        jsonResponse(200, suggestionBodyFor("tacos", "Tacos", "mexican_texmex")),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Annat kök" }));
+
+    await screen.findByRole("heading", { name: "Tacos" });
+    // The rejected same-cuisine dish never rendered, and is excluded from here on.
+    expect((fetchMock.mock.calls[2]![0] as string)).toContain("exclude=kycklinggryta%2Craggmunk");
+    // Cuisine is resolved client-side — it must never reach the API.
+    expect(fetchMock.mock.calls.every(([url]) => !(url as string).includes("cuisine"))).toBe(true);
+  });
+
+  it("renders the recoverable empty state, and Återställ restores a fresh suggestion", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = vi
@@ -337,15 +424,112 @@ describe("App — Nytt förslag", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+    await user.click(screen.getByRole("button", { name: "Något annat" }));
     await screen.findByText("Du har sett allt vi har för ikväll");
     expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
+    // Recoverable, not an error and not a blank card.
+    expect(screen.queryByRole("alert")).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Börja om" }));
+    await user.click(screen.getByRole("button", { name: "Återställ" }));
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    // Reset re-requests with no exclusions at all.
+    // Reset re-requests with no exclusions and no weights at all.
     const resetUrl = fetchMock.mock.calls[2]![0] as string;
     expect(resetUrl).not.toContain("exclude=");
+    expect(resetUrl).not.toContain("cost=");
+  });
+
+  it("Återställ clears a raised weight back to level 0", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 5" }));
+    await screen.findByRole("button", { name: "Billigare, nivå 1 av 5" });
+
+    await user.click(screen.getByRole("button", { name: "Återställ" }));
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const restored = screen.getByRole("button", { name: "Billigare, nivå 0 av 5" });
+    expect(restored.getAttribute("aria-pressed")).toBe("false");
+  });
+});
+
+describe("App — refinement instrumentation", () => {
+  afterEach(() => setAnalyticsSink(null));
+
+  it("reports each chip tap with the resulting weights and reroll depth", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const events: AnalyticsEvent[] = [];
+    setAnalyticsSink((event) => events.push(event));
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("artsoppa", "Ärtsoppa")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 5" }));
+    await screen.findByRole("heading", { name: "Linssoppa" });
+    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await screen.findByRole("heading", { name: "Ärtsoppa" });
+
+    expect(events).toEqual([
+      { name: "refinement_chip_tap", chip: "cheaper", weights: { cost: 1, time: 0 }, rerollDepth: 1 },
+      { name: "refinement_chip_tap", chip: "something_else", weights: { cost: 1, time: 0 }, rerollDepth: 2 },
+    ]);
+  });
+
+  it("reports a session that ends without an acceptance, with its final depth", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const events: AnalyticsEvent[] = [];
+    setAnalyticsSink((event) => events.push(event));
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await screen.findByRole("heading", { name: "Linssoppa" });
+
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(events.at(-1)).toEqual({ name: "refinement_session_abandoned", rerollDepth: 1 });
+  });
+
+  it("reports nothing on leaving once a suggestion has been accepted", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const events: AnalyticsEvent[] = [];
+    setAnalyticsSink((event) => events.push(event));
+
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Acceptera" }));
+
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(events.filter((event) => event.name === "refinement_session_abandoned")).toEqual([]);
   });
 });

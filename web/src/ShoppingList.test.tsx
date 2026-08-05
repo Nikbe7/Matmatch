@@ -13,7 +13,7 @@ import type { TonightResult } from "./api";
 
 function result(overrides: Partial<TonightResult> = {}): TonightResult {
   return {
-    template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min" },
+    template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min", cuisine: "swedish_nordic" },
     ingredients: [
       { role: "protein", name: "Kyckling", substituted: false },
       { role: "vegetable", name: "Morot", substituted: false },
@@ -131,7 +131,7 @@ describe("ShoppingList", () => {
     render(
       <ShoppingList
         result={result({
-          template: { id: "fisksoppa", name: "Fisksoppa", cost_tier: "budget", prep_time_band: "<20min" },
+          template: { id: "fisksoppa", name: "Fisksoppa", cost_tier: "budget", prep_time_band: "<20min", cuisine: "swedish_nordic" },
           ingredients: [{ role: "protein", name: "Torsk", substituted: false }],
         })}
         portions={2}

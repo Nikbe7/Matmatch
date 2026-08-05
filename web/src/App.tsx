@@ -1,4 +1,10 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import { ApiError, createHousehold, fetchTonight, type TonightResponse, type TonightResult } from "./api";
@@ -8,6 +14,18 @@ import type { CostTier } from "../../src/schema/ingredient";
 import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
 import { ShoppingList } from "./ShoppingList";
 import { loadShoppingList } from "./shoppingListStorage";
+import { track } from "./analytics";
+import {
+  INITIAL_REFINEMENT,
+  MAX_WEIGHT_LEVEL,
+  refinementReducer,
+  searchOtherCuisine,
+  weightLevel,
+  type ChipId,
+  type RefinementAction,
+  type RefinementState,
+  type WeightAxis,
+} from "./refinement";
 
 // One screen, four states: signed out (login form), household unknown (loading),
 // no household (onboarding), household exists (Tonight view). This slice is a
@@ -280,17 +298,94 @@ function OnboardingForm({
   );
 }
 
-function SuggestionCard({
-  result,
-  onAccept,
-  onNextSuggestion,
-  fetchingNext,
+// The visible level of a "Billigare"/"Snabbare" chip. Same dot idiom as the cost
+// tier meter above, and purely visual for the same reason — AdjustmentChips wires
+// the level into the chip's accessible name so it is never conveyed by fill alone.
+function levelMeter(level: number): string {
+  return "●".repeat(level) + "○".repeat(MAX_WEIGHT_LEVEL - level);
+}
+
+function LevelChip({
+  label,
+  level,
+  onTap,
+  disabled,
 }: {
-  result: TonightResult;
-  onAccept: () => void;
-  onNextSuggestion: () => void;
-  fetchingNext: boolean;
+  label: string;
+  level: number;
+  onTap: () => void;
+  disabled: boolean;
 }) {
+  const atMax = level >= MAX_WEIGHT_LEVEL;
+  return (
+    <button
+      type="button"
+      aria-pressed={level > 0}
+      aria-label={`${label}, nivå ${level} av ${MAX_WEIGHT_LEVEL}${atMax ? ", högsta nivån" : ""}`}
+      style={chipStyle(level > 0)}
+      onClick={onTap}
+      disabled={disabled}
+    >
+      {label} <span aria-hidden="true">{levelMeter(level)}</span>
+    </button>
+  );
+}
+
+/**
+ * The refinement row (UX_FLOW §4/§5 step 5). Every chip produces a new suggestion
+ * immediately — that is the whole reason these are chips and not slider notches
+ * (DECISION_LOG 2026-07-31, and the 2026-08-05 chip entry). "Billigare" and "Snabbare" stay pressed
+ * and keep showing their level for the rest of the session, so a household several
+ * rerolls deep can still see what it asked for; the other three are momentary
+ * actions and carry no pressed state.
+ */
+function AdjustmentChips({
+  refinement,
+  busy,
+  onIncrement,
+  onOtherCuisine,
+  onSomethingElse,
+  onReset,
+}: {
+  refinement: RefinementState;
+  busy: boolean;
+  onIncrement: (axis: WeightAxis) => void;
+  onOtherCuisine: () => void;
+  onSomethingElse: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Justera förslaget"
+      style={{ display: "flex", gap: "0.5rem", overflowX: "auto" }}
+    >
+      <LevelChip
+        label="Billigare"
+        level={weightLevel(refinement, "cost")}
+        onTap={() => onIncrement("cost")}
+        disabled={busy}
+      />
+      <LevelChip
+        label="Snabbare"
+        level={weightLevel(refinement, "time")}
+        onTap={() => onIncrement("time")}
+        disabled={busy}
+      />
+      <button type="button" onClick={onOtherCuisine} disabled={busy}>
+        Annat kök
+      </button>
+      <button type="button" onClick={onSomethingElse} disabled={busy}>
+        Något annat
+      </button>
+      <button type="button" onClick={onReset} disabled={busy}>
+        Återställ
+      </button>
+    </div>
+  );
+}
+
+function SuggestionCard({ result, onAccept }: { result: TonightResult; onAccept: () => void }) {
   return (
     <div>
       <h3>{result.template.name}</h3>
@@ -311,10 +406,6 @@ function SuggestionCard({
       <button type="button" onClick={onAccept}>
         Acceptera
       </button>
-      <button type="button" onClick={onNextSuggestion} disabled={fetchingNext}>
-        Nytt förslag
-      </button>
-      {fetchingNext && <p>Hämtar…</p>}
     </div>
   );
 }
@@ -335,23 +426,81 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
       : { status: "suggestion" },
   );
 
-  // "Nytt förslag" cycling state — React state only, per CLAUDE.md's session-scoped
-  // rule for ephemeral input: nothing here touches localStorage or the URL, so a
-  // reload starts fresh (a fresh `data` prop from a remounted TonightView, too).
+  // Refinement state — React state only, per CLAUDE.md's session-scoped rule for
+  // ephemeral input: nothing here touches localStorage, the URL or the household
+  // profile, so a reload starts fresh (a fresh `data` prop from a remounted
+  // TonightView, too). The mirroring ref exists because a single chip handler
+  // applies two actions in a row and then reads the result — `refinementReducer` is
+  // pure, so applying it against the ref keeps those steps consistent inside one
+  // async handler instead of racing a batched state update.
   const [current, setCurrent] = useState<TonightResponse>(data);
-  const [shownTemplateIds, setShownTemplateIds] = useState<string[]>(
-    initialResult ? [initialResult.template.id] : [],
+  const [refinement, setRefinement] = useState<RefinementState>(() =>
+    initialResult
+      ? { ...INITIAL_REFINEMENT, excludedTemplateIds: [initialResult.template.id] }
+      : INITIAL_REFINEMENT,
   );
+  const refinementRef = useRef(refinement);
   const [fetchingNext, setFetchingNext] = useState(false);
   const [nextError, setNextError] = useState<string | null>(null);
+  const acceptedRef = useRef(false);
 
-  async function requestNext(exclude: readonly string[]) {
+  function apply(action: RefinementAction): RefinementState {
+    const next = refinementReducer(refinementRef.current, action);
+    refinementRef.current = next;
+    setRefinement(next);
+    return next;
+  }
+
+  // A session that showed suggestions and never got an acceptance is the case
+  // Phase 2 needs counted — with the depth it reached, which is what separates
+  // "walked away immediately" from "tried five times and gave up". `pagehide` is
+  // the one lifecycle event that fires reliably on mobile, including a swipe-away.
+  useEffect(() => {
+    function reportAbandonedSession() {
+      if (acceptedRef.current) return;
+      if (refinementRef.current.excludedTemplateIds.length === 0) return;
+      track({
+        name: "refinement_session_abandoned",
+        rerollDepth: refinementRef.current.rerollDepth,
+      });
+    }
+
+    window.addEventListener("pagehide", reportAbandonedSession);
+    return () => window.removeEventListener("pagehide", reportAbandonedSession);
+  }, []);
+
+  function showResponse(response: TonightResponse) {
+    setCurrent(response);
+    if (response.result) apply({ type: "suggestion_shown", templateId: response.result.template.id });
+  }
+
+  function reportChipTap(chip: ChipId, next: RefinementState) {
+    track({
+      name: "refinement_chip_tap",
+      chip,
+      weights: next.weights,
+      rerollDepth: next.rerollDepth,
+    });
+  }
+
+  /** The one request shape every chip but "Annat kök" makes. */
+  function requestSuggestion(next: RefinementState, previous: string | undefined) {
+    return runRefinement(async () => {
+      showResponse(
+        await fetchTonight(accessToken, {
+          exclude: next.excludedTemplateIds,
+          previous,
+          weights: next.weights,
+        }),
+      );
+    });
+  }
+
+  async function runRefinement(request: () => Promise<void>) {
     setFetchingNext(true);
     setNextError(null);
     try {
-      const next = await fetchTonight(accessToken, { exclude, previous: current.result?.template.id });
-      setCurrent(next);
-      if (next.result) setShownTemplateIds((ids) => [...ids, next.result!.template.id]);
+      await request();
     } catch (err) {
       setNextError(err instanceof ApiError ? err.message : String(err));
     } finally {
@@ -359,9 +508,55 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
     }
   }
 
+  function handleIncrement(axis: WeightAxis) {
+    const before = refinementRef.current;
+    const next = apply({ type: "increment", axis });
+    const chip: ChipId = axis === "cost" ? "cheaper" : "faster";
+
+    // A tap at the cap is a no-op: re-requesting with identical parameters would
+    // return the identical dish, which reads as the app ignoring the tap. The tap
+    // is still reported — "kept tapping Billigare at max" is precisely the control
+    // signal this instrumentation exists to catch.
+    reportChipTap(chip, next);
+    if (next === before) return;
+
+    void requestSuggestion(next, current.result?.template.id);
+  }
+
+  function handleSomethingElse() {
+    const next = apply({ type: "reroll", chip: "something_else" });
+    reportChipTap("something_else", next);
+
+    void requestSuggestion(next, current.result?.template.id);
+  }
+
+  function handleOtherCuisine() {
+    const shown = current.result;
+    if (!shown) return;
+
+    const next = apply({ type: "reroll", chip: "other_cuisine" });
+    reportChipTap("other_cuisine", next);
+
+    void runRefinement(async () => {
+      const outcome = await searchOtherCuisine(
+        (exclude, previous) =>
+          fetchTonight(accessToken, { exclude, previous, weights: next.weights }),
+        next,
+        shown.template.id,
+        shown.template.cuisine,
+      );
+      apply({ type: "exclude_templates", templateIds: outcome.excludedTemplateIds });
+      showResponse(outcome.response);
+    });
+  }
+
   function handleReset() {
-    setShownTemplateIds([]);
-    void requestNext([]);
+    const next = apply({ type: "reset" });
+    reportChipTap("reset", next);
+
+    // No `previous` either: a reset is a fresh start, not another step away from
+    // the dish that happened to be on screen.
+    void requestSuggestion(next, undefined);
   }
 
   const result = current.result;
@@ -371,10 +566,13 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
       <h2>Ikväll</h2>
       {nextError && <p role="alert">{nextError}</p>}
       {result === null && current.reason === "no_more_suggestions" && (
+        // Recoverable, never a dead end (UX_FLOW §9): the household has safe
+        // options left, it has just excluded all of them this session, so the way
+        // out is the same "Återställ" the chip row offers.
         <div>
           <p>Du har sett allt vi har för ikväll</p>
           <button type="button" onClick={handleReset} disabled={fetchingNext}>
-            Börja om
+            Återställ
           </button>
         </div>
       )}
@@ -382,12 +580,24 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
         <pre>{`no result: ${current.reason}`}</pre>
       )}
       {result !== null && state.status === "suggestion" && (
-        <SuggestionCard
-          result={result}
-          onAccept={() => setState({ status: "shopping" })}
-          onNextSuggestion={() => void requestNext(shownTemplateIds)}
-          fetchingNext={fetchingNext}
-        />
+        <>
+          <SuggestionCard
+            result={result}
+            onAccept={() => {
+              acceptedRef.current = true;
+              setState({ status: "shopping" });
+            }}
+          />
+          <AdjustmentChips
+            refinement={refinement}
+            busy={fetchingNext}
+            onIncrement={handleIncrement}
+            onOtherCuisine={handleOtherCuisine}
+            onSomethingElse={handleSomethingElse}
+            onReset={handleReset}
+          />
+          {fetchingNext && <p>Hämtar…</p>}
+        </>
       )}
       {result !== null && state.status === "shopping" && (
         <ShoppingList

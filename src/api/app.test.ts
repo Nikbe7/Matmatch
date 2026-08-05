@@ -392,6 +392,37 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     expect(withPrevious.body.result.template.id).not.toBe(previousId);
   });
 
+  it.each([
+    ["exclude", "invalid_exclude"],
+    ["previous", "invalid_previous"],
+  ])("rejects a repeated `%s` parameter with 400", async (param, code) => {
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+    // Express parses a repeated query parameter as an array — a client bug, and
+    // one that would otherwise silently show a dish the household already rejected.
+    const response = await request(app!)
+      .get(`/api/tonight?${param}=one&${param}=two`)
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe(code);
+  });
+
+  it("accepts an empty `exclude` and an empty `previous` as no selection state at all", async () => {
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+    const plain = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+    const empty = await request(app!)
+      .get("/api/tonight")
+      .query({ exclude: "", previous: "" })
+      .set(authHeader(user.accessToken));
+
+    expect(empty.status).toBe(200);
+    expect(empty.body.result.template.id).toBe(plain.body.result.template.id);
+  });
+
   it("does not error when the exclude list is over 30 ids, and ignores unknown ids", async () => {
     const user = await createTestUser();
     await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
