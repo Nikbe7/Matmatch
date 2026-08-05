@@ -151,3 +151,5 @@ the defaults are fine.
 Every block that closes out a merged slice ends by telling Niklas whether to start a new
 chat: new chat once the slice merges or the topic changes, same chat while a slice is still
 in flight.
+
+At every slice close-out, check for scratch files, superseded docs and stale references that should be removed, and say so unprompted.
