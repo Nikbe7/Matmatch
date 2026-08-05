@@ -325,14 +325,14 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     expect(fast.body.result.template.prep_time_band).toBe("<20min");
   });
 
-  it("defaults to {cost: 1, time: 1} when no weights are supplied", async () => {
+  it("defaults to {cost: 0, time: 0} when no weights are supplied", async () => {
     const user = await createTestUser();
     await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
 
     const withoutParams = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
     const withExplicitDefaults = await request(app!)
       .get("/api/tonight")
-      .query({ cost: "1", time: "1" })
+      .query({ cost: "0", time: "0" })
       .set(authHeader(user.accessToken));
 
     expect(withoutParams.body.result.template.id).toBe(withExplicitDefaults.body.result.template.id);

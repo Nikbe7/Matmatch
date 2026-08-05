@@ -35,7 +35,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       const month = new Date().getMonth() + 1;
 
       const candidates = selectCandidateTemplates(engineData, stored.household);
-      const ranked = rankCandidates(engineData, candidates, weights, month);
+      const ranked = rankCandidates(engineData, candidates, weights, month, stored.household.dietary_flags);
       const portions = totalPortions(stored.household);
 
       if (ranked.length === 0) {

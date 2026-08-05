@@ -6074,8 +6074,7 @@
     ],
     "meal_types": [
       "breakfast",
-      "lunch",
-      "dinner"
+      "lunch"
     ],
     "familiarity": "everyday"
   },
@@ -6225,8 +6224,7 @@
       }
     ],
     "meal_types": [
-      "lunch",
-      "dinner"
+      "lunch"
     ],
     "familiarity": "everyday"
   },

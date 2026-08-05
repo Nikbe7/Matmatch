@@ -350,36 +350,40 @@ describe("selectCandidateTemplates — survival counts (DECISION_LOG 2026-08-02)
   // templates from every count below, deliberately and up front, before allergy/
   // dietary filtering ever runs — this is the one exception to "do not adjust the
   // expected value" above, since the underlying candidate set itself changed.
+  //
+  // Updated again for the ranking-defaults fix: pannkakor-med-vaniljsocker and
+  // artsoppa-med-senap lost "dinner" from meal_types (data correction, not a new
+  // exclusion rule), dropping every count below that included them by one more.
   const countFor = (h: Household) => selectCandidateTemplates(data, h).length;
 
-  it("a household with no allergies and no dietary flags sees all 156 dinner-eligible templates", () => {
-    expect(countFor(household())).toBe(156);
+  it("a household with no allergies and no dietary flags sees all 154 dinner-eligible templates", () => {
+    expect(countFor(household())).toBe(154);
   });
 
-  it("gluten alone leaves 102 templates after substitution rescue", () => {
-    expect(countFor(household({ allergies: ["gluten"] }))).toBe(102);
+  it("gluten alone leaves 101 templates after substitution rescue", () => {
+    expect(countFor(household({ allergies: ["gluten"] }))).toBe(101);
   });
 
   it("vegan + gluten leaves 16 templates", () => {
     expect(countFor(household({ allergies: ["gluten"], dietary_flags: ["vegan"] }))).toBe(16);
   });
 
-  it("vegan + soy leaves 18 templates, with zero rescued", () => {
+  it("vegan + soy leaves 17 templates, with zero rescued", () => {
     const candidates = selectCandidateTemplates(
       data,
       household({ allergies: ["soy"], dietary_flags: ["vegan"] }),
     );
 
-    expect(candidates).toHaveLength(18);
+    expect(candidates).toHaveLength(17);
     expect(candidates.filter((candidate) => candidate.substitutions.length > 0)).toEqual([]);
   });
 
-  it("gluten rescue adds 30 templates over raw survival", () => {
+  it("gluten rescue adds 29 templates over raw survival", () => {
     const candidates = selectCandidateTemplates(data, household({ allergies: ["gluten"] }));
     const rescued = candidates.filter((candidate) => candidate.substitutions.length > 0);
 
     expect(candidates.length - rescued.length).toBe(72);
-    expect(rescued).toHaveLength(30);
+    expect(rescued).toHaveLength(29);
   });
 });
 
