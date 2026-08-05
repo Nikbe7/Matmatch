@@ -51,7 +51,7 @@ For users who want more control than the zero-input suggestion, but still don't 
 5. **Build & adjust** — after picking a direction, show what's already covered (✓ rice, ✓ cream, ✓ onion) and what's suggested to add (carrots, garlic, chicken), with adjustment chips: **Cheaper / More protein / More flavor**. Tapping a chip regenerates the suggestion set live.
 6. **Portion confirmation** — household composition is pre-filled from the profile (e.g., "2 adults + 2 children + 4 lunch boxes"); user can adjust with steppers, not typing.
 7. **Shopping list** — auto-split into "Already have" and "Need to buy," with checkboxes designed for in-store use (large tap targets, works offline).
-8. **Save / Mark as cooked** — closes the loop and feeds history back into future "Tonight" suggestions.
+8. **Save / Mark as cooked** — closes the loop and feeds history back into future "Tonight" suggestions. **Shipped, but on the Tonight card (§4), not here:** "Lagad ikväll" is a one-tap action on the suggestion card with a persistent visible confirmation, recording the dish so it is penalised in ranking for about two weeks (DECISION_LOG 2026-08-05, repeat-avoidance). A shopping-list-completion variant — marking cooked at the *end* of the flow, after shopping — is not built: the card is where a household already is when they decide, and one entry point is enough to feed history. There is deliberately no history screen, no editing and no deleting of past entries.
 
 Free-text chat is available as a persistent small affordance at the bottom of steps 4–6 ("Ask for a tweak…") for anything the tap model doesn't cover — this is where the model's flexibility earns its cost, on the minority of sessions that need it.
 

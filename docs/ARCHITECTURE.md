@@ -90,9 +90,9 @@ Allergy and hard dietary restriction filtering happens in the **Meal Engine**, b
 - **IngredientAllergenMapping** — ingredient_id (FK to Ingredient.id), allergens[], verification_status — the sole source of truth for allergy filtering (§4.3); see "Ingredient-to-allergen mapping" below
 - **SubstitutionGroup** — id, name, role, member_ingredient_ids[] — a named set of ingredients interchangeable in a slot of that role; see "Substitution groups" below
 - **SessionPantryInput** — id, household_id, session_id, ingredient_ids[] (ephemeral, per-session — explicitly *not* a persistent inventory table)
-- **GeneratedMeal** — id, household_id, recipe_template_id (nullable if fully AI-generated), final_ingredients[], portions, estimated_cost_tier, created_at, source (template/tier1/tier2)
-- **ShoppingList** — id, generated_meal_id, items[] (ingredient_id, have/need flag, checked state)
-- **SavedMeal** — id, household_id, generated_meal_id, saved_at (feeds future "Tonight" suggestions and repeat-avoidance)
+- **GeneratedMeal** — conceptual, not built: id, household_id, recipe_template_id (nullable if fully AI-generated), final_ingredients[], portions, estimated_cost_tier, created_at, source (template/tier1/tier2). Nothing persists a generated meal today; a Tonight suggestion is recomputed deterministically from household + history on every request, and Tier 1 instruction text is cached per template + substitution set (`recipe_instructions`) rather than per meal.
+- **ShoppingList** — conceptual, not built: id, generated_meal_id, items[] (ingredient_id, have/need flag, checked state). The shipped shopping list is client-side and offline-first (`web/src/shoppingListStorage.ts`), keyed on the template id — it deliberately does not depend on a `GeneratedMeal` row existing.
+- **CookedMeal** (`cooked_meals`, built — issue #88) — id, household_id, template_id, substitution_key[], cooked_at, cooked_on. This is what feeds repeat-avoidance in Tonight's ranking, and it replaces the conceptual **SavedMeal** for MVP: with no `GeneratedMeal` row to reference, the fact Tonight needs is "this household cooked this template on this day", so that is what is stored. `template_id` is a curated-JSON id, not an FK. `cooked_on` (the Swedish calendar day) carries a unique constraint with household_id + template_id, which is what makes marking a meal cooked idempotent. History is append-only: the application role has SELECT and INSERT only, no UPDATE or DELETE. Row-level security scopes rows to the owning household, inherited through household_id.
 - **Subscription** — id, user_id, plan, status, provider_customer_id, provider_subscription_id
 - **UsageCounter** — id, user_id, period_start, ai_generation_count (enforces free-tier caps)
 
@@ -236,6 +236,7 @@ Shipped (`src/api/routes/`):
 - `POST /api/households` — create a household profile
 - `GET /api/tonight` — zero-input flagship suggestion (Tier 0 first, falling back to Tier 1 if needed). Optional query parameters carry the session's refinement state, nothing else: `cost`/`time` (the weight vector the adjustment chips mutate), `exclude` (comma-separated template ids already shown), `previous` (the id just rejected). Wrong-typed values are 400s; unknown or stale ids are ignored. There is deliberately no cuisine parameter — see the "Annat kök" note below.
 - `POST /api/instructions` — Tier 1 cooking instructions for a suggestion, cached by template + substitution set
+- `POST /api/cooked` — marks the dish on the Tonight card as cooked (`{templateId, substitutions[]}`), which is what feeds repeat-avoidance. Idempotent: a repeat tap on the same Swedish calendar day answers 200 with the first tap's timestamp rather than 409, and writes no second row. Recent history itself is *not* an endpoint — `GET /api/tonight` loads it server-side for ranking and returns only `cookedToday` on the suggestion, the one fact the card needs to render its confirmation after a reload.
 
 Planned, not yet built:
 - `GET /households/:id` / `PATCH /households/:id/members`
@@ -243,7 +244,7 @@ Planned, not yet built:
 - `POST /meals/:id/adjust` — apply a **guided-flow** (§5.5) adjustment chip or a free-text tweak. Tonight-card refinement does *not* use this: it re-requests `GET /api/tonight` with the query parameters above, so a chip tap stays a plain re-rank rather than server-side mutable meal state. Cuisine is never a parameter on either — "Annat kök" resolves it to template-id exclusions client-side, so no new filter dimension enters the API (DECISION_LOG 2026-08-05).
 - `POST /meals/:id/confirm` — finalize portions, generate shopping list
 - `GET/PATCH /shopping-lists/:id` — retrieve and update checked state
-- `POST /meals/:id/save` — mark cooked/save to history
+- ~~`POST /meals/:id/save` — mark cooked/save to history~~ — superseded by `POST /api/cooked` above, which keys on the template rather than a persisted meal id (there is no `GeneratedMeal` row to address)
 - `GET /usage` — check remaining free-tier generations
 
 ## 7. Security & Privacy Notes

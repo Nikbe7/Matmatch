@@ -2,9 +2,16 @@ import { Router } from "express";
 import type { TokenVerifier } from "../../auth/verifyToken.js";
 import type { Sql } from "../../db/client.js";
 import { getHouseholdForOwner } from "../../db/households.js";
+import { cookedTodayTemplateIds, getRecentCookedMeals } from "../../db/cookedMeals.js";
 import { selectCandidateTemplates } from "../../engine/candidates.js";
 import type { EngineData } from "../../engine/data.js";
-import { pickNextSuggestion, rankCandidates } from "../../engine/ranking.js";
+import {
+  buildCookingHistory,
+  pickNextSuggestion,
+  rankCandidates,
+  RECENCY_HISTORY_WINDOW_DAYS,
+  type RecencyContext,
+} from "../../engine/ranking.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../httpError.js";
 import { parseWeightsFromQuery } from "../weights.js";
@@ -31,11 +38,29 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       }
 
       // The only place the server clock is read in this slice. src/engine/ stays
-      // pure: month is a plain parameter, never a clock call made inside it.
-      const month = new Date().getMonth() + 1;
+      // pure: month and `now` are plain parameters, never clock calls made inside it.
+      const now = new Date();
+      const month = now.getMonth() + 1;
+
+      // Repeat-avoidance input (#88). One query, bounded by the penalty window — the
+      // route loads history and hands it to ranking as data; the client never sees it.
+      const history = await getRecentCookedMeals(
+        sql,
+        req.userId!,
+        stored.id,
+        RECENCY_HISTORY_WINDOW_DAYS,
+      );
+      const recency: RecencyContext = { history: buildCookingHistory(history), now };
 
       const candidates = selectCandidateTemplates(engineData, stored.household);
-      const ranked = rankCandidates(engineData, candidates, weights, month, stored.household.dietary_flags);
+      const ranked = rankCandidates(
+        engineData,
+        candidates,
+        weights,
+        month,
+        stored.household.dietary_flags,
+        recency,
+      );
       const portions = totalPortions(stored.household);
 
       if (ranked.length === 0) {
@@ -67,6 +92,14 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
           substitutions: picked.substitutions,
           ingredients: buildTonightIngredients(engineData, picked),
           score: picked.score,
+          // One boolean about the dish on screen, not a history list: all the client
+          // needs is to render the "Lagad ✓" state after a reload. A list of recent
+          // meals would be API surface for the history screen that is explicitly out of
+          // scope for #88 — history stays server-side, consumed by ranking above.
+          // Answered from the history rows already read (the penalty window always
+          // contains today), with the day boundary itself decided in SQL so it agrees
+          // exactly with the `cooked_on` the idempotency constraint uses.
+          cookedToday: cookedTodayTemplateIds(history).has(picked.template.id),
         },
         portions,
       });

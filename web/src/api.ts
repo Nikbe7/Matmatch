@@ -51,6 +51,11 @@ export interface TonightResult {
   ingredients: TonightIngredient[];
   substitutions: TonightSubstitution[];
   score: number;
+  // Whether this household already marked *this* dish as cooked today (#88), so the
+  // "Lagad ✓" state survives a reload. Deliberately one boolean about the dish on
+  // screen rather than a recent-history list — there is no history screen, and the
+  // penalty that uses the full history is applied server-side in ranking.
+  cookedToday: boolean;
 }
 
 // portions is the household's raw total portion_factor — a plain number, never a
@@ -153,6 +158,40 @@ export async function fetchInstructions(
   }
 
   return body as InstructionsResult;
+}
+
+/**
+ * Marks the dish on the Tonight card as cooked (#88).
+ *
+ * Safe to call twice: the backend collapses two taps on the same evening into one row
+ * and answers 200 with the first tap's timestamp, so a retry after a flaky network is
+ * never a duplicate entry and never an error the UI has to explain.
+ */
+export async function markCooked(
+  accessToken: string,
+  templateId: string,
+  substitutions: readonly TonightSubstitution[],
+): Promise<void> {
+  const response = await fetch("/api/cooked", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      templateId,
+      substitutions: substitutions.map((substitution) => ({
+        slot_index: substitution.slot_index,
+        substitute_ingredient_id: substitution.substitute_ingredient_id,
+      })),
+    }),
+  });
+
+  if (!response.ok) {
+    const body: unknown = await response.json();
+    const { error } = body as ApiErrorEnvelope;
+    throw new ApiError(response.status, error.code, error.message);
+  }
 }
 
 export async function createHousehold(accessToken: string, household: Household): Promise<void> {

@@ -7,7 +7,14 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
-import { ApiError, createHousehold, fetchTonight, type TonightResponse, type TonightResult } from "./api";
+import {
+  ApiError,
+  createHousehold,
+  fetchTonight,
+  markCooked,
+  type TonightResponse,
+  type TonightResult,
+} from "./api";
 import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../../src/schema/vocabulary";
 import type { Household, HouseholdMember, HouseholdMemberType } from "../../src/schema/household";
 import type { CostTier } from "../../src/schema/ingredient";
@@ -385,7 +392,31 @@ function AdjustmentChips({
   );
 }
 
-function SuggestionCard({ result, onAccept }: { result: TonightResult; onAccept: () => void }) {
+/**
+ * The Tonight card (UX_FLOW §4). Two actions: accept (→ shopping list) and "Lagad
+ * ikväll", which records the dish as cooked so it stops being suggested for a while
+ * (#88, UX_FLOW §5 step 8).
+ *
+ * "Lagad ikväll" is one tap with a visible, persistent confirmation and no new screen:
+ * once marked it becomes a disabled button plus a `role="status"` line, so the state is
+ * announced rather than conveyed by styling alone. `cooked` comes from the server on
+ * load, so a reload lands on the confirmed state instead of offering the tap again.
+ */
+function SuggestionCard({
+  result,
+  cooked,
+  marking,
+  error,
+  onAccept,
+  onMarkCooked,
+}: {
+  result: TonightResult;
+  cooked: boolean;
+  marking: boolean;
+  error: string | null;
+  onAccept: () => void;
+  onMarkCooked: () => void;
+}) {
   return (
     <div>
       <h3>{result.template.name}</h3>
@@ -406,6 +437,11 @@ function SuggestionCard({ result, onAccept }: { result: TonightResult; onAccept:
       <button type="button" onClick={onAccept}>
         Acceptera
       </button>
+      <button type="button" onClick={onMarkCooked} disabled={cooked || marking}>
+        Lagad ikväll
+      </button>
+      {cooked && <p role="status">Lagad ✓</p>}
+      {error && <p role="alert">{error}</p>}
     </div>
   );
 }
@@ -444,6 +480,15 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
   const [nextError, setNextError] = useState<string | null>(null);
   const acceptedRef = useRef(false);
 
+  // Which dish is confirmed cooked, by template id rather than a bare boolean: the card
+  // can change under a chip tap, and a flag would carry the previous dish's confirmation
+  // over to a new suggestion. Seeded from the server so a reload keeps the confirmation.
+  const [cookedTemplateId, setCookedTemplateId] = useState<string | null>(
+    initialResult?.cookedToday ? initialResult.template.id : null,
+  );
+  const [markingCooked, setMarkingCooked] = useState(false);
+  const [cookedError, setCookedError] = useState<string | null>(null);
+
   function apply(action: RefinementAction): RefinementState {
     const next = refinementReducer(refinementRef.current, action);
     refinementRef.current = next;
@@ -471,7 +516,32 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
 
   function showResponse(response: TonightResponse) {
     setCurrent(response);
+    // The new dish carries its own cooked state from the server, so this both clears a
+    // previous dish's confirmation and keeps one that is genuinely still true.
+    setCookedTemplateId(response.result?.cookedToday ? response.result.template.id : null);
+    setCookedError(null);
     if (response.result) apply({ type: "suggestion_shown", templateId: response.result.template.id });
+  }
+
+  async function handleMarkCooked() {
+    const shown = current.result;
+    if (!shown) return;
+
+    setMarkingCooked(true);
+    setCookedError(null);
+    try {
+      await markCooked(accessToken, shown.template.id, shown.substitutions);
+      setCookedTemplateId(shown.template.id);
+      track({
+        name: "meal_cooked",
+        templateId: shown.template.id,
+        rerollDepth: refinementRef.current.rerollDepth,
+      });
+    } catch (err) {
+      setCookedError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setMarkingCooked(false);
+    }
   }
 
   function reportChipTap(chip: ChipId, next: RefinementState, level?: number) {
@@ -577,10 +647,14 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
         <>
           <SuggestionCard
             result={result}
+            cooked={cookedTemplateId === result.template.id}
+            marking={markingCooked}
+            error={cookedError}
             onAccept={() => {
               acceptedRef.current = true;
               setState({ status: "shopping" });
             }}
+            onMarkCooked={() => void handleMarkCooked()}
           />
           <AdjustmentChips
             refinement={refinement}
