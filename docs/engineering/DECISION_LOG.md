@@ -30,6 +30,8 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 **How to apply:** Route future refinement requests to a **new chip**, not a new control surface. Do not add a customize/anpassa sheet, sliders, a difficulty control, or a cuisine filter. Reopen the customize-surface question only if Phase 2 shows a meaningful share of sessions reaching reroll depth 4+ *while* the chip taps made fail to explain what the household was after — that combination is the evidence, not depth alone. The chip increment is 1 because that is exactly what `FAMILIARITY_STEP_WEIGHT` (1.5) is calibrated against; changing it means re-deriving that constant (see its comment in `src/engine/ranking.ts`).
 
+**Superseded (same day, #86):** the 0–5 level marker and the cap-tap no-op described above were replaced by a two-level model (0/1/3, cycling back to 0 with no no-op) — see the entry above. Everything else here — chip-only refinement, no customize surface, cuisine resolved client-side, the instrumentation rationale — still stands.
+
 ---
 
 ## 2026-08-05 — First production AI call: Tier 1 cooking instructions (#78)
