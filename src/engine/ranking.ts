@@ -1,3 +1,4 @@
+import type { DietaryFlag } from "../schema/allergyDietary.js";
 import type { CostTier } from "../schema/ingredient.js";
 import type { Familiarity, PrepTimeBand, RecipeTemplate } from "../schema/recipeTemplate.js";
 import type { CandidateTemplate } from "./candidates.js";
@@ -89,18 +90,31 @@ const SEASONALITY_WEIGHT = 0.25;
 // (musselgryta beating köttbullar on a household that only asked for "cheaper")
 // is a familiarity problem, not a seasonality-sized one.
 //
-// Chosen at 1.5 explicitly against `DEFAULT_WEIGHTS = { cost: 1, time: 1 }` in
-// src/api/weights.ts: at those defaults, one familiarity step (1.5) already beats
-// one cost-tier or prep-band step (1 * 1), and a full two-step gap
-// (adventurous vs. everyday, 3.0) beats two. At 0.5 a two-step gap would only tie
-// a single cost-tier step, letting a budget adventurous dish still outrank a mid
-// everyday one — the exact failure this constant exists to fix. It is still not
-// unbeatable: a chip that pushes cost or time weight to 3 or more makes that
-// expressed preference dominate a familiarity gap again, same as the seasonality
-// constant is designed to yield to a real preference. If DEFAULT_WEIGHTS ever
-// changes, re-derive this constant against the new default rather than leaving it
-// calibrated to a stale value.
+// Chosen at 1.5, calibrated against a chip-raised weight of 1 rather than
+// `DEFAULT_WEIGHTS` (src/api/weights.ts) — the default is now `{ cost: 0, time: 0 }`
+// precisely so a household that has tapped nothing gets no cost/time penalty at
+// all, which would make "calibrated against the default" meaningless. The first
+// "cheaper" or "faster" chip tap is expected to move a weight to 1 (see
+// src/api/weights.ts and the RankingWeights doc comment); at that weight, one
+// familiarity step (1.5) already beats one cost-tier or prep-band step (1 * 1),
+// and a full two-step gap (adventurous vs. everyday, 3.0) beats two. At 0.5 a
+// two-step gap would only tie a single cost-tier step, letting a budget
+// adventurous dish still outrank a mid everyday one — the exact failure this
+// constant exists to fix. It is still not unbeatable: a chip that pushes cost or
+// time weight to 3 or more makes that expressed preference dominate a
+// familiarity gap again, same as the seasonality constant is designed to yield to
+// a real preference. If the chip-tap increment ever changes, re-derive this
+// constant against the new increment rather than leaving it calibrated to a
+// stale value.
 const FAMILIARITY_STEP_WEIGHT = 1.5;
+
+// Penalty applied to a template tagged `vegetarian` or `vegan` when the household
+// has declared neither flag. One familiarity step (not a filter, and not the full
+// seasonality-beating weight of two steps): an omnivore household eats meat most
+// days but not every day, so a vegetarian dish should have to be otherwise better
+// — cheaper, more in season, more familiar — to win, not be excluded outright. A
+// household that has declared `vegetarian` or `vegan` gets no penalty at all.
+const OMNIVORE_PREFERENCE_WEIGHT = FAMILIARITY_STEP_WEIGHT;
 
 /**
  * The ingredient actually eaten in each slot: the substitute where the filtering
@@ -152,12 +166,17 @@ export function inSeasonFraction(
  * undefined (DECISION_LOG 2026-08-01, the swap-drift section); ranking a swapped
  * meal is not the same as rendering a tier for it, so this slice does not resolve
  * that question either.
+ *
+ * `householdDietaryFlags` is the household's own declared flags (§5.2), used only
+ * to decide whether the omnivore preference applies — it is never a filter here;
+ * `selectCandidateTemplates` already decides what is safe to show at all.
  */
 export function scoreCandidate(
   data: SeasonalityData,
   candidate: CandidateTemplate,
   weights: RankingWeights,
   month: number,
+  householdDietaryFlags: readonly DietaryFlag[] = [],
 ): number {
   const costPenalty = costTierIndex(candidate.template.cost_tier) * weights.cost;
   const timePenalty = prepTimeIndex(candidate.template.prep_time_band) * weights.time;
@@ -165,7 +184,15 @@ export function scoreCandidate(
   const familiarityPenalty =
     familiarityIndex(candidate.template.familiarity) * FAMILIARITY_STEP_WEIGHT;
 
-  return costPenalty + timePenalty - seasonalityBonus + familiarityPenalty;
+  const householdIsVegetarianOrVegan =
+    householdDietaryFlags.includes("vegetarian") || householdDietaryFlags.includes("vegan");
+  const templateIsVegetarianOrVegan =
+    candidate.template.dietary_tags.includes("vegetarian") ||
+    candidate.template.dietary_tags.includes("vegan");
+  const omnivorePenalty =
+    templateIsVegetarianOrVegan && !householdIsVegetarianOrVegan ? OMNIVORE_PREFERENCE_WEIGHT : 0;
+
+  return costPenalty + timePenalty - seasonalityBonus + familiarityPenalty + omnivorePenalty;
 }
 
 function compareTemplateIds(a: RecipeTemplate, b: RecipeTemplate): number {
@@ -182,10 +209,11 @@ export function rankCandidates(
   candidates: readonly CandidateTemplate[],
   weights: RankingWeights,
   month: number,
+  householdDietaryFlags: readonly DietaryFlag[] = [],
 ): RankedCandidate[] {
   const scored = candidates.map((candidate) => ({
     ...candidate,
-    score: scoreCandidate(data, candidate, weights, month),
+    score: scoreCandidate(data, candidate, weights, month, householdDietaryFlags),
   }));
 
   return scored.sort((a, b) => {
@@ -256,7 +284,8 @@ export function pickTonight(
   candidates: readonly CandidateTemplate[],
   weights: RankingWeights,
   month: number,
+  householdDietaryFlags: readonly DietaryFlag[] = [],
 ): RankedCandidate | undefined {
-  const ranked = rankCandidates(data, candidates, weights, month);
+  const ranked = rankCandidates(data, candidates, weights, month, householdDietaryFlags);
   return pickNextSuggestion(ranked, new Set(), undefined);
 }

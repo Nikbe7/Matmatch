@@ -6,8 +6,14 @@ import { HttpError } from "./httpError.js";
 // decision's "session-scoped, chip-driven, never persisted" vector — nothing here
 // writes it anywhere, so it does not reintroduce the settings surface that decision
 // rejected.
-
-const DEFAULT_WEIGHTS: RankingWeights = { cost: 1, time: 1 };
+//
+// { cost: 0, time: 0 }: the vector expresses what the household asked for *this
+// session*, and a household that has tapped nothing has asked for nothing. Zero
+// weights hand ordering entirely to familiarity and seasonality rather than
+// assuming a budget preference the household never expressed — the assumption
+// that was quietly making vegetarian, budget-tier dishes (lentils, chickpeas,
+// beans) win by default (DECISION_LOG, ranking-defaults entry).
+const DEFAULT_WEIGHTS: RankingWeights = { cost: 0, time: 0 };
 
 function parseWeight(name: "cost" | "time", raw: unknown): number {
   if (raw === undefined) return DEFAULT_WEIGHTS[name];

@@ -154,6 +154,62 @@ describe("scoreCandidate", () => {
   });
 });
 
+describe("scoreCandidate — omnivore preference", () => {
+  const weights = { cost: 0, time: 0 };
+
+  it("adds one familiarity step's worth of penalty to a vegetarian template for a household with no dietary flags", () => {
+    const meat = neutralCandidate("t", { dietary_tags: [] });
+    const veg = neutralCandidate("t", { dietary_tags: ["vegetarian"] });
+
+    const spread = scoreCandidate(seasonalityData, veg, weights, 1, []) -
+      scoreCandidate(seasonalityData, meat, weights, 1, []);
+
+    expect(spread).toBeCloseTo(1.5);
+  });
+
+  it("applies the same penalty to a vegan template", () => {
+    const meat = neutralCandidate("t", { dietary_tags: [] });
+    const vegan = neutralCandidate("t", { dietary_tags: ["vegan"] });
+
+    const spread = scoreCandidate(seasonalityData, vegan, weights, 1, []) -
+      scoreCandidate(seasonalityData, meat, weights, 1, []);
+
+    expect(spread).toBeCloseTo(1.5);
+  });
+
+  it("applies no penalty when the household declared vegetarian", () => {
+    const veg = neutralCandidate("t", { dietary_tags: ["vegetarian"] });
+
+    expect(scoreCandidate(seasonalityData, veg, weights, 1, ["vegetarian"])).toBeCloseTo(
+      scoreCandidate(seasonalityData, veg, weights, 1, []) - 1.5,
+    );
+  });
+
+  it("applies no penalty when the household declared vegan", () => {
+    const vegan = neutralCandidate("t", { dietary_tags: ["vegan"] });
+
+    expect(scoreCandidate(seasonalityData, vegan, weights, 1, ["vegan"])).toBeCloseTo(
+      scoreCandidate(seasonalityData, vegan, weights, 1, []) - 1.5,
+    );
+  });
+
+  it("defaults to no declared dietary flags when the parameter is omitted", () => {
+    const veg = neutralCandidate("t", { dietary_tags: ["vegetarian"] });
+
+    expect(scoreCandidate(seasonalityData, veg, weights, 1)).toBeCloseTo(
+      scoreCandidate(seasonalityData, veg, weights, 1, []),
+    );
+  });
+
+  it("never filters a vegetarian template out of rankCandidates for an omnivore household", () => {
+    const veg = neutralCandidate("only-veg", { dietary_tags: ["vegetarian"] });
+
+    const ranked = rankCandidates(seasonalityData, [veg], weights, 1, []);
+
+    expect(ids(ranked)).toEqual(["only-veg"]);
+  });
+});
+
 describe("rankCandidates — weight response", () => {
   const cheapSlow = neutralCandidate("cheap-slow", { cost_tier: "budget", prep_time_band: "40min+" });
   const pricyFast = neutralCandidate("pricy-fast", { cost_tier: "premium", prep_time_band: "<20min" });
@@ -563,10 +619,12 @@ describe("rankCandidates — over the real candidate set", () => {
   it("ranks every candidate exactly once, in non-decreasing score order", () => {
     const ranked = rankCandidates(data, candidates, { cost: 1, time: 1 }, 8);
 
-    // 156, not 170: the meal_types hard filter (#68) now excludes the 14
-    // breakfast/lunch-only templates from the dinner-facing candidate set.
-    expect(ranked).toHaveLength(156);
-    expect(new Set(ranked.map((r) => r.template.id)).size).toBe(156);
+    // 154, not 170: the meal_types hard filter (#68) now excludes the 16
+    // templates without "dinner" in meal_types (14 breakfast/lunch-only, plus
+    // pannkakor-med-vaniljsocker and artsoppa-med-senap, corrected off dinner) from
+    // the dinner-facing candidate set.
+    expect(ranked).toHaveLength(154);
+    expect(new Set(ranked.map((r) => r.template.id)).size).toBe(154);
     for (let i = 1; i < ranked.length; i += 1) {
       expect(ranked[i]!.score).toBeGreaterThanOrEqual(ranked[i - 1]!.score);
     }
