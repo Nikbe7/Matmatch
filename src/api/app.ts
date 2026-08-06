@@ -4,6 +4,7 @@ import type { TokenVerifier } from "../auth/verifyToken.js";
 import type { Sql } from "../db/client.js";
 import type { EngineData } from "../engine/data.js";
 import { errorMiddleware } from "./middleware/errors.js";
+import { analyticsRouter } from "./routes/analytics.js";
 import { cookedRouter } from "./routes/cooked.js";
 import { healthRouter } from "./routes/health.js";
 import { householdsRouter } from "./routes/households.js";
@@ -36,6 +37,7 @@ export function createApp(deps: AppDependencies): Express {
   app.use(tonightRouter(deps.sql, deps.engineData, deps.verifyToken));
   app.use(cookedRouter(deps.sql, deps.engineData, deps.verifyToken));
   app.use(instructionsRouter(deps.sql, deps.engineData, deps.verifyToken, deps.anthropicClient));
+  app.use(analyticsRouter(deps.sql, deps.verifyToken));
 
   // Registered last: Express dispatches a 4-arg handler as error middleware only
   // when it is the last thing in the chain relative to where the error was thrown.
