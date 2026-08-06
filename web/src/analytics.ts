@@ -8,10 +8,12 @@ import type { ChipId } from "./refinement";
 // them that question gets settled by opinion, and the answer decides whether the
 // customize-surface question from DECISION_LOG 2026-08-05 (chips) gets reopened.
 //
-// No dependency, no transport, no queue, no user id. There is no analytics backend
-// yet; when there is one, it installs itself via `setAnalyticsSink` and nothing at
-// the call sites changes. Deliberately not a generic event bus — two typed events,
-// widened only when a real question needs a third.
+// This module owns the event vocabulary only — no transport, no queue, no user id.
+// The real sink (buffering, batching, POSTing to the backend) lives in
+// analyticsSink.ts and is installed via `setAnalyticsSink` from App.tsx; nothing at
+// the call sites below knows or cares which sink is active. Deliberately not a
+// generic event bus — three typed events, widened only when a real question needs
+// a fourth.
 
 export interface ChipTapEvent {
   name: "refinement_chip_tap";
