@@ -62,6 +62,20 @@ Run the backend (`npm run dev` at the repo root, port `3000`) alongside it. Vite
 
 The frontend never mints, stores, or refreshes its own token — it reads the session from `@supabase/supabase-js` and sends `session.access_token` as `Authorization: Bearer <token>` on each API call.
 
+### Testing the service worker and offline behavior locally
+
+`npm run dev` never runs a service worker — it doesn't build one — so offline/install behavior can only be checked against a production build:
+
+```bash
+cd web
+npm run build
+npm run preview        # http://127.0.0.1:4173, serving dist/ for real
+```
+
+Open it, then in DevTools → Application → Service Workers confirm it registered, and Application → Manifest confirm it's installable. To check offline: DevTools → Network → set "Offline" (or actually disconnect), then reload — the app shell must still open, and any saved shopping list must still render (`localStorage` key `matmatch.shoppingList`).
+
+**Hard-reload caveat**: once a service worker is registered, a plain reload can keep serving an old cached bundle from a *previous* local build even after you rebuild, because the old worker is still active until a new one takes over. If a change doesn't seem to show up, either close and reopen the tab (so the new worker's `clients.claim()` takes effect) or do a real hard reload (DevTools → Application → Service Workers → "Update on reload", or unregister and reload). This is exactly the failure mode `sw.ts`'s cache-name versioning and `evictOldCaches` exist to prevent for real deploys — see `web/src/sw.test.ts`.
+
 ## Commands
 
 | Command | What it does |

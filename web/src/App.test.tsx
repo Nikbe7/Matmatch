@@ -693,3 +693,118 @@ describe("App — Lagad ikväll", () => {
     });
   });
 });
+
+// A rejected fetch here mirrors what the real browser fetch() does with no
+// connection (a thrown TypeError, never a resolved Response) — the case
+// App.tsx's toGateState() must route to "offline", not the generic "error"
+// state (issue #93, UX_FLOW §7).
+const offlineFetch = () => vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+
+describe("App — offline", () => {
+  it("shows a clear 'no connection' state, never a blank screen or a raw error, when there is no saved list", async () => {
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal("fetch", offlineFetch());
+
+    render(<App />);
+
+    const status = await screen.findByRole("status");
+    expect(status.textContent).toBe("Ingen anslutning. Anslut till internet för att komma igång.");
+    expect(screen.queryByRole("heading", { name: "Ikväll" })).toBeNull();
+  });
+
+  it("retrying after reconnecting re-fetches and reaches Tonight", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("status");
+
+    await user.click(screen.getByRole("button", { name: "Försök igen" }));
+
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("renders the persisted shopping list from local storage instead of the error/onboarding state", async () => {
+    sessionHolder.current = fakeSession;
+    localStorage.setItem(
+      "matmatch.shoppingList",
+      JSON.stringify({
+        version: 1,
+        templateId: "kycklinggryta",
+        items: [
+          { name: "Kyckling", section: "to_buy", bought: false },
+          { name: "Ris", section: "have_at_home", bought: false },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", offlineFetch());
+
+    render(<App />);
+
+    await screen.findByText("Ingen anslutning — visar din sparade inköpslista.");
+    expect(screen.getByRole("heading", { name: "Att köpa (1)" })).toBeTruthy();
+    expect(screen.getByText("Kyckling")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Har hemma (1)" })).toBeTruthy();
+    expect(screen.getByText("Ris")).toBeTruthy();
+  });
+
+  it("checking an item off the offline list persists it back to storage", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    localStorage.setItem(
+      "matmatch.shoppingList",
+      JSON.stringify({
+        version: 1,
+        templateId: "kycklinggryta",
+        items: [{ name: "Kyckling", section: "to_buy", bought: false }],
+      }),
+    );
+    vi.stubGlobal("fetch", offlineFetch());
+
+    render(<App />);
+    const checkbox = await screen.findByRole("checkbox");
+    await user.click(checkbox);
+
+    const stored = JSON.parse(localStorage.getItem("matmatch.shoppingList")!);
+    expect(stored.items[0].bought).toBe(true);
+  });
+});
+
+describe("App — install prompt", () => {
+  it("shows no install button until the browser fires beforeinstallprompt", async () => {
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    expect(screen.queryByRole("button", { name: "Installera appen" })).toBeNull();
+  });
+
+  it("shows the install button after beforeinstallprompt fires, and prompts on click", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const promptSpy = vi.fn().mockResolvedValue(undefined);
+    const event = new Event("beforeinstallprompt", { cancelable: true }) as Event & {
+      prompt: () => Promise<void>;
+    };
+    event.prompt = promptSpy;
+    window.dispatchEvent(event);
+
+    const installButton = await screen.findByRole("button", { name: "Installera appen" });
+    await user.click(installButton);
+
+    expect(promptSpy).toHaveBeenCalledTimes(1);
+  });
+});

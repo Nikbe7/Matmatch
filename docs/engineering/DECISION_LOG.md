@@ -8,6 +8,22 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-06 — PWA install without push; hand-rolled service worker; hard never-cache-`/api/*` rule (#93)
+
+**PWA install ships now; push notifications are deferred, not built.** MVP_ROADMAP Phase 1 item 8 bundles "PWA install flow" with "basic push notification support where feasible." Splitting them: push needs its own permission-prompt UX, a subscription-storage schema, and a send path, and iOS Safari's web-push support is recent and still unreliable enough that a push-based re-engagement channel can't be the retention hypothesis's only lever. There's also no user base yet to re-engage. Install + offline shell ships alone; push is a separate future issue, not scope-crept into this one.
+
+**Hand-rolled service worker (`web/src/sw.ts`), not workbox-generated (`vite-plugin-pwa`'s default `generateSW`).** The two rules that matter most here — `/api/*` is never cached, and a version bump evicts every old cache — are safety-critical (a cached authenticated API response is stale data at best, cross-account leakage at worst; a stale cached bundle is the single most likely way this feature breaks) and needed to be plain, unit-tested code, not workbox's generated output taken on faith. `vite-plugin-pwa` is still used, but only in `injectManifest` mode, for exactly one thing: replacing `self.__WB_MANIFEST` in `sw.ts` with the real, content-hashed list of built shell files at build time. It pulled in ~310 transitive packages (workbox-build's own tree) for that one job — noted here because it's more than the task looked like it needed; revisit if a lighter manifest-injection path shows up later.
+
+**`/api/*` bypass is a named, tested function (`isApiRequest`), not an emergent property of what the precache glob happens to match.** `handleFetch` in `sw.ts` checks it first, before any cache read. `sw.test.ts` asserts this directly: a request to `/api/tonight` never touches `cache.match`, `cache.put`, or `cache.addAll`, network failure or not.
+
+**Cache versioning: hash the precache manifest into the cache name, evict everything else on activate, `skipWaiting` + `clients.claim`.** `computeCacheName()` hashes the manifest's own content, so any changed build output produces a new cache name automatically — no separate version counter to remember to bump. `evictOldCaches()` deletes every `matmatch-shell-*` cache except the current one on `activate`. Both are pure functions, unit-tested in isolation from any real service worker runtime.
+
+**Offline: the shopping list renders from `localStorage` alone, not from a fetched `TonightResult`.** `App.tsx`'s `Gate` treats a non-`ApiError` failure from `fetchTonight` (i.e., the request never reached the server) as `{status: "offline"}`, and reads `shoppingListStorage.ts` directly via a new `loadAnyShoppingList()` (matches on shape only, not a specific template id, since there is no fetched result to check one against). This renders through a new `OfflineShoppingList` component — a checklist only, no dish name/cost tier/instructions, since none of that is available without a fetched `TonightResult`. `shoppingListStorage.ts`'s stored shape itself did not change.
+
+**How to apply:** A future push-notification issue should read `docs/PRODUCT_PLAN.md`'s two-channel plan (push + email/digest fallback) before scoping — this decision only defers push, it doesn't change that plan. Any change to the service worker's caching rules must keep `/api/*` as the first, unconditional check in `handleFetch`, and must not remove the manifest-hash-based cache naming — see `sw.test.ts` for the behavior both are expected to preserve.
+
+---
+
 ## 2026-08-05 — Analytics event ingest: `analytics_events`, closed vocabulary, drop-on-failure (#91)
 
 **Append-only storage, same shape as `cooked_meals`.** `analytics_events` stores household_id, event_name, payload (jsonb), client_timestamp, server_timestamp — `matmatch_app` has SELECT and INSERT only, no UPDATE/DELETE, RLS scoped through household_id with the role in every policy's TO clause (the 2026-08-03 trap). Two timestamps rather than one: client_timestamp is when the tap happened, server_timestamp is when the batch landed, and the sink's flush interval means a burst of buffered events can arrive together but did not happen together. No DB-level event-name enum — the closed vocabulary is enforced at the API layer instead (see below), so extending it never needs a domain-altering migration the way `allergy_value` does.

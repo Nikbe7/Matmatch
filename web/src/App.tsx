@@ -19,8 +19,8 @@ import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../../
 import type { Household, HouseholdMember, HouseholdMemberType } from "../../src/schema/household";
 import type { CostTier } from "../../src/schema/ingredient";
 import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
-import { ShoppingList } from "./ShoppingList";
-import { loadShoppingList } from "./shoppingListStorage";
+import { OfflineShoppingList, ShoppingList } from "./ShoppingList";
+import { loadAnyShoppingList, loadShoppingList } from "./shoppingListStorage";
 import { setAnalyticsSink, track } from "./analytics";
 import { createHttpAnalyticsSink } from "./analyticsSink";
 import {
@@ -698,6 +698,11 @@ type GateState =
   | { status: "checking" }
   | { status: "no_household" }
   | { status: "ready"; data: TonightResponse }
+  // fetchTonight never reached the server at all — a network failure, not an
+  // application error. UX_FLOW §7's offline requirement: the shell must still
+  // open and show whatever shopping list is already on the device, never a
+  // blank screen or a raw error.
+  | { status: "offline"; list: ReturnType<typeof loadAnyShoppingList> }
   | { status: "error"; code: string; message: string };
 
 function toGateState(error: unknown): GateState {
@@ -705,11 +710,14 @@ function toGateState(error: unknown): GateState {
     if (error.code === "household_not_found") return { status: "no_household" };
     return { status: "error", code: error.code, message: error.message };
   }
-  return { status: "error", code: "network_error", message: String(error) };
+  return { status: "offline", list: loadAnyShoppingList() };
 }
 
 function Gate({ session }: { session: Session }) {
   const [state, setState] = useState<GateState>({ status: "checking" });
+  // Bumped by the offline screen's "Försök igen" button to re-run the fetch
+  // below without duplicating its request/cancellation logic in a second effect.
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -726,7 +734,7 @@ function Gate({ session }: { session: Session }) {
     return () => {
       cancelled = true;
     };
-  }, [session.access_token]);
+  }, [session.access_token, retryCount]);
 
   function handleCreated() {
     // The household now exists but we don't have a Tonight response for it yet —
@@ -747,11 +755,68 @@ function Gate({ session }: { session: Session }) {
       </p>
       {state.status === "checking" && <p>Loading…</p>}
       {state.status === "error" && <pre>{`error: ${state.code}\n${state.message}`}</pre>}
+      {state.status === "offline" && state.list && <OfflineShoppingList list={state.list} />}
+      {state.status === "offline" && !state.list && (
+        <div>
+          <p role="status">Ingen anslutning. Anslut till internet för att komma igång.</p>
+          <button type="button" onClick={() => setRetryCount((n) => n + 1)}>
+            Försök igen
+          </button>
+        </div>
+      )}
       {state.status === "no_household" && (
         <OnboardingForm session={session} onCreated={handleCreated} />
       )}
       {state.status === "ready" && <TonightView data={state.data} accessToken={session.access_token} />}
     </div>
+  );
+}
+
+// Chrome's install-prompt event — not part of lib.dom.d.ts because it is a
+// nonstandard (Chromium-only) extension, never fired by Firefox or Safari.
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+}
+
+/**
+ * The install affordance shows up only if the browser itself decided the app
+ * is installable and fired `beforeinstallprompt` — never a custom banner, nag,
+ * or iOS-specific instructions (issue #93). Most browsers (Firefox, Safari)
+ * never fire this event at all, so `canInstall` simply stays false there and
+ * nothing renders.
+ */
+function useInstallPrompt() {
+  const [deferredEvent, setDeferredEvent] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    function handleBeforeInstallPrompt(event: Event) {
+      event.preventDefault();
+      setDeferredEvent(event as BeforeInstallPromptEvent);
+    }
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+  }, []);
+
+  async function install() {
+    if (!deferredEvent) return;
+    await deferredEvent.prompt();
+    // The captured event is single-use regardless of the user's choice — the
+    // browser will fire a fresh `beforeinstallprompt` later if it decides to
+    // offer installation again.
+    setDeferredEvent(null);
+  }
+
+  return { canInstall: deferredEvent !== null, install };
+}
+
+function InstallButton() {
+  const { canInstall, install } = useInstallPrompt();
+  if (!canInstall) return null;
+
+  return (
+    <button type="button" onClick={() => void install()}>
+      Installera appen
+    </button>
   );
 }
 
@@ -771,6 +836,10 @@ export default function App() {
   }, []);
 
   if (session === undefined) return <p>Loading…</p>;
-  if (session === null) return <LoginForm />;
-  return <Gate session={session} />;
+  return (
+    <>
+      <InstallButton />
+      {session === null ? <LoginForm /> : <Gate session={session} />}
+    </>
+  );
 }
