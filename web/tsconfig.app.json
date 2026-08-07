@@ -22,5 +22,10 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Node-touching build-verification test, not browser code — see
+  // tsconfig.node.json, which includes it instead (same rationale as api.ts's
+  // "web/ compiles without Node types on purpose" comment: this file is the
+  // one deliberate exception, not a relaxation of that rule generally).
+  "exclude": ["src/precache.test.ts"]
 }
