@@ -48,5 +48,12 @@ export const IngredientSchema = z
         "an ingredient that is not available_year_round must have at least one peak_months entry",
       path: ["peak_months"],
     },
+  )
+  .refine(
+    (ingredient) => !ingredient.available_year_round || ingredient.peak_months.length === 0,
+    {
+      message: "an ingredient that is available_year_round must have an empty peak_months array",
+      path: ["peak_months"],
+    },
   );
 export type Ingredient = z.infer<typeof IngredientSchema>;

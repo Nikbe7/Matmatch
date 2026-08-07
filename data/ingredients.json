@@ -229,8 +229,12 @@
     "name": "lammfärs",
     "category": "protein",
     "default_cost_tier": "mid",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      8,
+      9,
+      10
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -238,8 +242,12 @@
     "name": "lammfilé",
     "category": "protein",
     "default_cost_tier": "premium",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      8,
+      9,
+      10
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -283,8 +291,17 @@
     "name": "musslor",
     "category": "protein",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      9,
+      10,
+      11,
+      12,
+      1,
+      2,
+      3,
+      4
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -310,8 +327,15 @@
     "name": "räkor",
     "category": "protein",
     "default_cost_tier": "premium",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      9,
+      10,
+      11,
+      12,
+      1,
+      2
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -418,14 +442,9 @@
     "name": "aubergine",
     "category": "vegetable",
     "default_cost_tier": "mid",
-    "peak_months": [
-      6,
-      7,
-      8,
-      9
-    ],
+    "peak_months": [],
     "available_year_round": true,
-    "seasonality_strength": "strong"
+    "seasonality_strength": "weak"
   },
   {
     "id": "avokado",
@@ -450,8 +469,13 @@
     "name": "blomkål",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -459,8 +483,12 @@
     "name": "broccoli",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      7,
+      8,
+      9
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -468,9 +496,13 @@
     "name": "brysselkål",
     "category": "vegetable",
     "default_cost_tier": "mid",
-    "peak_months": [],
-    "available_year_round": true,
-    "seasonality_strength": "weak"
+    "peak_months": [
+      10,
+      11,
+      12
+    ],
+    "available_year_round": false,
+    "seasonality_strength": "strong"
   },
   {
     "id": "champinjon",
@@ -495,14 +527,9 @@
     "name": "grön paprika",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [
-      6,
-      7,
-      8,
-      9
-    ],
+    "peak_months": [],
     "available_year_round": true,
-    "seasonality_strength": "strong"
+    "seasonality_strength": "weak"
   },
   {
     "id": "grona-bonor",
@@ -519,12 +546,13 @@
     "category": "vegetable",
     "default_cost_tier": "mid",
     "peak_months": [
+      10,
       11,
       12,
       1,
       2
     ],
-    "available_year_round": true,
+    "available_year_round": false,
     "seasonality_strength": "strong"
   },
   {
@@ -538,8 +566,8 @@
       8,
       9
     ],
-    "available_year_round": true,
-    "seasonality_strength": "strong"
+    "available_year_round": false,
+    "seasonality_strength": "weak"
   },
   {
     "id": "isbergssallat",
@@ -555,8 +583,16 @@
     "name": "kålrot",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      9,
+      10,
+      11,
+      12,
+      1,
+      2,
+      3
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -583,16 +619,21 @@
       8,
       9
     ],
-    "available_year_round": true,
-    "seasonality_strength": "strong"
+    "available_year_round": false,
+    "seasonality_strength": "weak"
   },
   {
     "id": "majrova",
     "name": "majrova",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -609,8 +650,14 @@
     "name": "mangold",
     "category": "vegetable",
     "default_cost_tier": "mid",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -618,8 +665,13 @@
     "name": "minigurka",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -636,8 +688,15 @@
     "name": "palsternacka",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      10,
+      11,
+      12,
+      1,
+      2,
+      3
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -659,7 +718,7 @@
       10,
       11
     ],
-    "available_year_round": true,
+    "available_year_round": false,
     "seasonality_strength": "strong"
   },
   {
@@ -670,32 +729,36 @@
     "peak_months": [
       5,
       6,
-      7
+      7,
+      8
     ],
-    "available_year_round": true,
-    "seasonality_strength": "strong"
+    "available_year_round": false,
+    "seasonality_strength": "weak"
   },
   {
     "id": "rod-paprika",
     "name": "röd paprika",
     "category": "vegetable",
     "default_cost_tier": "mid",
-    "peak_months": [
-      6,
-      7,
-      8,
-      9
-    ],
+    "peak_months": [],
     "available_year_round": true,
-    "seasonality_strength": "strong"
+    "seasonality_strength": "weak"
   },
   {
     "id": "rodbeta",
     "name": "rödbeta",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      1,
+      2
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -703,8 +766,14 @@
     "name": "rödkål",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      9,
+      10,
+      11,
+      12,
+      1
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -712,8 +781,15 @@
     "name": "rotselleri",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      9,
+      10,
+      11,
+      12,
+      1,
+      2
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -748,8 +824,12 @@
     "name": "sockerärtor",
     "category": "vegetable",
     "default_cost_tier": "mid",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      6,
+      7,
+      8
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -770,7 +850,7 @@
       5,
       6
     ],
-    "available_year_round": true,
+    "available_year_round": false,
     "seasonality_strength": "strong"
   },
   {
@@ -789,10 +869,11 @@
     "default_cost_tier": "budget",
     "peak_months": [
       6,
-      7
+      7,
+      8
     ],
-    "available_year_round": true,
-    "seasonality_strength": "strong"
+    "available_year_round": false,
+    "seasonality_strength": "weak"
   },
   {
     "id": "tomat",
@@ -800,21 +881,27 @@
     "category": "vegetable",
     "default_cost_tier": "mid",
     "peak_months": [
-      6,
       7,
       8,
       9
     ],
-    "available_year_round": true,
-    "seasonality_strength": "strong"
+    "available_year_round": false,
+    "seasonality_strength": "weak"
   },
   {
     "id": "vitkal",
     "name": "vitkål",
     "category": "vegetable",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      9,
+      10,
+      11,
+      12,
+      1,
+      2
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -823,13 +910,12 @@
     "category": "vegetable",
     "default_cost_tier": "budget",
     "peak_months": [
-      6,
       7,
       8,
       9
     ],
-    "available_year_round": true,
-    "seasonality_strength": "strong"
+    "available_year_round": false,
+    "seasonality_strength": "weak"
   },
   {
     "id": "aggnudlar",
@@ -1361,8 +1447,12 @@
     "name": "färsk dill",
     "category": "spice_aromatic",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      6,
+      7,
+      8
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -1496,8 +1586,15 @@
     "name": "purjolök",
     "category": "spice_aromatic",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      9,
+      10,
+      11,
+      12,
+      1,
+      2
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -1775,8 +1872,14 @@
     "name": "apelsin",
     "category": "fruit",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      11,
+      12,
+      1,
+      2,
+      3
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -1784,8 +1887,14 @@
     "name": "äpple",
     "category": "fruit",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -1806,7 +1915,7 @@
       7,
       8
     ],
-    "available_year_round": true,
+    "available_year_round": false,
     "seasonality_strength": "strong"
   },
   {
@@ -1827,7 +1936,7 @@
       7,
       8
     ],
-    "available_year_round": true,
+    "available_year_round": false,
     "seasonality_strength": "strong"
   },
   {
@@ -1839,7 +1948,7 @@
       6,
       7
     ],
-    "available_year_round": true,
+    "available_year_round": false,
     "seasonality_strength": "strong"
   },
   {
@@ -1883,8 +1992,12 @@
     "name": "päron",
     "category": "fruit",
     "default_cost_tier": "budget",
-    "peak_months": [],
-    "available_year_round": true,
+    "peak_months": [
+      8,
+      9,
+      10
+    ],
+    "available_year_round": false,
     "seasonality_strength": "weak"
   },
   {
@@ -1897,8 +2010,8 @@
       7,
       8
     ],
-    "available_year_round": true,
-    "seasonality_strength": "strong"
+    "available_year_round": false,
+    "seasonality_strength": "weak"
   },
   {
     "id": "plommon",
@@ -1909,8 +2022,8 @@
       8,
       9
     ],
-    "available_year_round": true,
-    "seasonality_strength": "strong"
+    "available_year_round": false,
+    "seasonality_strength": "weak"
   },
   {
     "id": "vattenmelon",
@@ -1922,8 +2035,8 @@
       7,
       8
     ],
-    "available_year_round": true,
-    "seasonality_strength": "strong"
+    "available_year_round": false,
+    "seasonality_strength": "weak"
   },
   {
     "id": "vindruvor",

@@ -15,7 +15,7 @@ describe("IngredientSchema", () => {
       category: "starch",
       default_cost_tier: "budget",
       peak_months: [8, 9, 10],
-      available_year_round: true,
+      available_year_round: false,
       seasonality_strength: "weak",
     };
 
@@ -59,6 +59,20 @@ describe("IngredientSchema", () => {
       peak_months: [],
       available_year_round: false,
       seasonality_strength: "strong",
+    };
+
+    expect(IngredientSchema.safeParse(fixture).success).toBe(false);
+  });
+
+  it("rejects available_year_round: true with a non-empty peak_months", () => {
+    const fixture = {
+      id: "motsagelsefull-ingrediens",
+      name: "Motsägelsefull ingrediens",
+      category: "vegetable",
+      default_cost_tier: "mid",
+      peak_months: [7],
+      available_year_round: true,
+      seasonality_strength: "weak",
     };
 
     expect(IngredientSchema.safeParse(fixture).success).toBe(false);

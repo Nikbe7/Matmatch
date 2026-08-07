@@ -660,6 +660,36 @@ describe("rankCandidates — over the real candidate set", () => {
   });
 });
 
+describe("rankCandidates — real catalog seasonality (#50)", () => {
+  it("ranks a template above an otherwise equivalent one in its own peak month, and does not in the other's peak month", () => {
+    // sparris (asparagus) peaks strictly in May-June; pumpa (pumpkin) peaks
+    // Sept-Nov (data/ingredients.json) — disjoint real peak windows. Both
+    // templates are identical apart from that one slot, so seasonality is
+    // the only thing that can move the order at zero cost/time weight.
+    const sparrisCandidate = candidate("uses-sparris", {
+      cost_tier: "mid",
+      prep_time_band: "20-40min",
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "sparris", substitutable: true }],
+    });
+    const pumpaCandidate = candidate("uses-pumpa", {
+      cost_tier: "mid",
+      prep_time_band: "20-40min",
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "pumpa", substitutable: true }],
+    });
+
+    const may = rankCandidates(data, [pumpaCandidate, sparrisCandidate], { cost: 0, time: 0 }, 5);
+    expect(ids(may)).toEqual(["uses-sparris", "uses-pumpa"]);
+
+    const september = rankCandidates(
+      data,
+      [pumpaCandidate, sparrisCandidate],
+      { cost: 0, time: 0 },
+      9,
+    );
+    expect(ids(september)).toEqual(["uses-pumpa", "uses-sparris"]);
+  });
+});
+
 // Repeat-avoidance (#88) -------------------------------------------------------
 //
 // A fixed `now` throughout: `RecencyContext` carries the instant as data precisely so
