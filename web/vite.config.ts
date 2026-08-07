@@ -2,10 +2,12 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-// Dev-only proxy: the browser calls same-origin `/api/*`, Vite forwards it to the
-// backend on :3000. Production is intended to be one service serving the built
-// static files and the API from the same origin, so this proxy is a dev
-// convenience only — CORS should never need configuring on the backend.
+// Dev/preview-only proxy: the browser calls same-origin `/api/*`, Vite forwards it
+// to the backend on :3000 (configured separately below for `server` and
+// `preview` — Vite does not share one between them). Production is intended to
+// be one service serving the built static files and the API from the same
+// origin, so this proxy is a local convenience only — CORS should never need
+// configuring on the backend.
 export default defineConfig({
   plugins: [
     react(),
@@ -37,6 +39,16 @@ export default defineConfig({
     }),
   ],
   server: {
+    proxy: {
+      "/api": "http://127.0.0.1:3000",
+    },
+  },
+  // Same proxy, repeated for `npm run preview`: preview serves the actual built
+  // output (dist/), which is the only mode with a registered service worker
+  // (`npm run dev` never builds one — see devOptions.enabled: false above) — so
+  // it's the only mode the PWA/offline behavior can be verified in at all.
+  // Without this, every `/api/*` request against the preview server 404s.
+  preview: {
     proxy: {
       "/api": "http://127.0.0.1:3000",
     },

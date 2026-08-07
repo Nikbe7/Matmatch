@@ -64,15 +64,24 @@ The frontend never mints, stores, or refreshes its own token — it reads the se
 
 ### Testing the service worker and offline behavior locally
 
-`npm run dev` never runs a service worker — it doesn't build one — so offline/install behavior can only be checked against a production build:
+`npm run dev` never runs a service worker — it doesn't build one (`devOptions.enabled: false` in `vite.config.ts`) — so offline/install behavior can only be checked against a real production build, served by `npm run preview`:
 
 ```bash
+npm run dev              # repo root, port 3000 — the backend, needed for the API proxy below
 cd web
 npm run build
-npm run preview        # http://127.0.0.1:4173, serving dist/ for real
+npm run preview          # http://localhost:4173, serving dist/ for real
 ```
 
-Open it, then in DevTools → Application → Service Workers confirm it registered, and Application → Manifest confirm it's installable. To check offline: DevTools → Network → set "Offline" (or actually disconnect), then reload — the app shell must still open, and any saved shopping list must still render (`localStorage` key `matmatch.shoppingList`).
+Open **`http://localhost:4173`** — `localhost` specifically, not a LAN IP (e.g. `192.168.x.x`): a service worker only registers in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts), and `localhost` is special-cased as one over plain HTTP while a bare IP is not, so opening the app via a LAN IP silently gets no service worker at all.
+
+Then, in DevTools:
+- **Application → Manifest** — confirm it's installable (all four icon sizes listed, no errors).
+- **Application → Service Workers** — confirm one worker is registered and activated for `/sw.js`.
+- **Network → Offline** (or actually disconnect), then reload — the app shell must still open, and any saved shopping list must still render (`localStorage` key `matmatch.shoppingList`).
+- **Cache eviction** — make a trivial change, rebuild, and reload with Service Workers → "Update"; the old `matmatch-shell-*` entry in Application → Cache Storage should be gone, replaced by exactly one new one.
+
+**Phone installation is not possible against this local stack.** "Add to Home Screen" / `beforeinstallprompt` both require the same secure-context rule above, and on a physical phone that means real HTTPS — `localhost` doesn't apply there, and Supabase's local stack (`supabase start`) isn't reachable from another device either. Verifying an actual install therefore requires a deployed HTTPS environment with a hosted Supabase project, which does not exist yet; the preview-mode checklist above is the full extent of what's verifiable pre-deployment.
 
 **Hard-reload caveat**: once a service worker is registered, a plain reload can keep serving an old cached bundle from a *previous* local build even after you rebuild, because the old worker is still active until a new one takes over. If a change doesn't seem to show up, either close and reopen the tab (so the new worker's `clients.claim()` takes effect) or do a real hard reload (DevTools → Application → Service Workers → "Update on reload", or unregister and reload). This is exactly the failure mode `sw.ts`'s cache-name versioning and `evictOldCaches` exist to prevent for real deploys — see `web/src/sw.test.ts`.
 
