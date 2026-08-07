@@ -83,7 +83,7 @@ Then, in DevTools:
 - **Network → Offline** (or actually disconnect), then reload — the app shell must still open, and any saved shopping list must still render (`localStorage` key `matmatch.shoppingList`).
 - **Cache eviction** — make a trivial change, rebuild, and reload with Service Workers → "Update"; the old `matmatch-shell-*` entry in Application → Cache Storage should be gone, replaced by exactly one new one.
 
-**Phone installation is not possible against this local stack.** "Add to Home Screen" / `beforeinstallprompt` both require the same secure-context rule above, and on a physical phone that means real HTTPS — `localhost` doesn't apply there, and Supabase's local stack (`supabase start`) isn't reachable from another device either. Verifying an actual install therefore needs the deployed HTTPS environment — see [Deploying](#deploying) below; the preview-mode checklist above is the full extent of what's verifiable locally.
+**Phone installation is not possible against this local stack.** "Add to Home Screen" / `beforeinstallprompt` both require the same secure-context rule above, and on a physical phone that means real HTTPS — `localhost` doesn't apply there, and Supabase's local stack (`supabase start`) isn't reachable from another device either. Verifying an actual install therefore needs a deployed HTTPS environment, which **does not exist yet** — see [Deploying](#deploying) below. Until it does, the preview-mode checklist above plus DevTools mobile emulation are the full extent of what's verifiable, and real phone installation stays unverified.
 
 **Hard-reload caveat**: once a service worker is registered, a plain reload can keep serving an old cached bundle from a *previous* local build even after you rebuild, because the old worker is still active until a new one takes over. If a change doesn't seem to show up, either close and reopen the tab (so the new worker's `clients.claim()` takes effect) or do a real hard reload (DevTools → Application → Service Workers → "Update on reload", or unregister and reload). This is exactly the failure mode `sw.ts`'s cache-name versioning and `evictOldCaches` exist to prevent for real deploys — see `web/src/sw.test.ts`.
 
@@ -91,7 +91,11 @@ Then, in DevTools:
 
 ## Deploying
 
-One Node service serves the built frontend **and** the API from a single origin — `web/dist` as static files, `/api/*` as the API, and any unknown non-`/api` path falling back to `index.html` so client-side routing and direct deep links both work (`src/api/static.ts`). That's what keeps CORS unnecessary in production, the same way Vite's proxy does locally. Hosted on Fly.io in `arn` (Stockholm), next to the Supabase project.
+> **No deployment exists yet.** There is no live URL, no Fly app, and nothing running or costing anything. Everything below is a ready, tested procedure — the Dockerfile, `fly.toml`, hosted Supabase project and migrations are all in place — but `fly apps create` has never been run. It's gated on adding a payment method to the Fly account (issue #99), not on any remaining work. The **hosted Supabase project does exist** and holds the applied migrations.
+
+One Node service serves the built frontend **and** the API from a single origin — `web/dist` as static files, `/api/*` as the API, and any unknown non-`/api` path falling back to `index.html` so client-side routing and direct deep links both work (`src/api/static.ts`). That's what keeps CORS unnecessary in production, the same way Vite's proxy does locally. The target is Fly.io in `arn` (Stockholm), next to the Supabase project.
+
+None of this affects local development: the process serves static files only when `WEB_DIST` is set, which nothing local sets.
 
 The deployed process is the same `src/api/server.ts` as local — it serves static files only when `WEB_DIST` is set, which the Dockerfile sets and your machine doesn't.
 
@@ -159,7 +163,9 @@ Fly checks `GET /health` every 30s. It's unauthenticated and deliberately touche
 
 ### Uptime expectations
 
-The Fly machine is always on (`min_machines_running = 1`, `auto_stop_machines = false`), so there are no cold starts. The **Supabase** project is separate and does pause — see ["Free-tier projects pause"](#free-tier-projects-pause-after-7-days-of-inactivity) above. When it does, the deployed app fails on database connect while `/health` keeps answering 200; that's deliberate, and it's what stops a paused database from becoming a restart loop.
+Once deployed, the Fly machine will be always on (`min_machines_running = 1`, `auto_stop_machines = false`), so no cold starts. The **Supabase** project is separate and does pause — see ["Free-tier projects pause"](#free-tier-projects-pause-after-7-days-of-inactivity) above. When it does, the app fails on database connect while `/health` keeps answering 200; that's deliberate, and it's what stops a paused database from becoming a restart loop.
+
+The hosted project is already provisioned and idle, so **expect it to be paused by the time the first deploy happens** — wake it from the dashboard first. Expected, not a bug.
 
 ## Commands
 
