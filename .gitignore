@@ -25,6 +25,10 @@ pnpm-debug.log*
 
 # Testing / coverage
 coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 
 # Misc
 *.tsbuildinfo

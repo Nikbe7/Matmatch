@@ -64,6 +64,26 @@ export function loadShoppingList(templateId: string): StoredShoppingList | null 
   return parsed;
 }
 
+/**
+ * The stored list regardless of which template it belongs to — used only for
+ * the offline fallback (App.tsx's Gate), which has no fetched `TonightResult`
+ * to check a template id against in the first place. `loadShoppingList`
+ * above stays the one every other caller uses.
+ */
+export function loadAnyShoppingList(): StoredShoppingList | null {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  return isStoredShoppingList(parsed) ? parsed : null;
+}
+
 export function saveShoppingList(list: StoredShoppingList): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }

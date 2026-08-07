@@ -7,6 +7,7 @@ import {
   saveShoppingList,
   type ShoppingListItem,
   type ShoppingListSection,
+  type StoredShoppingList,
 } from "./shoppingListStorage";
 
 // The shopping list for an accepted Tonight suggestion. Deliberately no fetch here
@@ -190,6 +191,77 @@ export function ShoppingList({
       <button type="button" onClick={handleNewSuggestion}>
         Ny förslag
       </button>
+    </div>
+  );
+}
+
+/**
+ * Rendered when the app opens with no connection and `fetchTonight` never
+ * reached the server at all (App.tsx's Gate) — the offline case UX_FLOW §7
+ * asks for. Deliberately not `ShoppingList` above: there is no fetched
+ * `TonightResult` to read a dish name, cost tier or instructions from when
+ * offline, only what `shoppingListStorage.ts` persisted — a name and
+ * instructions fetch, so this renders just the checklist itself.
+ */
+export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
+  const [items, setItems] = useState<ShoppingListItem[]>(list.items);
+
+  useEffect(() => {
+    saveShoppingList({ version: 1, templateId: list.templateId, items });
+  }, [list.templateId, items]);
+
+  function moveTo(index: number, section: ShoppingListSection) {
+    setItems((current) => current.map((item, i) => (i === index ? { ...item, section } : item)));
+  }
+
+  function toggleBought(index: number) {
+    setItems((current) =>
+      current.map((item, i) => (i === index ? { ...item, bought: !item.bought } : item)),
+    );
+  }
+
+  const toBuy = withIndex(items).filter((item) => item.section === "to_buy");
+  const haveAtHome = withIndex(items).filter((item) => item.section === "have_at_home");
+
+  return (
+    <div>
+      <h2>Inköpslista</h2>
+      <p role="status">Ingen anslutning — visar din sparade inköpslista.</p>
+
+      <section>
+        <h3>Att köpa ({toBuy.length})</h3>
+        <ul>
+          {toBuy.map((item) => (
+            <li key={item.index}>
+              <label style={item.bought ? boughtStyle : undefined}>
+                <input
+                  type="checkbox"
+                  checked={item.bought}
+                  onChange={() => toggleBought(item.index)}
+                />
+                {item.name}
+              </label>
+              <button type="button" onClick={() => moveTo(item.index, "have_at_home")}>
+                Har hemma
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h3>Har hemma ({haveAtHome.length})</h3>
+        <ul>
+          {haveAtHome.map((item) => (
+            <li key={item.index}>
+              {item.name}
+              <button type="button" onClick={() => moveTo(item.index, "to_buy")}>
+                Att köpa
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
