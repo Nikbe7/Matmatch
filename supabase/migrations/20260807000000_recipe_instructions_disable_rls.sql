@@ -1,0 +1,35 @@
+-- Make "no RLS on the instructions cache" explicit instead of environment-dependent
+-- (issue #99, found while provisioning the hosted project).
+--
+-- 20260805000000_recipe_instructions.sql deliberately does not RLS-protect this
+-- table: it holds no household data and no user context, so there is nothing to scope
+-- a policy to (DECISION_LOG 2026-08-05). That migration achieved it by *omission* —
+-- simply never calling `enable row level security` — which is correct only where RLS
+-- defaults to off.
+--
+-- It does not default to off everywhere. A hosted Supabase project enables RLS on new
+-- tables in `public` automatically, so the same migration produces a different result
+-- in the cloud than it does locally:
+--
+--   local  → relrowsecurity = f, table works
+--   hosted → relrowsecurity = t, ZERO policies
+--
+-- RLS on with no policies denies everything to any role without rolbypassrls — which
+-- is exactly what `matmatch_app` is. Verified against the hosted project before
+-- writing this migration: an insert failed with "new row violates row-level security
+-- policy" and a select returned 0 rows. The Tier 1 cache would therefore have been
+-- silently dead in production while every local test passed, since the test suite
+-- runs against the local stack where the default happens to be the one we wanted.
+--
+-- Disabling it explicitly is the faithful implementation of the existing decision,
+-- not a new one, and it converges both environments on the same state. Adding
+-- permissive policies instead would be the opposite: inventing per-row rules for a
+-- table that has deliberately has no per-row owner.
+--
+-- This is not an exposure: the Data API (PostgREST) is disabled project-wide
+-- (DECISION_LOG 2026-08-02), so no client-reachable path to this table exists in
+-- either environment — the Node backend is the only reader and writer.
+--
+-- Idempotent: `disable row level security` on a table that already has it disabled is
+-- a no-op, so this replays cleanly against the local stack too.
+alter table public.recipe_instructions disable row level security;

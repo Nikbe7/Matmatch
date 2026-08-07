@@ -1,0 +1,54 @@
+# Fly.io configuration — one app, one machine, one process (issue #99).
+#
+# Deploy with `fly deploy` (or `npm run deploy`). Secrets are NOT in this file: they
+# live in Fly's secret store (`fly secrets set`), which is why this file is safe to
+# commit. See README, "Deploying".
+
+app = "matmatch"
+
+# Stockholm. The Supabase project is in eu-north-1 (Stockholm) as well, so household
+# and allergy data — sensitive personal data under GDPR (ARCHITECTURE.md §7) — stays
+# in the EU, and the app sits next to its database rather than an ocean away.
+primary_region = "arn"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Must match EXPOSE/PORT in the Dockerfile and internal_port below.
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  # Fly terminates TLS and issues the certificate for <app>.fly.dev automatically;
+  # this redirects any plain-HTTP request to HTTPS. Non-negotiable rather than a
+  # nicety: a service worker only registers in a secure context, so without HTTPS
+  # the PWA cannot install on a phone at all — the entire point of deploying.
+  force_https = true
+
+  # Always on. Both of these together are what avoids cold starts: Fly would
+  # otherwise stop the machine when idle and pay a start-up delay on the next
+  # request, which for a once-a-day meal app would mean nearly every request.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  processes = ["app"]
+
+  [[http_service.checks]]
+    # Hits GET /health (src/api/routes/health.ts): unauthenticated, and deliberately
+    # touching neither the database nor the engine data. That independence is the
+    # point — if this check queried Postgres, a database blip (or a paused free-tier
+    # project) would fail the check and put Fly into a restart loop on a service that
+    # is itself perfectly healthy.
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+
+[[vm]]
+  # Smallest useful machine. This is a pre-PMF solo project serving one household;
+  # resize with `fly scale vm` if the Node process actually needs it.
+  size = "shared-cpu-1x"
+  memory = "512mb"

@@ -1,0 +1,32 @@
+# Keeps the build context small and, more importantly, keeps credentials out of the
+# image entirely. `.env` and `.env.cloud` hold real database passwords; they must
+# never be copied into a layer, where they would be recoverable from image history
+# regardless of any later deletion.
+.env
+.env.*
+!.env.example
+
+node_modules
+web/node_modules
+web/dist
+
+.git
+.github
+.claude
+
+# Test and build artifacts — nothing the runtime needs.
+coverage
+test-results
+playwright-report
+blob-report
+web/e2e
+*.tsbuildinfo
+
+# The local Supabase stack's config and migrations are applied with the CLI from a
+# developer machine, never from inside the running container.
+supabase
+
+docs
+tmp
+*.log
+.DS_Store

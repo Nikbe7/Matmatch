@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import path from "node:path";
 import { createTokenVerifier, tokenVerifierConfigFromEnv } from "../auth/verifyToken.js";
 import { connectionStringFromEnv, createDbClient } from "../db/client.js";
 import { loadEngineData } from "../engine/data.js";
@@ -22,7 +23,15 @@ async function main() {
     ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     : undefined;
 
-  const app = createApp({ sql, engineData, verifyToken, anthropicClient });
+  // Set in the deployed image (see Dockerfile), unset locally. Its presence is what
+  // turns this process into the single service that serves both the client and the
+  // API from one origin; without it the app is API-only and `npm run dev` behaves
+  // exactly as it always has.
+  const webDistDir = process.env.WEB_DIST
+    ? path.resolve(process.env.WEB_DIST)
+    : undefined;
+
+  const app = createApp({ sql, engineData, verifyToken, anthropicClient, webDistDir });
 
   app.listen(port, () => {
     console.log(`matmatch api listening on :${port}`);
