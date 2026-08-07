@@ -7,10 +7,13 @@ export function registerServiceWorker(): void {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
+    navigator.serviceWorker.register("/sw.js").catch((error: unknown) => {
       // A failed registration must not break the app itself — it just means
       // this visit won't get offline support, same as any browser that
-      // doesn't support service workers at all.
+      // doesn't support service workers at all — but it must not be silent
+      // either (issue #93's second bug shipped invisibly for exactly this
+      // reason).
+      console.error("[sw] registration failed:", error);
     });
   });
 }

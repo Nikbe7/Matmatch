@@ -54,6 +54,10 @@ export default defineConfig({
     },
   },
   test: {
+    // Playwright owns e2e/ (its own runner, its own `expect` — see
+    // playwright.config.ts); vitest's default include glob would otherwise
+    // also pick up `*.spec.ts` there and fail trying to run it as a unit test.
+    exclude: ["**/node_modules/**", "e2e/**"],
     environment: "jsdom",
     // jsdom's localStorage is unavailable for the opaque "about:blank" origin it
     // defaults to without an explicit url — the shopping list's persistence tests

@@ -89,6 +89,27 @@ describe("handleFetch", () => {
 
     expect(await response.text()).toBe("shell");
   });
+
+  // The regression test for issue #93's third bug: a dev/preview server that
+  // sends `Vary: <anything>` (this one sends `Vary: Origin`) makes a plain
+  // `cache.match(request)` silently miss a precached, content-hashed shell
+  // file for any request whose mode causes the browser to attach a header
+  // the cached entry's key didn't record — invisibly, since neither request
+  // nor response ever surfaces as a non-200 anywhere. `{ ignoreVary: true }`
+  // is the actual fix; this asserts it's actually passed, not just present
+  // in a comment.
+  it("ignores Vary when matching both the direct cache-first lookup and the offline shell fallback", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const cache = { match: vi.fn().mockResolvedValue(undefined) };
+
+    await handleFetch(new Request("https://app.example/assets/index.js"), cache).catch(() => {});
+    expect(cache.match).toHaveBeenCalledWith(expect.anything(), { ignoreVary: true });
+
+    cache.match.mockClear();
+    const navigationRequest = { url: "https://app.example/some/route", mode: "navigate" } as Request;
+    await handleFetch(navigationRequest, cache).catch(() => {});
+    expect(cache.match).toHaveBeenCalledWith("/index.html", { ignoreVary: true });
+  });
 });
 
 describe("computeCacheName", () => {
@@ -134,11 +155,62 @@ describe("evictOldCaches", () => {
 });
 
 describe("precacheShell", () => {
-  it("adds every manifest URL to the cache", async () => {
-    const cache = { addAll: vi.fn().mockResolvedValue(undefined) };
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("caches every manifest URL individually", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("ok")));
+    const cache = { put: vi.fn().mockResolvedValue(undefined) };
 
     await precacheShell(cache, SHELL);
 
-    expect(cache.addAll).toHaveBeenCalledWith(["/index.html", "/assets/index.js"]);
+    expect(cache.put).toHaveBeenCalledTimes(2);
+    expect(cache.put).toHaveBeenCalledWith("/index.html", expect.any(Response));
+    expect(cache.put).toHaveBeenCalledWith("/assets/index.js", expect.any(Response));
+  });
+
+  // The regression test for issue #93's second bug: `cache.addAll()` is
+  // all-or-nothing, so one bad URL used to reject the entire install and the
+  // worker never activated — with no visible symptom beyond
+  // `navigator.serviceWorker.controller` silently staying null. Caching
+  // entries individually means this can no longer happen.
+  it("does not reject, and still caches the other entries, when one URL fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) =>
+        url === "/index.html"
+          ? Promise.resolve(new Response("not found", { status: 404 }))
+          : Promise.resolve(new Response("ok")),
+      ),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const cache = { put: vi.fn().mockResolvedValue(undefined) };
+
+    await expect(precacheShell(cache, SHELL)).resolves.toBeUndefined();
+
+    expect(cache.put).toHaveBeenCalledTimes(1);
+    expect(cache.put).toHaveBeenCalledWith("/assets/index.js", expect.any(Response));
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("/index.html"),
+      expect.anything(),
+    );
+  });
+
+  it("does not reject, and still caches the other entries, when one fetch throws outright", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) =>
+        url === "/index.html" ? Promise.reject(new Error("network down")) : Promise.resolve(new Response("ok")),
+      ),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const cache = { put: vi.fn().mockResolvedValue(undefined) };
+
+    await expect(precacheShell(cache, SHELL)).resolves.toBeUndefined();
+
+    expect(cache.put).toHaveBeenCalledTimes(1);
+    expect(cache.put).toHaveBeenCalledWith("/assets/index.js", expect.any(Response));
   });
 });

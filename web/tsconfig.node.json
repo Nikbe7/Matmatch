@@ -2,7 +2,10 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "es2023",
-    "lib": ["ES2023"],
+    // DOM is only needed here for e2e/**: Playwright's page.evaluate() callbacks
+    // type-check against the browser lib (e.g. Navigator.serviceWorker below).
+    // vite.config.ts and precache.test.ts don't use it either way.
+    "lib": ["ES2023", "DOM"],
     "types": ["node"],
     "skipLibCheck": true,
 
@@ -19,5 +22,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "src/precache.test.ts"]
+  "include": ["vite.config.ts", "src/precache.test.ts", "playwright.config.ts", "e2e/**/*.ts"]
 }

@@ -47,11 +47,37 @@ export function isApiRequest(url: URL): boolean {
   return url.pathname.startsWith("/api/");
 }
 
+/**
+ * Caches every shell file individually rather than via `cache.addAll()`,
+ * which is all-or-nothing per spec: if any single fetch fails or returns a
+ * non-2xx response, the *entire* install is rejected, the worker never
+ * activates, and nothing about why shows up anywhere but the (easy to miss)
+ * service worker console — the actual root cause of issue #93's second
+ * bug, where the worker silently stayed uninstalled and the browser's own
+ * `Cache.addAll` behavior meant one bad entry could take down offline
+ * support entirely. Caching entries one at a time means a single failing
+ * URL degrades offline coverage for that one file instead of for the whole
+ * app, and the failure is both logged and observable in a test.
+ */
 export async function precacheShell(
-  cache: Pick<Cache, "addAll">,
+  cache: Pick<Cache, "put">,
   manifest: readonly PrecacheEntry[],
 ): Promise<void> {
-  await cache.addAll(manifest.map((entry) => entry.url));
+  const results = await Promise.allSettled(
+    manifest.map(async (entry) => {
+      const response = await fetch(entry.url);
+      if (!response.ok) {
+        throw new Error(`${entry.url}: HTTP ${response.status}`);
+      }
+      await cache.put(entry.url, response);
+    }),
+  );
+
+  for (const [index, result] of results.entries()) {
+    if (result.status === "rejected") {
+      console.error(`[sw] failed to precache "${manifest[index]!.url}":`, result.reason);
+    }
+  }
 }
 
 /** Deletes every cache this service worker owns except the current one. */
@@ -72,6 +98,19 @@ export async function evictOldCaches(
  * `/api/*`, and — for a navigation that fails outright, i.e. offline — a
  * fallback to the cached shell so a reload opens the app instead of the
  * browser's own offline error page.
+ *
+ * `{ ignoreVary: true }` on both `cache.match()` calls below is load-bearing,
+ * not a style choice — this was the actual cause of issue #93's white
+ * screen. The dev/preview server sends `Vary: Origin` on every response, and
+ * a `<script type="module" crossorigin>` fetch (mode "cors", a real
+ * browser-set `Origin` header no script can see or reproduce) does not
+ * Vary-match against a precached entry whose key was recorded without one —
+ * so a plain `cache.match(request)` silently misses on exactly the app's own
+ * main bundle while still hitting on `<link>`-loaded assets (no
+ * `crossorigin`, no CORS mode, no mismatch). Precached, content-hashed shell
+ * files are never meant to vary by request headers at all — a hash-named
+ * file has exactly one valid response — so ignoring Vary here is correct,
+ * not just a workaround for one server's headers.
  */
 export async function handleFetch(request: Request, cache: Pick<Cache, "match">): Promise<Response> {
   const url = new URL(request.url);
@@ -80,14 +119,14 @@ export async function handleFetch(request: Request, cache: Pick<Cache, "match">)
     return fetch(request);
   }
 
-  const cached = await cache.match(request);
+  const cached = await cache.match(request, { ignoreVary: true });
   if (cached) return cached;
 
   try {
     return await fetch(request);
   } catch (err) {
     if (request.mode === "navigate") {
-      const shell = await cache.match("/index.html");
+      const shell = await cache.match("/index.html", { ignoreVary: true });
       if (shell) return shell;
     }
     throw err;
@@ -130,12 +169,28 @@ if (typeof self !== "undefined" && "clients" in worker) {
       caches
         .open(CACHE_NAME)
         .then((cache) => precacheShell(cache, manifest))
-        .then(() => worker.skipWaiting()),
+        .then(() => worker.skipWaiting())
+        // precacheShell() itself never rejects on a single bad entry (see its
+        // own doc comment) — this catches anything else unexpected (e.g.
+        // caches.open() itself failing) so an install failure is never
+        // silent, logs it, and still fails the install so a genuinely broken
+        // worker doesn't get promoted to "activated".
+        .catch((error: unknown) => {
+          console.error("[sw] install failed:", error);
+          throw error;
+        }),
     );
   });
 
   worker.addEventListener("activate", (event) => {
-    event.waitUntil(evictOldCaches(caches, CACHE_NAME).then(() => worker.clients?.claim()));
+    event.waitUntil(
+      evictOldCaches(caches, CACHE_NAME)
+        .then(() => worker.clients?.claim())
+        .catch((error: unknown) => {
+          console.error("[sw] activate failed:", error);
+          throw error;
+        }),
+    );
   });
 
   worker.addEventListener("fetch", (event) => {
