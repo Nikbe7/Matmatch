@@ -4,17 +4,21 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
-// Regression test for issue #93's white-screen bug: the service worker
-// precached the app shell's HTML but not its main JS bundle, so an offline
-// reload showed a blank page instead of the app. The mechanism that was
-// suspected — workbox injectManifest's default 2 MiB precache-file-size cap
-// silently dropping an oversized entry, with no build warning — turned out
-// not to be the actual cause (the bundle is ~408 KiB), but the failure mode
-// itself (an asset the shell needs at startup missing from the precache
-// list, for *any* reason: size cap, a glob pattern gap, a future build tool
-// change) is exactly what this guards against. This runs a real production
-// build and cross-checks every script/stylesheet dist/index.html actually
-// loads against the manifest injected into dist/sw.js.
+// Guards a failure class that came up while investigating issue #93's
+// white-screen bug, not the bug's actual cause: an early hypothesis was that
+// workbox injectManifest's default 2 MiB precache-file-size cap was silently
+// dropping the JS bundle from the manifest. That was ruled out (the bundle
+// is ~408 KiB, comfortably under the cap, and was genuinely present in
+// dist/sw.js) — the real cause was a `Vary: Origin` cache-match miss at
+// *runtime* despite a correct manifest, fixed in sw.ts's handleFetch and
+// covered by sw.test.ts and web/e2e/offline.spec.ts (see DECISION_LOG
+// 2026-08-07). This test stays because the hypothesis, even though wrong
+// here, is a real failure mode worth guarding against on its own: an asset
+// the shell needs at startup missing from the precache manifest, for any
+// reason (size cap, a glob pattern gap, a future build tool change). It runs
+// a real production build and cross-checks every script/stylesheet
+// dist/index.html actually loads against the manifest injected into
+// dist/sw.js.
 
 const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
