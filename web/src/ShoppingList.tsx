@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { ApiError, fetchInstructions, type TonightResult } from "./api";
 import {
   clearShoppingList,
@@ -9,6 +9,8 @@ import {
   type ShoppingListSection,
   type StoredShoppingList,
 } from "./shoppingListStorage";
+import { Button } from "./components/Button";
+import { Card } from "./components/Card";
 
 // The shopping list for an accepted Tonight suggestion. Deliberately no fetch here
 // at all — everything it needs (the result, the portions count) arrives as props,
@@ -24,8 +26,6 @@ export function formatPortions(portions: number): string {
   const display = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   return `För ${display} portioner`;
 }
-
-const boughtStyle: CSSProperties = { textDecoration: "line-through", opacity: 0.5 };
 
 interface IndexedItem extends ShoppingListItem {
   index: number;
@@ -86,9 +86,9 @@ function Instructions({
   }, [accessToken, templateId, attempt]);
 
   return (
-    <section>
+    <section className="card">
       <h3>Så här gör du</h3>
-      {state.status === "loading" && <p>Skapar instruktioner…</p>}
+      {state.status === "loading" && <p className="muted">Skapar instruktioner…</p>}
       {state.status === "ready" && (
         <ol>
           {state.steps.map((step, index) => (
@@ -99,9 +99,9 @@ function Instructions({
       {state.status === "failed" && (
         <div>
           <p>Det gick inte att skapa instruktioner just nu.</p>
-          <button type="button" onClick={() => setAttempt((n) => n + 1)}>
+          <Button type="button" variant="secondary" onClick={() => setAttempt((n) => n + 1)}>
             Försök igen
-          </button>
+          </Button>
         </div>
       )}
     </section>
@@ -147,16 +147,16 @@ export function ShoppingList({
   const haveAtHome = withIndex(items).filter((item) => item.section === "have_at_home");
 
   return (
-    <div>
+    <Card>
       <h2>{result.template.name}</h2>
       <p>{formatPortions(portions)}</p>
 
-      <section>
+      <section className="list-section">
         <h3>Att köpa ({toBuy.length})</h3>
         <ul>
           {toBuy.map((item) => (
-            <li key={item.index}>
-              <label style={item.bought ? boughtStyle : undefined}>
+            <li key={item.index} className="list-row">
+              <label className={item.bought ? "checkbox-label bought" : "checkbox-label"}>
                 <input
                   type="checkbox"
                   checked={item.bought}
@@ -164,23 +164,27 @@ export function ShoppingList({
                 />
                 {item.name}
               </label>
-              <button type="button" onClick={() => moveTo(item.index, "have_at_home")}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => moveTo(item.index, "have_at_home")}
+              >
                 Har hemma
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
       </section>
 
-      <section>
+      <section className="list-section">
         <h3>Har hemma ({haveAtHome.length})</h3>
         <ul>
           {haveAtHome.map((item) => (
-            <li key={item.index}>
+            <li key={item.index} className="list-row">
               {item.name}
-              <button type="button" onClick={() => moveTo(item.index, "to_buy")}>
+              <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
                 Att köpa
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -188,10 +192,10 @@ export function ShoppingList({
 
       <Instructions accessToken={accessToken} templateId={result.template.id} substitutions={result.substitutions} />
 
-      <button type="button" onClick={handleNewSuggestion}>
+      <Button type="button" variant="primary" onClick={handleNewSuggestion}>
         Ny förslag
-      </button>
-    </div>
+      </Button>
+    </Card>
   );
 }
 
@@ -224,16 +228,16 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
   const haveAtHome = withIndex(items).filter((item) => item.section === "have_at_home");
 
   return (
-    <div>
+    <Card>
       <h2>Inköpslista</h2>
       <p role="status">Ingen anslutning — visar din sparade inköpslista.</p>
 
-      <section>
+      <section className="list-section">
         <h3>Att köpa ({toBuy.length})</h3>
         <ul>
           {toBuy.map((item) => (
-            <li key={item.index}>
-              <label style={item.bought ? boughtStyle : undefined}>
+            <li key={item.index} className="list-row">
+              <label className={item.bought ? "checkbox-label bought" : "checkbox-label"}>
                 <input
                   type="checkbox"
                   checked={item.bought}
@@ -241,27 +245,31 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
                 />
                 {item.name}
               </label>
-              <button type="button" onClick={() => moveTo(item.index, "have_at_home")}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => moveTo(item.index, "have_at_home")}
+              >
                 Har hemma
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
       </section>
 
-      <section>
+      <section className="list-section">
         <h3>Har hemma ({haveAtHome.length})</h3>
         <ul>
           {haveAtHome.map((item) => (
-            <li key={item.index}>
+            <li key={item.index} className="list-row">
               {item.name}
-              <button type="button" onClick={() => moveTo(item.index, "to_buy")}>
+              <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
                 Att köpa
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
       </section>
-    </div>
+    </Card>
   );
 }

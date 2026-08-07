@@ -93,7 +93,7 @@ describe("ShoppingList", () => {
     expect(screen.getByRole("heading", { name: "Har hemma (0)" })).toBeTruthy();
 
     const label = row.querySelector("label")!;
-    expect(label.style.textDecoration).toBe("line-through");
+    expect(label.className).toContain("bought");
   });
 
   it("restores sections and check marks on remount (simulated reload)", async () => {

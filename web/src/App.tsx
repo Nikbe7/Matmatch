@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type FormEvent,
-} from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import {
@@ -23,6 +17,9 @@ import { OfflineShoppingList, ShoppingList } from "./ShoppingList";
 import { loadAnyShoppingList, loadShoppingList } from "./shoppingListStorage";
 import { setAnalyticsSink, track } from "./analytics";
 import { createHttpAnalyticsSink } from "./analyticsSink";
+import { Button } from "./components/Button";
+import { Card } from "./components/Card";
+import { Chip } from "./components/Chip";
 import {
   INITIAL_REFINEMENT,
   MAX_WEIGHT_LEVEL,
@@ -132,52 +129,52 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSignIn}>
-      <h1>Matmatch</h1>
-      <div>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
-        </label>
-      </div>
-      <div>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            minLength={6}
-          />
-        </label>
-      </div>
-      <button type="submit" disabled={busy}>
-        Sign in
-      </button>
-      <button type="button" disabled={busy} onClick={handleSignUp}>
-        Sign up
-      </button>
-      {error && <p role="alert">{error}</p>}
-    </form>
+    <Card>
+      <form onSubmit={handleSignIn}>
+        <h1>Matmatch</h1>
+        <div className="field">
+          <label>
+            Email
+            <input
+              className="input"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </label>
+        </div>
+        <div className="field">
+          <label>
+            Password
+            <input
+              className="input"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={6}
+            />
+          </label>
+        </div>
+        <Button type="submit" variant="primary" disabled={busy}>
+          Sign in
+        </Button>{" "}
+        <Button type="button" variant="secondary" disabled={busy} onClick={handleSignUp}>
+          Sign up
+        </Button>
+        {error && (
+          <p role="alert" className="error-text">
+            {error}
+          </p>
+        )}
+      </form>
+    </Card>
   );
 }
 
 function toggleValue<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
-}
-
-// aria-pressed alone carries no default browser styling — a selected chip must be
-// visibly distinct, not just programmatically marked, for a tap-first UI.
-function chipStyle(pressed: boolean): CSSProperties {
-  return pressed
-    ? { fontWeight: "bold", background: "#333", color: "#fff" }
-    : { fontWeight: "normal" };
 }
 
 function emptyMember(type: HouseholdMemberType): HouseholdMember {
@@ -227,82 +224,96 @@ function OnboardingForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Skapa hushåll</h2>
-      <fieldset>
-        <legend>Medlemmar</legend>
-        {members.map((member, index) => (
-          <div key={index}>
-            <label>
-              Typ
-              <select
-                value={member.type}
-                onChange={(event) =>
-                  updateMember(index, { type: event.target.value as HouseholdMemberType })
-                }
+    <Card>
+      <form onSubmit={handleSubmit}>
+        <h2>Skapa hushåll</h2>
+        <fieldset>
+          <legend>Medlemmar</legend>
+          {members.map((member, index) => (
+            <div className="member-row" key={index}>
+              <label className="field">
+                Typ
+                <select
+                  className="input"
+                  value={member.type}
+                  onChange={(event) =>
+                    updateMember(index, { type: event.target.value as HouseholdMemberType })
+                  }
+                >
+                  <option value="adult">Vuxen</option>
+                  <option value="child">Barn</option>
+                </select>
+              </label>
+              <label className="field">
+                Portionsstorlek
+                <input
+                  className="input"
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  value={member.portion_factor}
+                  onChange={(event) =>
+                    updateMember(index, { portion_factor: Number(event.target.value) })
+                  }
+                  required
+                />
+              </label>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => removeMember(index)}
+                disabled={members.length <= 1}
               >
-                <option value="adult">Vuxen</option>
-                <option value="child">Barn</option>
-              </select>
-            </label>
-            <label>
-              Portionsstorlek
-              <input
-                type="number"
-                step="0.1"
-                min="0.1"
-                value={member.portion_factor}
-                onChange={(event) =>
-                  updateMember(index, { portion_factor: Number(event.target.value) })
-                }
-                required
-              />
-            </label>
-            <button type="button" onClick={() => removeMember(index)} disabled={members.length <= 1}>
-              Ta bort
-            </button>
+                Ta bort
+              </Button>
+            </div>
+          ))}
+          <Button type="button" variant="secondary" onClick={addMember}>
+            Lägg till medlem
+          </Button>
+        </fieldset>
+
+        <fieldset>
+          <legend>Kostpreferenser</legend>
+          <div className="chip-row">
+            {DIETARY_FLAGS.map((flag) => (
+              <Chip
+                key={flag}
+                pressed={dietaryFlags.includes(flag)}
+                onClick={() => setDietaryFlags((current) => toggleValue(current, flag))}
+              >
+                {DIETARY_FLAG_LABELS[flag]}
+              </Chip>
+            ))}
           </div>
-        ))}
-        <button type="button" onClick={addMember}>
-          Lägg till medlem
-        </button>
-      </fieldset>
+        </fieldset>
 
-      <fieldset>
-        <legend>Kostpreferenser</legend>
-        {DIETARY_FLAGS.map((flag) => (
-          <button
-            type="button"
-            key={flag}
-            aria-pressed={dietaryFlags.includes(flag)}
-            style={chipStyle(dietaryFlags.includes(flag))}
-            onClick={() => setDietaryFlags((current) => toggleValue(current, flag))}
-          >
-            {DIETARY_FLAG_LABELS[flag]}
-          </button>
-        ))}
-      </fieldset>
+        <fieldset className="allergy-group">
+          <legend>Allergier</legend>
+          <div className="chip-row">
+            {ALLERGIES.map((allergy) => (
+              <Chip
+                key={allergy}
+                variant="danger"
+                pressed={allergies.includes(allergy)}
+                onClick={() => setAllergies((current) => toggleValue(current, allergy))}
+              >
+                {ALLERGY_LABELS[allergy]}
+              </Chip>
+            ))}
+          </div>
+        </fieldset>
 
-      <fieldset>
-        <legend>Allergier</legend>
-        {ALLERGIES.map((allergy) => (
-          <button
-            type="button"
-            key={allergy}
-            aria-pressed={allergies.includes(allergy)}
-            style={chipStyle(allergies.includes(allergy))}
-            onClick={() => setAllergies((current) => toggleValue(current, allergy))}
-          >
-            {ALLERGY_LABELS[allergy]}
-          </button>
-        ))}
-      </fieldset>
-
-      <button type="submit" disabled={busy}>
-        Spara hushåll
-      </button>
-      {error && <p role="alert">{error}</p>}
-    </form>
+        <Button type="submit" variant="primary" disabled={busy}>
+          Spara hushåll
+        </Button>
+        {error && (
+          <p role="alert" className="error-text">
+            {error}
+          </p>
+        )}
+      </form>
+    </Card>
   );
 }
 
@@ -326,16 +337,14 @@ function LevelChip({
 }) {
   const atMax = level >= MAX_WEIGHT_LEVEL;
   return (
-    <button
-      type="button"
-      aria-pressed={level > 0}
+    <Chip
+      pressed={level > 0}
       aria-label={`${label}, nivå ${level} av ${MAX_WEIGHT_LEVEL}${atMax ? ", högsta nivån" : ""}`}
-      style={chipStyle(level > 0)}
       onClick={onTap}
       disabled={disabled}
     >
       {label} <span aria-hidden="true">{levelMeter(level)}</span>
-    </button>
+    </Chip>
   );
 }
 
@@ -363,11 +372,7 @@ function AdjustmentChips({
   onReset: () => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label="Justera förslaget"
-      style={{ display: "flex", gap: "0.5rem", overflowX: "auto" }}
-    >
+    <div role="group" aria-label="Justera förslaget" className="chip-row">
       <LevelChip
         label="Billigare"
         level={weightLevel(refinement, "cost")}
@@ -380,15 +385,15 @@ function AdjustmentChips({
         onTap={() => onIncrement("time")}
         disabled={busy}
       />
-      <button type="button" onClick={onOtherCuisine} disabled={busy}>
+      <Chip onClick={onOtherCuisine} disabled={busy}>
         Annat kök
-      </button>
-      <button type="button" onClick={onSomethingElse} disabled={busy}>
+      </Chip>
+      <Chip onClick={onSomethingElse} disabled={busy}>
         Något annat
-      </button>
-      <button type="button" onClick={onReset} disabled={busy}>
+      </Chip>
+      <Chip onClick={onReset} disabled={busy}>
         Återställ
-      </button>
+      </Chip>
     </div>
   );
 }
@@ -419,7 +424,7 @@ function SuggestionCard({
   onMarkCooked: () => void;
 }) {
   return (
-    <div>
+    <Card>
       <h3>{result.template.name}</h3>
       <p>
         <span role="img" aria-label={costTierLabel(result.template.cost_tier)}>
@@ -435,15 +440,23 @@ function SuggestionCard({
           </li>
         ))}
       </ul>
-      <button type="button" onClick={onAccept}>
+      <Button type="button" variant="primary" onClick={onAccept}>
         Acceptera
-      </button>
-      <button type="button" onClick={onMarkCooked} disabled={cooked || marking}>
+      </Button>{" "}
+      <Button type="button" variant="secondary" onClick={onMarkCooked} disabled={cooked || marking}>
         Lagad ikväll
-      </button>
-      {cooked && <p role="status">Lagad ✓</p>}
-      {error && <p role="alert">{error}</p>}
-    </div>
+      </Button>
+      {cooked && (
+        <p role="status" className="status-line">
+          Lagad ✓
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="error-text">
+          {error}
+        </p>
+      )}
+    </Card>
   );
 }
 
@@ -643,17 +656,21 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
   return (
     <div>
       <h2>Ikväll</h2>
-      {nextError && <p role="alert">{nextError}</p>}
+      {nextError && (
+        <p role="alert" className="error-text">
+          {nextError}
+        </p>
+      )}
       {result === null && current.reason === "no_more_suggestions" && (
         // Recoverable, never a dead end (UX_FLOW §9): the household has safe
         // options left, it has just excluded all of them this session, so the way
         // out is the same "Återställ" the chip row offers.
-        <div>
+        <Card>
           <p>Du har sett allt vi har för ikväll</p>
-          <button type="button" onClick={handleReset} disabled={fetchingNext}>
+          <Button type="button" variant="primary" onClick={handleReset} disabled={fetchingNext}>
             Återställ
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
       {result === null && current.reason !== "no_more_suggestions" && (
         <pre>{`no result: ${current.reason}`}</pre>
@@ -679,7 +696,7 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
             onSomethingElse={handleSomethingElse}
             onReset={handleReset}
           />
-          {fetchingNext && <p>Hämtar…</p>}
+          {fetchingNext && <p className="muted">Hämtar…</p>}
         </>
       )}
       {result !== null && state.status === "shopping" && (
@@ -747,22 +764,22 @@ function Gate({ session }: { session: Session }) {
 
   return (
     <div>
-      <p>
-        Signed in as {session.user.email}{" "}
-        <button type="button" onClick={() => supabase.auth.signOut()}>
+      <div className="list-row">
+        <span className="muted">Signed in as {session.user.email}</span>
+        <Button type="button" variant="secondary" onClick={() => supabase.auth.signOut()}>
           Sign out
-        </button>
-      </p>
-      {state.status === "checking" && <p>Loading…</p>}
+        </Button>
+      </div>
+      {state.status === "checking" && <p className="muted">Loading…</p>}
       {state.status === "error" && <pre>{`error: ${state.code}\n${state.message}`}</pre>}
       {state.status === "offline" && state.list && <OfflineShoppingList list={state.list} />}
       {state.status === "offline" && !state.list && (
-        <div>
+        <Card>
           <p role="status">Ingen anslutning. Anslut till internet för att komma igång.</p>
-          <button type="button" onClick={() => setRetryCount((n) => n + 1)}>
+          <Button type="button" variant="primary" onClick={() => setRetryCount((n) => n + 1)}>
             Försök igen
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
       {state.status === "no_household" && (
         <OnboardingForm session={session} onCreated={handleCreated} />
@@ -814,9 +831,9 @@ function InstallButton() {
   if (!canInstall) return null;
 
   return (
-    <button type="button" onClick={() => void install()}>
+    <Button type="button" variant="secondary" onClick={() => void install()}>
       Installera appen
-    </button>
+    </Button>
   );
 }
 
