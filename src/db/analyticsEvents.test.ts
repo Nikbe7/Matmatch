@@ -70,10 +70,30 @@ describe.skipIf(!stackAvailable)("analytics_events repository (local Supabase)",
       },
     ]);
 
+    // Both rows land in the same insert statement, so server_timestamp — a
+    // timestamptz default of now() — is not a stable tiebreaker between them;
+    // nothing in production reads this table yet (the migration's own comment:
+    // "the only reader today is a psql query"), so no ordering guarantee exists
+    // to assert on. Compared as a set, keyed by event_name, which is distinct
+    // within this batch.
     const rows = await readHouseholdEvents(userId, householdId);
-    expect(rows.map((row) => row.event_name)).toEqual(["refinement_chip_tap", "meal_cooked"]);
-    expect(rows[0]!.payload).toEqual({ chip: "cheaper", weights: { cost: 1, time: 0 }, rerollDepth: 0 });
-    expect(rows[0]!.client_timestamp.toISOString()).toBe(clientTimestamp.toISOString());
+    expect(new Set(rows.map((row) => row.event_name))).toEqual(
+      new Set(["refinement_chip_tap", "meal_cooked"]),
+    );
+
+    const byName = new Map(rows.map((row) => [row.event_name, row]));
+    expect(byName.get("refinement_chip_tap")!.payload).toEqual({
+      chip: "cheaper",
+      weights: { cost: 1, time: 0 },
+      rerollDepth: 0,
+    });
+    expect(byName.get("refinement_chip_tap")!.client_timestamp.toISOString()).toBe(
+      clientTimestamp.toISOString(),
+    );
+    expect(byName.get("meal_cooked")!.payload).toEqual({
+      templateId: "kycklinggryta",
+      rerollDepth: 2,
+    });
   });
 
   it("stores an event with an empty payload", async () => {
