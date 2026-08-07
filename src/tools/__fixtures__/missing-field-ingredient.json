@@ -4,7 +4,7 @@
     "name": "Tomat",
     "category": "vegetable",
     "default_cost_tier": "mid",
-    "peak_months": [7, 8],
+    "peak_months": [],
     "available_year_round": true
   }
 ]

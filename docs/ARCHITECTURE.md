@@ -121,9 +121,11 @@ Locked against a 30-ingredient spot-check spanning proteins, vegetables, dairy, 
 - `premium` — premium or import-heavy (entrecôte, oxfilé, shrimp, out-of-season specialty produce)
 
 **Seasonality fields:**
-- `peak_months` (int[], 1-12) — months of peak quality/value; empty if not meaningfully seasonal
-- `available_year_round` (boolean) — whether the ingredient is reliably purchasable outside its peak (true for most staples via storage or import; false for a handful of genuinely peak-only items)
-- `seasonality_strength` (`strong` / `weak`, only meaningful when `peak_months` is non-empty) — `strong` means quality/price swing noticeably outside peak (tomatoes, cucumbers, bell peppers, mostly imported); `weak` means available and decent year-round but cheaper/better in peak months (potatoes, carrots, apples — store well domestically)
+- `peak_months` (int[], 1-12) — months this ingredient is at its best and cheapest **in Swedish retail**, not months it merely happens to be importable (a Swedish shop stocks imported tomatoes in February; `tomat`'s `peak_months` is `[7,8,9]`, when the Swedish-grown, cheap, good version is around)
+- `available_year_round` (boolean) — whether the ingredient has no meaningful Swedish-retail peak at all: staples (rice, dairy, most meat), pantry goods, and imports with no Swedish growing season (citrus, bananas, bell peppers)
+- `seasonality_strength` (`strong` / `weak`) — how sharp the quality/price swing is between peak and off-peak for a genuinely seasonal ingredient; `strong` for a hard, narrow window (sparris, jordgubbar, nypotatis); `weak` for a softer swing, often because imports partially fill the gap (tomat, gurka, äpple)
+
+`available_year_round` and `peak_months` are mutually exclusive, enforced by `IngredientSchema` (`src/schema/ingredient.ts`): `available_year_round: true` requires an empty `peak_months`, and `false` requires at least one entry. There is no third state for "year-round but better in peak months" — an ingredient is either a staple with no meaningful Swedish-retail peak, or seasonal with a real window; see DECISION_LOG 2026-08-07 (#50) for why that split was chosen over letting both fields carry information at once.
 
 Chosen over a single `seasonality_tags[]` string array so the Meal Engine can directly compute "in season now" and distinguish a hard seasonal cutoff from a soft price/quality signal, without string-matching a loosely-defined tag vocabulary.
 
