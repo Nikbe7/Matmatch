@@ -2,6 +2,7 @@ import type { CandidateTemplate } from "../engine/candidates.js";
 import type { EngineData } from "../engine/data.js";
 import type { Direction } from "../engine/directions.js";
 import { effectiveIngredientIds } from "../engine/ranking.js";
+import type { Allergy } from "../schema/allergyDietary.js";
 import type { IngredientCategory } from "../schema/ingredient.js";
 import { HttpError } from "./httpError.js";
 import { buildTonightIngredients, type TonightIngredientView } from "./tonightIngredients.js";
@@ -99,6 +100,48 @@ export function buildPantryIngredientOptions(
   candidates: readonly CandidateTemplate[],
 ): IngredientOption[] {
   return buildOptions(data, candidates, PANTRY_CATEGORIES, PANTRY_GRID_SIZE);
+}
+
+export interface ExcludedIngredientOption extends IngredientOption {
+  /** Which of the household's own allergies excludes this ingredient. */
+  allergies: Allergy[];
+}
+
+/**
+ * Protein-category catalog ingredients that a fish- or nut-allergic household
+ * cannot eat, for the step-2 filter's "why nothing matched" explanation
+ * (requirement 4 of the type-to-filter issue). Read-only display data — it must
+ * never widen what a household can actually select, so the filter itself keeps
+ * matching against `buildMainIngredientOptions`'s safe set and only consults this
+ * list to explain a miss.
+ *
+ * Limited to `verified` allergen rows on purpose. An unverified or missing row is
+ * treated as containing every allergen for filtering (§5.4's fail-safe rule in
+ * allergens.ts), but that is a "we don't know" default, not a fact about the
+ * ingredient — naming it as the cause here would assert something we don't
+ * actually know. Every protein in the catalog is verified today (see
+ * data/ingredient-allergens.json), so this only ever narrows an already-empty set.
+ */
+export function buildExcludedMainIngredients(
+  data: EngineData,
+  allergies: readonly Allergy[],
+): ExcludedIngredientOption[] {
+  if (allergies.length === 0) return [];
+
+  const excluded: ExcludedIngredientOption[] = [];
+  for (const ingredient of data.ingredientsById.values()) {
+    if (ingredient.category !== "protein") continue;
+
+    const mapping = data.allergenMappingByIngredientId.get(ingredient.id);
+    if (!mapping || mapping.verification_status !== "verified") continue;
+
+    const causes = allergies.filter((allergy) => mapping.allergens.includes(allergy));
+    if (causes.length === 0) continue;
+
+    excluded.push({ id: ingredient.id, name: ingredient.name, allergies: causes });
+  }
+
+  return excluded.sort((a, b) => (a.id < b.id ? -1 : 1));
 }
 
 export interface GuidedIngredientView extends TonightIngredientView {

@@ -3,6 +3,7 @@
 // bearer token from the caller — it never touches the Supabase client or storage
 // itself.
 
+import type { Allergy } from "../../src/schema/allergyDietary";
 import type { Household } from "../../src/schema/household";
 import type { CostTier } from "../../src/schema/ingredient";
 import type { Cuisine, IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
@@ -133,9 +134,19 @@ export interface IngredientOption {
   name: string;
 }
 
+/**
+ * A catalog ingredient the step-2 filter can match by name but the household
+ * cannot select, because it is excluded by one of its own declared allergies —
+ * the basis for the "why nothing matched" explanation rather than a bare miss.
+ */
+export interface ExcludedIngredientOption extends IngredientOption {
+  allergies: Allergy[];
+}
+
 export interface GuidedOptions {
   mainIngredients: IngredientOption[];
   pantryIngredients: IngredientOption[];
+  excludedMainIngredients: ExcludedIngredientOption[];
 }
 
 export interface GuidedIngredient extends TonightIngredient {
