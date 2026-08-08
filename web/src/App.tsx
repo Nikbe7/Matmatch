@@ -372,7 +372,7 @@ function AdjustmentChips({
   onReset: () => void;
 }) {
   return (
-    <div role="group" aria-label="Justera förslaget" className="chip-row">
+    <div role="group" aria-label="Justera förslaget" className="chip-row tonight-group__chips">
       <LevelChip
         label="Billigare"
         level={weightLevel(refinement, "cost")}
@@ -424,15 +424,15 @@ function SuggestionCard({
   onMarkCooked: () => void;
 }) {
   return (
-    <Card>
-      <h3>{result.template.name}</h3>
-      <p>
+    <Card className="suggestion-card">
+      <h3 className="suggestion-card__name">{result.template.name}</h3>
+      <p className="suggestion-card__meta">
         <span role="img" aria-label={costTierLabel(result.template.cost_tier)}>
           <span aria-hidden="true">{costTierMeter(result.template.cost_tier)}</span>
         </span>{" "}
         · {PREP_TIME_LABELS[result.template.prep_time_band]}
       </p>
-      <ul>
+      <ul className="suggestion-card__ingredients">
         {result.ingredients.map((ingredient, index) => (
           <li key={index}>
             {INGREDIENT_ROLE_LABELS[ingredient.role]}: {ingredient.name}
@@ -440,12 +440,20 @@ function SuggestionCard({
           </li>
         ))}
       </ul>
-      <Button type="button" variant="primary" onClick={onAccept}>
-        Acceptera
-      </Button>{" "}
-      <Button type="button" variant="secondary" onClick={onMarkCooked} disabled={cooked || marking}>
-        Lagad ikväll
-      </Button>
+      <div className="suggestion-card__actions">
+        <Button type="button" variant="primary" onClick={onAccept}>
+          Acceptera
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          className="suggestion-card__cooked"
+          onClick={onMarkCooked}
+          disabled={cooked || marking}
+        >
+          Lagad ikväll
+        </Button>
+      </div>
       {cooked && (
         <p role="status" className="status-line">
           Lagad ✓
@@ -456,6 +464,26 @@ function SuggestionCard({
           {error}
         </p>
       )}
+    </Card>
+  );
+}
+
+/**
+ * Stands in for the Tonight card while the first fetch is in flight, sized to
+ * roughly the same footprint as the real card so nothing jumps once it resolves
+ * (requirement 5 — no spinner on a blank screen). Purely decorative, so it's
+ * hidden from assistive tech; the loading state is still announced via text.
+ */
+function SuggestionCardSkeleton() {
+  return (
+    <Card className="suggestion-card skeleton-card" aria-hidden="true">
+      <div className="skeleton-line skeleton-line--title" />
+      <div className="skeleton-line skeleton-line--meta" />
+      <div className="skeleton-card__rows">
+        <div className="skeleton-line skeleton-line--row" />
+        <div className="skeleton-line skeleton-line--row" />
+      </div>
+      <div className="skeleton-line skeleton-line--button" />
     </Card>
   );
 }
@@ -655,7 +683,7 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
 
   return (
     <div>
-      <h2>Ikväll</h2>
+      <h2 className="tonight-kicker">Ikväll</h2>
       {nextError && (
         <p role="alert" className="error-text">
           {nextError}
@@ -665,7 +693,7 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
         // Recoverable, never a dead end (UX_FLOW §9): the household has safe
         // options left, it has just excluded all of them this session, so the way
         // out is the same "Återställ" the chip row offers.
-        <Card>
+        <Card className="state-card">
           <p>Du har sett allt vi har för ikväll</p>
           <Button type="button" variant="primary" onClick={handleReset} disabled={fetchingNext}>
             Återställ
@@ -673,30 +701,34 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
         </Card>
       )}
       {result === null && current.reason !== "no_more_suggestions" && (
-        <pre>{`no result: ${current.reason}`}</pre>
+        <Card className="state-card">
+          <pre className="error-text">{`no result: ${current.reason}`}</pre>
+        </Card>
       )}
       {result !== null && state.status === "suggestion" && (
         <>
-          <SuggestionCard
-            result={result}
-            cooked={cookedTemplateId === result.template.id}
-            marking={markingCooked}
-            error={cookedError}
-            onAccept={() => {
-              acceptedRef.current = true;
-              setState({ status: "shopping" });
-            }}
-            onMarkCooked={() => void handleMarkCooked()}
-          />
-          <AdjustmentChips
-            refinement={refinement}
-            busy={fetchingNext}
-            onIncrement={handleIncrement}
-            onOtherCuisine={handleOtherCuisine}
-            onSomethingElse={handleSomethingElse}
-            onReset={handleReset}
-          />
-          {fetchingNext && <p className="muted">Hämtar…</p>}
+          <div className="tonight-group">
+            <SuggestionCard
+              result={result}
+              cooked={cookedTemplateId === result.template.id}
+              marking={markingCooked}
+              error={cookedError}
+              onAccept={() => {
+                acceptedRef.current = true;
+                setState({ status: "shopping" });
+              }}
+              onMarkCooked={() => void handleMarkCooked()}
+            />
+            <AdjustmentChips
+              refinement={refinement}
+              busy={fetchingNext}
+              onIncrement={handleIncrement}
+              onOtherCuisine={handleOtherCuisine}
+              onSomethingElse={handleSomethingElse}
+              onReset={handleReset}
+            />
+          </div>
+          {fetchingNext && <p className="muted tonight-fetching">Hämtar…</p>}
         </>
       )}
       {result !== null && state.status === "shopping" && (
@@ -770,11 +802,20 @@ function Gate({ session }: { session: Session }) {
           Sign out
         </Button>
       </div>
-      {state.status === "checking" && <p className="muted">Loading…</p>}
-      {state.status === "error" && <pre>{`error: ${state.code}\n${state.message}`}</pre>}
+      {state.status === "checking" && (
+        <>
+          <p className="muted sr-only">Loading…</p>
+          <SuggestionCardSkeleton />
+        </>
+      )}
+      {state.status === "error" && (
+        <Card className="state-card">
+          <pre className="error-text">{`error: ${state.code}\n${state.message}`}</pre>
+        </Card>
+      )}
       {state.status === "offline" && state.list && <OfflineShoppingList list={state.list} />}
       {state.status === "offline" && !state.list && (
-        <Card>
+        <Card className="state-card">
           <p role="status">Ingen anslutning. Anslut till internet för att komma igång.</p>
           <Button type="button" variant="primary" onClick={() => setRetryCount((n) => n + 1)}>
             Försök igen
