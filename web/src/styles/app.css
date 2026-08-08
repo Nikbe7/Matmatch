@@ -428,3 +428,107 @@ select.input {
   width: 100%;
   height: var(--touch-target);
 }
+
+/* ---------------------------------------------------------------------------
+ * Guided quick-select flow (UX_FLOW §5). Reuses the existing chip, card and
+ * button primitives — the only new shapes here are the ingredient grid and the
+ * portion stepper, both of which are layout rather than new visual language.
+ * --------------------------------------------------------------------------- */
+
+.guided-entry {
+  width: 100%;
+  margin-bottom: var(--space-4);
+}
+
+.guided-header {
+  margin-bottom: var(--space-4);
+}
+
+.guided-back {
+  min-height: var(--touch-target);
+  margin-bottom: var(--space-3);
+}
+
+.guided-title {
+  margin-bottom: var(--space-1);
+}
+
+.guided-hint {
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+}
+
+/* Three columns at 360px keeps every target well above 44px while showing a whole
+   grid without scrolling — a grid that needs scrolling is a list, and a list is one
+   step from the search box §5 rules out. `auto-fit` widens it on larger screens
+   rather than stretching three columns across them. */
+.ingredient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+/* Ingredient names are curated Swedish nouns and some are long compounds
+   ("matlagningsgrädde"). They must wrap inside their cell rather than overflow it —
+   at 360px there is no horizontal room to give, and a clipped ingredient name is an
+   unreadable tap target. */
+.ingredient-grid__item {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  border-radius: var(--radius);
+  padding-inline: var(--space-2);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.guided-action {
+  width: 100%;
+  min-height: var(--touch-target);
+}
+
+.direction-list {
+  margin-bottom: var(--space-4);
+}
+
+.direction-card__name {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-1);
+}
+
+.direction-card__summary {
+  margin-bottom: var(--space-2);
+}
+
+.direction-card__meta {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-2);
+}
+
+.direction-card__covered {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  margin-bottom: var(--space-3);
+}
+
+.portions-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.portions-stepper .btn {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  font-size: var(--font-size-lg);
+}
+
+.portions-value {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}

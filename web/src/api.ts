@@ -121,6 +121,97 @@ export async function fetchTonight(
   return body as TonightResponse;
 }
 
+// ---------------------------------------------------------------------------
+// The guided quick-select flow (UX_FLOW §5). Deterministic end to end: every
+// request below is answered by the Meal Engine over curated data, with no AI call
+// anywhere in the path.
+// ---------------------------------------------------------------------------
+
+/** One tapable option in the main-ingredient or pantry grid. */
+export interface IngredientOption {
+  id: string;
+  name: string;
+}
+
+export interface GuidedOptions {
+  mainIngredients: IngredientOption[];
+  pantryIngredients: IngredientOption[];
+}
+
+export interface GuidedIngredient extends TonightIngredient {
+  /** Something the household said it already has — seeds the "Har hemma" split. */
+  inPantry: boolean;
+}
+
+export interface GuidedDirection {
+  template: TonightResult["template"];
+  ingredients: GuidedIngredient[];
+  substitutions: TonightSubstitution[];
+  /** A deterministic one-liner built from the dish's own ingredients, never generated. */
+  summary: string;
+  score: number;
+}
+
+/**
+ * `reason` is present exactly when `directions` is empty, and says which empty
+ * state to render: `no_directions` (this main ingredient/pantry combination is too
+ * narrow — offer to loosen it) or `no_safe_templates` (the household's own
+ * constraints leave nothing at all). Neither is an error, per UX_FLOW §9.
+ */
+export interface GuidedDirectionsResponse {
+  directions: GuidedDirection[];
+  reason?: string;
+  mainIngredientId: string | null;
+  portions: number;
+}
+
+export async function fetchGuidedOptions(accessToken: string): Promise<GuidedOptions> {
+  const response = await fetch("/api/guided/options", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  const body: unknown = await response.json();
+
+  if (!response.ok) {
+    const { error } = body as ApiErrorEnvelope;
+    throw new ApiError(response.status, error.code, error.message);
+  }
+
+  return body as GuidedOptions;
+}
+
+export interface FetchGuidedDirectionsOptions {
+  intent: string;
+  /** An ingredient id, `auto` ("Föreslå åt mig") or `any` (the §9 loosen path). */
+  main: string;
+  /**
+   * Session-scoped pantry ingredient ids. Sent per request and never stored: this
+   * module holds no pantry state and `shoppingListStorage.ts` never sees an id.
+   */
+  pantry?: readonly string[];
+}
+
+export async function fetchGuidedDirections(
+  accessToken: string,
+  options: FetchGuidedDirectionsOptions,
+): Promise<GuidedDirectionsResponse> {
+  const params = new URLSearchParams({ intent: options.intent, main: options.main });
+  if (options.pantry && options.pantry.length > 0) params.set("pantry", options.pantry.join(","));
+
+  const response = await fetch(`/api/guided/directions?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  const body: unknown = await response.json();
+
+  if (!response.ok) {
+    const { error } = body as ApiErrorEnvelope;
+    throw new ApiError(response.status, error.code, error.message);
+  }
+
+  return body as GuidedDirectionsResponse;
+}
+
 // The Tier 1 cooking-instructions result (issue #78). `instructions` is null on any
 // generation failure — missing key, timeout, invalid AI response — never an error the
 // caller has to catch; `reason` is machine-readable, shown as a fixed Swedish message

@@ -246,8 +246,13 @@ export function recencyPenalty(templateId: string, recency: RecencyContext): num
 /**
  * The ingredient actually eaten in each slot: the substitute where the filtering
  * slice rescued the slot, otherwise the template's own ingredient.
+ *
+ * Exported for `directions.ts`, which asks the same question of a candidate ("what
+ * is actually in this dish") to match a main ingredient and pantry input. One
+ * definition, so a swapped slot can never count as in-season here and as the
+ * original ingredient there.
  */
-function effectiveIngredientIds(candidate: CandidateTemplate): string[] {
+export function effectiveIngredientIds(candidate: CandidateTemplate): string[] {
   const substituteBySlotIndex = new Map(
     candidate.substitutions.map((substitution) => [
       substitution.slot_index,
