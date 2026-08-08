@@ -700,6 +700,76 @@ describe("App — Lagad ikväll", () => {
 // state (issue #93, UX_FLOW §7).
 const offlineFetch = () => vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
 
+describe("App — entering the guided flow", () => {
+  it("opens the guided flow from the Tonight card and comes back", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) {
+        return jsonResponse(200, { mainIngredients: [], pantryIngredients: [] });
+      }
+      return jsonResponse(200, suggestionBody);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Ikväll" });
+
+    await user.click(screen.getByRole("button", { name: "Välj själv" }));
+    await screen.findByRole("heading", { name: "Vad är du sugen på?" });
+
+    await user.click(screen.getByRole("button", { name: "Till ikväll" }));
+    expect(await screen.findByRole("heading", { name: "Ikväll" })).toBeTruthy();
+  });
+
+  it("reopens a guided shopping list left on the device rather than losing it", async () => {
+    // A reload in the shop after choosing a guided direction (UX_FLOW §7). The list
+    // belongs to a dish the Tonight response knows nothing about, so the Tonight card
+    // cannot restore it — the app must land back on it anyway.
+    sessionHolder.current = fakeSession;
+    localStorage.setItem(
+      "matmatch.shoppingList",
+      JSON.stringify({
+        version: 1,
+        templateId: "nagot-annat",
+        templateName: "Svartbönsgryta",
+        substitutions: [],
+        items: [{ name: "Svarta bönor", section: "to_buy", bought: false }],
+      }),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.startsWith("/api/guided/options")
+          ? jsonResponse(200, { mainIngredients: [], pantryIngredients: [] })
+          : jsonResponse(200, suggestionBody),
+      ),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Svartbönsgryta" })).toBeTruthy();
+    expect(screen.getByText("Att köpa (1)")).toBeTruthy();
+  });
+
+  it("stays on Tonight when the stored list is the Tonight suggestion's own", async () => {
+    sessionHolder.current = fakeSession;
+    localStorage.setItem(
+      "matmatch.shoppingList",
+      JSON.stringify({
+        version: 1,
+        templateId: "kycklinggryta",
+        items: [{ name: "Kyckling", section: "to_buy", bought: false }],
+      }),
+    );
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Ikväll" })).toBeTruthy();
+  });
+});
+
 describe("App — offline", () => {
   it("shows a clear 'no connection' state, never a blank screen or a raw error, when there is no saved list", async () => {
     sessionHolder.current = fakeSession;

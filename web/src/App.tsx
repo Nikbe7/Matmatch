@@ -11,10 +11,19 @@ import {
 } from "./api";
 import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../../src/schema/vocabulary";
 import type { Household, HouseholdMember, HouseholdMemberType } from "../../src/schema/household";
-import type { CostTier } from "../../src/schema/ingredient";
-import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
+import {
+  costTierLabel,
+  costTierMeter,
+  INGREDIENT_ROLE_LABELS,
+  PREP_TIME_LABELS,
+} from "./display";
+import { GuidedFlow } from "./GuidedFlow";
 import { OfflineShoppingList, ShoppingList } from "./ShoppingList";
-import { loadAnyShoppingList, loadShoppingList } from "./shoppingListStorage";
+import {
+  loadAnyShoppingList,
+  loadShoppingList,
+  type StoredShoppingList,
+} from "./shoppingListStorage";
 import { setAnalyticsSink, track } from "./analytics";
 import { createHttpAnalyticsSink } from "./analyticsSink";
 import { Button } from "./components/Button";
@@ -54,56 +63,10 @@ export const DIETARY_FLAG_LABELS: Record<DietaryFlag, string> = {
   high_protein_preference: "Proteinrikt",
 };
 
-// Display-only mapping (DECISION_LOG 2026-07-29, amended for the dot meter): the
-// dots are never the underlying cost_tier value and never stand in for an invented
-// kronor figure. An exhaustive switch means a new tier value fails typecheck here
-// rather than silently rendering nothing.
-export function costTierMeter(tier: CostTier): string {
-  switch (tier) {
-    case "budget":
-      return "●○○";
-    case "mid":
-      return "●●○";
-    case "premium":
-      return "●●●";
-    default: {
-      const exhaustive: never = tier;
-      return exhaustive;
-    }
-  }
-}
-
-// The dot meter is purely visual — a screen reader must announce this word, not
-// three bullet characters, so the card wires this in as an aria-label rather than
-// relying on the dot string's own accessible name.
-export function costTierLabel(tier: CostTier): string {
-  switch (tier) {
-    case "budget":
-      return "Billig";
-    case "mid":
-      return "Mellan";
-    case "premium":
-      return "Dyr";
-    default: {
-      const exhaustive: never = tier;
-      return exhaustive;
-    }
-  }
-}
-
-const PREP_TIME_LABELS: Record<PrepTimeBand, string> = {
-  "<20min": "Under 20 min",
-  "20-40min": "20–40 min",
-  "40min+": "Över 40 min",
-};
-
-const INGREDIENT_ROLE_LABELS: Record<IngredientSlotRole, string> = {
-  protein: "Protein",
-  starch: "Stärkelse",
-  vegetable: "Grönsak",
-  aromatic: "Arom",
-  dairy: "Mejeri",
-};
+// Re-exported so existing consumers (and tests) keep importing these from App,
+// while the guided flow can import them without the two modules importing each
+// other. The definitions live in display.ts.
+export { costTierLabel, costTierMeter, INGREDIENT_ROLE_LABELS, PREP_TIME_LABELS };
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -490,7 +453,15 @@ function SuggestionCardSkeleton() {
 
 type TonightViewState = { status: "suggestion" } | { status: "shopping" };
 
-function TonightView({ data, accessToken }: { data: TonightResponse; accessToken: string }) {
+function TonightView({
+  data,
+  accessToken,
+  onGuided,
+}: {
+  data: TonightResponse;
+  accessToken: string;
+  onGuided: () => void;
+}) {
   const initialResult = data.result;
 
   // A page reload in the shop must land back on the shopping list, not the
@@ -555,20 +526,6 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
     window.addEventListener("pagehide", reportAbandonedSession);
     return () => window.removeEventListener("pagehide", reportAbandonedSession);
   }, []);
-
-  // Installs the real transport (issue #91) — analytics.ts's default sink just logs
-  // in dev otherwise. Declared after the abandoned-session effect above so its own
-  // pagehide flush listener registers second and therefore *runs* second: the
-  // abandoned-session event must be pushed into the buffer before this flushes it,
-  // and pagehide listeners fire in registration order.
-  useEffect(() => {
-    const handle = createHttpAnalyticsSink(accessToken);
-    setAnalyticsSink(handle.sink);
-    return () => {
-      handle.stop();
-      setAnalyticsSink(null);
-    };
-  }, [accessToken]);
 
   function showResponse(response: TonightResponse) {
     setCurrent(response);
@@ -731,6 +688,15 @@ function TonightView({ data, accessToken }: { data: TonightResponse; accessToken
           {fetchingNext && <p className="muted tonight-fetching">Hämtar…</p>}
         </>
       )}
+      {state.status === "suggestion" && (
+        // The way into the guided quick-select flow (UX_FLOW §5): the path for a
+        // household that wants control without typing. Deliberately secondary to the
+        // card above — Tonight is the zero-input default, and §4 is explicit that
+        // this must not become a menu of options in front of it.
+        <Button type="button" variant="secondary" className="guided-entry" onClick={onGuided}>
+          Välj själv
+        </Button>
+      )}
       {result !== null && state.status === "shopping" && (
         <ShoppingList
           result={result}
@@ -764,6 +730,34 @@ function toGateState(error: unknown): GateState {
 
 function Gate({ session }: { session: Session }) {
   const [state, setState] = useState<GateState>({ status: "checking" });
+  // Which of the two paths is on screen. Session state only: the app opens on the
+  // zero-input Tonight card (UX_FLOW §4), never on the flow the household happened
+  // to leave open — with one exception, resolved once the Tonight response arrives.
+  const [view, setView] = useState<"tonight" | "guided">("tonight");
+  // A shopping list on the device that is not the Tonight suggestion's belongs to a
+  // dish chosen in the guided flow. Reloading in the shop must land back on it
+  // (UX_FLOW §7), which TonightView cannot do — it only restores a list matching the
+  // dish it is showing.
+  const [resumed, setResumed] = useState<StoredShoppingList | undefined>(undefined);
+
+  // Installs the real transport (issue #91) — analytics.ts's default sink just logs
+  // in dev otherwise. Owned by Gate rather than by TonightView because switching to
+  // the guided flow unmounts TonightView, and `handle.stop()` deliberately does not
+  // flush: an owner that comes and goes with the view would drop up to one flush
+  // interval of buffered events every time the household taps "Välj själv".
+  //
+  // Registered before TonightView mounts, so TonightView's own pagehide listener
+  // (the abandoned-session event) registers second and therefore *runs* second —
+  // that event must reach the buffer before this handle flushes it, and pagehide
+  // listeners fire in registration order.
+  useEffect(() => {
+    const handle = createHttpAnalyticsSink(session.access_token);
+    setAnalyticsSink(handle.sink);
+    return () => {
+      handle.stop();
+      setAnalyticsSink(null);
+    };
+  }, [session.access_token]);
   // Bumped by the offline screen's "Försök igen" button to re-run the fetch
   // below without duplicating its request/cancellation logic in a second effect.
   const [retryCount, setRetryCount] = useState(0);
@@ -774,7 +768,13 @@ function Gate({ session }: { session: Session }) {
 
     fetchTonight(session.access_token)
       .then((data) => {
-        if (!cancelled) setState({ status: "ready", data });
+        if (cancelled) return;
+        const stored = loadAnyShoppingList();
+        if (stored && stored.templateId !== data.result?.template.id) {
+          setResumed(stored);
+          setView("guided");
+        }
+        setState({ status: "ready", data });
       })
       .catch((error: unknown) => {
         if (!cancelled) setState(toGateState(error));
@@ -825,7 +825,23 @@ function Gate({ session }: { session: Session }) {
       {state.status === "no_household" && (
         <OnboardingForm session={session} onCreated={handleCreated} />
       )}
-      {state.status === "ready" && <TonightView data={state.data} accessToken={session.access_token} />}
+      {state.status === "ready" && view === "tonight" && (
+        <TonightView
+          data={state.data}
+          accessToken={session.access_token}
+          onGuided={() => setView("guided")}
+        />
+      )}
+      {state.status === "ready" && view === "guided" && (
+        <GuidedFlow
+          accessToken={session.access_token}
+          resume={resumed}
+          onExit={() => {
+            setResumed(undefined);
+            setView("tonight");
+          }}
+        />
+      )}
     </div>
   );
 }

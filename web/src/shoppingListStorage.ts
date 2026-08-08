@@ -18,6 +18,18 @@ export interface StoredShoppingList {
   version: 1;
   templateId: string;
   items: ShoppingListItem[];
+  /**
+   * Enough about the dish to re-open its list after a reload without a fetched
+   * result to read it from — the guided flow's list belongs to a dish the Tonight
+   * response knows nothing about, so without these a household that reloads in the
+   * shop loses a half-checked list (UX_FLOW §7: the list persists across close and
+   * reopen).
+   *
+   * Optional so a list written before this existed still parses instead of being
+   * discarded as malformed.
+   */
+  templateName?: string;
+  substitutions?: { slot_index: number; substitute_ingredient_id: string }[];
 }
 
 const CURRENT_VERSION = 1;
@@ -36,6 +48,8 @@ function isShoppingListItem(value: unknown): value is ShoppingListItem {
 function isStoredShoppingList(value: unknown): value is StoredShoppingList {
   if (typeof value !== "object" || value === null) return false;
   const stored = value as Record<string, unknown>;
+  // templateName/substitutions are deliberately not validated: they are optional
+  // display extras, and a list that has lost them is still a usable shopping list.
   return (
     stored.version === CURRENT_VERSION &&
     typeof stored.templateId === "string" &&
@@ -92,17 +106,26 @@ export function clearShoppingList(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-/** Every ingredient starts in "Att köpa", unbought. */
+/**
+ * Every ingredient starts in "Att köpa", unbought — except the ones the household
+ * already told us it has.
+ *
+ * `inPantry` is set only by the guided flow (UX_FLOW §5 step 3 feeding step 5's
+ * "✓ ris, ✓ grädde"); the Tonight card never asks the question, so its ingredients
+ * carry no flag and every item starts in "Att köpa" exactly as before. Note what is
+ * stored either way: item *names* for the dish the household accepted, never the
+ * pantry selection itself — the ids are not persisted here or anywhere else.
+ */
 export function freshShoppingList(
   templateId: string,
-  ingredients: readonly TonightIngredient[],
+  ingredients: readonly (TonightIngredient & { inPantry?: boolean })[],
 ): StoredShoppingList {
   return {
     version: CURRENT_VERSION,
     templateId,
     items: ingredients.map((ingredient) => ({
       name: ingredient.name,
-      section: "to_buy",
+      section: ingredient.inPantry ? "have_at_home" : "to_buy",
       bought: false,
     })),
   };

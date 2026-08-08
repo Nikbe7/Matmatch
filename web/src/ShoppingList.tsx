@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ApiError, fetchInstructions, type TonightResult } from "./api";
+import { ApiError, fetchInstructions, type TonightIngredient, type TonightResult } from "./api";
 import {
   clearShoppingList,
   freshShoppingList,
@@ -108,25 +108,57 @@ function Instructions({
   );
 }
 
+/**
+ * What the shopping list needs from a chosen meal, which is less than a full
+ * `TonightResult`: a name to head the list, ingredients to check off, and the
+ * substitutions the instructions call needs. Declared structurally so both callers
+ * fit — the Tonight card's accepted suggestion and the guided flow's chosen
+ * direction, whose ingredients additionally carry `inPantry`.
+ */
+export interface ShoppingListMeal {
+  template: { id: string; name: string };
+  ingredients: readonly (TonightIngredient & { inPantry?: boolean })[];
+  substitutions: TonightResult["substitutions"];
+}
+
 export function ShoppingList({
   result,
   portions,
   accessToken,
   onNewSuggestion,
+  newSuggestionLabel = "Ny förslag",
 }: {
-  result: TonightResult;
-  portions: number;
+  result: ShoppingListMeal;
+  /**
+   * Omitted on a list re-opened from storage after a reload: the household's portion
+   * count is not in hand there, and the line is left off rather than guessed — what
+   * matters in the shop is the list itself.
+   */
+  portions?: number;
   accessToken: string;
   onNewSuggestion: () => void;
+  newSuggestionLabel?: string;
 }) {
   const [items, setItems] = useState<ShoppingListItem[]>(() => {
     const stored = loadShoppingList(result.template.id);
     return stored ? stored.items : freshShoppingList(result.template.id, result.ingredients).items;
   });
 
+  // The dish name and substitutions are stored alongside the items so this list can
+  // be re-opened after a reload without a fetched result to read them from — the
+  // guided flow's dish is one no Tonight response mentions (UX_FLOW §7).
   useEffect(() => {
-    saveShoppingList({ version: 1, templateId: result.template.id, items });
-  }, [result.template.id, items]);
+    saveShoppingList({
+      version: 1,
+      templateId: result.template.id,
+      templateName: result.template.name,
+      substitutions: result.substitutions.map((substitution) => ({
+        slot_index: substitution.slot_index,
+        substitute_ingredient_id: substitution.substitute_ingredient_id,
+      })),
+      items,
+    });
+  }, [result.template.id, result.template.name, result.substitutions, items]);
 
   function moveTo(index: number, section: ShoppingListSection) {
     setItems((current) => current.map((item, i) => (i === index ? { ...item, section } : item)));
@@ -149,7 +181,7 @@ export function ShoppingList({
   return (
     <Card>
       <h2>{result.template.name}</h2>
-      <p>{formatPortions(portions)}</p>
+      {portions !== undefined && <p>{formatPortions(portions)}</p>}
 
       <section className="list-section">
         <h3>Att köpa ({toBuy.length})</h3>
@@ -193,7 +225,7 @@ export function ShoppingList({
       <Instructions accessToken={accessToken} templateId={result.template.id} substitutions={result.substitutions} />
 
       <Button type="button" variant="primary" onClick={handleNewSuggestion}>
-        Ny förslag
+        {newSuggestionLabel}
       </Button>
     </Card>
   );
