@@ -160,6 +160,40 @@ describe.skipIf(!stackAvailable)("GET /api/guided/options", () => {
     expect(offered).not.toContain("lax");
   });
 
+  it("names 'lax' as fish-excluded for step 2's filter, but never lets it into the selectable grid", async () => {
+    // The real catalog's exhaustive-across-the-vocabulary coverage is a unit test
+    // (guidedCatalog.test.ts) against fixture data — the real catalog has no
+    // verified protein excluded by tree_nuts or peanuts to exercise. This proves
+    // the wiring against real data for the one allergy it can: fish.
+    const app = buildApp();
+    const user = await userWithHousehold(app, { ...adultOnly, allergies: ["fish"] });
+
+    const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    const excluded = response.body.excludedMainIngredients as {
+      id: string;
+      name: string;
+      allergies: string[];
+    }[];
+    const lax = excluded.find((option) => option.id === "lax");
+    // Raw catalog casing — sentence-start capitalization is a client display concern.
+    expect(lax).toEqual({ id: "lax", name: "lax", allergies: ["fish"] });
+
+    const mainIds: string[] = response.body.mainIngredients.map((o: { id: string }) => o.id);
+    const excludedIds = excluded.map((option) => option.id);
+    expect(mainIds.filter((id) => excludedIds.includes(id))).toEqual([]);
+  });
+
+  it("is empty for a household with no allergies", async () => {
+    const app = buildApp();
+    const user = await userWithHousehold(app);
+
+    const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
+
+    expect(response.body.excludedMainIngredients).toEqual([]);
+  });
+
   it("narrows the grid to what a constrained household can actually cook", async () => {
     const app = buildApp();
     const omnivore = await userWithHousehold(app);

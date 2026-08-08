@@ -3,11 +3,13 @@ import {
   ApiError,
   fetchGuidedDirections,
   fetchGuidedOptions,
+  type ExcludedIngredientOption,
   type GuidedDirection,
   type GuidedDirectionsResponse,
   type GuidedOptions,
   type IngredientOption,
 } from "./api";
+import { allergyExclusionReason, capitalizeForSentence } from "./allergyLabels";
 import { costTierLabel, costTierMeter, PREP_TIME_LABELS } from "./display";
 import { ShoppingList, formatPortions, type ShoppingListMeal } from "./ShoppingList";
 import { Button } from "./components/Button";
@@ -20,6 +22,7 @@ import {
   guidedReducer,
   isFirstStep,
   mainParameter,
+  matchesIngredientQuery,
   type GuidedState,
 } from "./guided";
 import type { StoredShoppingList } from "./shoppingListStorage";
@@ -83,6 +86,21 @@ function IngredientGrid({
         </Chip>
       ))}
     </div>
+  );
+}
+
+/**
+ * Step 2's filter-miss explanation (requirement 4): a catalog ingredient the query
+ * matched, but that the household cannot select because it excludes one of its own
+ * declared allergies. Rendered as text, not a `Chip`, so nothing about it reads as
+ * tappable — this is display only and must never widen the selectable set.
+ */
+function ExcludedIngredientNotice({ excluded }: { excluded: ExcludedIngredientOption }) {
+  return (
+    <p className="excluded-ingredient-notice" role="status">
+      {capitalizeForSentence(excluded.name)} är utesluten på grund av{" "}
+      {allergyExclusionReason(excluded.allergies)}.
+    </p>
   );
 }
 
@@ -232,6 +250,29 @@ export function GuidedFlow({
     };
   }, [accessToken, attempt]);
 
+  // Step 2's type-to-filter (requirement 1-6): entirely a display layer over the
+  // already-fetched `options.mainIngredients`, the household's own safe set — no
+  // request, no change to `state.main`. An empty query is the identity filter, so
+  // the grid below never needs a separate "no query" branch.
+  const trimmedMainQuery = state.mainQuery.trim();
+  const hasMainQuery = trimmedMainQuery.length > 0;
+  const matchingMainIngredients = hasMainQuery
+    ? (options?.mainIngredients ?? []).filter((option) =>
+        matchesIngredientQuery(option.name, trimmedMainQuery),
+      )
+    : (options?.mainIngredients ?? []);
+  const excludedMainMatches = hasMainQuery
+    ? (options?.excludedMainIngredients ?? []).filter((option) =>
+        matchesIngredientQuery(option.name, trimmedMainQuery),
+      )
+    : [];
+  // A miss falls back to the full grid rather than an empty one (requirement 1: the
+  // grid stays visible and tappable at all times) — "no match" is communicated by
+  // the message above it, never by the grid disappearing.
+  const mainGridOptions =
+    matchingMainIngredients.length > 0 ? matchingMainIngredients : (options?.mainIngredients ?? []);
+  const noMainMatches = hasMainQuery && matchingMainIngredients.length === 0 && excludedMainMatches.length === 0;
+
   const main = mainParameter(state);
   const pantryKey = state.pantry.join(",");
   const wantsDirections = state.step === "directions" && state.intent !== null && main !== null;
@@ -341,9 +382,21 @@ export function GuidedFlow({
           />
           {options ? (
             <>
+              <input
+                type="text"
+                className="input guided-main-filter"
+                placeholder="Skriv för att smalna av listan…"
+                aria-label="Smalna av huvudingredienserna"
+                value={state.mainQuery}
+                onChange={(event) => dispatch({ type: "set_main_query", query: event.target.value })}
+              />
+              {excludedMainMatches.map((excluded) => (
+                <ExcludedIngredientNotice key={excluded.id} excluded={excluded} />
+              ))}
+              {noMainMatches && <p className="muted" role="status">Ingen träff.</p>}
               <IngredientGrid
                 label="Huvudingredienser"
-                options={options.mainIngredients}
+                options={mainGridOptions}
                 onTap={(ingredientId) => dispatch({ type: "select_main", ingredientId })}
               />
               <Button

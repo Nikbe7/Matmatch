@@ -20,6 +20,7 @@ import {
 } from "../../engine/ranking.js";
 import {
   buildDirectionSummary,
+  buildExcludedMainIngredients,
   buildGuidedIngredients,
   buildMainIngredientOptions,
   buildPantryIngredientOptions,
@@ -74,6 +75,9 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
       res.status(200).json({
         mainIngredients: buildMainIngredientOptions(engineData, candidates),
         pantryIngredients: buildPantryIngredientOptions(engineData, candidates),
+        // Step 2's filter-miss explanation (requirement 4) — scoped to the household's
+        // own allergies, not the whole catalog's allergen data.
+        excludedMainIngredients: buildExcludedMainIngredients(engineData, stored.household.allergies),
       });
     } catch (error) {
       next(error);

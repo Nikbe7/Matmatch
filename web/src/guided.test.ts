@@ -6,6 +6,7 @@ import {
   guidedReducer,
   isFirstStep,
   mainParameter,
+  matchesIngredientQuery,
   previousStep,
   type GuidedAction,
   type GuidedState,
@@ -69,6 +70,80 @@ describe("the main-ingredient step", () => {
 
     expect(state.main).toEqual({ kind: "auto" });
     expect(state.step).toBe("pantry");
+  });
+});
+
+describe("the main-ingredient step's type-to-filter (#110)", () => {
+  it("holds the query in the reducer, not component state", () => {
+    const state = run(
+      { type: "select_intent", intent: "dinner_idea" },
+      { type: "set_main_query", query: "lax" },
+    );
+
+    expect(state.mainQuery).toBe("lax");
+    expect(state.step).toBe("main");
+  });
+
+  it("never changes which ingredient is selected — it is a display filter only", () => {
+    const filtered = run(
+      { type: "select_intent", intent: "dinner_idea" },
+      { type: "set_main_query", query: "kyckling" },
+    );
+    expect(filtered.main).toBeNull();
+
+    // Selecting still requires the explicit tap; typing a query that happens to
+    // match an ingredient's name does not select it.
+    const selected = guidedReducer(filtered, {
+      type: "select_main",
+      ingredientId: "kycklingfile",
+    });
+    expect(selected.main).toEqual({ kind: "ingredient", ingredientId: "kycklingfile" });
+  });
+
+  it("clears the query once a choice is made, so the next visit starts on the full grid", () => {
+    const selected = run(
+      { type: "select_intent", intent: "dinner_idea" },
+      { type: "set_main_query", query: "lax" },
+      { type: "select_main", ingredientId: "laxfile" },
+    );
+
+    expect(selected.mainQuery).toBe("");
+  });
+
+  it("clears the query when 'Föreslå åt mig' is used instead of a tap", () => {
+    const state = run(
+      { type: "select_intent", intent: "dinner_idea" },
+      { type: "set_main_query", query: "lax" },
+      { type: "suggest_main" },
+    );
+
+    expect(state.mainQuery).toBe("");
+  });
+
+  it("starts every session with an empty query", () => {
+    expect(INITIAL_GUIDED.mainQuery).toBe("");
+  });
+});
+
+describe("matchesIngredientQuery — the deterministic string match behind the filter", () => {
+  it("matches a case-insensitive substring anywhere in the name", () => {
+    expect(matchesIngredientQuery("Kycklingfilé", "kyckling")).toBe(true);
+    expect(matchesIngredientQuery("Kycklingfilé", "FILÉ")).toBe(true);
+    expect(matchesIngredientQuery("Kycklingfilé", "filé")).toBe(true);
+  });
+
+  it("matches regardless of diacritics on either side", () => {
+    expect(matchesIngredientQuery("Filé", "file")).toBe(true);
+    expect(matchesIngredientQuery("Grönsaksbuljong", "gronsak")).toBe(true);
+    expect(matchesIngredientQuery("Räkor", "rakor")).toBe(true);
+  });
+
+  it("does not match a substring that is not there", () => {
+    expect(matchesIngredientQuery("Kycklingfilé", "nötkött")).toBe(false);
+  });
+
+  it("matches everything for an empty query", () => {
+    expect(matchesIngredientQuery("Lax", "")).toBe(true);
   });
 });
 
