@@ -23,6 +23,10 @@ const options = {
     { id: "ris", name: "ris" },
     { id: "gul-lok", name: "gul lök" },
   ],
+  // A household with a fish allergy: "lax" resolves in the catalog but never in
+  // `mainIngredients` — the filter's explanation path (requirement 4), not the
+  // selectable grid.
+  excludedMainIngredients: [{ id: "lax", name: "Lax", allergies: ["fish"] }],
 };
 
 function direction(id: string, name: string, costTier = "mid") {
@@ -179,8 +183,8 @@ describe("GuidedFlow — the happy path, tap by tap", () => {
   });
 });
 
-describe("GuidedFlow — no typing anywhere (UX_FLOW §1/§2)", () => {
-  it("renders no text input or search box on any step", async () => {
+describe("GuidedFlow — no typing anywhere except step 2's filter (UX_FLOW §1/§2, #110)", () => {
+  it("renders no text input on any step except the main-ingredient filter", async () => {
     const user = userEvent.setup();
     stubApi();
     renderFlow();
@@ -196,7 +200,11 @@ describe("GuidedFlow — no typing anywhere (UX_FLOW §1/§2)", () => {
 
     await user.click(screen.getByRole("button", { name: "Middagsidé" }));
     await screen.findByRole("heading", { name: "Vilken huvudingrediens?" });
-    assertNoTextEntry();
+    // The one exception, and only here: step 2's type-to-filter over the
+    // household's own safe candidate set (#110) — still not a search box, so it
+    // carries no `type="search"` or `role="searchbox"` affordance.
+    expect(screen.getAllByRole("textbox")).toHaveLength(1);
+    expect(screen.queryAllByRole("searchbox")).toEqual([]);
 
     await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
     await screen.findByRole("heading", { name: "Vad har du hemma?" });
@@ -205,6 +213,84 @@ describe("GuidedFlow — no typing anywhere (UX_FLOW §1/§2)", () => {
     await user.click(screen.getByRole("button", { name: "Hoppa över" }));
     await screen.findByRole("heading", { name: "Tre förslag" });
     assertNoTextEntry();
+  });
+});
+
+describe("GuidedFlow — step 2's type-to-filter (#110)", () => {
+  it("narrows the grid to a substring match, case- and diacritics-insensitive", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await screen.findByRole("button", { name: "kycklingfilé" });
+    expect(screen.getByRole("button", { name: "svarta bönor" })).toBeTruthy();
+
+    await user.type(screen.getByRole("textbox"), "BONOR");
+
+    expect(screen.getByRole("button", { name: "svarta bönor" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "kycklingfilé" })).toBeNull();
+  });
+
+  it("clearing the input restores the full grid", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    const input = await screen.findByRole("textbox");
+
+    await user.type(input, "bonor");
+    expect(screen.queryByRole("button", { name: "kycklingfilé" })).toBeNull();
+
+    await user.clear(input);
+    expect(screen.getByRole("button", { name: "kycklingfilé" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "svarta bönor" })).toBeTruthy();
+  });
+
+  it("selects the ingredient that was actually tapped, regardless of the query that surfaced it", async () => {
+    const user = userEvent.setup();
+    const fetchMock = stubApi();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await user.type(await screen.findByRole("textbox"), "kyckling");
+    await user.click(screen.getByRole("button", { name: "kycklingfilé" }));
+    await user.click(await screen.findByRole("button", { name: "Hoppa över" }));
+
+    await screen.findByRole("heading", { name: "Tre förslag" });
+    expect(directionsQueries(fetchMock)[0]!.get("main")).toBe("kycklingfile");
+  });
+
+  it("shows a plain 'ingen träff' state with the full grid still available below it", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await screen.findByRole("button", { name: "kycklingfilé" });
+
+    await user.type(screen.getByRole("textbox"), "nötkött");
+
+    expect(screen.getByText("Ingen träff.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "kycklingfilé" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "svarta bönor" })).toBeTruthy();
+  });
+
+  it("explains an allergy-excluded match instead of returning nothing", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await screen.findByRole("button", { name: "kycklingfilé" });
+
+    await user.type(screen.getByRole("textbox"), "lax");
+
+    expect(screen.getByText("Lax är utesluten på grund av fiskallergi.")).toBeTruthy();
+    // Display only — never a tap target, and it never widens the selectable set.
+    expect(screen.queryByRole("button", { name: "Lax" })).toBeNull();
+    expect(screen.queryByText("Ingen träff.")).toBeNull();
   });
 });
 

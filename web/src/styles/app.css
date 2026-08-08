@@ -489,6 +489,20 @@ select.input {
   min-height: var(--touch-target);
 }
 
+/* Step 2's type-to-filter (#110): a plain field styled like every other `.input`
+   in the app, not a search-engine affordance — no icon, no magnifier idiom. */
+.guided-main-filter {
+  margin-bottom: var(--space-3);
+}
+
+/* The allergy-excluded explanation (requirement 4): styled like `.error-text`
+   rather than a `Chip`, so nothing about it reads as tappable. */
+.excluded-ingredient-notice {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  margin: 0 0 var(--space-2);
+}
+
 .direction-list {
   margin-bottom: var(--space-4);
 }

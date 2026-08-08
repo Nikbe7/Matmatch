@@ -44,6 +44,13 @@ export interface GuidedState {
   step: GuidedStep;
   intent: GuidedIntent | null;
   main: MainSelection | null;
+  /**
+   * Step 2's type-to-filter text, live in the reducer rather than component state
+   * so it follows the same one-object-per-session rule as everything else here. It
+   * only ever narrows the *display* of `options.mainIngredients` — it never reads
+   * or writes `main`, so a query can never change which ingredient is selected.
+   */
+  mainQuery: string;
   /** Session-scoped, ephemeral, never written anywhere. */
   pantry: readonly string[];
   chosenTemplateId: string | null;
@@ -55,6 +62,7 @@ export const INITIAL_GUIDED: GuidedState = {
   step: "intent",
   intent: null,
   main: null,
+  mainQuery: "",
   pantry: [],
   chosenTemplateId: null,
   portions: null,
@@ -65,6 +73,8 @@ export type GuidedAction =
   | { type: "select_main"; ingredientId: string }
   /** "Föreslå åt mig" — the engine picks from season, cost tier and history. */
   | { type: "suggest_main" }
+  /** Step 2's type-to-filter input, as typed. */
+  | { type: "set_main_query"; query: string }
   | { type: "toggle_pantry"; ingredientId: string }
   | { type: "confirm_pantry" }
   | { type: "choose_direction"; templateId: string; portions: number }
@@ -125,6 +135,28 @@ export function mainParameter(state: GuidedState): string | null {
   return state.main.kind === "ingredient" ? state.main.ingredientId : state.main.kind;
 }
 
+/**
+ * Case- and diacritics-insensitive: NFD-decomposes so "Lax" matches "lax" and
+ * "gron" matches "grön", then strips the combining marks NFD splits diacritics
+ * into. Deterministic string comparison only — no fuzzy-match library, per the
+ * type-to-filter issue's explicit scope.
+ */
+function normalizeForMatch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/**
+ * Whether an ingredient's Swedish name matches step 2's filter query. Exported so
+ * both the safe grid and the allergy-excluded explanation list (a display-only
+ * concern, never the selectable set) filter with the exact same rule.
+ */
+export function matchesIngredientQuery(name: string, query: string): boolean {
+  return normalizeForMatch(name).includes(normalizeForMatch(query));
+}
+
 function toggle(list: readonly string[], value: string): string[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
@@ -146,11 +178,17 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
       return {
         ...state,
         main: { kind: "ingredient", ingredientId: action.ingredientId },
+        // Leaving the step behind a choice, so the next visit starts on the full
+        // grid again rather than on a query aimed at a dish already decided.
+        mainQuery: "",
         step: "pantry",
       };
 
     case "suggest_main":
-      return { ...state, main: { kind: "auto" }, step: "pantry" };
+      return { ...state, main: { kind: "auto" }, mainQuery: "", step: "pantry" };
+
+    case "set_main_query":
+      return { ...state, mainQuery: action.query };
 
     case "toggle_pantry":
       return { ...state, pantry: toggle(state.pantry, action.ingredientId) };
