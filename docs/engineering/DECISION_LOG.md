@@ -8,6 +8,18 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-09 — Constraints come from who is eating tonight, not from the household as a whole
+
+**Decision:** Allergy and dietary filtering is applied against the set of household members actually eating a given meal, not the household's union of constraints. The default is everyone; changing it is one tap and never a required step.
+
+**Why:** the union is wrong most nights. A household containing one peanut-allergic child cannot be shown any peanut dish, ever, even when that child is at a grandparent's. Keying constraints to the diners makes those dishes legitimately suggestible rather than reachable only through a warning — it converts a permanent restriction into an accurate one, without weakening anything.
+
+**Conditions:**
+1. The default diner set is every household member. Safety must be the default state, never something the user has to select.
+2. Selecting diners must not become a gate before the first suggestion. The Tonight card stays zero-input and assumes everyone; diner selection is an adjustment, not a step.
+
+---
+
 ## 2026-08-08 — Guided flow's intent chips map onto existing engine levers only; no new ranking dimension, and "Matlådor" is not shipped (#107)
 
 **Decision:** The guided quick-select flow (UX_FLOW §5) selects directions with `selectCandidateTemplates` and `rankCandidates` **unchanged**. A new pure module `src/engine/directions.ts` composes on top of them — main-ingredient filter, pantry-coverage bucketing, cuisine variety — and never scores. Each intent chip resolves to a lever that already exists: `Middagsidé` → the default `{cost: 0, time: 0}`; `Billigt` → `{cost: 3}`, i.e. `WEIGHT_LEVELS[2]`, where a maxed "Billigare" chip already ends up; `Använd det jag har` → neutral weights, its whole lever being the pantry step; `Proteinrikt` → a *selection preference* for `high_protein_preference`-tagged candidates within the ranked order; `Överraska mig` → neutral weights, with the flow skipping steps 2 and 3 and the engine reading the main ingredient off the top-ranked candidate. **`Matlådor` is deliberately not shipped** (#108).
