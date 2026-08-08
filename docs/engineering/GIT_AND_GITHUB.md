@@ -32,6 +32,8 @@ Commit straight to `main`? Tempting for a solo dev, but PRs earn their keep here
 
 **Merge strategy: squash merge.** One commit per feature/issue on `main`, clean history, and it composes well with Conventional Commits + changelog automation (a squash-merged PR title becomes the one commit message that matters).
 
+Visual evidence (before/after screenshots) belongs in the PR description as an upload, never committed to the tree — it has been committed and then deleted as a follow-up "chore" three times in a row (#101/#102, this pattern before it, #105). `web/screenshots/` is gitignored to make that the only path.
+
 ## Labels
 
 | Label | Meaning |

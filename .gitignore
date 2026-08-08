@@ -36,3 +36,7 @@ playwright/.cache/
 
 # Scratch artifacts — working tools for a task, not durable data or docs
 tmp/
+
+# PR visual evidence — attach to the PR description as uploads, never commit
+# to the tree (see docs/engineering/GIT_AND_GITHUB.md)
+web/screenshots/
