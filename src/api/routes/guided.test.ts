@@ -16,6 +16,7 @@ import type { EngineData } from "../../engine/data.js";
 import { makeEngineData, makeIngredient, makeTemplate } from "../../engine/__fixtures__/engineData.js";
 import { createApp } from "../app.js";
 import { MAIN_INGREDIENT_GRID_SIZE, PANTRY_GRID_SIZE } from "../guidedCatalog.js";
+import { makeHousehold } from "../../engine/__fixtures__/household.js";
 
 // GET /api/guided/options and GET /api/guided/directions (UX_FLOW §5), against the
 // real local Supabase stack — real database, real auth, no mocks. Selection
@@ -55,11 +56,7 @@ function buildApp(data: EngineData = engineData): Express {
   return createApp({ sql: sql!, engineData: data, verifyToken: verifyToken! });
 }
 
-const adultOnly = {
-  members: [{ type: "adult", portion_factor: 1 }],
-  allergies: [],
-  dietary_flags: [],
-};
+const adultOnly = makeHousehold();
 
 async function userWithHousehold(app: Express, household: object = adultOnly) {
   const user = await createTestUser();
@@ -140,10 +137,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/options", () => {
     // Not a safety mechanism — the engine would refuse the dish anyway — but a grid
     // whose taps can only ever produce the §9 empty state is a grid of traps.
     const app = buildApp();
-    const user = await userWithHousehold(app, {
-      ...adultOnly,
-      allergies: ["fish", "shellfish"],
-    });
+    const user = await userWithHousehold(app, makeHousehold({ allergies: ["fish", "shellfish"] }));
 
     const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
 
@@ -166,7 +160,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/options", () => {
     // verified protein excluded by tree_nuts or peanuts to exercise. This proves
     // the wiring against real data for the one allergy it can: fish.
     const app = buildApp();
-    const user = await userWithHousehold(app, { ...adultOnly, allergies: ["fish"] });
+    const user = await userWithHousehold(app, makeHousehold({ allergies: ["fish"] }));
 
     const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
 
@@ -197,7 +191,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/options", () => {
   it("narrows the grid to what a constrained household can actually cook", async () => {
     const app = buildApp();
     const omnivore = await userWithHousehold(app);
-    const vegan = await userWithHousehold(app, { ...adultOnly, dietary_flags: ["vegan"] });
+    const vegan = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
 
     const forOmnivore = await request(app)
       .get("/api/guided/options")
@@ -471,10 +465,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — the direction s
 describe.skipIf(!stackAvailable)("GET /api/guided/directions — safety and household scoping", () => {
   it("never returns a dish an allergic household cannot eat", async () => {
     const app = buildApp();
-    const user = await userWithHousehold(app, {
-      ...adultOnly,
-      allergies: ["gluten", "dairy_lactose", "shellfish", "fish", "egg", "soy", "peanuts", "tree_nuts"],
-    });
+    const user = await userWithHousehold(app, makeHousehold({ allergies: ["gluten", "dairy_lactose", "shellfish", "fish", "egg", "soy", "peanuts", "tree_nuts"] }));
 
     const response = await directions(app, user.accessToken, { intent: "dinner_idea", main: "any" });
 
@@ -493,7 +484,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — safety and hous
 
   it("never returns a non-vegan dish to a vegan household, whatever the intent", async () => {
     const app = buildApp();
-    const user = await userWithHousehold(app, { ...adultOnly, dietary_flags: ["vegan"] });
+    const user = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
 
     for (const intent of ["dinner_idea", "cheap", "use_what_i_have", "high_protein", "surprise_me"]) {
       const response = await directions(app, user.accessToken, { intent, main: "auto" });
@@ -508,7 +499,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — safety and hous
   it("answers from the caller's own household, not another user's", async () => {
     const app = buildApp();
     const omnivore = await userWithHousehold(app);
-    const vegan = await userWithHousehold(app, { ...adultOnly, dietary_flags: ["vegan"] });
+    const vegan = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
 
     const omnivoreResponse = await directions(app, omnivore.accessToken, {
       intent: "dinner_idea",
@@ -529,14 +520,16 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — safety and hous
 
   it("scales portions from the caller's household composition", async () => {
     const app = buildApp();
-    const user = await userWithHousehold(app, {
-      ...adultOnly,
-      members: [
-        { type: "adult", portion_factor: 1 },
-        { type: "adult", portion_factor: 1 },
-        { type: "child", portion_factor: 0.5 },
-      ],
-    });
+    const user = await userWithHousehold(
+      app,
+      makeHousehold({
+        members: [
+          { type: "adult", portion_factor: 1 },
+          { type: "adult", portion_factor: 1 },
+          { type: "child", portion_factor: 0.5 },
+        ],
+      }),
+    );
 
     const response = await directions(app, user.accessToken, { intent: "dinner_idea", main: "any" });
 
@@ -547,7 +540,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — safety and hous
 describe.skipIf(!stackAvailable)("GET /api/guided/directions — empty states (UX_FLOW §9)", () => {
   it("answers 200 with 'no_directions' when a main ingredient leaves nothing, never an error", async () => {
     const app = buildApp();
-    const user = await userWithHousehold(app, { ...adultOnly, dietary_flags: ["vegan"] });
+    const user = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
 
     // A real combination a household can reach by tapping: vegan, plus a protein
     // from the grid that no vegan template uses.
@@ -566,7 +559,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — empty states (U
 
   it("recovers from that empty state when the main-ingredient constraint is dropped", async () => {
     const app = buildApp();
-    const user = await userWithHousehold(app, { ...adultOnly, dietary_flags: ["vegan"] });
+    const user = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
 
     const stuck = await directions(app, user.accessToken, {
       intent: "dinner_idea",
@@ -593,7 +586,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — empty states (U
       ],
     });
     const app = buildApp(meatOnly);
-    const user = await userWithHousehold(app, { ...adultOnly, dietary_flags: ["vegan"] });
+    const user = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
 
     const response = await directions(app, user.accessToken, { intent: "dinner_idea", main: "any" });
 
@@ -605,7 +598,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — empty states (U
 
   it("reports 'no_directions', not 'no_safe_templates', when only the main ingredient is the problem", async () => {
     const app = buildApp();
-    const user = await userWithHousehold(app, { ...adultOnly, dietary_flags: ["vegan"] });
+    const user = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
 
     const response = await directions(app, user.accessToken, {
       intent: "dinner_idea",
@@ -617,11 +610,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — empty states (U
 
   it("never returns more cards than the household safely has", async () => {
     const app = buildApp();
-    const user = await userWithHousehold(app, {
-      ...adultOnly,
-      allergies: ["gluten", "dairy_lactose", "egg", "soy"],
-      dietary_flags: ["vegan"],
-    });
+    const user = await userWithHousehold(app, makeHousehold({ allergies: ["gluten", "dairy_lactose", "egg", "soy"], dietary_flags: ["vegan"] }));
 
     const response = await directions(app, user.accessToken, { intent: "dinner_idea", main: "any" });
 

@@ -10,7 +10,13 @@ import {
   type TonightResult,
 } from "./api";
 import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../../src/schema/vocabulary";
-import type { Household, HouseholdMember, HouseholdMemberType } from "../../src/schema/household";
+import {
+  MEMBER_NAME_MAX_LENGTH,
+  memberLabels,
+  type Household,
+  type HouseholdMember,
+  type HouseholdMemberType,
+} from "../../src/schema/household";
 import {
   costTierLabel,
   costTierMeter,
@@ -141,7 +147,151 @@ function toggleValue<T>(list: T[], value: T): T[] {
 }
 
 function emptyMember(type: HouseholdMemberType): HouseholdMember {
-  return { type, portion_factor: type === "adult" ? 1 : 0.5 };
+  return {
+    type,
+    portion_factor: type === "adult" ? 1 : 0.5,
+    // Explicitly empty, never omitted: HouseholdMemberSchema requires both arrays so
+    // that an unset safety value cannot be mistaken for a declared-empty one, and the
+    // form must satisfy that rather than lean on a default that does not exist.
+    allergies: [],
+    dietary_flags: [],
+  };
+}
+
+/**
+ * One member's own row of the profile form (#115).
+ *
+ * A stacked block rather than a flat row: since constraints moved onto members, a
+ * member carries a name, a type, a portion factor, three dietary chips and eight
+ * allergy chips, and there is no honest way to fit that on one line at 360px. It is
+ * still one screen and one form — the alternative (a step per member) would turn
+ * onboarding into the wizard UX_FLOW §3 is explicit about avoiding.
+ *
+ * Allergies keep their own bordered, differently-labelled fieldset inside the member
+ * block, exactly as they had at household level (#101, UX_FLOW §6). Flattening the
+ * two chip groups into one row per member would have been the easy way to save
+ * vertical space and is precisely the regression that must not happen: a preference
+ * and a safety constraint have to stay tellable apart at a glance.
+ */
+function MemberFields({
+  member,
+  label,
+  fallbackLabel,
+  index,
+  onChange,
+  onRemove,
+  removable,
+}: {
+  member: HouseholdMember;
+  /** How this member is shown right now — their name if they have one. */
+  label: string;
+  /** What blank would produce. Distinct from `label`: for a named member the hint
+   *  still has to say what clearing the field gets you, not repeat their name back. */
+  fallbackLabel: string;
+  index: number;
+  onChange: (patch: Partial<HouseholdMember>) => void;
+  onRemove: () => void;
+  removable: boolean;
+}) {
+  const nameId = `member-${index}-name`;
+  const nameHintId = `member-${index}-name-hint`;
+
+  return (
+    <div className="member-card">
+      <div className="member-card-header">
+        <h3 className="member-card-title">{label}</h3>
+        <Button type="button" variant="destructive" onClick={onRemove} disabled={!removable}>
+          Ta bort
+        </Button>
+      </div>
+
+      <div className="member-row">
+        <div className="field member-field-name">
+          <label htmlFor={nameId}>Namn</label>
+          <input
+            id={nameId}
+            className="input"
+            type="text"
+            maxLength={MEMBER_NAME_MAX_LENGTH}
+            value={member.name ?? ""}
+            // Never `required`, and no validation state: blank is a supported answer,
+            // not an incomplete one. The hint below says what blank produces so an
+            // empty field reads as a choice rather than as something left undone.
+            // Just "Valfritt": anything longer is truncated by the field at 360px, and
+            // the hint below carries the explanation where it has room to be read.
+            placeholder="Valfritt"
+            aria-describedby={nameHintId}
+            onChange={(event) => onChange({ name: event.target.value })}
+          />
+          <p id={nameHintId} className="field-hint">
+            Lämna tomt så visas ”{fallbackLabel}”.
+          </p>
+        </div>
+        <label className="field member-field-type">
+          Typ
+          <select
+            className="input"
+            value={member.type}
+            onChange={(event) => onChange({ type: event.target.value as HouseholdMemberType })}
+          >
+            <option value="adult">Vuxen</option>
+            <option value="child">Barn</option>
+          </select>
+        </label>
+        <label className="field member-field-portion">
+          Portionsstorlek
+          <input
+            className="input"
+            type="number"
+            step="0.1"
+            min="0.1"
+            value={member.portion_factor}
+            onChange={(event) => onChange({ portion_factor: Number(event.target.value) })}
+            required
+          />
+        </label>
+      </div>
+
+      <fieldset className="member-constraints">
+        <legend>Kostpreferenser</legend>
+        <div className="chip-row">
+          {DIETARY_FLAGS.map((flag) => (
+            <Chip
+              key={flag}
+              pressed={member.dietary_flags.includes(flag)}
+              onClick={() =>
+                onChange({ dietary_flags: toggleValue(member.dietary_flags, flag) })
+              }
+            >
+              {DIETARY_FLAG_LABELS[flag]}
+            </Chip>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="member-constraints allergy-group">
+        {/* The warning glyph and the word "Allergier" carry the distinction on their
+            own, so the red treatment is reinforcement rather than the only signal —
+            this group must stay tellable from the preferences above it without
+            relying on colour. */}
+        <legend>
+          <span aria-hidden="true">⚠ </span>Allergier
+        </legend>
+        <div className="chip-row">
+          {ALLERGIES.map((allergy) => (
+            <Chip
+              key={allergy}
+              variant="danger"
+              pressed={member.allergies.includes(allergy)}
+              onClick={() => onChange({ allergies: toggleValue(member.allergies, allergy) })}
+            >
+              {ALLERGY_LABELS[allergy]}
+            </Chip>
+          ))}
+        </div>
+      </fieldset>
+    </div>
+  );
 }
 
 function OnboardingForm({
@@ -152,10 +302,17 @@ function OnboardingForm({
   onCreated: () => void;
 }) {
   const [members, setMembers] = useState<HouseholdMember[]>([emptyMember("adult")]);
-  const [allergies, setAllergies] = useState<Allergy[]>([]);
-  const [dietaryFlags, setDietaryFlags] = useState<DietaryFlag[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Derived, never stored alongside the members: the numbering depends on the whole
+  // roster, so a per-member copy would go stale the moment a member is added, removed
+  // or switched between adult and child.
+  const labels = memberLabels(members);
+  // What each member would be called with the name cleared. Derived through the same
+  // function rather than a parallel rule, so the hint can never promise a label the
+  // form would not actually render.
+  const fallbackLabels = memberLabels(members.map((member) => ({ ...member, name: undefined })));
 
   function updateMember(index: number, patch: Partial<HouseholdMember>) {
     setMembers((current) =>
@@ -175,7 +332,14 @@ function OnboardingForm({
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const household: Household = { members, allergies, dietary_flags: dietaryFlags };
+    // A blank name is normalised away rather than sent as "": the schema treats
+    // absent and empty identically, and the label fallback depends on it.
+    const household: Household = {
+      members: members.map(({ name, ...member }) => ({
+        ...member,
+        ...(name?.trim() ? { name: name.trim() } : {}),
+      })),
+    };
     try {
       await createHousehold(session.access_token, household);
       onCreated();
@@ -192,79 +356,27 @@ function OnboardingForm({
         <h2>Skapa hushåll</h2>
         <fieldset>
           <legend>Medlemmar</legend>
+          {/* Allergies and preferences are set per person (#115): a household does
+              not have allergies, people do, and knowing whose is what lets a meal be
+              matched to whoever is actually eating it. */}
+          <p className="field-hint">
+            Ange allergier och kostpreferenser för varje person i hushållet.
+          </p>
           {members.map((member, index) => (
-            <div className="member-row" key={index}>
-              <label className="field">
-                Typ
-                <select
-                  className="input"
-                  value={member.type}
-                  onChange={(event) =>
-                    updateMember(index, { type: event.target.value as HouseholdMemberType })
-                  }
-                >
-                  <option value="adult">Vuxen</option>
-                  <option value="child">Barn</option>
-                </select>
-              </label>
-              <label className="field">
-                Portionsstorlek
-                <input
-                  className="input"
-                  type="number"
-                  step="0.1"
-                  min="0.1"
-                  value={member.portion_factor}
-                  onChange={(event) =>
-                    updateMember(index, { portion_factor: Number(event.target.value) })
-                  }
-                  required
-                />
-              </label>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => removeMember(index)}
-                disabled={members.length <= 1}
-              >
-                Ta bort
-              </Button>
-            </div>
+            <MemberFields
+              key={index}
+              member={member}
+              label={labels[index]!}
+              fallbackLabel={fallbackLabels[index]!}
+              index={index}
+              onChange={(patch) => updateMember(index, patch)}
+              onRemove={() => removeMember(index)}
+              removable={members.length > 1}
+            />
           ))}
           <Button type="button" variant="secondary" onClick={addMember}>
             Lägg till medlem
           </Button>
-        </fieldset>
-
-        <fieldset>
-          <legend>Kostpreferenser</legend>
-          <div className="chip-row">
-            {DIETARY_FLAGS.map((flag) => (
-              <Chip
-                key={flag}
-                pressed={dietaryFlags.includes(flag)}
-                onClick={() => setDietaryFlags((current) => toggleValue(current, flag))}
-              >
-                {DIETARY_FLAG_LABELS[flag]}
-              </Chip>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset className="allergy-group">
-          <legend>Allergier</legend>
-          <div className="chip-row">
-            {ALLERGIES.map((allergy) => (
-              <Chip
-                key={allergy}
-                variant="danger"
-                pressed={allergies.includes(allergy)}
-                onClick={() => setAllergies((current) => toggleValue(current, allergy))}
-              >
-                {ALLERGY_LABELS[allergy]}
-              </Chip>
-            ))}
-          </div>
         </fieldset>
 
         <Button type="submit" variant="primary" disabled={busy}>

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { AllergySchema } from "../schema/allergyDietary.js";
-import type { Household } from "../schema/household.js";
 import { selectCandidateTemplates } from "./candidates.js";
 import { loadEngineData } from "./data.js";
 import {
@@ -12,6 +11,8 @@ import {
 } from "./directions.js";
 import { effectiveIngredientIds, rankCandidates, type RankedCandidate } from "./ranking.js";
 import { makeEngineData, makeIngredient, makeTemplate } from "./__fixtures__/engineData.js";
+import { makeConstraints as household } from "./__fixtures__/household.js";
+import type { MealConstraints } from "./constraints.js";
 
 // The guided flow's direction picker (UX_FLOW §5 step 4). Two halves: unit tests
 // over synthetic ranked lists, where the ordering rules are visible, and safety
@@ -20,12 +21,9 @@ import { makeEngineData, makeIngredient, makeTemplate } from "./__fixtures__/eng
 
 const data = await loadEngineData();
 
-function household(overrides: Partial<Household> = {}): Household {
-  return { members: [{ type: "adult", portion_factor: 1 }], allergies: [], dietary_flags: [], ...overrides };
-}
 
 /** The real pipeline, exactly as the route runs it: filter, then rank, then select. */
-function realRanked(h: Household, month = 6): RankedCandidate[] {
+function realRanked(h: MealConstraints, month = 6): RankedCandidate[] {
   return rankCandidates(data, selectCandidateTemplates(data, h), { cost: 0, time: 0 }, month, h.dietary_flags);
 }
 
@@ -335,7 +333,7 @@ describe("pickDirections — allergen safety over the real catalog", () => {
   const rowsByIngredientId = data.allergenMappingByIngredientId;
 
   /** Every ingredient the guided flow could put on screen for this household. */
-  function surfacedIngredientIds(h: Household, selection: Partial<Parameters<typeof pickDirections>[1]> = {}) {
+  function surfacedIngredientIds(h: MealConstraints, selection: Partial<Parameters<typeof pickDirections>[1]> = {}) {
     const surfaced = new Set<string>();
     const list = realRanked(h);
 

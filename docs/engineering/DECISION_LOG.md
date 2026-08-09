@@ -8,6 +8,20 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-09 — Allergies and dietary flags move onto HouseholdMember; §5's "not per-member" line reversed (#115)
+
+**Decision:** `allergies[]` and `dietary_flags[]` are declared per household member, not per household. The household-level columns are dropped, not kept in sync; the effective constraint set is derived on demand (`mealConstraints`, `src/engine/constraints.ts`) and never stored. `HouseholdMember` also gains an optional `name`.
+
+**Why:** this reverses ARCHITECTURE.md §5's "shared across the household, not per-member." A household does not have allergies; people do, and the union discards *whose* a restriction is — the fact #112 (constraints scoped to who is eating tonight) needs and cannot get from a union with no owner.
+
+**Why not keep both:** two stores of a safety-critical value drift, and the stale one is the one that gets read — the same reason §5.3/§5.5 forbid allergen data on templates or substitution groups.
+
+**Conditions:**
+1. Both member arrays are required with no default at either layer (zod or Postgres), so an omitted value errors rather than silently meaning "no allergies" — §5.4's `verification_status` reasoning, one level down.
+2. A data migration verified only by `supabase db reset` has not been verified — it runs the backfill over zero rows. Exercise it against planted pre-migration rows in a scratch database.
+
+---
+
 ## 2026-08-09 — Tier 2 generation: exact-match resolution, household-free cache key, unverified-content rule (#113)
 
 **Resolution is exact match only, in two normalized forms — never fuzzy.** `src/engine/generatedDish.ts`'s `resolveIngredientName` normalizes a model-proposed name (NFC, lowercase, trim, collapse whitespace) and matches it against an index of the catalog's normalized ingredient names; on a miss it falls back to an ascii-folded, hyphenated form matched against `ingredient.id` (the catalog's ids are already ascii slugs of their Swedish names — `src/schema/ingredient.ts`'s `SlugIdSchema` comment — so this fallback exists specifically to catch a model that reproduces a name without its diacritics, e.g. "gul lok" for "gul lök"). Levenshtein, substring, or prefix matching was considered and rejected: a fuzzy match that succeeds *wrongly* silently attaches the wrong verified allergen row to an ingredient — "mandel" (tree nuts) vs "mandelmjölk" (also tree nuts, but a different catalog row and a different real product), "ost" vs "getost" — and that is a fail-*open* failure no test can reliably catch, since the test would have to predict which wrong pair the model happens to propose on a given run. Exact matching keeps the only possible failure mode "unresolved," which is fail-closed and already has a rule (below). Recall — the model dropping words or paraphrasing — is solved on the prompt side instead: `src/ai/dishPrompt.ts` gives the model the full catalog as a closed vocabulary and instructs it to copy names verbatim, so the matcher doesn't need to be forgiving to get reasonable coverage.

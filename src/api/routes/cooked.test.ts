@@ -14,6 +14,7 @@ import {
 import { makeEngineData, makeIngredient, makeTemplate } from "../../engine/__fixtures__/engineData.js";
 import type { EngineData } from "../../engine/data.js";
 import { createApp } from "../app.js";
+import { makeHousehold } from "../../engine/__fixtures__/household.js";
 
 // POST /api/cooked and its effect on GET /api/tonight (issue #88), against the real
 // local Supabase stack — real database, real auth, no mocks. Repository behaviour
@@ -47,11 +48,7 @@ function authHeader(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
-const noRestrictionsBody = {
-  members: [{ type: "adult", portion_factor: 1 }],
-  allergies: [],
-  dietary_flags: [],
-};
+const noRestrictionsBody = makeHousehold();
 
 /**
  * Two interchangeable dinner templates, distinguished only by id, plus a substitutable

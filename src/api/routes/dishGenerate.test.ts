@@ -4,6 +4,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import type { AnthropicMessagesClient } from "../../ai/generateInstructions.js";
 import { createTokenVerifier } from "../../auth/verifyToken.js";
 import type { Sql } from "../../db/client.js";
+import type { Allergy, DietaryFlag } from "../../schema/allergyDietary.js";
 import { createHousehold } from "../../db/households.js";
 import { recordGenerationAttempt } from "../../db/generatedDishes.js";
 import {
@@ -47,16 +48,25 @@ function authHeader(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
-async function userWithHousehold(householdOverrides: Partial<Household> = {}): Promise<{
+// Keeps the pre-#115 `{ allergies, dietary_flags }` call shape, landing them on the
+// household's single adult member — see src/engine/__fixtures__/household.ts. Every
+// expectation in this file is unchanged, which is the point.
+async function userWithHousehold(
+  memberOverrides: { allergies?: Allergy[]; dietary_flags?: DietaryFlag[] } = {},
+): Promise<{
   userId: string;
   accessToken: string;
 }> {
   const user = await createTestUser();
   await createHousehold(sql!, user.userId, {
-    members: [{ type: "adult", portion_factor: 1 }],
-    allergies: [],
-    dietary_flags: [],
-    ...householdOverrides,
+    members: [
+      {
+        type: "adult",
+        portion_factor: 1,
+        allergies: memberOverrides.allergies ?? [],
+        dietary_flags: memberOverrides.dietary_flags ?? [],
+      },
+    ],
   });
   return user;
 }

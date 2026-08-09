@@ -14,6 +14,7 @@ import {
 import { getHouseholdForOwner } from "../../db/households.js";
 import { recordUnresolvedIngredient } from "../../db/ingredientReviewQueue.js";
 import { passesHardDietaryFilter } from "../../engine/candidates.js";
+import { householdConstraints } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import { isGeneratedDishVisibleToHousehold, resolveGeneratedDish } from "../../engine/generatedDish.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -85,6 +86,11 @@ export function dishGenerateRouter(
         );
       }
 
+      // Derived through the same function Tonight and the guided flow use, so the
+      // Tier 2 safety gate below can never apply a different constraint set from the
+      // one that filtered the curated library.
+      const constraints = householdConstraints(stored.household);
+
       const queryKey = buildQueryKey(body.query);
 
       let output = await getCachedGeneratedDish(sql, queryKey);
@@ -130,8 +136,8 @@ export function dishGenerateRouter(
       }
 
       const visible =
-        isGeneratedDishVisibleToHousehold(engineData, resolved, stored.household.allergies) &&
-        passesHardDietaryFilter(resolved.dietaryTags, stored.household.dietary_flags);
+        isGeneratedDishVisibleToHousehold(engineData, resolved, constraints.allergies) &&
+        passesHardDietaryFilter(resolved.dietaryTags, constraints.dietary_flags);
 
       if (!visible) {
         res.status(200).json({ dish: null, reason: "no_safe_dish" } satisfies DishGenerateResponseBody);
