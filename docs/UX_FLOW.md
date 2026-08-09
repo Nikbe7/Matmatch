@@ -18,11 +18,12 @@ The original vision describes a conversational, turn-by-turn dialogue. That *ton
 ## 3. Onboarding Flow
 
 1. **Welcome** — one screen, states the value prop directly ("Matmatch decides dinner with you, not for you — in under a minute").
-2. **Household setup** — add members quickly:
+2. **Household setup** — add members quickly, each with their own:
    - Adult / Child toggle
    - Portion size (small/regular/large)
+   - Optional name (falls back to "Vuxen 1" / "Barn 2" if left blank)
    - Dietary flag chips (vegetarian, high-protein preference, etc.)
-   - **Allergies** — a distinct, clearly-marked field, not bundled into general "preferences" (this data is treated as safety-critical, see Architecture doc)
+   - **Allergies** — a distinct, clearly-marked field per member, not bundled into general "preferences" (safety-critical, per-person data — see Architecture doc §5/§5.2)
    - Lunch boxes needed (yes/no, how many)
 3. Skip-friendly: user can add just themselves and move on; household can be edited any time from settings. Don't force a long form before the first "aha" moment.
 4. First suggestion is shown immediately after minimal setup — the app should prove its value before asking for more detail.
@@ -59,7 +60,7 @@ Free-text chat is available as a persistent small affordance at the bottom of st
 
 - Accessible from settings, not gated behind onboarding forever
 - Add/edit/remove members at any time
-- Allergies and dietary restrictions are visually distinct from "preferences" in the UI — a red/warning-style treatment for allergies reinforces that these are hard constraints, not soft ones
+- Allergies and dietary flags belong to the member, not the household (ARCHITECTURE.md §5) — each member's card carries its own, and they stay visually distinct from each other in the UI: a red/warning-style treatment for allergies reinforces that these are hard constraints, not soft ones
 - v1 assumes a single owner/editor per household profile (multi-user shared editing is a v2 concern — see Product Plan risks)
 
 ## 7. Shopping List UX
