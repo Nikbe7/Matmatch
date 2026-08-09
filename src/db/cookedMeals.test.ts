@@ -14,6 +14,7 @@ import {
   createTestUser,
   isLocalStackAvailable,
 } from "./__fixtures__/localStack.js";
+import { makeHousehold } from "../engine/__fixtures__/household.js";
 
 // cooked_meals against the real local stack (issue #88). Nothing mocked, for the same
 // reason as households.test.ts/rls.test.ts: what matters here is exactly what a mock
@@ -33,11 +34,7 @@ afterAll(async () => {
   await admin?.end({ timeout: 5 });
 });
 
-const profile = HouseholdSchema.parse({
-  members: [{ type: "adult", portion_factor: 1 }],
-  allergies: [],
-  dietary_flags: [],
-});
+const profile = HouseholdSchema.parse(makeHousehold());
 
 /** A fresh owner with a household, so no test depends on another's rows. */
 async function newHousehold(): Promise<{ userId: string; householdId: string }> {

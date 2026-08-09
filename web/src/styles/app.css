@@ -133,12 +133,71 @@ select.input {
   border-bottom: none;
 }
 
+/* One member of the household profile (#115). A bordered block rather than a flat
+   row: a member now carries a name, a type, a portion factor and two chip groups,
+   which cannot share one line at 360px. The border is what keeps "these controls all
+   describe the same person" legible once several members are stacked. */
+.member-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.member-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.member-card-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
 .member-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+/* At 360px the name takes its own line and type/portion share the next one; on a
+   wider viewport all three fit on one. Basis values, not fixed widths, so the row
+   reflows rather than overflowing. */
+.member-field-name {
+  flex: 1 1 100%;
+  margin-bottom: 0;
+}
+
+.member-field-type,
+.member-field-portion {
+  flex: 1 1 8rem;
+  margin-bottom: 0;
+}
+
+.field-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+/* Chip groups inside a member card sit tighter than top-level fieldsets, without
+   losing the border that separates preferences from allergies. */
+.member-constraints {
+  margin-bottom: var(--space-2);
+  padding: var(--space-2);
+}
+
+.member-constraints .chip-row {
+  margin-bottom: 0;
+}
+
+.member-constraints:last-child {
+  margin-bottom: 0;
 }
 
 .checkbox-label {
@@ -153,6 +212,10 @@ select.input {
   opacity: 0.5;
 }
 
+/* Allergies are a safety constraint, not a preference, and must read as a different
+   kind of thing from the dietary chips above them (#101, UX_FLOW §6). Carried by the
+   border, the tinted ground, the "⚠" glyph and the legend text together — colour is
+   reinforcement here, never the only signal. */
 .allergy-group {
   border-color: var(--color-danger);
   background: var(--color-danger-bg);
@@ -160,6 +223,7 @@ select.input {
 
 .allergy-group legend {
   color: var(--color-danger);
+  font-weight: 600;
 }
 
 /* Button */

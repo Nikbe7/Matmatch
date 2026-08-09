@@ -4,6 +4,7 @@ import type { Sql } from "../../db/client.js";
 import { getRecentCookedMeals } from "../../db/cookedMeals.js";
 import { getHouseholdForOwner } from "../../db/households.js";
 import { selectCandidateTemplates } from "../../engine/candidates.js";
+import { householdConstraints } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import {
   pickDirections,
@@ -70,14 +71,15 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
         );
       }
 
-      const candidates = selectCandidateTemplates(engineData, stored.household);
+      const constraints = householdConstraints(stored.household);
+      const candidates = selectCandidateTemplates(engineData, constraints);
 
       res.status(200).json({
         mainIngredients: buildMainIngredientOptions(engineData, candidates),
         pantryIngredients: buildPantryIngredientOptions(engineData, candidates),
         // Step 2's filter-miss explanation (requirement 4) — scoped to the household's
         // own allergies, not the whole catalog's allergen data.
-        excludedMainIngredients: buildExcludedMainIngredients(engineData, stored.household.allergies),
+        excludedMainIngredients: buildExcludedMainIngredients(engineData, constraints.allergies),
       });
     } catch (error) {
       next(error);
@@ -116,16 +118,17 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
 
       // The shared pipeline, unchanged and in the same order Tonight runs it. Only
       // the selection step below is specific to this flow.
-      const candidates = selectCandidateTemplates(engineData, stored.household);
+      const constraints = householdConstraints(stored.household);
+      const candidates = selectCandidateTemplates(engineData, constraints);
       const ranked = rankCandidates(
         engineData,
         candidates,
         weights,
         month,
-        stored.household.dietary_flags,
+        constraints.dietary_flags,
         recency,
       );
-      const portions = totalPortions(stored.household);
+      const portions = totalPortions(stored.household.members);
 
       if (ranked.length === 0) {
         // The household's own constraints leave nothing at all — a different problem

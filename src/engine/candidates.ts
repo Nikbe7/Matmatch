@@ -1,13 +1,20 @@
 import type { Allergy, DietaryFlag } from "../schema/allergyDietary.js";
-import type { Household } from "../schema/household.js";
 import type { IngredientSlot, RecipeTemplate } from "../schema/recipeTemplate.js";
 import { isIngredientExcluded } from "./allergens.js";
+import type { MealConstraints } from "./constraints.js";
 import type { EngineData } from "./data.js";
 
-// First slice of the Meal Engine: given a household, which recipe templates can it
-// safely eat? Deterministic and total — no ranking, no scoring, no AI, no I/O.
-// Everything downstream in Phase 1 (Tonight card, guided flow, shopping list)
+// First slice of the Meal Engine: given what a meal has to satisfy, which recipe
+// templates are safe to eat? Deterministic and total — no ranking, no scoring, no AI,
+// no I/O. Everything downstream in Phase 1 (Tonight card, guided flow, shopping list)
 // consumes this candidate set.
+//
+// Takes a MealConstraints, not a Household (#115). The distinction matters: a
+// household is *who lives here*, while constraints are *what this meal must satisfy*,
+// and since DECISION_LOG 2026-08-09 those are no longer the same thing. Because the
+// only way to obtain a MealConstraints is constraints.ts's derivation, no caller can
+// assemble a narrower or wider constraint set of its own — which is what stops
+// Tonight, the guided flow and Tier 2 from ever disagreeing about what is safe.
 
 export interface SlotSubstitution {
   // Position in the template's ingredient_slots[]; disambiguates otherwise
@@ -33,7 +40,7 @@ export interface CandidateTemplate {
 const HARD_DIETARY_FLAGS: readonly DietaryFlag[] = ["vegetarian", "vegan"];
 
 /**
- * Whether a dish's own dietary_tags satisfy a household's hard dietary flags.
+ * Whether a dish's own dietary_tags satisfy the meal's hard dietary flags.
  * Exported (not just used by selectCandidateTemplates below) so Tier 2 generated
  * dishes (src/engine/generatedDish.ts, src/api/routes/dishGenerate.ts) apply the
  * exact same rule rather than a re-implementation that could drift from it — a
@@ -87,14 +94,14 @@ function findSubstitute(
 }
 
 /**
- * Every recipe template the household can safely eat, including those rescued by a
+ * Every recipe template these constraints allow, including those rescued by a
  * substitution. A template survives when every one of its slots resolves to an
- * ingredient the household can eat; an excluded slot may be rescued by a
- * substitution, and a template may be rescued at several slots at once.
+ * edible ingredient; an excluded slot may be rescued by a substitution, and a
+ * template may be rescued at several slots at once.
  */
 export function selectCandidateTemplates(
   data: EngineData,
-  household: Household,
+  constraints: MealConstraints,
 ): CandidateTemplate[] {
   const candidates: CandidateTemplate[] = [];
 
@@ -104,15 +111,15 @@ export function selectCandidateTemplates(
     // shape should even be. If/when a lunch flow is built, this is the line to
     // parameterize — do not guess the interface ahead of that caller existing.
     if (!template.meal_types.includes("dinner")) continue;
-    if (!passesDietaryFilter(template, household.dietary_flags)) continue;
+    if (!passesDietaryFilter(template, constraints.dietary_flags)) continue;
 
     const substitutions: SlotSubstitution[] = [];
     let survives = true;
 
     for (const [slotIndex, slot] of template.ingredient_slots.entries()) {
-      if (!isIngredientExcluded(data, slot.ingredient_id, household.allergies)) continue;
+      if (!isIngredientExcluded(data, slot.ingredient_id, constraints.allergies)) continue;
 
-      const substituteId = findSubstitute(data, slot, household.allergies);
+      const substituteId = findSubstitute(data, slot, constraints.allergies);
       if (substituteId === undefined) {
         survives = false;
         break;

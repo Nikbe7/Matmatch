@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CostTierSchema } from "../schema/ingredient.js";
 import { PrepTimeBandSchema } from "../schema/recipeTemplate.js";
-import { HouseholdSchema } from "../schema/household.js";
 import type { CandidateTemplate } from "./candidates.js";
 import { selectCandidateTemplates } from "./candidates.js";
 import { loadEngineData } from "./data.js";
@@ -20,6 +19,7 @@ import {
   type RecencyContext,
 } from "./ranking.js";
 import { makeEngineData, makeIngredient, makeTemplate } from "./__fixtures__/engineData.js";
+import { makeConstraints } from "./__fixtures__/household.js";
 
 // Seasonality fixtures: "aret-runt" is always in season, "sommar" only in July.
 const seasonalityData = makeEngineData({
@@ -610,11 +610,7 @@ describe("pickNextSuggestion", () => {
 // --- Real-data assertions ------------------------------------------------------
 
 const data = await loadEngineData();
-const noRestrictions = HouseholdSchema.parse({
-  members: [{ type: "adult", portion_factor: 1 }],
-  allergies: [],
-  dietary_flags: [],
-});
+const noRestrictions = makeConstraints();
 
 describe("rankCandidates — over the real candidate set", () => {
   const candidates = selectCandidateTemplates(data, noRestrictions);

@@ -14,6 +14,7 @@ import {
 import { makeEngineData } from "../../engine/__fixtures__/engineData.js";
 import type { EngineData } from "../../engine/data.js";
 import { createApp } from "../app.js";
+import { makeHousehold } from "../../engine/__fixtures__/household.js";
 
 // POST /api/analytics/events (issue #91), against the real local Supabase stack —
 // real database, real auth, no mocks. RLS and storage shape are covered in
@@ -46,11 +47,7 @@ function authHeader(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
-const noRestrictionsBody = {
-  members: [{ type: "adult", portion_factor: 1 }],
-  allergies: [],
-  dietary_flags: [],
-};
+const noRestrictionsBody = makeHousehold();
 
 function buildApp(): Express {
   const engineData: EngineData = makeEngineData({});

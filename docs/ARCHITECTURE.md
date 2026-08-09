@@ -83,8 +83,8 @@ Allergy and hard dietary restriction filtering happens in the **Meal Engine**, b
 ## 5. Database Design (Conceptual Schema)
 
 - **User** — id, email, auth provider info, subscription status
-- **Household** — id, owner_user_id, allergies[], dietary_flags[] (distinct fields, treated as sensitive — shared across the household, not per-member) — see "Allergy & dietary vocabulary" below for the locked value lists
-- **HouseholdMember** — id, household_id, type (adult/child), portion_factor
+- **Household** — id, owner_user_id. The ownership anchor only: it holds no constraint fields of its own. A household's effective allergy/dietary set is **derived** from its members (`mealConstraints`, `src/engine/constraints.ts`), never stored, so there is one source of truth for safety-critical data
+- **HouseholdMember** — id, household_id, type (adult/child), portion_factor, name (optional), allergies[], dietary_flags[] (distinct fields, treated as sensitive — **per-member**; see "Allergy & dietary vocabulary" below for the locked value lists). Constraints were household-level until #115 reversed that — a household does not have allergies, people do, and only the per-member shape can answer *whose* a given restriction is, which is what scoping a meal to the people eating it requires (DECISION_LOG 2026-08-09)
 - **Ingredient** — id, name, category, default_cost_tier, peak_months[], available_year_round, seasonality_strength (curated/maintained data, not AI-generated; see "Ingredient schema" below for the locked vocabularies)
 - **RecipeTemplate** — id, name, protein_group, cuisine, cost_tier, prep_time_band, dietary_tags[], ingredient_slots[] (role, ingredient_id, substitutable) — see "RecipeTemplate schema & coverage matrix" below for the locked vocabularies and matrix
 - **IngredientAllergenMapping** — ingredient_id (FK to Ingredient.id), allergens[], verification_status — the sole source of truth for allergy filtering (§4.3); see "Ingredient-to-allergen mapping" below
@@ -140,6 +140,8 @@ Chosen over a single `seasonality_tags[]` string array so the Meal Engine can di
 
 Two distinct, non-interchangeable vocabularies, matching UX_FLOW.md §3/§6's requirement that allergies be visually and structurally distinct from preferences.
 
+**Both are declared per household member, not per household** (#115) — see §5 above. Everything below describes the vocabulary each member's arrays draw from; what the Meal Engine filters against is the union over whichever members a given meal is for, which defaults to all of them.
+
 **`allergies[]` (hard filter, safety-critical, never AI-dependent — see §4.3):**
 `gluten`, `dairy_lactose`, `egg`, `tree_nuts`, `peanuts`, `shellfish`, `fish`, `soy`
 
@@ -153,6 +155,8 @@ Scoped tightly to what the current UX flow and Phase 0 template batches (see MVP
 **Not included in MVP dietary flags, documented as future considerations:** pescatarian; gluten-free as a lifestyle choice rather than an allergy (currently, avoiding gluten is only expressible via the `gluten` allergy, which is stricter than intended for a non-allergic preference); religious dietary restrictions (halal, kosher, no-pork) — not covered by the current MVP use case, but plausible for the Swedish market and would need a decision on whether they behave as hard filters (like allergies) or soft preferences before being added; low-carb/keto and other diet systems, out of scope unless a real usage signal supports them.
 
 **Family-friendly cooking is not a dietary flag.** It's derived from household composition (presence of `type: child` members) rather than a separate manually-set preference, to avoid two sources of truth for the same signal.
+
+**`high_protein_preference` per member reads oddly but unions correctly.** It is a soft ranking preference rather than a personal restriction, so "whose" it is matters less than for an allergy. Splitting the vocabulary across two levels to accommodate it would be worse than the mild awkwardness: one member wanting it means the meal is biased that way, which is the right answer, and it becomes diner-scoped for free alongside everything else.
 
 ### 5.3 RecipeTemplate schema & coverage matrix (locked, Phase 0 Day 1)
 

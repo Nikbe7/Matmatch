@@ -34,9 +34,7 @@ afterAll(async () => {
 });
 
 const profile = HouseholdSchema.parse({
-  members: [{ type: "adult", portion_factor: 1 }],
-  allergies: ["gluten"],
-  dietary_flags: [],
+  members: [{ type: "adult", portion_factor: 1, allergies: ["gluten"], dietary_flags: [] }],
 });
 
 describe.skipIf(!stackAvailable)("row level security — application role", () => {
@@ -84,7 +82,11 @@ describe.skipIf(!stackAvailable)("row level security — application role", () =
     expect(await getHousehold(sql!, bob.userId, bobHousehold.id)).toBeDefined();
   });
 
-  it("cannot update another user's household even with a matching id", async () => {
+  it("cannot edit another user's member constraints even with a matching household id", async () => {
+    // Retargeted from `households` to `household_members` by #115: the allergy data
+    // this proves is protected now lives on the member rows, and their policies are
+    // defined by reference to the household's owner rather than by an owner column of
+    // their own. Attacking the table that no longer holds the data would prove nothing.
     const alice = await createTestUser();
     const bob = await createTestUser();
     const bobHousehold = await createHousehold(sql!, bob.userId, profile);
@@ -92,18 +94,21 @@ describe.skipIf(!stackAvailable)("row level security — application role", () =
     const updated = await withUserContext(
       sql!,
       alice.userId,
-      (tx) => tx<{ id: string }[]>`
-        update households set dietary_flags = '{"vegan"}'::text[]::dietary_flag_value[]
-        where id = ${bobHousehold.id}
-        returning id
+      (tx) => tx<{ household_id: string }[]>`
+        update household_members set allergies = '{}'::text[]::allergy_value[]
+        where household_id = ${bobHousehold.id}
+        returning household_id
       `,
     );
 
     expect(updated).toEqual([]);
-    const [row] = await admin!<{ dietary_flags: string[] }[]>`
-      select dietary_flags::text[] as dietary_flags from households where id = ${bobHousehold.id}
+    // Bob's declared allergy is untouched — the dangerous direction is an attacker
+    // *clearing* someone's allergies, so this asserts the value, not just the row count.
+    const [row] = await admin!<{ allergies: string[] }[]>`
+      select allergies::text[] as allergies
+      from household_members where household_id = ${bobHousehold.id}
     `;
-    expect(row!.dietary_flags).toEqual([]);
+    expect(row!.allergies).toEqual(["gluten"]);
   });
 
   it("cannot delete another user's household", async () => {
@@ -270,6 +275,73 @@ describe.skipIf(!stackAvailable)("application role privileges", () => {
 // role here is not a superuser (rolsuper is false), which is worth stating because
 // looking for a superuser that doesn't exist is a dead end. No application code path
 // may use this connection.
+// #115 moved allergies and dietary_flags onto household_members. DECISION_LOG
+// 2026-08-07: never take a security-relevant table property from a *default* or from
+// reasoning about grant inheritance — hosted Supabase and the local stack do not
+// agree on those defaults, and the failure is silent (an unfiltered select simply
+// returns nothing). These assert the post-migration state directly.
+describe.skipIf(!stackAvailable)("per-member constraint columns are reachable and protected (#115)", () => {
+  it("keeps RLS enabled and forced on household_members after the migration", async () => {
+    const [row] = await admin!<{ relrowsecurity: boolean; relforcerowsecurity: boolean }[]>`
+      select relrowsecurity, relforcerowsecurity
+      from pg_class
+      where oid = 'public.household_members'::regclass
+    `;
+
+    expect(row).toEqual({ relrowsecurity: true, relforcerowsecurity: true });
+  });
+
+  it("lets the application role read the new columns — the grant is table-wide, verified not assumed", async () => {
+    const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
+
+    // Unfiltered on purpose, as everywhere else in this file: RLS is what narrows it.
+    // A missing column grant would surface here as an error, and a missing policy as
+    // an empty array — the exact silent signature of the 2026-08-07 bug.
+    const rows = await withUserContext(
+      sql!,
+      owner.userId,
+      (tx) => tx<{ allergies: string[]; dietary_flags: string[]; name: string | null }[]>`
+        select allergies::text[] as allergies, dietary_flags::text[] as dietary_flags, name
+        from household_members
+      `,
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.allergies).toEqual(["gluten"]);
+    expect(created.household.members[0]!.allergies).toEqual(["gluten"]);
+  });
+
+  it("has no default on the constraint columns, so an omitted allergy list errors instead of meaning none", async () => {
+    const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
+
+    // The safety property behind dropping the backfill defaults: a writer that forgets
+    // these columns must fail loudly rather than silently record "no allergies".
+    await expect(
+      admin!`
+        insert into household_members (household_id, type, portion_factor, position)
+        values (${created.id}, 'adult', 1, 50)
+      `,
+    ).rejects.toThrow(/null value in column "(allergies|dietary_flags)"/i);
+  });
+
+  it("no longer has household-level constraint columns to drift from the member rows", async () => {
+    const columns = await admin!<{ column_name: string }[]>`
+      select column_name
+      from information_schema.columns
+      where table_schema = 'public' and table_name = 'households'
+    `;
+
+    expect(columns.map((column) => column.column_name).sort()).toEqual([
+      "created_at",
+      "id",
+      "owner_user_id",
+      "updated_at",
+    ]);
+  });
+});
+
 describe.skipIf(!stackAvailable)("a rolbypassrls connection still bypasses RLS", () => {
   it("reads any household regardless of policies, which is why it is not the app role", async () => {
     const owner = await createTestUser();

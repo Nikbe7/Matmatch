@@ -1,19 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { AllergySchema, type Allergy } from "../schema/allergyDietary.js";
-import { HouseholdSchema, type Household } from "../schema/household.js";
 import { selectCandidateTemplates } from "./candidates.js";
+import type { MealConstraints } from "./constraints.js";
 import { loadEngineData } from "./data.js";
 import { makeEngineData, makeIngredient, makeTemplate } from "./__fixtures__/engineData.js";
+import { makeConstraints as household } from "./__fixtures__/household.js";
 
-function household(overrides: Partial<Household> = {}): Household {
-  return HouseholdSchema.parse({
-    members: [{ type: "adult", portion_factor: 1 }],
-    allergies: [],
-    dietary_flags: [],
-    ...overrides,
-  });
-}
+// `household(...)` keeps the pre-#115 call shape on purpose — see the fixture's own
+// comment. Every expectation below is unchanged from before constraints moved onto
+// members, which is what makes this file part of the behavior-preservation evidence.
 
 describe("selectCandidateTemplates — substitution rescue rules", () => {
   // gul-lok is excluded for this household; rodlok is the safe alternative.
@@ -221,7 +217,7 @@ describe("selectCandidateTemplates — dietary flags", () => {
     })),
   });
 
-  const idsFor = (h: Household) =>
+  const idsFor = (h: MealConstraints) =>
     selectCandidateTemplates(data, h).map((candidate) => candidate.template.id);
 
   it("hard-filters vegetarian on the template's dietary_tags", () => {
@@ -289,7 +285,7 @@ const allergenRows = JSON.parse(
 const rowsByIngredientId = new Map(allergenRows.map((row) => [row.ingredient_id, row]));
 
 /** The ingredients a household actually ends up eating, after applying rescues. */
-function effectiveIngredientIds(h: Household): Set<string> {
+function effectiveIngredientIds(h: MealConstraints): Set<string> {
   const ids = new Set<string>();
   for (const candidate of selectCandidateTemplates(data, h)) {
     const substituteBySlotIndex = new Map(
@@ -360,7 +356,7 @@ describe("selectCandidateTemplates — survival counts (DECISION_LOG 2026-08-02)
   // purjolokssoppa-med-creme-fraiche, ostsoppa-med-brod-och-vitlok,
   // gravad-lax-med-senapssas-och-ragbrod and rakceviche-med-lime-och-koriander
   // lost "dinner", dropping every count below that included them by one more.
-  const countFor = (h: Household) => selectCandidateTemplates(data, h).length;
+  const countFor = (h: MealConstraints) => selectCandidateTemplates(data, h).length;
 
   it("a household with no allergies and no dietary flags sees all 148 dinner-eligible templates", () => {
     expect(countFor(household())).toBe(148);

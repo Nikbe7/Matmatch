@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ALLERGIES } from "../../src/schema/vocabulary";
@@ -32,6 +32,11 @@ vi.mock("./supabaseClient", () => ({
 
 const { default: App } = await import("./App");
 const { ALLERGY_LABELS, costTierMeter, costTierLabel } = await import("./App");
+
+/** A member block, addressed the way the household sees it: by that member's label. */
+function memberCard(label: string): HTMLElement {
+  return screen.getByRole("heading", { name: label }).closest(".member-card") as HTMLElement;
+}
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -102,14 +107,14 @@ describe("App — household gate", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("renders exactly the locked allergy vocabulary as chips", async () => {
+  it("renders exactly the locked allergy vocabulary as chips, per member", async () => {
     sessionHolder.current = fakeSession;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
 
     render(<App />);
     await screen.findByRole("heading", { name: "Skapa hushåll" });
 
-    const fieldset = screen.getByText("Allergier").closest("fieldset")!;
+    const fieldset = memberCard("Vuxen 1").querySelector("fieldset.allergy-group")!;
     const chipLabels = Array.from(fieldset.querySelectorAll("button")).map(
       (button) => button.textContent,
     );
@@ -165,6 +170,116 @@ describe("App — household gate", () => {
     expect(alert.textContent).toBe("members must contain at least 1 element(s)");
     expect(alert.textContent).not.toContain("{");
     expect(screen.getAllByText("Typ")).toHaveLength(2);
+  });
+
+  it("sends each member's own allergies and dietary flags, not one household-wide set", async () => {
+    // The behaviour #115 exists for: after this, "whose allergy is it" survives the
+    // round trip, which is what #112 needs to narrow constraints to tonight's diners.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(householdNotFound)
+      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
+      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Skapa hushåll" });
+
+    // Member 1 is peanut-allergic; member 2 is vegetarian and allergic to nothing.
+    await user.click(within(memberCard("Vuxen 1")).getByRole("button", { name: "Jordnötter" }));
+    await user.click(screen.getByRole("button", { name: "Lägg till medlem" }));
+    await user.click(within(memberCard("Vuxen 2")).getByRole("button", { name: "Vegetariskt" }));
+
+    await user.click(screen.getByRole("button", { name: "Spara hushåll" }));
+    await screen.findByRole("heading", { name: "Ikväll" });
+
+    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(body.members).toHaveLength(2);
+    expect(body.members[0]).toMatchObject({ allergies: ["peanuts"], dietary_flags: [] });
+    expect(body.members[1]).toMatchObject({ allergies: [], dietary_flags: ["vegetarian"] });
+    // The household itself no longer carries either field.
+    expect(body.allergies).toBeUndefined();
+    expect(body.dietary_flags).toBeUndefined();
+  });
+
+  it("omits a blank name rather than sending an empty string", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(householdNotFound)
+      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
+      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Skapa hushåll" });
+    await user.click(screen.getByRole("button", { name: "Spara hushåll" }));
+    await screen.findByRole("heading", { name: "Ikväll" });
+
+    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect("name" in body.members[0]).toBe(false);
+  });
+
+  it("labels unnamed members by type and ordinal, and swaps in a name once given", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Skapa hushåll" });
+
+    expect(screen.getByRole("heading", { name: "Vuxen 1" })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Lägg till medlem" }));
+    expect(screen.getByRole("heading", { name: "Vuxen 2" })).toBeTruthy();
+
+    // Switching a member to "Barn" renumbers within the new type, not across the list.
+    const typeSelects = screen.getAllByLabelText("Typ");
+    await user.selectOptions(typeSelects[1]!, "child");
+    expect(screen.getByRole("heading", { name: "Barn 1" })).toBeTruthy();
+
+    await user.type(within(memberCard("Barn 1")).getByLabelText("Namn"), "Ella");
+    expect(screen.getByRole("heading", { name: "Ella" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Barn 1" })).toBeNull();
+
+    // The hint keeps describing what *clearing* the field would give, rather than
+    // reading back the name the member already has.
+    expect(within(memberCard("Ella")).getByText(/Lämna tomt/).textContent).toContain("Barn 1");
+  });
+
+  it("keeps allergies in their own labelled group, distinguishable from preferences by more than colour", async () => {
+    // #101/UX_FLOW §6, re-asserted at the per-member scale: moving constraints into
+    // member rows is exactly where the two chip groups would get flattened into one.
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Skapa hushåll" });
+
+    const card = memberCard("Vuxen 1");
+    const groups = Array.from(card.querySelectorAll("fieldset"));
+    expect(groups).toHaveLength(2);
+
+    const [preferences, allergies] = groups as [HTMLFieldSetElement, HTMLFieldSetElement];
+    expect(preferences.querySelector("legend")!.textContent).toBe("Kostpreferenser");
+    // Distinct legend text plus a warning glyph — both non-colour signals, present in
+    // the markup rather than only in the stylesheet.
+    expect(allergies.querySelector("legend")!.textContent).toContain("Allergier");
+    expect(allergies.querySelector("legend")!.textContent).toContain("⚠");
+    expect(allergies.className).toContain("allergy-group");
+
+    // And the two groups genuinely hold different chips, in the locked order.
+    expect(Array.from(preferences.querySelectorAll("button")).map((b) => b.textContent)).toEqual([
+      "Vegetariskt",
+      "Veganskt",
+      "Proteinrikt",
+    ]);
+    expect(Array.from(allergies.querySelectorAll("button")).map((b) => b.textContent)).toEqual(
+      ALLERGIES.map((allergy) => ALLERGY_LABELS[allergy]),
+    );
   });
 
   it("keeps a household with no safe result in the Tonight no-result state, not onboarding", async () => {

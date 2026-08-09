@@ -12,6 +12,7 @@ import {
   isLocalStackAvailable,
 } from "../db/__fixtures__/localStack.js";
 import { createApp } from "./app.js";
+import { makeHousehold } from "../engine/__fixtures__/household.js";
 
 // Integration tests against the real local Supabase stack — unmocked DB, unmocked
 // auth. These are the tests proving the wiring, not the logic underneath it: engine
@@ -45,11 +46,7 @@ function authHeader(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
-const noRestrictionsBody = {
-  members: [{ type: "adult", portion_factor: 1 }],
-  allergies: [],
-  dietary_flags: [],
-};
+const noRestrictionsBody = makeHousehold();
 
 describe("GET /health", () => {
   it("responds 200 without a token, even without the stack up", async () => {
@@ -129,17 +126,18 @@ describe.skipIf(!stackAvailable)("POST /api/households", () => {
     const response = await request(app!)
       .post("/api/households")
       .set(authHeader(user.accessToken))
-      .send({
+      .send(makeHousehold({
         members: [
           { type: "adult", portion_factor: 1 },
           { type: "child", portion_factor: 0.6 },
         ],
         allergies: ["gluten"],
         dietary_flags: ["vegetarian"],
-      });
+      }));
 
     expect(response.status).toBe(201);
-    expect(response.body.household.allergies).toEqual(["gluten"]);
+    expect(response.body.household.members[0].allergies).toEqual(["gluten"]);
+    expect(response.body.household.members[1].allergies).toEqual([]);
     expect(response.body.owner_user_id).toBe(user.userId);
 
     const { getHousehold } = await import("../db/households.js");
@@ -153,10 +151,12 @@ describe.skipIf(!stackAvailable)("POST /api/households", () => {
     const response = await request(app!)
       .post("/api/households")
       .set(authHeader(user.accessToken))
+      // A raw literal, not makeHousehold: the point of this test is a value outside
+      // the locked vocabulary, which the typed fixture cannot express.
       .send({
-        members: [{ type: "adult", portion_factor: 1 }],
-        allergies: ["sesame"],
-        dietary_flags: [],
+        members: [
+          { type: "adult", portion_factor: 1, allergies: ["sesame"], dietary_flags: [] },
+        ],
       });
 
     expect(response.status).toBe(400);
@@ -234,15 +234,13 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     await request(app!)
       .post("/api/households")
       .set(authHeader(user.accessToken))
-      .send({
+      .send(makeHousehold({
         members: [
           { type: "adult", portion_factor: 1 },
           { type: "adult", portion_factor: 1 },
           { type: "child", portion_factor: 0.5 },
         ],
-        allergies: [],
-        dietary_flags: [],
-      });
+      }));
 
     const response = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
 
@@ -285,11 +283,7 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     await request(app!)
       .post("/api/households")
       .set(authHeader(bob.accessToken))
-      .send({
-        members: [{ type: "adult", portion_factor: 1 }],
-        allergies: [],
-        dietary_flags: ["vegan"],
-      });
+      .send(makeHousehold({ allergies: [], dietary_flags: ["vegan"] }));
 
     // Alice has no household of her own — if the route's RLS context were not wired
     // through (e.g. it queried without the per-request user set), this request could

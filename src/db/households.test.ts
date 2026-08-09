@@ -27,14 +27,16 @@ afterAll(async () => {
   await admin?.end({ timeout: 5 });
 });
 
+// Since #115 constraints hang off individual members, so the fixture spreads the
+// same set the household used to carry across the people who actually have them —
+// the union is still {gluten, fish} / {vegetarian}, which is what keeps every
+// engine-facing expectation in the suite unchanged.
 const profile: Household = HouseholdSchema.parse({
   members: [
-    { type: "adult", portion_factor: 1 },
-    { type: "adult", portion_factor: 0.9 },
-    { type: "child", portion_factor: 0.6 },
+    { type: "adult", name: "Ella", portion_factor: 1, allergies: ["gluten"], dietary_flags: ["vegetarian"] },
+    { type: "adult", portion_factor: 0.9, allergies: [], dietary_flags: [] },
+    { type: "child", portion_factor: 0.6, allergies: ["fish"], dietary_flags: [] },
   ],
-  allergies: ["gluten", "fish"],
-  dietary_flags: ["vegetarian"],
 });
 
 describe.skipIf(!stackAvailable)("households repository (local Supabase)", () => {
@@ -56,12 +58,10 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
     const owner = await createTestUser();
     const ordered = HouseholdSchema.parse({
       members: [
-        { type: "child", portion_factor: 0.5 },
-        { type: "adult", portion_factor: 1 },
-        { type: "child", portion_factor: 0.7 },
+        { type: "child", portion_factor: 0.5, allergies: [], dietary_flags: [] },
+        { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
+        { type: "child", portion_factor: 0.7, allergies: [], dietary_flags: [] },
       ],
-      allergies: [],
-      dietary_flags: [],
     });
 
     const created = await createHousehold(sql!, owner.userId, ordered);
@@ -73,25 +73,56 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
   it("stores an empty allergy and dietary list without turning it into null", async () => {
     const owner = await createTestUser();
     const plain = HouseholdSchema.parse({
-      members: [{ type: "adult", portion_factor: 1 }],
-      allergies: [],
-      dietary_flags: [],
+      members: [{ type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] }],
     });
 
     const created = await createHousehold(sql!, owner.userId, plain);
+    const read = await getHousehold(sql!, owner.userId, created.id);
 
-    expect(created.household.allergies).toEqual([]);
-    expect((await getHousehold(sql!, owner.userId, created.id))!.household.dietary_flags).toEqual([]);
+    expect(created.household.members[0]!.allergies).toEqual([]);
+    expect(read!.household.members[0]!.dietary_flags).toEqual([]);
   });
 
-  it("replaces members, allergies and flags on update", async () => {
+  it("keeps each member's constraints on that member rather than merging them", async () => {
+    const owner = await createTestUser();
+
+    const created = await createHousehold(sql!, owner.userId, profile);
+    const read = await getHousehold(sql!, owner.userId, created.id);
+
+    // The whole point of #115: after the round trip it is still recoverable *whose*
+    // allergy each one is. A union-shaped store cannot answer this.
+    expect(read!.household.members.map((member) => member.allergies)).toEqual([
+      ["gluten"],
+      [],
+      ["fish"],
+    ]);
+    expect(read!.household.members.map((member) => member.dietary_flags)).toEqual([
+      ["vegetarian"],
+      [],
+      [],
+    ]);
+  });
+
+  it("round-trips an optional member name, and stores an unnamed member as absent rather than empty", async () => {
+    const owner = await createTestUser();
+
+    const created = await createHousehold(sql!, owner.userId, profile);
+    const read = await getHousehold(sql!, owner.userId, created.id);
+
+    expect(read!.household.members[0]!.name).toBe("Ella");
+    // NULL in the column becomes `undefined`, never "" — the two must not be
+    // distinguishable downstream, or the label fallback would render a blank chip.
+    expect(read!.household.members[1]!.name).toBeUndefined();
+  });
+
+  it("replaces members and their constraints on update", async () => {
     const owner = await createTestUser();
     const created = await createHousehold(sql!, owner.userId, profile);
 
     const revised = HouseholdSchema.parse({
-      members: [{ type: "adult", portion_factor: 1.2 }],
-      allergies: ["soy"],
-      dietary_flags: ["vegan", "vegetarian"],
+      members: [
+        { type: "adult", portion_factor: 1.2, allergies: ["soy"], dietary_flags: ["vegan", "vegetarian"] },
+      ],
     });
     const updated = await updateHousehold(sql!, owner.userId, created.id, revised);
 
@@ -104,9 +135,10 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
     const owner = await createTestUser();
     const created = await createHousehold(sql!, owner.userId, profile);
 
+    // The trigger must still fire even though the UPDATE against `households` sets
+    // nothing since #115 — the profile change lands entirely on the member rows.
     const updated = await updateHousehold(sql!, owner.userId, created.id, {
-      ...profile,
-      allergies: ["egg"],
+      members: [{ ...profile.members[0]!, allergies: ["egg"] }],
     });
 
     expect(updated!.created_at.getTime()).toBe(created.created_at.getTime());
@@ -136,7 +168,7 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
     const owner = await createTestUser();
 
     await expect(
-      createHousehold(sql!, owner.userId, { members: [], allergies: [], dietary_flags: [] }),
+      createHousehold(sql!, owner.userId, { members: [] }),
     ).rejects.toThrow();
   });
 });
@@ -147,33 +179,36 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
 describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () => {
   it("rejects an allergen outside the locked §5.2 vocabulary", async () => {
     const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
 
     await expect(
       admin!`
-        insert into households (owner_user_id, allergies)
-        values (${owner.userId}, '{"sesame"}'::text[]::allergy_value[])
+        insert into household_members (household_id, type, portion_factor, position, allergies, dietary_flags)
+        values (${created.id}, 'adult', 1, 97, '{"sesame"}'::text[]::allergy_value[], '{}')
       `,
     ).rejects.toThrow(/allergy_value/i);
   });
 
   it("rejects a dietary flag outside the locked vocabulary", async () => {
     const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
 
     await expect(
       admin!`
-        insert into households (owner_user_id, dietary_flags)
-        values (${owner.userId}, '{"pescatarian"}'::text[]::dietary_flag_value[])
+        insert into household_members (household_id, type, portion_factor, position, allergies, dietary_flags)
+        values (${created.id}, 'adult', 1, 96, '{}', '{"pescatarian"}'::text[]::dietary_flag_value[])
       `,
     ).rejects.toThrow(/dietary_flag_value/i);
   });
 
   it("rejects duplicate allergies", async () => {
     const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
 
     await expect(
       admin!`
-        insert into households (owner_user_id, allergies)
-        values (${owner.userId}, '{"gluten","gluten"}'::text[]::allergy_value[])
+        insert into household_members (household_id, type, portion_factor, position, allergies, dietary_flags)
+        values (${created.id}, 'adult', 1, 95, '{"gluten","gluten"}'::text[]::allergy_value[], '{}')
       `,
     ).rejects.toThrow(/no_duplicates/i);
   });
@@ -184,8 +219,8 @@ describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () =
 
     await expect(
       admin!`
-        insert into household_members (household_id, type, portion_factor, position)
-        values (${created.id}, 'adult', 0, 99)
+        insert into household_members (household_id, type, portion_factor, position, allergies, dietary_flags)
+        values (${created.id}, 'adult', 0, 99, '{}', '{}')
       `,
     ).rejects.toThrow(/portion_factor/i);
   });
@@ -196,8 +231,8 @@ describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () =
 
     await expect(
       admin!`
-        insert into household_members (household_id, type, portion_factor, position)
-        values (${created.id}, 'teenager', 1, 98)
+        insert into household_members (household_id, type, portion_factor, position, allergies, dietary_flags)
+        values (${created.id}, 'teenager', 1, 98, '{}', '{}')
       `,
     ).rejects.toThrow(/type/i);
   });

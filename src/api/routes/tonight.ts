@@ -4,6 +4,7 @@ import type { Sql } from "../../db/client.js";
 import { getHouseholdForOwner } from "../../db/households.js";
 import { cookedTodayTemplateIds, getRecentCookedMeals } from "../../db/cookedMeals.js";
 import { selectCandidateTemplates } from "../../engine/candidates.js";
+import { householdConstraints } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import {
   buildCookingHistory,
@@ -52,16 +53,21 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       );
       const recency: RecencyContext = { history: buildCookingHistory(history), now };
 
-      const candidates = selectCandidateTemplates(engineData, stored.household);
+      // Derived once and used for both filtering and ranking, so the two can never
+      // be handed different answers about who this meal is for. #112 narrows this one
+      // expression to the diner set; nothing else in this route changes.
+      const constraints = householdConstraints(stored.household);
+
+      const candidates = selectCandidateTemplates(engineData, constraints);
       const ranked = rankCandidates(
         engineData,
         candidates,
         weights,
         month,
-        stored.household.dietary_flags,
+        constraints.dietary_flags,
         recency,
       );
-      const portions = totalPortions(stored.household);
+      const portions = totalPortions(stored.household.members);
 
       if (ranked.length === 0) {
         // Not an error: UX_FLOW §9 says never dead-end the user. A vegan+gluten

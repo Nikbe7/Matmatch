@@ -14,7 +14,9 @@ import { withUserContext } from "./context.js";
 // domain arrays (allergy_value[]), and postgres.js resolves result parsers by type
 // OID, so it would hand back the raw `{gluten,soy}` string for an OID it doesn't
 // know. Casting to text[] in the query keeps the driver's array parsing and costs
-// nothing — the domain still enforces the vocabulary on write.
+// nothing — the domain still enforces the vocabulary on write. Since #115 those
+// columns live on household_members, so the casts moved with them; `households`
+// itself now carries no profile columns at all, only ownership and timestamps.
 
 /** A stored household: the in-memory profile plus the persistence-only fields. */
 export interface StoredHousehold {
@@ -28,8 +30,6 @@ export interface StoredHousehold {
 interface HouseholdRow {
   id: string;
   owner_user_id: string;
-  allergies: string[];
-  dietary_flags: string[];
   created_at: Date;
   updated_at: Date;
 }
@@ -37,8 +37,11 @@ interface HouseholdRow {
 interface MemberRow {
   household_id: string;
   type: string;
+  name: string | null;
   portion_factor: number;
   position: number;
+  allergies: string[];
+  dietary_flags: string[];
 }
 
 /**
@@ -54,9 +57,16 @@ function toStoredHousehold(row: HouseholdRow, memberRows: readonly MemberRow[]):
   const household = HouseholdSchema.parse({
     members: [...memberRows]
       .sort((a, b) => a.position - b.position)
-      .map((member) => ({ type: member.type, portion_factor: member.portion_factor })),
-    allergies: row.allergies,
-    dietary_flags: row.dietary_flags,
+      .map((member) => ({
+        type: member.type,
+        // NULL is how "unnamed" is stored; the schema's optional `name` is how it is
+        // expressed in memory. `?? undefined` is the whole translation — do not let a
+        // null reach zod, which would reject it rather than treat it as absent.
+        name: member.name ?? undefined,
+        portion_factor: member.portion_factor,
+        allergies: member.allergies,
+        dietary_flags: member.dietary_flags,
+      })),
   });
 
   return {
@@ -76,13 +86,25 @@ async function insertMembers(
   const values = household.members.map((member, position) => ({
     household_id: householdId,
     type: member.type,
+    name: member.name ?? null,
     portion_factor: member.portion_factor,
     position,
+    // Written as text[] and cast by the column's domain type on the way in, matching
+    // how the household-level columns were written before #115.
+    allergies: member.allergies,
+    dietary_flags: member.dietary_flags,
   }));
 
   return sql<MemberRow[]>`
     insert into household_members ${sql(values)}
-    returning household_id, type, portion_factor, position
+    returning
+      household_id,
+      type,
+      name,
+      portion_factor,
+      position,
+      allergies::text[] as allergies,
+      dietary_flags::text[] as dietary_flags
   `;
 }
 
@@ -105,19 +127,9 @@ export async function createHousehold(
 
   return withUserContext(sql, userId, async (tx) => {
     const [row] = await tx<HouseholdRow[]>`
-      insert into households (owner_user_id, allergies, dietary_flags)
-      values (
-        ${userId},
-        ${household.allergies}::text[]::allergy_value[],
-        ${household.dietary_flags}::text[]::dietary_flag_value[]
-      )
-      returning
-        id,
-        owner_user_id,
-        allergies::text[] as allergies,
-        dietary_flags::text[] as dietary_flags,
-        created_at,
-        updated_at
+      insert into households (owner_user_id)
+      values (${userId})
+      returning id, owner_user_id, created_at, updated_at
     `;
 
     if (!row) throw new Error("insert into households returned no row");
@@ -142,13 +154,7 @@ export async function getHousehold(
 ): Promise<StoredHousehold | undefined> {
   return withUserContext(sql, userId, async (tx) => {
     const [row] = await tx<HouseholdRow[]>`
-      select
-        id,
-        owner_user_id,
-        allergies::text[] as allergies,
-        dietary_flags::text[] as dietary_flags,
-        created_at,
-        updated_at
+      select id, owner_user_id, created_at, updated_at
       from households
       where id = ${id}
     `;
@@ -156,7 +162,14 @@ export async function getHousehold(
     if (!row) return undefined;
 
     const memberRows = await tx<MemberRow[]>`
-      select household_id, type, portion_factor, position
+      select
+        household_id,
+        type,
+        name,
+        portion_factor,
+        position,
+        allergies::text[] as allergies,
+        dietary_flags::text[] as dietary_flags
       from household_members
       where household_id = ${id}
       order by position
@@ -182,20 +195,21 @@ export async function getHouseholdForOwner(
 ): Promise<StoredHousehold | undefined> {
   return withUserContext(sql, userId, async (tx) => {
     const [row] = await tx<HouseholdRow[]>`
-      select
-        id,
-        owner_user_id,
-        allergies::text[] as allergies,
-        dietary_flags::text[] as dietary_flags,
-        created_at,
-        updated_at
+      select id, owner_user_id, created_at, updated_at
       from households
     `;
 
     if (!row) return undefined;
 
     const memberRows = await tx<MemberRow[]>`
-      select household_id, type, portion_factor, position
+      select
+        household_id,
+        type,
+        name,
+        portion_factor,
+        position,
+        allergies::text[] as allergies,
+        dietary_flags::text[] as dietary_flags
       from household_members
       where household_id = ${row.id}
       order by position
@@ -213,6 +227,10 @@ export async function getHouseholdForOwner(
  * fully-authored value edited as a whole (UX_FLOW §6), so a diff would add moving
  * parts without changing what the user can express. `updated_at` is maintained by a
  * trigger, not written here.
+ *
+ * Since #115 the entire editable profile lives on the member rows, so the statement
+ * against `households` below sets nothing — see its comment for why it is still an
+ * UPDATE and not a SELECT.
  */
 export async function updateHousehold(
   sql: Sql,
@@ -223,18 +241,19 @@ export async function updateHousehold(
   const household = HouseholdSchema.parse(input);
 
   return withUserContext(sql, userId, async (tx) => {
+    // A deliberate no-op SET, not a leftover. `households` has no profile columns to
+    // write since #115, but this must stay an UPDATE for two reasons a SELECT would
+    // lose: it runs the RLS UPDATE policy's `using` *and* `with check` clauses (so an
+    // edit is authorized as an edit, not merely as a read), and it fires the
+    // households_set_updated_at trigger, which is what keeps `updated_at` meaning
+    // "when this profile last changed" now that the change itself lands on the member
+    // rows. Assigning owner_user_id to itself is the narrowest way to say that; it can
+    // never alter the value, and the `with check` clause re-verifies it regardless.
     const [row] = await tx<HouseholdRow[]>`
       update households
-      set allergies = ${household.allergies}::text[]::allergy_value[],
-          dietary_flags = ${household.dietary_flags}::text[]::dietary_flag_value[]
+      set owner_user_id = owner_user_id
       where id = ${id}
-      returning
-        id,
-        owner_user_id,
-        allergies::text[] as allergies,
-        dietary_flags::text[] as dietary_flags,
-        created_at,
-        updated_at
+      returning id, owner_user_id, created_at, updated_at
     `;
 
     if (!row) return undefined;

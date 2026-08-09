@@ -10,6 +10,7 @@ import {
   createTestUser,
   isLocalStackAvailable,
 } from "./__fixtures__/localStack.js";
+import { makeHousehold } from "../engine/__fixtures__/household.js";
 
 // analytics_events against the real local stack (issue #91). Nothing mocked, for the
 // same reason as cooked_meals.test.ts/rls.test.ts: what matters here is exactly what
@@ -25,11 +26,7 @@ afterAll(async () => {
   await admin?.end({ timeout: 5 });
 });
 
-const profile = HouseholdSchema.parse({
-  members: [{ type: "adult", portion_factor: 1 }],
-  allergies: [],
-  dietary_flags: [],
-});
+const profile = HouseholdSchema.parse(makeHousehold());
 
 async function newHousehold(): Promise<{ userId: string; householdId: string }> {
   const user = await createTestUser();
