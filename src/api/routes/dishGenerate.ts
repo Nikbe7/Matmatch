@@ -14,11 +14,12 @@ import {
 import { getHouseholdForOwner } from "../../db/households.js";
 import { recordUnresolvedIngredient } from "../../db/ingredientReviewQueue.js";
 import { passesHardDietaryFilter } from "../../engine/candidates.js";
-import { householdConstraints } from "../../engine/constraints.js";
+import { mealDiners } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import { isGeneratedDishVisibleToHousehold, resolveGeneratedDish } from "../../engine/generatedDish.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../httpError.js";
+import { parseDinersFromQuery } from "../diners.js";
 
 // Tier 2 on-demand dish generation (issue #113). Minimal trigger only — no
 // user-facing surface in this slice (the search box is the next one). Same
@@ -88,8 +89,12 @@ export function dishGenerateRouter(
 
       // Derived through the same function Tonight and the guided flow use, so the
       // Tier 2 safety gate below can never apply a different constraint set from the
-      // one that filtered the curated library.
-      const constraints = householdConstraints(stored.household);
+      // one that filtered the curated library — including which diners it is for.
+      // `diners` rides on the query string even though this is a POST, so all four
+      // endpoints spell the parameter the same way; no surface sends it yet (the
+      // search box is a later slice), and absent means the whole household.
+      const selectedDiners = parseDinersFromQuery((req.query as Record<string, unknown>).diners);
+      const { constraints } = mealDiners(stored.household.members, selectedDiners);
 
       const queryKey = buildQueryKey(body.query);
 

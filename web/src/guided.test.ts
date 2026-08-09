@@ -337,3 +337,27 @@ describe("pantry input is never persisted (CLAUDE.md non-negotiable)", () => {
     expect(guidedReducer(INITIAL_GUIDED, { type: "restart" }).pantry).toEqual([]);
   });
 });
+
+describe("the portions step's floor, with diner scoping (#112)", () => {
+  it("never seeds below MIN_PORTIONS, even for a diner set that totals less", () => {
+    // Reachable since #112: one adult and one child, adult deselected, is 0.5. Seeding
+    // there would open the step on a value its own "−" button is already disabled for.
+    const state = run(...pickChicken, {
+      type: "choose_direction",
+      templateId: "kycklinggryta",
+      portions: 0.5,
+    });
+
+    expect(state.portions).toBe(MIN_PORTIONS);
+  });
+
+  it("still seeds a fractional total above the floor verbatim", () => {
+    const state = run(...pickChicken, {
+      type: "choose_direction",
+      templateId: "kycklinggryta",
+      portions: 1.5,
+    });
+
+    expect(state.portions).toBe(1.5);
+  });
+});

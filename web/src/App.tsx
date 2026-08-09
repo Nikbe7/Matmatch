@@ -23,6 +23,7 @@ import {
   INGREDIENT_ROLE_LABELS,
   PREP_TIME_LABELS,
 } from "./display";
+import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { GuidedFlow } from "./GuidedFlow";
 import { OfflineShoppingList, ShoppingList } from "./ShoppingList";
 import {
@@ -595,6 +596,11 @@ function TonightView({
   // pure, so applying it against the ref keeps those steps consistent inside one
   // async handler instead of racing a batched state update.
   const [current, setCurrent] = useState<TonightResponse>(data);
+  // Who is eating, seeded to everyone from the labels the response carries. Session
+  // state only, exactly like the refinement above it: no localStorage, no URL, and no
+  // write back to the household — deselecting someone for one evening is not an edit
+  // to who lives here. Reset to everyone whenever the roster changes (DinerPicker.tsx).
+  const diners = useDinerSelection(current.diners);
   const [refinement, setRefinement] = useState<RefinementState>(() =>
     initialResult
       ? { ...INITIAL_REFINEMENT, excludedTemplateIds: [initialResult.template.id] }
@@ -687,18 +693,62 @@ function TonightView({
           exclude: next.excludedTemplateIds,
           previous,
           weights: next.weights,
+          diners: diners.parameter,
         }),
       );
     });
   }
 
-  async function runRefinement(request: () => Promise<void>) {
+  /**
+   * A diner toggle re-asks with the new set, as an effect rather than inside the
+   * toggle handler: the picker owns the selection, and reading it back synchronously
+   * in the handler that changed it would read the previous value.
+   *
+   * The exclusion list survives the change. The household rejected those dishes on
+   * their own merits, and who is at the table tonight does not make a dish they said
+   * no to interesting again. `previous` is passed for the same reason every chip
+   * passes it — the answer should be a step away from what is on screen.
+   *
+   * On failure the selection is put back. A failed refetch is the one case where the
+   * picker and the card can disagree — the chips would show a diner set that the dish
+   * behind them was never built for, which for a re-selected allergic member reads as
+   * a claim the app has not checked. Reverting is the honest state: the card and the
+   * picker describe the same meal again, with the error above them.
+   */
+  const requestedDinersRef = useRef(diners.parameter);
+  const servedSelectionRef = useRef(diners.selection);
+  useEffect(() => {
+    if (requestedDinersRef.current === diners.parameter) return;
+
+    const previousParameter = requestedDinersRef.current;
+    const previousSelection = servedSelectionRef.current;
+    const attempted = diners.selection;
+    requestedDinersRef.current = diners.parameter;
+
+    void requestSuggestion(refinementRef.current, current.result?.template.id).then((ok) => {
+      if (ok) {
+        servedSelectionRef.current = attempted;
+        return;
+      }
+      // Restored *and* re-marked as the requested set, so putting the chips back does
+      // not immediately re-trigger this effect and re-request what just failed.
+      requestedDinersRef.current = previousParameter;
+      diners.restore(previousSelection);
+    });
+    // Deliberately keyed on the diner set alone: this must fire when who is eating
+    // changes and at no other time.
+  }, [diners.parameter]);
+
+  /** Resolves to whether the request succeeded — the diner effect above needs to know. */
+  async function runRefinement(request: () => Promise<void>): Promise<boolean> {
     setFetchingNext(true);
     setNextError(null);
     try {
       await request();
+      return true;
     } catch (err) {
       setNextError(err instanceof ApiError ? err.message : String(err));
+      return false;
     } finally {
       setFetchingNext(false);
     }
@@ -729,7 +779,12 @@ function TonightView({
     void runRefinement(async () => {
       const outcome = await searchOtherCuisine(
         (exclude, previous) =>
-          fetchTonight(accessToken, { exclude, previous, weights: next.weights }),
+          fetchTonight(accessToken, {
+            exclude,
+            previous,
+            weights: next.weights,
+            diners: diners.parameter,
+          }),
         next,
         shown.template.id,
         shown.template.cuisine,
@@ -799,6 +854,14 @@ function TonightView({
           </div>
           {fetchingNext && <p className="muted tonight-fetching">Hämtar…</p>}
         </>
+      )}
+      {state.status === "suggestion" && (
+        // Under the card and the chips, never in front of them: Tonight is zero-input
+        // and assumes everyone (DECISION_LOG 2026-08-09, condition 2), so this is a
+        // refinement on a suggestion the household already has. Rendered in the empty
+        // states too — "the child is eating at a grandparent's" is often the way out
+        // of one.
+        <DinerPicker state={diners} busy={fetchingNext} />
       )}
       {state.status === "suggestion" && (
         // The way into the guided quick-select flow (UX_FLOW §5): the path for a

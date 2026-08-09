@@ -4,7 +4,7 @@ import type { Sql } from "../../db/client.js";
 import { getRecentCookedMeals } from "../../db/cookedMeals.js";
 import { getHouseholdForOwner } from "../../db/households.js";
 import { selectCandidateTemplates } from "../../engine/candidates.js";
-import { householdConstraints } from "../../engine/constraints.js";
+import { mealDiners } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import {
   pickDirections,
@@ -12,7 +12,6 @@ import {
   type Direction,
   type MainIngredientChoice,
 } from "../../engine/directions.js";
-import { totalPortions } from "../../engine/portions.js";
 import {
   buildCookingHistory,
   rankCandidates,
@@ -29,6 +28,8 @@ import {
   parsePantryFromQuery,
 } from "../guidedCatalog.js";
 import { intentParameters, parseIntentFromQuery } from "../guidedIntent.js";
+import { parseDinersFromQuery } from "../diners.js";
+import { memberLabels } from "../../schema/household.js";
 import { HttpError } from "../httpError.js";
 import { requireAuth } from "../middleware/auth.js";
 
@@ -62,6 +63,8 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
   // every directions request — it just keeps the grid free of traps.
   router.get("/api/guided/options", requireAuth(verifyToken), async (req, res, next) => {
     try {
+      const selectedDiners = parseDinersFromQuery((req.query as Record<string, unknown>).diners);
+
       const stored = await getHouseholdForOwner(sql, req.userId!);
       if (!stored) {
         throw new HttpError(
@@ -71,10 +74,17 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
         );
       }
 
-      const constraints = householdConstraints(stored.household);
+      // The same diner set the directions request will run on. The two endpoints are
+      // separate GETs, so nothing server-side can force that; the client is what makes
+      // a divergent pair inexpressible (web/src/guidedClient.ts). Getting it wrong is
+      // not a safety hole — `selectCandidateTemplates` runs again below on every
+      // directions request — but it would offer a tap target whose only outcome is the
+      // §9 empty state.
+      const { constraints } = mealDiners(stored.household.members, selectedDiners);
       const candidates = selectCandidateTemplates(engineData, constraints);
 
       res.status(200).json({
+        diners: memberLabels(stored.household.members).map((label) => ({ label })),
         mainIngredients: buildMainIngredientOptions(engineData, candidates),
         pantryIngredients: buildPantryIngredientOptions(engineData, candidates),
         // Step 2's filter-miss explanation (requirement 4) — scoped to the household's
@@ -92,6 +102,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
       const intent = parseIntentFromQuery(query.intent);
       const main = parseMainFromQuery(engineData, query.main);
       const pantryIngredientIds = parsePantryFromQuery(engineData, query.pantry);
+      const selectedDiners = parseDinersFromQuery(query.diners);
       const { weights, preferHighProtein } = intentParameters(intent);
 
       const stored = await getHouseholdForOwner(sql, req.userId!);
@@ -118,7 +129,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
 
       // The shared pipeline, unchanged and in the same order Tonight runs it. Only
       // the selection step below is specific to this flow.
-      const constraints = householdConstraints(stored.household);
+      const { constraints, portions } = mealDiners(stored.household.members, selectedDiners);
       const candidates = selectCandidateTemplates(engineData, constraints);
       const ranked = rankCandidates(
         engineData,
@@ -128,7 +139,6 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
         constraints.dietary_flags,
         recency,
       );
-      const portions = totalPortions(stored.household.members);
 
       if (ranked.length === 0) {
         // The household's own constraints leave nothing at all — a different problem

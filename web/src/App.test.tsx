@@ -993,3 +993,226 @@ describe("App — install prompt", () => {
     expect(promptSpy).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("App — the Tonight card's diner picker (#112)", () => {
+  const twoDiners = [{ label: "Vuxen 1" }, { label: "Elsa" }];
+
+  function suggestionWithDiners(
+    id: string,
+    diners: { label: string }[] = twoDiners,
+    portions = 2,
+  ) {
+    return {
+      result: {
+        template: {
+          id,
+          name: id,
+          cost_tier: "mid",
+          prep_time_band: "20-40min",
+          cuisine: "swedish_nordic",
+        },
+        ingredients: [{ role: "protein", name: "Kyckling", substituted: false }],
+        substitutions: [],
+        score: 0.5,
+        cookedToday: false,
+      },
+      portions,
+      diners,
+    };
+  }
+
+  /** Every /api/tonight request answered with `body`; anything else is a no-op 200. */
+  function stubTonight(...bodies: unknown[]) {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).startsWith("/api/tonight")) {
+        return jsonResponse(200, bodies.length > 1 ? bodies.shift() : bodies[0]);
+      }
+      return jsonResponse(200, {});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  function tonightQueries(fetchMock: ReturnType<typeof vi.fn>): URLSearchParams[] {
+    return fetchMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((url) => url.startsWith("/api/tonight"))
+      .map((url) => new URLSearchParams(url.split("?")[1] ?? ""));
+  }
+
+  it("stays zero-input: the first request sends no diner parameter and a dish is shown", async () => {
+    // Condition 2 at the surface that has to honour it most: Tonight must produce a
+    // suggestion before anyone has said who is eating.
+    sessionHolder.current = fakeSession;
+    const fetchMock = stubTonight(suggestionWithDiners("kycklinggryta"));
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+    expect(tonightQueries(fetchMock)[0]!.get("diners")).toBeNull();
+  });
+
+  it("shows every member selected by default", async () => {
+    sessionHolder.current = fakeSession;
+    stubTonight(suggestionWithDiners("kycklinggryta"));
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+    expect(screen.getByRole("button", { name: "Vuxen 1", pressed: true })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Elsa", pressed: true })).toBeTruthy();
+  });
+
+  it("re-asks with the narrowed diner set when a member is deselected", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = stubTonight(
+      suggestionWithDiners("kycklinggryta"),
+      suggestionWithDiners("jordnotsgryta", twoDiners, 1),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+
+    await screen.findByRole("heading", { name: "jordnotsgryta" });
+    const last = tonightQueries(fetchMock).at(-1)!;
+    expect(last.get("diners")).toBe("0");
+    // The exclusion set survives the change: a dish the household already rejected
+    // does not become interesting again because somebody left the table.
+    expect(last.get("exclude")).toContain("kycklinggryta");
+  });
+
+  it("cannot deselect the last remaining diner", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    stubTonight(suggestionWithDiners("kycklinggryta"));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+    const last = await screen.findByRole("button", { name: "Vuxen 1", pressed: true });
+
+    expect((last as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("resets to everyone when the roster changes underneath the session", async () => {
+    // Positional identity, closed rather than documented: a member *is* its index, so
+    // a selection made against one roster must not be reinterpreted against another.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = stubTonight(
+      suggestionWithDiners("kycklinggryta"),
+      // The refetch comes back with a *different* household — a member was added.
+      suggestionWithDiners("pasta", [...twoDiners, { label: "Barn 1" }], 2.5),
+      suggestionWithDiners("pasta", [...twoDiners, { label: "Barn 1" }], 2.5),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+    await screen.findByRole("heading", { name: "pasta" });
+
+    // All three members eating again, and the next request carries no diner set —
+    // the stale selection was discarded, not carried onto a different roster.
+    for (const label of ["Vuxen 1", "Elsa", "Barn 1"]) {
+      expect(screen.getByRole("button", { name: label, pressed: true })).toBeTruthy();
+    }
+    await vi.waitFor(() => expect(tonightQueries(fetchMock).at(-1)!.get("diners")).toBeNull());
+  });
+
+  it("renders no picker for a one-member household", async () => {
+    sessionHolder.current = fakeSession;
+    stubTonight(suggestionWithDiners("kycklinggryta", [{ label: "Vuxen 1" }], 1));
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+    expect(screen.queryByRole("group", { name: "Vilka äter?" })).toBeNull();
+  });
+
+  it("names the cross-contamination limit rather than implying it is handled", async () => {
+    sessionHolder.current = fakeSession;
+    stubTonight(suggestionWithDiners("kycklinggryta"));
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+    expect(
+      screen.getByText(/Rester och gemensamma kastruller kan ändå innehålla allergener/),
+    ).toBeTruthy();
+  });
+
+  it("writes nothing to localStorage and never posts to the household", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = stubTonight(suggestionWithDiners("kycklinggryta"));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+    await user.click(await screen.findByRole("button", { name: "Elsa", pressed: false }));
+
+    expect(localStorage.length).toBe(0);
+    const households = fetchMock.mock.calls.filter((call) =>
+      String(call[0]).startsWith("/api/households"),
+    );
+    expect(households).toEqual([]);
+  });
+});
+
+describe("App — a failed diner change never leaves the card and the picker disagreeing", () => {
+  it("puts the selection back when the refetch fails", async () => {
+    // The dangerous shape: the chips say the allergic member is eating again while the
+    // dish on screen was chosen without her. Reverting keeps the two describing the
+    // same meal, with the error above them.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+
+    let calls = 0;
+    const fetchMock = vi.fn(async (url: string) => {
+      if (!String(url).startsWith("/api/tonight")) return jsonResponse(200, {});
+      calls += 1;
+      if (calls === 1) {
+        return jsonResponse(200, {
+          result: {
+            template: {
+              id: "kycklinggryta",
+              name: "kycklinggryta",
+              cost_tier: "mid",
+              prep_time_band: "20-40min",
+              cuisine: "swedish_nordic",
+            },
+            ingredients: [{ role: "protein", name: "Kyckling", substituted: false }],
+            substitutions: [],
+            score: 0.5,
+            cookedToday: false,
+          },
+          portions: 2,
+          diners: [{ label: "Vuxen 1" }, { label: "Elsa" }],
+        });
+      }
+      throw new TypeError("network down");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+
+    // Back to everyone, and the dish that was served to everyone is still on screen.
+    expect(await screen.findByRole("button", { name: "Elsa", pressed: true })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "kycklinggryta" })).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toContain("network down");
+
+    // And the revert does not re-fire the request that just failed.
+    const before = fetchMock.mock.calls.length;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(fetchMock.mock.calls.length).toBe(before);
+  });
+});

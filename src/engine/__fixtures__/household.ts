@@ -1,6 +1,6 @@
 import { HouseholdSchema, type Household, type HouseholdMember } from "../../schema/household.js";
 import type { Allergy, DietaryFlag } from "../../schema/allergyDietary.js";
-import { householdConstraints, type MealConstraints } from "../constraints.js";
+import { mealConstraints, type MealConstraints } from "../constraints.js";
 
 // Shared household fixtures for the engine and route tests.
 //
@@ -43,5 +43,5 @@ export function makeHousehold(overrides: HouseholdOverrides = {}): Household {
 
 /** The household's full constraint set — every member eating, the engine default. */
 export function makeConstraints(overrides: HouseholdOverrides = {}): MealConstraints {
-  return householdConstraints(makeHousehold(overrides));
+  return mealConstraints(makeHousehold(overrides).members);
 }
