@@ -6,6 +6,7 @@ import type { EngineData } from "../engine/data.js";
 import { errorMiddleware } from "./middleware/errors.js";
 import { analyticsRouter } from "./routes/analytics.js";
 import { cookedRouter } from "./routes/cooked.js";
+import { dishGenerateRouter } from "./routes/dishGenerate.js";
 import { guidedRouter } from "./routes/guided.js";
 import { healthRouter } from "./routes/health.js";
 import { householdsRouter } from "./routes/households.js";
@@ -46,6 +47,7 @@ export function createApp(deps: AppDependencies): Express {
   app.use(guidedRouter(deps.sql, deps.engineData, deps.verifyToken));
   app.use(cookedRouter(deps.sql, deps.engineData, deps.verifyToken));
   app.use(instructionsRouter(deps.sql, deps.engineData, deps.verifyToken, deps.anthropicClient));
+  app.use(dishGenerateRouter(deps.sql, deps.engineData, deps.verifyToken, deps.anthropicClient));
   app.use(analyticsRouter(deps.sql, deps.verifyToken));
 
   // After the API routers, so a real route always wins over the SPA fallback, and

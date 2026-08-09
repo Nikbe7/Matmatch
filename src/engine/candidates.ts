@@ -32,10 +32,24 @@ export interface CandidateTemplate {
 // hard-filtering on it here would silently shrink the candidate set.
 const HARD_DIETARY_FLAGS: readonly DietaryFlag[] = ["vegetarian", "vegan"];
 
+/**
+ * Whether a dish's own dietary_tags satisfy a household's hard dietary flags.
+ * Exported (not just used by selectCandidateTemplates below) so Tier 2 generated
+ * dishes (src/engine/generatedDish.ts, src/api/routes/dishGenerate.ts) apply the
+ * exact same rule rather than a re-implementation that could drift from it — a
+ * generated dish's dietary_tags can only ever be [] or ["high_protein_preference"]
+ * (see generatedDish.ts's derivation comment), so this always fails a household
+ * declaring vegetarian/vegan, correctly.
+ */
+export function passesHardDietaryFilter(
+  dietaryTags: readonly DietaryFlag[],
+  flags: readonly DietaryFlag[],
+): boolean {
+  return flags.filter((flag) => HARD_DIETARY_FLAGS.includes(flag)).every((flag) => dietaryTags.includes(flag));
+}
+
 function passesDietaryFilter(template: RecipeTemplate, flags: readonly DietaryFlag[]): boolean {
-  return flags
-    .filter((flag) => HARD_DIETARY_FLAGS.includes(flag))
-    .every((flag) => template.dietary_tags.includes(flag));
+  return passesHardDietaryFilter(template.dietary_tags, flags);
 }
 
 /**
