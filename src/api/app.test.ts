@@ -467,3 +467,162 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     expect(response.body.reason).toBe("no_more_suggestions");
   });
 });
+
+describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints (#112)", () => {
+  // A household where exactly one member is restricted, so the answer to "who is
+  // eating" is the only thing that can change the answer to "what is safe".
+  const peanutChildAndCleanAdult = {
+    members: [
+      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
+      { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+    ],
+  };
+
+  /** Two templates: one safe for everyone, one only safe without the peanut-allergic child. */
+  async function peanutApp(): Promise<Express> {
+    const { makeEngineData, makeIngredient, makeTemplate } = await import(
+      "../engine/__fixtures__/engineData.js"
+    );
+
+    return createApp({
+      sql: sql!,
+      engineData: makeEngineData({
+        ingredients: [makeIngredient("jordnotter"), makeIngredient("morot")],
+        allergenMappings: [
+          { ingredient_id: "jordnotter", allergens: ["peanuts"], verification_status: "verified" },
+          { ingredient_id: "morot", allergens: [], verification_status: "verified" },
+        ],
+        templates: [
+          makeTemplate("satay", {
+            ingredient_slots: [{ role: "protein", ingredient_id: "jordnotter", substitutable: false }],
+          }),
+        ],
+      }),
+      verifyToken: verifyToken!,
+    });
+  }
+
+  async function userWithPeanutChild(): Promise<{ accessToken: string; userId: string }> {
+    const user = await createTestUser();
+    const created = await request(app!)
+      .post("/api/households")
+      .set(authHeader(user.accessToken))
+      .send(peanutChildAndCleanAdult);
+    expect(created.status).toBe(201);
+    return user;
+  }
+
+  it("withholds the peanut dish when no diner set is given at all", async () => {
+    // Condition 1 at the HTTP boundary: the zero-input request is the *safe* one.
+    const user = await userWithPeanutChild();
+
+    const response = await request(await peanutApp())
+      .get("/api/tonight")
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.result).toBeNull();
+    expect(response.body.reason).toBe("no_safe_templates");
+  });
+
+  it("offers it once the peanut-allergic child is deselected", async () => {
+    const user = await userWithPeanutChild();
+
+    const response = await request(await peanutApp())
+      .get("/api/tonight")
+      .query({ diners: "0" })
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.result?.template.id).toBe("satay");
+    // Portions followed the same selection — the child is neither filtered for nor
+    // cooked for.
+    expect(response.body.portions).toBe(1);
+  });
+
+  it("still withholds it when the child is one of the selected diners", async () => {
+    const user = await userWithPeanutChild();
+
+    const response = await request(await peanutApp())
+      .get("/api/tonight")
+      .query({ diners: "0,1" })
+      .set(authHeader(user.accessToken));
+
+    expect(response.body.result).toBeNull();
+    expect(response.body.reason).toBe("no_safe_templates");
+    expect(response.body.portions).toBe(1.5);
+  });
+
+  // The safety-critical half: every malformed diner parameter must land on the
+  // *restricted* answer, never the permissive one. A 400 is deliberately not among
+  // the acceptable outcomes — see src/api/diners.ts.
+  const failClosed: { name: string; query: Record<string, string | string[]> }[] = [
+    { name: "absent", query: {} },
+    { name: "empty", query: { diners: "" } },
+    { name: "out of range", query: { diners: "7" } },
+    { name: "one valid and one out of range", query: { diners: "0,7" } },
+    { name: "negative", query: { diners: "-1" } },
+    { name: "non-numeric", query: { diners: "alla" } },
+    { name: "repeated (array-typed)", query: { diners: ["0", "1"] } },
+  ];
+
+  it.each(failClosed)("$name resolves to the whole household", async ({ query }) => {
+    const user = await userWithPeanutChild();
+
+    const response = await request(await peanutApp())
+      .get("/api/tonight")
+      .query(query)
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.result).toBeNull();
+    expect(response.body.reason).toBe("no_safe_templates");
+    expect(response.body.portions).toBe(1.5);
+  });
+
+  it("returns one label per member, in member order, and no member data beyond it", async () => {
+    const user = await createTestUser();
+    await request(app!)
+      .post("/api/households")
+      .set(authHeader(user.accessToken))
+      .send({
+        members: [
+          { type: "adult", portion_factor: 1, name: "Niklas", allergies: [], dietary_flags: [] },
+          { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: ["vegan"] },
+        ],
+      });
+
+    const response = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+
+    expect(response.body.diners).toEqual([{ label: "Niklas" }, { label: "Barn 1" }]);
+    // No allergy or dietary data crosses the wire: the client renders a picker, it
+    // does not hold a second copy of the household.
+    expect(JSON.stringify(response.body.diners)).not.toContain("peanuts");
+    expect(JSON.stringify(response.body.diners)).not.toContain("vegan");
+  });
+
+  it("writes nothing to the household — a diner selection is not a profile edit", async () => {
+    const user = await userWithPeanutChild();
+    const { getHouseholdForOwner } = await import("../db/households.js");
+    const before = await getHouseholdForOwner(sql!, user.userId);
+
+    for (const diners of ["0", "1", "0,1", "9", "alla"]) {
+      await request(app!).get("/api/tonight").query({ diners }).set(authHeader(user.accessToken));
+    }
+
+    const after = await getHouseholdForOwner(sql!, user.userId);
+    expect(after).toEqual(before);
+    expect(after!.household).toEqual(peanutChildAndCleanAdult);
+  });
+
+  it("still answers a plain zero-input request with a suggestion over the real catalog", async () => {
+    // The condition-2 regression: Tonight must never require a diner parameter.
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+    const response = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.result).not.toBeNull();
+  });
+});

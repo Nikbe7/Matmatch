@@ -662,3 +662,169 @@ describe("GuidedFlow — a shopping list survives a reload (UX_FLOW §7)", () =>
     expect(await screen.findByRole("heading", { name: "Vad är du sugen på?" })).toBeTruthy();
   });
 });
+
+describe("GuidedFlow — the diner picker (#112)", () => {
+  const twoDiners = [{ label: "Vuxen 1" }, { label: "Elsa" }];
+
+  /** Both endpoints answer with the roster; directions echo back the diner set they saw. */
+  function stubApiWithDiners(rosters: { label: string }[] = twoDiners) {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) {
+        return jsonResponse(200, { ...options, diners: rosters });
+      }
+      if (url.startsWith("/api/guided/directions")) return jsonResponse(200, threeDirections);
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  function optionsQueries(fetchMock: ReturnType<typeof vi.fn>): URLSearchParams[] {
+    return fetchMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((url) => url.startsWith("/api/guided/options"))
+      .map((url) => new URLSearchParams(url.split("?")[1] ?? ""));
+  }
+
+  async function reachDirections(user: ReturnType<typeof userEvent.setup>) {
+    await screen.findByRole("heading", { name: "Vad är du sugen på?" });
+    await user.click(screen.getByRole("button", { name: "Middagsidé" }));
+    await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
+    await user.click(await screen.findByRole("button", { name: "Hoppa över" }));
+    await screen.findByRole("heading", { name: "Tre förslag" });
+  }
+
+  it("does not gate the flow: the first request carries no diner set and the cards arrive", async () => {
+    const user = userEvent.setup();
+    const fetchMock = stubApiWithDiners();
+    renderFlow();
+
+    await reachDirections(user);
+
+    expect(screen.getByRole("heading", { name: "Kycklinggryta" })).toBeTruthy();
+    expect(optionsQueries(fetchMock)[0]!.get("diners")).toBeNull();
+    expect(directionsQueries(fetchMock)[0]!.get("diners")).toBeNull();
+  });
+
+  it("shows every member selected, below the cards", async () => {
+    const user = userEvent.setup();
+    stubApiWithDiners();
+    renderFlow();
+
+    await reachDirections(user);
+
+    const group = screen.getByRole("group", { name: "Vilka äter?" });
+    for (const label of ["Vuxen 1", "Elsa"]) {
+      const chip = screen.getByRole("button", { name: label, pressed: true });
+      expect(group.contains(chip)).toBe(true);
+    }
+  });
+
+  it("refetches both endpoints with the same diner set when one is deselected", async () => {
+    // The pairing requirement: a grid built for one set and directions for another
+    // would offer targets that are then rejected.
+    const user = userEvent.setup();
+    const fetchMock = stubApiWithDiners();
+    renderFlow();
+
+    await reachDirections(user);
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+
+    await waitFor(() => {
+      expect(optionsQueries(fetchMock).at(-1)!.get("diners")).toBe("0");
+    });
+    await waitFor(() => {
+      expect(directionsQueries(fetchMock).at(-1)!.get("diners")).toBe("0");
+    });
+
+    // Every request either carries the same diner set as its neighbour or predates
+    // the change — never two different live sets.
+    const optionsSets = optionsQueries(fetchMock).map((query) => query.get("diners"));
+    const directionsSets = directionsQueries(fetchMock).map((query) => query.get("diners"));
+    expect(optionsSets.at(-1)).toBe(directionsSets.at(-1));
+  });
+
+  it("cannot deselect the last remaining diner", async () => {
+    const user = userEvent.setup();
+    stubApiWithDiners();
+    renderFlow();
+
+    await reachDirections(user);
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+
+    const lastOne = await screen.findByRole("button", { name: "Vuxen 1", pressed: true });
+    await waitFor(() => expect((lastOne as HTMLButtonElement).disabled).toBe(true));
+
+    await user.click(lastOne);
+    expect(screen.getByRole("button", { name: "Vuxen 1", pressed: true })).toBeTruthy();
+  });
+
+  it("renders nothing for a one-member household", async () => {
+    const user = userEvent.setup();
+    stubApiWithDiners([{ label: "Vuxen 1" }]);
+    renderFlow();
+
+    await reachDirections(user);
+
+    expect(screen.queryByRole("group", { name: "Vilka äter?" })).toBeNull();
+  });
+
+  it("names the cross-contamination limit rather than implying it is handled", async () => {
+    const user = userEvent.setup();
+    stubApiWithDiners();
+    renderFlow();
+
+    await reachDirections(user);
+
+    expect(
+      screen.getByText(/Rester och gemensamma kastruller kan ändå innehålla allergener/),
+    ).toBeTruthy();
+  });
+
+  it("writes nothing to localStorage when diners are selected", async () => {
+    const user = userEvent.setup();
+    stubApiWithDiners();
+    renderFlow();
+
+    await reachDirections(user);
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+    await user.click(await screen.findByRole("button", { name: "Elsa", pressed: false }));
+
+    expect(localStorage.length).toBe(0);
+  });
+});
+
+describe("GuidedFlow — a failed options refetch drops the stale grid (#112)", () => {
+  it("does not leave a grid built for a different diner set tappable", async () => {
+    const user = userEvent.setup();
+
+    let optionsCalls = 0;
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).startsWith("/api/guided/options")) {
+        optionsCalls += 1;
+        if (optionsCalls === 1) {
+          return jsonResponse(200, { ...options, diners: [{ label: "Vuxen 1" }, { label: "Elsa" }] });
+        }
+        throw new TypeError("network down");
+      }
+      if (String(url).startsWith("/api/guided/directions")) return jsonResponse(200, threeDirections);
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderFlow();
+    await screen.findByRole("heading", { name: "Vad är du sugen på?" });
+    await user.click(screen.getByRole("button", { name: "Middagsidé" }));
+    await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
+    await user.click(await screen.findByRole("button", { name: "Hoppa över" }));
+    await screen.findByRole("heading", { name: "Tre förslag" });
+
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+
+    // The grid the previous diner set produced is gone rather than left tappable.
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("network down"));
+    await user.click(screen.getByRole("button", { name: "Tillbaka" }));
+    await screen.findByRole("heading", { name: "Vad har du hemma?" });
+    expect(screen.queryByRole("button", { name: "ris" })).toBeNull();
+  });
+});

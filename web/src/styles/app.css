@@ -610,3 +610,29 @@ select.input {
   font-size: var(--font-size-lg);
   font-weight: 600;
 }
+
+/* The diner picker (#112), shared by the Tonight card and the guided flow. Visually
+   quieter than the adjustment chips above it: it is an occasional correction, not a
+   primary action, and it must not compete with the suggestion it refines. */
+.diner-picker {
+  margin-bottom: var(--space-4);
+}
+
+.diner-picker__title {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  margin-bottom: var(--space-2);
+}
+
+.diner-picker__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.diner-picker__caveat {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  margin: 0;
+}

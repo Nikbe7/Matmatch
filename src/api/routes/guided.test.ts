@@ -701,3 +701,132 @@ describe.skipIf(!stackAvailable)("pantry input is never persisted (CLAUDE.md non
     );
   });
 });
+
+describe.skipIf(!stackAvailable)("the guided flow's diner set (#112)", () => {
+  // One restricted member and one clean one, so the diner set is the only variable.
+  const fishAdultAndCleanAdult = {
+    members: [
+      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
+      { type: "adult", portion_factor: 1, name: "Ida", allergies: ["fish"], dietary_flags: [] },
+    ],
+  };
+
+  async function fishHouseholdUser(app: Express) {
+    return userWithHousehold(app, fishAdultAndCleanAdult);
+  }
+
+  it("keeps 'lax' out of the grid while the fish-allergic member is eating", async () => {
+    const app = buildApp();
+    const user = await fishHouseholdUser(app);
+
+    const withEveryone = await request(app)
+      .get("/api/guided/options")
+      .set(authHeader(user.accessToken));
+    const withBoth = await request(app)
+      .get("/api/guided/options")
+      .query({ diners: "0,1" })
+      .set(authHeader(user.accessToken));
+
+    for (const response of [withEveryone, withBoth]) {
+      const ids: string[] = response.body.mainIngredients.map((o: { id: string }) => o.id);
+      expect(ids).not.toContain("lax");
+      expect(response.body.excludedMainIngredients.map((o: { id: string }) => o.id)).toContain("lax");
+    }
+  });
+
+  it("stops treating 'lax' as excluded once that member is deselected", async () => {
+    const app = buildApp();
+    const user = await fishHouseholdUser(app);
+
+    const response = await request(app)
+      .get("/api/guided/options")
+      .query({ diners: "0" })
+      .set(authHeader(user.accessToken));
+
+    // Nothing is excluded any more, so there is nothing to explain either. The grid
+    // itself is capped at MAIN_INGREDIENT_GRID_SIZE and ranked, so lax appearing in
+    // it is not guaranteed and is not the claim — that it is no longer *withheld*
+    // is, and the directions test below proves it is genuinely selectable.
+    expect(response.body.excludedMainIngredients).toEqual([]);
+    expect(response.body.mainIngredients.length).toBeGreaterThan(0);
+  });
+
+  it("lets the directions endpoint return a lax dish for the same diner set", async () => {
+    // The pair the client is required to keep aligned: a grid that offers lax and a
+    // directions request that accepts it.
+    const app = buildApp();
+    const user = await fishHouseholdUser(app);
+
+    const response = await request(app)
+      .get("/api/guided/directions")
+      .query({ intent: "dinner_idea", main: "lax", diners: "0" })
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.directions.length).toBeGreaterThan(0);
+    expect(response.body.mainIngredientId).toBe("lax");
+    expect(response.body.portions).toBe(1);
+  });
+
+  it("rejects that same dish when the fish-allergic member is eating", async () => {
+    const app = buildApp();
+    const user = await fishHouseholdUser(app);
+
+    const response = await request(app)
+      .get("/api/guided/directions")
+      .query({ intent: "dinner_idea", main: "lax" })
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.directions).toEqual([]);
+    expect(response.body.reason).toBe("no_directions");
+  });
+
+  it("fails closed on both endpoints for every malformed diner parameter", async () => {
+    const app = buildApp();
+    const user = await fishHouseholdUser(app);
+
+    for (const diners of ["", "9", "0,9", "-1", "lax", "0.5"]) {
+      const options = await request(app)
+        .get("/api/guided/options")
+        .query({ diners })
+        .set(authHeader(user.accessToken));
+      expect(options.status).toBe(200);
+      expect(options.body.mainIngredients.map((o: { id: string }) => o.id)).not.toContain("lax");
+
+      const directions = await request(app)
+        .get("/api/guided/directions")
+        .query({ intent: "dinner_idea", main: "lax", diners })
+        .set(authHeader(user.accessToken));
+      expect(directions.status).toBe(200);
+      expect(directions.body.directions).toEqual([]);
+      expect(directions.body.portions).toBe(2);
+    }
+  });
+
+  it("returns the same member labels from options as Tonight does", async () => {
+    const app = buildApp();
+    const user = await fishHouseholdUser(app);
+
+    const options = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
+    const tonight = await request(app).get("/api/tonight").set(authHeader(user.accessToken));
+
+    expect(options.body.diners).toEqual([{ label: "Vuxen 1" }, { label: "Ida" }]);
+    expect(options.body.diners).toEqual(tonight.body.diners);
+  });
+
+  it("writes nothing — a diner selection is not a profile edit, and neither is the pantry", async () => {
+    const app = buildApp();
+    const user = await fishHouseholdUser(app);
+    const { getHouseholdForOwner } = await import("../../db/households.js");
+    const before = await getHouseholdForOwner(sql!, user.userId);
+
+    await request(app).get("/api/guided/options").query({ diners: "0" }).set(authHeader(user.accessToken));
+    await request(app)
+      .get("/api/guided/directions")
+      .query({ intent: "dinner_idea", main: "auto", diners: "0" })
+      .set(authHeader(user.accessToken));
+
+    expect(await getHouseholdForOwner(sql!, user.userId)).toEqual(before);
+  });
+});

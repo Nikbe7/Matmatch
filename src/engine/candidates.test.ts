@@ -2,7 +2,8 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { AllergySchema, type Allergy } from "../schema/allergyDietary.js";
 import { selectCandidateTemplates } from "./candidates.js";
-import type { MealConstraints } from "./constraints.js";
+import { mealDiners, type MealConstraints } from "./constraints.js";
+import type { HouseholdMember } from "../schema/household.js";
 import { loadEngineData } from "./data.js";
 import { makeEngineData, makeIngredient, makeTemplate } from "./__fixtures__/engineData.js";
 import { makeConstraints as household } from "./__fixtures__/household.js";
@@ -334,6 +335,88 @@ describe("selectCandidateTemplates — allergen safety over the real catalog", (
     for (const ingredientId of effectiveIngredientIds(household())) {
       expect(data.ingredientsById.has(ingredientId)).toBe(true);
     }
+  });
+});
+
+describe("selectCandidateTemplates — diner-scoped constraints over the real catalog (#112)", () => {
+  // The same exhaustive sweep as above, run across diner subsets rather than over one
+  // household: for every allergen in the locked vocabulary, deselecting its carrier
+  // must stop it excluding dishes, and selecting them must still exclude every one.
+  //
+  // Two members, only the first restricted, so "who is eating" is the only variable.
+  function roster(allergy: Allergy): HouseholdMember[] {
+    return [
+      { type: "adult", portion_factor: 1, allergies: [allergy], dietary_flags: [] },
+      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
+    ];
+  }
+
+  /** What a household with nothing declared sees — the ceiling every subset works under. */
+  const unrestricted = selectCandidateTemplates(data, household());
+
+  it.each(AllergySchema.options)(
+    "deselecting the member allergic to %s stops their allergen excluding dishes",
+    (allergy) => {
+      const members = roster(allergy);
+      const withoutCarrier = mealDiners(members, new Set([1]));
+
+      expect(withoutCarrier.constraints.allergies).toEqual([]);
+      // Not merely "more dishes": exactly the set an unrestricted household sees.
+      expect(selectCandidateTemplates(data, withoutCarrier.constraints).map((c) => c.template.id))
+        .toEqual(unrestricted.map((c) => c.template.id));
+    },
+  );
+
+  it.each(AllergySchema.options)(
+    "keeping the member allergic to %s still excludes every dish containing it",
+    (allergy) => {
+      const members = roster(allergy);
+      const withCarrier = mealDiners(members, new Set([0, 1]));
+
+      const offenders = [...effectiveIngredientIds(withCarrier.constraints)].filter(
+        (ingredientId) => {
+          const row = rowsByIngredientId.get(ingredientId);
+          return !row || row.verification_status !== "verified" || row.allergens.includes(allergy);
+        },
+      );
+
+      expect(offenders).toEqual([]);
+    },
+  );
+
+  it.each(AllergySchema.options)(
+    "a fail-closed diner set is filtered exactly as the full household is (%s)",
+    (allergy) => {
+      const members = roster(allergy);
+      const strict = selectCandidateTemplates(data, mealDiners(members).constraints).map(
+        (c) => c.template.id,
+      );
+
+      // Absent, empty and out-of-range must each land on the *restricted* set — the
+      // failure that matters is a bad diner parameter quietly serving the allergen.
+      for (const selection of [undefined, new Set<number>(), new Set([2]), new Set([1, 9])]) {
+        expect(
+          selectCandidateTemplates(data, mealDiners(members, selection).constraints).map(
+            (c) => c.template.id,
+          ),
+        ).toEqual(strict);
+      }
+    },
+  );
+
+  it("the deselected-carrier case is a real widening, not a no-op sweep", () => {
+    // Guards the sweep above from passing vacuously if the catalog ever stopped
+    // containing dishes for an allergen: at least one allergy must genuinely change
+    // the candidate set, or the "stops excluding dishes" assertion proves nothing.
+    const widened = AllergySchema.options.filter((allergy) => {
+      const members = roster(allergy);
+      return (
+        selectCandidateTemplates(data, mealDiners(members).constraints).length <
+        selectCandidateTemplates(data, mealDiners(members, new Set([1])).constraints).length
+      );
+    });
+
+    expect(widened).toEqual([...AllergySchema.options]);
   });
 });
 

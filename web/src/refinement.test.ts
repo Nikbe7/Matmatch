@@ -27,10 +27,16 @@ function suggestion(id: string, cuisine: Cuisine = "swedish_nordic"): TonightRes
       cookedToday: false,
     },
     portions: 2,
+    diners: [{ label: "Vuxen 1" }, { label: "Vuxen 2" }],
   };
 }
 
-const exhausted: TonightResponse = { result: null, reason: "no_more_suggestions", portions: 2 };
+const exhausted: TonightResponse = {
+  result: null,
+  reason: "no_more_suggestions",
+  portions: 2,
+  diners: [{ label: "Vuxen 1" }, { label: "Vuxen 2" }],
+};
 
 function stateWith(patch: Partial<RefinementState> = {}): RefinementState {
   return { ...INITIAL_REFINEMENT, ...patch };

@@ -1,5 +1,6 @@
 import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../schema/vocabulary.js";
-import type { Household, HouseholdMember } from "../schema/household.js";
+import type { HouseholdMember } from "../schema/household.js";
+import { totalPortions } from "./portions.js";
 
 // What a meal has to satisfy, derived from the people eating it.
 //
@@ -10,12 +11,24 @@ import type { Household, HouseholdMember } from "../schema/household.js";
 // and Tier 2 generation cannot diverge on what is safe — there is no second
 // `.flatMap()` anywhere for them to diverge in.
 //
-// Pure and total: no I/O, no clock, no AI, exactly like the rest of src/engine/.
+// Pure and total: no I/O, no clock, no AI, exactly like the rest of src/engine/. The
+// diner set arrives as data — this module never parses a query string, and the HTTP
+// shape of a diner selection lives entirely in src/api/diners.ts.
 
 export interface MealConstraints {
   allergies: readonly Allergy[];
   dietary_flags: readonly DietaryFlag[];
 }
+
+/**
+ * Who is eating, as member positions in `household.members`.
+ *
+ * A member *is* its index (DECISION_LOG 2026-08-09, #115): the profile carries no
+ * per-member id, so position is the only handle there is. Every way of being wrong
+ * about that — an index out of range, a set built against a roster that has since
+ * changed — resolves to the whole household below rather than to a smaller set.
+ */
+export type DinerSelection = ReadonlySet<number>;
 
 /**
  * Deduplicated, and ordered by the locked §5.2 vocabulary rather than by the order
@@ -32,14 +45,48 @@ function inVocabularyOrder<T>(vocabulary: readonly T[], selected: ReadonlySet<T>
 }
 
 /**
+ * The members a selection refers to — the whole list unless the selection names a
+ * strict, wholly valid subset of it.
+ *
+ * Fail-closed, with no exceptions and no error path: absent, empty, or naming any
+ * index that is not an integer position in `members` all resolve to everyone. The
+ * safe answer is the *larger* constraint set, so "I could not make sense of this
+ * selection" and "everyone is eating" are deliberately the same outcome — a
+ * selection this cannot fully honour is one it must not partially honour, since a
+ * partially-applied diner set silently drops somebody's allergy.
+ *
+ * That is also why this rejects the whole selection on one bad index rather than
+ * filtering the bad ones out: dropping index 7 from `{0, 7}` would answer a question
+ * nobody asked, with a smaller constraint set than either reading justifies.
+ */
+function dinerMembers(
+  members: readonly HouseholdMember[],
+  diners?: DinerSelection,
+): readonly HouseholdMember[] {
+  if (!diners || diners.size === 0) return members;
+
+  for (const index of diners) {
+    if (!Number.isInteger(index) || index < 0 || index >= members.length) return members;
+  }
+
+  return members.filter((_, index) => diners.has(index));
+}
+
+/**
  * The union of the given members' allergies and dietary flags.
  *
- * Takes the member list rather than a `Household` so that #112 can hand it a subset
- * without constructing a synthetic household — a shape that would be easy to build
- * wrongly at each call site. An empty member list yields empty constraints, which is
- * only reachable from a caller that has already decided nobody is eating; callers
- * that take a diner set from user input must resolve "none selected" to the full
- * household *before* calling this (fail-closed), never by passing `[]` here.
+ * Takes the member list rather than a `Household` so that a subset needs no synthetic
+ * household — a shape that would be easy to build wrongly at each call site.
+ *
+ * Deliberately *not* diner-aware: it takes people, not a selection. `mealDiners` below
+ * is the only thing that resolves a diner set, so there is exactly one place a
+ * selection can be interpreted and exactly one place that interpretation can be wrong.
+ * An optional `diners` parameter here would be a second door to the same decision, and
+ * a caller could reach one of them without the portions that must travel with it.
+ *
+ * An empty member list yields empty constraints: the function stays total rather than
+ * throwing, and the engine has no opinion about how a caller got there. No caller can
+ * reach it through a diner selection.
  */
 export function mealConstraints(members: readonly HouseholdMember[]): MealConstraints {
   const allergies = new Set<Allergy>();
@@ -56,13 +103,40 @@ export function mealConstraints(members: readonly HouseholdMember[]): MealConstr
   };
 }
 
+/** Everything a request needs to know about the people eating one meal. */
+export interface MealDiners {
+  /** The resolved diners — every member unless a valid subset was selected. */
+  members: readonly HouseholdMember[];
+  constraints: MealConstraints;
+  /** Adult-equivalent portions for exactly those diners. */
+  portions: number;
+}
+
 /**
- * The whole household's constraint set — every member eating.
+ * The one entry point every surface uses. There is deliberately no other exported way
+ * to obtain a constraint set for a request.
  *
- * The default everywhere, and the only thing that exists until #112 lands: safety is
- * the default state, never something a user has to select (DECISION_LOG 2026-08-09,
- * condition 1).
+ * Constraints and portions are derived here from a *single* resolution of the diner
+ * set, which is the whole reason this exists rather than two calls at each route: a
+ * caller never holds the subset, so it cannot filter for one set of people and cook
+ * for another. Deselecting the child both stops applying their allergy and stops
+ * buying their portion, and the two can't come apart.
+ *
+ * Passing no selection is the default everywhere, and answers for the whole
+ * household: safety is the default state, never something a user has to select
+ * (DECISION_LOG 2026-08-09, condition 1).
  */
-export function householdConstraints(household: Pick<Household, "members">): MealConstraints {
-  return mealConstraints(household.members);
+export function mealDiners(
+  members: readonly HouseholdMember[],
+  diners?: DinerSelection,
+): MealDiners {
+  const eating = dinerMembers(members, diners);
+
+  return {
+    members: eating,
+    // Both derived from `eating`, the single resolution — resolving the selection
+    // twice would be two chances to resolve it differently.
+    constraints: mealConstraints(eating),
+    portions: totalPortions(eating),
+  };
 }

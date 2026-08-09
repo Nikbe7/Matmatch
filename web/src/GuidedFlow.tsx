@@ -1,8 +1,6 @@
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import {
   ApiError,
-  fetchGuidedDirections,
-  fetchGuidedOptions,
   type ExcludedIngredientOption,
   type GuidedDirection,
   type GuidedDirectionsResponse,
@@ -10,6 +8,8 @@ import {
   type IngredientOption,
 } from "./api";
 import { allergyExclusionReason, capitalizeForSentence } from "./allergyLabels";
+import { DinerPicker, useDinerSelection } from "./DinerPicker";
+import { createGuidedClient } from "./guidedClient";
 import { costTierLabel, costTierMeter, PREP_TIME_LABELS } from "./display";
 import { ShoppingList, formatPortions, type ShoppingListMeal } from "./ShoppingList";
 import { Button } from "./components/Button";
@@ -233,22 +233,49 @@ export function GuidedFlow({
   // and Gate's offline screen both already do.
   const [attempt, setAttempt] = useState(0);
 
+  // Who is eating, seeded to everyone from the labels the options request returns.
+  // The flow never waits on this: the first request carries no diner set at all, and
+  // the picker adjusts an answer that is already on screen (condition 2).
+  const diners = useDinerSelection(options?.diners);
+
+  // One client for both endpoints, rebuilt when the diner set changes. Neither of its
+  // methods takes a diner set, so the grid and the directions cannot be built for
+  // different people — see guidedClient.ts. Rebuilding re-runs both effects below,
+  // which is the point: a new diner set needs a new grid as much as a new direction
+  // set.
+  const client = useMemo(
+    () => createGuidedClient(accessToken, diners.parameter),
+    [accessToken, diners.parameter],
+  );
+
   // Both grids in one small request at mount, so steps 2 and 3 never make the
   // household wait between taps.
   useEffect(() => {
     let cancelled = false;
-    setOptions(null);
-    fetchGuidedOptions(accessToken)
+    // Deliberately *not* cleared first: a diner toggle refetches this, and blanking
+    // the roster mid-flight would take the labels away from the very picker that
+    // triggered the request — which reads as the selection resetting itself.
+    client
+      .fetchOptions()
       .then((loaded) => {
         if (!cancelled) setOptions(loaded);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : String(err));
+        if (cancelled) return;
+        // Dropped, not left on screen, for the same reason the direction set below is:
+        // after a failed refetch these grids answer a question the household has
+        // already changed. A diner toggle is exactly that — a grid built while the
+        // fish-allergic member was away keeps offering "lax" as a tap target once she
+        // is back at the table. The directions request would refuse it server-side, so
+        // this is not a safety hole; it is the trap tap target the flow is built to
+        // avoid.
+        setOptions(null);
+        setError(err instanceof ApiError ? err.message : String(err));
       });
     return () => {
       cancelled = true;
     };
-  }, [accessToken, attempt]);
+  }, [client, attempt]);
 
   // Step 2's type-to-filter (requirement 1-6): entirely a display layer over the
   // already-fetched `options.mainIngredients`, the household's own safe set — no
@@ -287,11 +314,12 @@ export function GuidedFlow({
     setLoading(true);
     setError(null);
 
-    fetchGuidedDirections(accessToken, {
-      intent: state.intent,
-      main,
-      pantry: pantryKey.length > 0 ? pantryKey.split(",") : [],
-    })
+    client
+      .fetchDirections({
+        intent: state.intent,
+        main,
+        pantry: pantryKey.length > 0 ? pantryKey.split(",") : [],
+      })
       .then((loaded) => {
         if (!cancelled) setResponse(loaded);
       })
@@ -310,7 +338,7 @@ export function GuidedFlow({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, wantsDirections, state.intent, main, pantryKey, attempt]);
+  }, [client, wantsDirections, state.intent, main, pantryKey, attempt]);
 
   const chosen = response?.directions.find(
     (direction) => direction.template.id === state.chosenTemplateId,
@@ -477,6 +505,13 @@ export function GuidedFlow({
           {!loading && response?.reason === "no_safe_templates" && (
             <NoSafeTemplates onRestart={() => dispatch({ type: "restart" })} />
           )}
+          {/*
+            Below the cards, not above them: a refinement on the suggestions already
+            on screen, never a question asked before there is anything to refine. It
+            stays rendered through both §9 empty states, where "the child is not
+            eating tonight" is often the real way out.
+          */}
+          <DinerPicker state={diners} busy={loading} />
         </>
       )}
 

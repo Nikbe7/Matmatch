@@ -203,7 +203,12 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
         // Seeded from the household every time a direction is chosen, so a household
         // that goes back and picks a different dish starts from its own number again
         // rather than from a stepper value it set for a dish it abandoned.
-        portions: action.portions,
+        //
+        // Clamped to the same floor `adjust_portions` enforces: with diner scoping
+        // (#112) a sub-1 total is now reachable — one adult and one child, adult
+        // deselected, is 0.5 — and seeding below the floor opens the step on a value
+        // its own "−" button is already disabled for.
+        portions: Math.max(MIN_PORTIONS, action.portions),
         step: "portions",
       };
 

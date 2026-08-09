@@ -24,6 +24,17 @@ export interface SessionWeights {
   time: number;
 }
 
+/**
+ * One household member as the picker knows them: a display label at a position.
+ *
+ * Deliberately not the member — no allergies, no dietary flags, no portion factor.
+ * The client renders a control; it never holds a second copy of the household, which
+ * is the last place a second source of truth about allergies should exist.
+ */
+export interface DinerLabel {
+  label: string;
+}
+
 export interface TonightIngredient {
   role: IngredientSlotRole;
   name: string;
@@ -63,9 +74,12 @@ export interface TonightResult {
 // preformatted string. Rounding and the "För N portioner" wording are frontend
 // display logic (see App.tsx), not something the backend should own: baking the
 // wording into the API would mean it could only change via an API change.
+// `diners` is present on every response, empty state included — the picker is a
+// refinement on whatever is on screen, and the §9 empty states are exactly where
+// changing who is eating is most likely to be the way out.
 export type TonightResponse =
-  | { result: TonightResult; portions: number }
-  | { result: null; reason: string; portions: number };
+  | { result: TonightResult; portions: number; diners: DinerLabel[] }
+  | { result: null; reason: string; portions: number; diners: DinerLabel[] };
 
 interface ApiErrorEnvelope {
   error: { code: string; message: string };
@@ -95,6 +109,12 @@ export interface FetchTonightOptions {
   // weight parameters at all, matching the server's `{cost: 0, time: 0}` default
   // rather than restating it here.
   weights?: SessionWeights;
+  /**
+   * `diners` as the server spells it: comma-separated member indices, or omitted
+   * for everyone (#112). Built by `dinersParameter` — never assembled at a call
+   * site, so there is one spelling of the default.
+   */
+  diners?: string;
 }
 
 export async function fetchTonight(
@@ -106,6 +126,7 @@ export async function fetchTonight(
   if (options.previous) params.set("previous", options.previous);
   if (options.weights?.cost) params.set("cost", String(options.weights.cost));
   if (options.weights?.time) params.set("time", String(options.weights.time));
+  if (options.diners) params.set("diners", options.diners);
   const query = params.toString();
 
   const response = await fetch(`/api/tonight${query ? `?${query}` : ""}`, {
@@ -144,6 +165,7 @@ export interface ExcludedIngredientOption extends IngredientOption {
 }
 
 export interface GuidedOptions {
+  diners: DinerLabel[];
   mainIngredients: IngredientOption[];
   pantryIngredients: IngredientOption[];
   excludedMainIngredients: ExcludedIngredientOption[];
@@ -176,52 +198,10 @@ export interface GuidedDirectionsResponse {
   portions: number;
 }
 
-export async function fetchGuidedOptions(accessToken: string): Promise<GuidedOptions> {
-  const response = await fetch("/api/guided/options", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-
-  const body: unknown = await response.json();
-
-  if (!response.ok) {
-    const { error } = body as ApiErrorEnvelope;
-    throw new ApiError(response.status, error.code, error.message);
-  }
-
-  return body as GuidedOptions;
-}
-
-export interface FetchGuidedDirectionsOptions {
-  intent: string;
-  /** An ingredient id, `auto` ("Föreslå åt mig") or `any` (the §9 loosen path). */
-  main: string;
-  /**
-   * Session-scoped pantry ingredient ids. Sent per request and never stored: this
-   * module holds no pantry state and `shoppingListStorage.ts` never sees an id.
-   */
-  pantry?: readonly string[];
-}
-
-export async function fetchGuidedDirections(
-  accessToken: string,
-  options: FetchGuidedDirectionsOptions,
-): Promise<GuidedDirectionsResponse> {
-  const params = new URLSearchParams({ intent: options.intent, main: options.main });
-  if (options.pantry && options.pantry.length > 0) params.set("pantry", options.pantry.join(","));
-
-  const response = await fetch(`/api/guided/directions?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-
-  const body: unknown = await response.json();
-
-  if (!response.ok) {
-    const { error } = body as ApiErrorEnvelope;
-    throw new ApiError(response.status, error.code, error.message);
-  }
-
-  return body as GuidedDirectionsResponse;
-}
+// The two guided endpoints are deliberately *not* exported from this module. They
+// take a diner set that must be identical across the pair, and a plain exported
+// function per endpoint makes a mismatched pair perfectly expressible. They live in
+// guidedClient.ts behind a factory instead, which makes it inexpressible.
 
 // The Tier 1 cooking-instructions result (issue #78). `instructions` is null on any
 // generation failure — missing key, timeout, invalid AI response — never an error the

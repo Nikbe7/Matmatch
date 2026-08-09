@@ -355,3 +355,61 @@ describe.skipIf(!stackAvailable)("POST /api/dishes/generate", () => {
     });
   });
 });
+
+describe.skipIf(!stackAvailable)("POST /api/dishes/generate — diner-scoped constraints (#112)", () => {
+  // No user-facing surface sends `diners` yet (the search box is a later slice); this
+  // proves the parameter is wired through the same seam as the other three endpoints
+  // so the Tier 2 gate cannot drift from the curated library's filter.
+  async function peanutChildHousehold() {
+    const user = await createTestUser();
+    await createHousehold(sql!, user.userId, {
+      members: [
+        { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
+        { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+      ],
+    });
+    return user;
+  }
+
+  it("withholds the peanut dish with no diner parameter and shows it once the child is deselected", async () => {
+    const engineData = buildEngineData();
+    const create = vi.fn().mockResolvedValue(textResponse(dishResponse()));
+    const app = buildApp(engineData, { messages: { create } });
+    const query = `jordnötsgryta ${crypto.randomUUID()}`;
+    const user = await peanutChildHousehold();
+
+    const withheld = await request(app)
+      .post("/api/dishes/generate")
+      .set(authHeader(user.accessToken))
+      .send({ query });
+    expect(withheld.body.dish).toBeNull();
+    expect(withheld.body.reason).toBe("no_safe_dish");
+
+    const shown = await request(app)
+      .post(`/api/dishes/generate?diners=0`)
+      .set(authHeader(user.accessToken))
+      .send({ query });
+    expect(shown.body.dish?.name).toBe("Kyckling med jordnötssås");
+    // Same cached row, no second AI call — the safety decision was never cached.
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed on every malformed diner parameter", async () => {
+    const engineData = buildEngineData();
+    const create = vi.fn().mockResolvedValue(textResponse(dishResponse()));
+    const app = buildApp(engineData, { messages: { create } });
+    const query = `jordnötsgryta ${crypto.randomUUID()}`;
+    const user = await peanutChildHousehold();
+
+    for (const diners of ["", "9", "0,9", "-1", "alla"]) {
+      const response = await request(app)
+        .post(`/api/dishes/generate?diners=${encodeURIComponent(diners)}`)
+        .set(authHeader(user.accessToken))
+        .send({ query });
+
+      expect(response.status).toBe(200);
+      expect(response.body.dish).toBeNull();
+      expect(response.body.reason).toBe("no_safe_dish");
+    }
+  });
+});

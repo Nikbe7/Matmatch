@@ -4,7 +4,7 @@ import type { Sql } from "../../db/client.js";
 import { getHouseholdForOwner } from "../../db/households.js";
 import { cookedTodayTemplateIds, getRecentCookedMeals } from "../../db/cookedMeals.js";
 import { selectCandidateTemplates } from "../../engine/candidates.js";
-import { householdConstraints } from "../../engine/constraints.js";
+import { mealDiners } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import {
   buildCookingHistory,
@@ -18,7 +18,8 @@ import { HttpError } from "../httpError.js";
 import { parseWeightsFromQuery } from "../weights.js";
 import { parseExcludeFromQuery, parsePreviousFromQuery } from "../tonightSelection.js";
 import { buildTonightIngredients } from "../tonightIngredients.js";
-import { totalPortions } from "../../engine/portions.js";
+import { parseDinersFromQuery } from "../diners.js";
+import { memberLabels } from "../../schema/household.js";
 
 export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: TokenVerifier): Router {
   const router = Router();
@@ -28,6 +29,9 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       const weights = parseWeightsFromQuery(req.query as Record<string, unknown>);
       const excludedTemplateIds = parseExcludeFromQuery((req.query as Record<string, unknown>).exclude);
       const previousTemplateId = parsePreviousFromQuery((req.query as Record<string, unknown>).previous);
+      // Optional, and absent on the very first request of every session: Tonight is
+      // zero-input and assumes everyone (DECISION_LOG 2026-08-09, condition 2).
+      const selectedDiners = parseDinersFromQuery((req.query as Record<string, unknown>).diners);
 
       const stored = await getHouseholdForOwner(sql, req.userId!);
       if (!stored) {
@@ -53,10 +57,16 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       );
       const recency: RecencyContext = { history: buildCookingHistory(history), now };
 
-      // Derived once and used for both filtering and ranking, so the two can never
-      // be handed different answers about who this meal is for. #112 narrows this one
-      // expression to the diner set; nothing else in this route changes.
-      const constraints = householdConstraints(stored.household);
+      // Derived once and used for filtering, ranking *and* portions, so none of the
+      // three can be handed a different answer about who this meal is for. An
+      // unparseable, empty or stale `diners` widens to the whole household here.
+      const { constraints, portions } = mealDiners(stored.household.members, selectedDiners);
+
+      // Labels for the diner picker, by member position — never the members
+      // themselves, so no allergy data crosses the wire and the client never holds a
+      // second copy of the household. The client resets its selection whenever this
+      // array changes, which is what keeps a position from outliving its roster.
+      const diners = memberLabels(stored.household.members).map((label) => ({ label }));
 
       const candidates = selectCandidateTemplates(engineData, constraints);
       const ranked = rankCandidates(
@@ -67,14 +77,13 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         constraints.dietary_flags,
         recency,
       );
-      const portions = totalPortions(stored.household.members);
 
       if (ranked.length === 0) {
         // Not an error: UX_FLOW §9 says never dead-end the user. A vegan+gluten
         // household hits this today (DECISION_LOG 2026-08-02, #46) and the client
         // needs a machine-readable reason to render "loosen constraints" rather than
         // treat this as a failed request.
-        res.status(200).json({ result: null, reason: "no_safe_templates", portions });
+        res.status(200).json({ result: null, reason: "no_safe_templates", portions, diners });
         return;
       }
 
@@ -88,7 +97,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       if (!picked) {
         // Distinct from no_safe_templates: the household has safe options, the
         // client has just already been shown all of them this session (#70).
-        res.status(200).json({ result: null, reason: "no_more_suggestions", portions });
+        res.status(200).json({ result: null, reason: "no_more_suggestions", portions, diners });
         return;
       }
 
@@ -108,6 +117,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
           cookedToday: cookedTodayTemplateIds(history).has(picked.template.id),
         },
         portions,
+        diners,
       });
     } catch (error) {
       next(error);
