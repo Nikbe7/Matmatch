@@ -590,8 +590,20 @@ export function explainSuggestion(
   const variety = varietyReason(picked, previousTemplate);
   if (variety) reasons.push(variety);
 
-  if (reasons.length < MAX_SUGGESTION_REASONS) {
-    const remaining = ranked.filter((candidate) => !excludedTemplateIds.has(candidate.template.id));
+  const remaining = ranked.filter((candidate) => !excludedTemplateIds.has(candidate.template.id));
+  const topScored = remaining[0];
+
+  // `pickNextSuggestion`'s protein/cuisine diversity rule can hand back a candidate
+  // that is *not* the best-scoring one remaining — that is the whole point of the
+  // rule. When it does, the score did not decide `picked` over `topScored`; variety
+  // did. Crediting a score term in that case (e.g. "cheaper" because `picked` happens
+  // to have a lower cost tier than the candidate the score preferred) would be true
+  // about the two dishes in isolation but false about what drove the decision —
+  // exactly what requirement 5 forbids. Score-term reasons only make sense to compute
+  // at all when `picked` *is* the plain score winner among what remains.
+  const scoreDecidedThisPick = topScored !== undefined && topScored.template.id === picked.template.id;
+
+  if (scoreDecidedThisPick && reasons.length < MAX_SUGGESTION_REASONS) {
     const runnerUp = remaining.find((candidate) => candidate.template.id !== picked.template.id);
 
     if (runnerUp) {

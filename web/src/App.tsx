@@ -500,6 +500,8 @@ function SuggestionCard({
   onAccept: () => void;
   onMarkCooked: () => void;
 }) {
+  const reasonLine = suggestionReasonLine(result.reasonCodes ?? []);
+
   return (
     <Card className="suggestion-card">
       <h3 className="suggestion-card__name">{result.template.name}</h3>
@@ -509,9 +511,7 @@ function SuggestionCard({
         </span>{" "}
         · {PREP_TIME_LABELS[result.template.prep_time_band]}
       </p>
-      {suggestionReasonLine(result.reasonCodes ?? []) && (
-        <p className="suggestion-card__reason">{suggestionReasonLine(result.reasonCodes ?? [])}</p>
-      )}
+      {reasonLine && <p className="suggestion-card__reason">{reasonLine}</p>}
       <ul className="suggestion-card__ingredients">
         {result.ingredients.map((ingredient, index) => (
           <li key={index}>

@@ -1146,6 +1146,37 @@ describe("explainSuggestion", () => {
     ]);
   });
 
+  it("credits only variety, never a score term, when the diversity rule overrode the score", () => {
+    // A is the plain score winner (better familiarity beats B's cheaper cost tier),
+    // but shares its protein group with `previous`, so pickNextSuggestion's
+    // diversity rule passes it over for B. B is genuinely cheaper than A, but that
+    // is not why B is on screen — variety is — so cost_preference must not appear
+    // alongside it.
+    const previous = makeTemplate("previous", { protein_group: "beef_pork" });
+    const scoreWinner = neutralCandidate("score-winner", {
+      protein_group: "beef_pork",
+      familiarity: "everyday",
+      cost_tier: "mid",
+    });
+    const pickedForVariety = neutralCandidate("picked-for-variety", {
+      protein_group: "chicken_poultry",
+      familiarity: "adventurous",
+      cost_tier: "budget",
+    });
+    const weights = { cost: 1, time: 0 };
+
+    const ranked = rankCandidates(seasonalityData, [scoreWinner, pickedForVariety], weights, 1);
+    // Confirm the fixture actually exercises the override: the score prefers
+    // scoreWinner, but pickNextSuggestion must still return pickedForVariety.
+    expect(ranked[0]!.template.id).toBe("score-winner");
+    const picked = pickNextSuggestion(ranked, new Set(), previous);
+    expect(picked!.template.id).toBe("picked-for-variety");
+
+    expect(
+      explainSuggestion(seasonalityData, ranked, new Set(), picked!, previous, weights, 1),
+    ).toEqual(["different_from_last_time"]);
+  });
+
   it("is silent, not a crash, when the picked candidate is the only one remaining", () => {
     const only = neutralCandidate("only");
 
