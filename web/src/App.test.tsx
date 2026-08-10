@@ -342,6 +342,41 @@ describe("App — Tonight suggestion card", () => {
     expect(dots!.textContent).toBe("●●○");
   });
 
+  it("shows the one-line reason when the server sends codes, phrased as a sentence with no numbers", async () => {
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          ...suggestionBody,
+          result: { ...suggestionBody.result, reasonCodes: ["in_season", "not_recently_cooked"] },
+        }),
+      ),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const reason = screen.getByText(/^Valt för att/);
+    expect(reason.textContent).toContain(" och ");
+    expect(reason.textContent).not.toMatch(/\d/);
+  });
+
+  it("renders no reason line at all when the server sends no reason codes", async () => {
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(200, { ...suggestionBody, result: { ...suggestionBody.result, reasonCodes: [] } }),
+      ),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    expect(screen.queryByText(/^Valt för att/)).toBeNull();
+  });
+
   it("Accept moves to the shopping list, and a page reload restores it directly", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();

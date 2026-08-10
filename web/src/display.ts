@@ -1,5 +1,6 @@
 import type { CostTier } from "../../src/schema/ingredient";
 import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
+import type { SuggestionReasonCode } from "./api";
 
 // Display mappings for curated engine enums, shared by every screen that renders a
 // dish — the Tonight card and the guided flow's direction cards. One definition, so
@@ -58,3 +59,26 @@ export const INGREDIENT_ROLE_LABELS: Record<IngredientSlotRole, string> = {
   aromatic: "Arom",
   dairy: "Mejeri",
 };
+
+// #122: the Tonight card's one-line "why this dish". Each phrase is written to
+// read as the tail of a sentence ("Valt för att den är …"), never as a standalone
+// label — see `suggestionReasonLine` below, the only place these are joined.
+const SUGGESTION_REASON_PHRASES: Record<SuggestionReasonCode, string> = {
+  in_season: "den är i säsong",
+  not_recently_cooked: "ni inte lagat den på ett tag",
+  cost_preference: "den är billigare, som du bad om",
+  time_preference: "den är snabbare, som du bad om",
+  different_from_last_time: "den är annorlunda än ikväll ni lagade senast",
+};
+
+/**
+ * The Tonight card's explanation line, or `null` for silence (#122 requirement 2) —
+ * never an empty string, so a caller can `&&` on the result without also checking
+ * length. At most two reason codes ever reach here (`explainSuggestion`,
+ * src/engine/ranking.ts), so this never has to decide how to truncate a longer list.
+ */
+export function suggestionReasonLine(codes: readonly SuggestionReasonCode[]): string | null {
+  if (codes.length === 0) return null;
+  const phrases = codes.map((code) => SUGGESTION_REASON_PHRASES[code]);
+  return `Valt för att ${phrases.join(" och ")}.`;
+}

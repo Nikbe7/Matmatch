@@ -24,6 +24,7 @@ function suggestion(id: string, cuisine: Cuisine = "swedish_nordic"): TonightRes
       ingredients: [],
       substitutions: [],
       score: 1,
+      reasonCodes: [],
       cookedToday: false,
     },
     portions: 2,

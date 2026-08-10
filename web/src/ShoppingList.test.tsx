@@ -20,6 +20,7 @@ function result(overrides: Partial<TonightResult> = {}): TonightResult {
     ],
     substitutions: [],
     score: 0.5,
+    reasonCodes: [],
     cookedToday: false,
     ...overrides,
   };

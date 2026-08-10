@@ -306,14 +306,29 @@ export function inSeasonFraction(
  * `recency` is optional: omitted (no persisted history, or a caller that does not load
  * it) means no repeat-avoidance penalty, not a penalty of zero days.
  */
-export function scoreCandidate(
+/**
+ * Every additive term `scoreCandidate` sums, kept apart so `explainSuggestion` below
+ * can compare two candidates term-by-term without a second, parallel computation of
+ * the same score — the one thing requirement 3 (#122) forbids is a description that
+ * can drift from the ranking it describes.
+ */
+interface ScoreBreakdown {
+  costPenalty: number;
+  timePenalty: number;
+  seasonalityBonus: number;
+  familiarityPenalty: number;
+  omnivorePenalty: number;
+  repeatPenalty: number;
+}
+
+function scoreBreakdown(
   data: SeasonalityData,
   candidate: CandidateTemplate,
   weights: RankingWeights,
   month: number,
-  householdDietaryFlags: readonly DietaryFlag[] = [],
+  householdDietaryFlags: readonly DietaryFlag[],
   recency?: RecencyContext,
-): number {
+): ScoreBreakdown {
   const costPenalty = costTierIndex(candidate.template.cost_tier) * weights.cost;
   const timePenalty = prepTimeIndex(candidate.template.prep_time_band) * weights.time;
   const seasonalityBonus = inSeasonFraction(data, candidate, month) * SEASONALITY_WEIGHT;
@@ -330,14 +345,19 @@ export function scoreCandidate(
 
   const repeatPenalty = recency ? recencyPenalty(candidate.template.id, recency) : 0;
 
-  return (
-    costPenalty +
-    timePenalty -
-    seasonalityBonus +
-    familiarityPenalty +
-    omnivorePenalty +
-    repeatPenalty
-  );
+  return { costPenalty, timePenalty, seasonalityBonus, familiarityPenalty, omnivorePenalty, repeatPenalty };
+}
+
+export function scoreCandidate(
+  data: SeasonalityData,
+  candidate: CandidateTemplate,
+  weights: RankingWeights,
+  month: number,
+  householdDietaryFlags: readonly DietaryFlag[] = [],
+  recency?: RecencyContext,
+): number {
+  const b = scoreBreakdown(data, candidate, weights, month, householdDietaryFlags, recency);
+  return b.costPenalty + b.timePenalty - b.seasonalityBonus + b.familiarityPenalty + b.omnivorePenalty + b.repeatPenalty;
 }
 
 function compareTemplateIds(a: RecipeTemplate, b: RecipeTemplate): number {
@@ -472,4 +492,123 @@ export function pickTonight(
 ): RankedCandidate | undefined {
   const ranked = rankCandidates(data, candidates, weights, month, householdDietaryFlags, recency);
   return pickNextSuggestion(ranked, new Set(), undefined);
+}
+
+// Fourth slice, #122: why the Tonight card shows this dish. An enum, not free text
+// (implementation notes), so the set is reviewable and the client's phrasing is one
+// lookup — this module only ever hands back codes plus which candidates they were
+// derived from, never a sentence.
+export type SuggestionReasonCode =
+  | "in_season"
+  | "not_recently_cooked"
+  | "cost_preference"
+  | "time_preference"
+  | "different_from_last_time";
+
+/** UX_FLOW §4: at most two reasons on the card, never a list. */
+const MAX_SUGGESTION_REASONS = 2;
+
+/**
+ * "Different protein than last time" is true whenever it's true — it does not
+ * matter whether `pickNextSuggestion`'s diversity rule was the branch that actually
+ * fired or the top-scored candidate already happened to differ. Either way the
+ * household is being told a fact about the dish on screen, not a claim about which
+ * line of code produced it.
+ */
+function varietyReason(
+  picked: RankedCandidate,
+  previousTemplate: RecipeTemplate | undefined,
+): SuggestionReasonCode | undefined {
+  if (!previousTemplate) return undefined;
+  return picked.template.protein_group !== previousTemplate.protein_group
+    ? "different_from_last_time"
+    : undefined;
+}
+
+/**
+ * Score-term reasons, derived by comparing `picked` against the best-scoring
+ * candidate that would have been shown in its place (`runnerUp`) — "why this dish"
+ * only means something relative to the alternative, exactly as the score itself only
+ * ever decides an *order*. A term "dominates" when it is among the two largest
+ * positive gaps out of every term the score has, named or not (familiarity and the
+ * omnivore preference have no user-facing phrasing yet — see requirement 2, #122).
+ * Landing in the top two but being unnamed silently costs that slot rather than
+ * falling through to a smaller, nameable gap: requirement 5 forbids crediting a term
+ * that did not actually drive the difference between this dish and the alternative.
+ */
+function scoreTermReasons(
+  data: SeasonalityData,
+  picked: RankedCandidate,
+  runnerUp: RankedCandidate,
+  weights: RankingWeights,
+  month: number,
+  householdDietaryFlags: readonly DietaryFlag[],
+  recency: RecencyContext | undefined,
+): SuggestionReasonCode[] {
+  const pickedTerms = scoreBreakdown(data, picked, weights, month, householdDietaryFlags, recency);
+  const runnerUpTerms = scoreBreakdown(data, runnerUp, weights, month, householdDietaryFlags, recency);
+
+  const diffs: { code: SuggestionReasonCode | undefined; diff: number }[] = [
+    { code: "in_season", diff: pickedTerms.seasonalityBonus - runnerUpTerms.seasonalityBonus },
+    { code: "cost_preference", diff: runnerUpTerms.costPenalty - pickedTerms.costPenalty },
+    { code: "time_preference", diff: runnerUpTerms.timePenalty - pickedTerms.timePenalty },
+    { code: "not_recently_cooked", diff: runnerUpTerms.repeatPenalty - pickedTerms.repeatPenalty },
+    { code: undefined, diff: runnerUpTerms.familiarityPenalty - pickedTerms.familiarityPenalty },
+    { code: undefined, diff: runnerUpTerms.omnivorePenalty - pickedTerms.omnivorePenalty },
+  ];
+
+  return diffs
+    .filter((entry) => entry.diff > 1e-9)
+    .sort((a, b) => b.diff - a.diff)
+    .slice(0, MAX_SUGGESTION_REASONS)
+    .map((entry) => entry.code)
+    .filter((code): code is SuggestionReasonCode => code !== undefined);
+}
+
+/**
+ * The reason codes for the dish `pickNextSuggestion` chose, or `[]` when nothing
+ * meaningfully dominated — silence is correct output, not a missing case (#122).
+ *
+ * `ranked` and `excludedTemplateIds` are the same arguments the caller already
+ * passed to `pickNextSuggestion`, so the comparison candidate here is the same
+ * candidate that function would have returned in `picked`'s place — never a
+ * candidate that was already excluded, and never a re-derivation of the ranking.
+ */
+export function explainSuggestion(
+  data: SeasonalityData,
+  ranked: readonly RankedCandidate[],
+  excludedTemplateIds: ReadonlySet<string>,
+  picked: RankedCandidate,
+  previousTemplate: RecipeTemplate | undefined,
+  weights: RankingWeights,
+  month: number,
+  householdDietaryFlags: readonly DietaryFlag[] = [],
+  recency?: RecencyContext,
+): readonly SuggestionReasonCode[] {
+  const reasons: SuggestionReasonCode[] = [];
+
+  const variety = varietyReason(picked, previousTemplate);
+  if (variety) reasons.push(variety);
+
+  if (reasons.length < MAX_SUGGESTION_REASONS) {
+    const remaining = ranked.filter((candidate) => !excludedTemplateIds.has(candidate.template.id));
+    const runnerUp = remaining.find((candidate) => candidate.template.id !== picked.template.id);
+
+    if (runnerUp) {
+      for (const code of scoreTermReasons(
+        data,
+        picked,
+        runnerUp,
+        weights,
+        month,
+        householdDietaryFlags,
+        recency,
+      )) {
+        if (reasons.length >= MAX_SUGGESTION_REASONS) break;
+        if (!reasons.includes(code)) reasons.push(code);
+      }
+    }
+  }
+
+  return reasons;
 }

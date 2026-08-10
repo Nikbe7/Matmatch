@@ -7,6 +7,7 @@ import { loadEngineData } from "./data.js";
 import {
   buildCookingHistory,
   costTierIndex,
+  explainSuggestion,
   familiarityIndex,
   inSeasonFraction,
   pickNextSuggestion,
@@ -984,5 +985,173 @@ describe("pickTonight — repeat avoidance", () => {
     }
 
     expect(new Set(picks).size).toBe(3);
+  });
+});
+
+// #122: "why this dish". Each test builds a two-candidate ranked list where every
+// score term is held equal except the one under test, so a pass can only come from
+// that term actually being what separates the winner from the runner-up — never
+// from a coincidence in the fixture defaults.
+describe("explainSuggestion", () => {
+  const zero = { cost: 0, time: 0 };
+
+  it("credits seasonality when it is the only thing separating the winner from the runner-up", () => {
+    const winner = candidate("in-season", {
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }],
+    });
+    const runnerUp = candidate("out-of-season", {
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+    });
+
+    const ranked = rankCandidates(seasonalityData, [winner, runnerUp], zero, 7);
+    const picked = ranked.find((c) => c.template.id === "in-season")!;
+
+    expect(
+      explainSuggestion(seasonalityData, ranked, new Set(), picked, undefined, zero, 7),
+    ).toEqual(["in_season"]);
+  });
+
+  it("credits repeat-avoidance when the runner-up was cooked recently and the winner was not", () => {
+    const winner = neutralCandidate("never-cooked");
+    const runnerUp = neutralCandidate("cooked-today");
+    const context = recency({ "cooked-today": daysAgo(0) });
+
+    const ranked = rankCandidates(seasonalityData, [winner, runnerUp], zero, 1, [], context);
+    const picked = ranked.find((c) => c.template.id === "never-cooked")!;
+
+    expect(
+      explainSuggestion(seasonalityData, ranked, new Set(), picked, undefined, zero, 1, [], context),
+    ).toEqual(["not_recently_cooked"]);
+  });
+
+  it("credits the cost preference only when a cost weight is actually in play", () => {
+    const winner = neutralCandidate("budget-pick", { cost_tier: "budget" });
+    const runnerUp = neutralCandidate("mid-pick", { cost_tier: "mid" });
+    const weights = { cost: 1, time: 0 };
+
+    const ranked = rankCandidates(seasonalityData, [winner, runnerUp], weights, 1);
+    const picked = ranked.find((c) => c.template.id === "budget-pick")!;
+
+    expect(explainSuggestion(seasonalityData, ranked, new Set(), picked, undefined, weights, 1)).toEqual([
+      "cost_preference",
+    ]);
+  });
+
+  it("credits the time preference only when a time weight is actually in play", () => {
+    const winner = neutralCandidate("fast-pick", { prep_time_band: "<20min" });
+    const runnerUp = neutralCandidate("slow-pick", { prep_time_band: "40min+" });
+    const weights = { cost: 0, time: 1 };
+
+    const ranked = rankCandidates(seasonalityData, [winner, runnerUp], weights, 1);
+    const picked = ranked.find((c) => c.template.id === "fast-pick")!;
+
+    expect(explainSuggestion(seasonalityData, ranked, new Set(), picked, undefined, weights, 1)).toEqual([
+      "time_preference",
+    ]);
+  });
+
+  it("credits variety when the pick's protein group differs from last time's, tied score otherwise", () => {
+    const winner = neutralCandidate("winner", { protein_group: "chicken_poultry" });
+    const runnerUp = neutralCandidate("runner-up", { protein_group: "chicken_poultry" });
+    const previous = makeTemplate("previous", { protein_group: "beef_pork" });
+
+    const ranked = rankCandidates(seasonalityData, [winner, runnerUp], zero, 1);
+    const picked = ranked.find((c) => c.template.id === "winner")!;
+
+    expect(explainSuggestion(seasonalityData, ranked, new Set(), picked, previous, zero, 1)).toEqual([
+      "different_from_last_time",
+    ]);
+  });
+
+  it("is silent when the two candidates are indistinguishable on every term", () => {
+    const winner = neutralCandidate("a");
+    const runnerUp = neutralCandidate("b");
+
+    const ranked = rankCandidates(seasonalityData, [winner, runnerUp], zero, 1);
+    const picked = ranked[0]!;
+
+    expect(explainSuggestion(seasonalityData, ranked, new Set(), picked, undefined, zero, 1)).toEqual([]);
+  });
+
+  it("stays silent rather than crediting a nameable term when familiarity was actually what won it", () => {
+    // Nothing nameable differs — cost/time weights are zero, seasonality is tied,
+    // there is no history — so if familiarity alone decided the order, requirement 5
+    // says say nothing rather than credit seasonality or recency for a gap they did
+    // not create.
+    const winner = neutralCandidate("everyday-pick", { familiarity: "everyday" });
+    const runnerUp = neutralCandidate("adventurous-pick", { familiarity: "adventurous" });
+
+    const ranked = rankCandidates(seasonalityData, [winner, runnerUp], zero, 1);
+    const picked = ranked.find((c) => c.template.id === "everyday-pick")!;
+
+    expect(explainSuggestion(seasonalityData, ranked, new Set(), picked, undefined, zero, 1)).toEqual([]);
+  });
+
+  it("names at most two reasons, the two largest gaps, when three terms would otherwise qualify", () => {
+    const winner = neutralCandidate("winner", { cost_tier: "budget", prep_time_band: "<20min" });
+    const runnerUp = candidate("runner-up", {
+      cost_tier: "premium",
+      prep_time_band: "40min+",
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+    });
+    const weights = { cost: 1.5, time: 2 };
+
+    const ranked = rankCandidates(seasonalityData, [winner, runnerUp], weights, 7);
+    const picked = ranked.find((c) => c.template.id === "winner")!;
+
+    // time gap (2 index steps * weight 2 = 4) > cost gap (2 * 1.5 = 3) > seasonality
+    // gap (0.25) — the two largest, not the seasonality gap that also qualifies.
+    expect(explainSuggestion(seasonalityData, ranked, new Set(), picked, undefined, weights, 7)).toEqual([
+      "time_preference",
+      "cost_preference",
+    ]);
+  });
+
+  it("puts variety first and still caps at two when a score term also qualifies", () => {
+    const winner = neutralCandidate("winner", { protein_group: "chicken_poultry" });
+    const runnerUp = candidate("runner-up", {
+      protein_group: "beef_pork",
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+    });
+    const previous = makeTemplate("previous", { protein_group: "beef_pork" });
+
+    const ranked = rankCandidates(seasonalityData, [winner, runnerUp], zero, 7);
+    const picked = ranked.find((c) => c.template.id === "winner")!;
+
+    expect(explainSuggestion(seasonalityData, ranked, new Set(), picked, previous, zero, 7)).toEqual([
+      "different_from_last_time",
+      "in_season",
+    ]);
+  });
+
+  it("respects the same exclusion set pickNextSuggestion was given, comparing against what it would actually show next", () => {
+    const winner = candidate("winner", {
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }],
+    });
+    const excludedRunnerUp = candidate("excluded", {
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }],
+    });
+    const realRunnerUp = candidate("real-runner-up", {
+      ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+    });
+
+    const ranked = rankCandidates(seasonalityData, [winner, excludedRunnerUp, realRunnerUp], zero, 7);
+    const picked = ranked.find((c) => c.template.id === "winner")!;
+    const excluded = new Set(["excluded"]);
+
+    // Against the excluded candidate (identical seasonality) there would be nothing
+    // to credit; against the real next-in-line (out of season) seasonality qualifies.
+    expect(explainSuggestion(seasonalityData, ranked, excluded, picked, undefined, zero, 7)).toEqual([
+      "in_season",
+    ]);
+  });
+
+  it("is silent, not a crash, when the picked candidate is the only one remaining", () => {
+    const only = neutralCandidate("only");
+
+    const ranked = rankCandidates(seasonalityData, [only], zero, 1);
+    const picked = ranked[0]!;
+
+    expect(explainSuggestion(seasonalityData, ranked, new Set(), picked, undefined, zero, 1)).toEqual([]);
   });
 });

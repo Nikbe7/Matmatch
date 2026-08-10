@@ -25,6 +25,20 @@ export interface SessionWeights {
 }
 
 /**
+ * Structurally identical to `SuggestionReasonCode` in `src/engine/ranking.ts`,
+ * declared here for the same reason `SessionWeights` is: that module reaches
+ * `src/engine/data.ts`'s `node:fs` import, which `web/`'s browser tsconfig must not
+ * resolve. The engine computes which codes apply (#122); this file only needs the
+ * closed set of values it can receive.
+ */
+export type SuggestionReasonCode =
+  | "in_season"
+  | "not_recently_cooked"
+  | "cost_preference"
+  | "time_preference"
+  | "different_from_last_time";
+
+/**
  * One household member as the picker knows them: a display label at a position.
  *
  * Deliberately not the member — no allergies, no dietary flags, no portion factor.
@@ -74,6 +88,10 @@ export interface TonightResult {
   ingredients: TonightIngredient[];
   substitutions: TonightSubstitution[];
   score: number;
+  // Why this dish, at most two codes, phrased by the client (#122). Never empty by
+  // omission — an empty array is the engine's considered "nothing dominated" answer,
+  // not a field that happened to be left off.
+  reasonCodes: SuggestionReasonCode[];
   // Whether this household already marked *this* dish as cooked today (#88), so the
   // "Lagad ✓" state survives a reload. Deliberately one boolean about the dish on
   // screen rather than a recent-history list — there is no history screen, and the

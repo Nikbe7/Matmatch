@@ -22,6 +22,7 @@ import {
   costTierMeter,
   INGREDIENT_ROLE_LABELS,
   PREP_TIME_LABELS,
+  suggestionReasonLine,
 } from "./display";
 import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { GuidedFlow } from "./GuidedFlow";
@@ -508,6 +509,9 @@ function SuggestionCard({
         </span>{" "}
         · {PREP_TIME_LABELS[result.template.prep_time_band]}
       </p>
+      {suggestionReasonLine(result.reasonCodes ?? []) && (
+        <p className="suggestion-card__reason">{suggestionReasonLine(result.reasonCodes ?? [])}</p>
+      )}
       <ul className="suggestion-card__ingredients">
         {result.ingredients.map((ingredient, index) => (
           <li key={index}>

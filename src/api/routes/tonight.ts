@@ -8,6 +8,7 @@ import { mealDiners } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import {
   buildCookingHistory,
+  explainSuggestion,
   pickNextSuggestion,
   rankCandidates,
   RECENCY_HISTORY_WINDOW_DAYS,
@@ -101,12 +102,28 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         return;
       }
 
+      // #122: why this dish, derived from the same ranked list and exclusion set
+      // pickNextSuggestion just used, so it can never describe a different pick or a
+      // different set of alternatives than what actually happened above.
+      const reasonCodes = explainSuggestion(
+        engineData,
+        ranked,
+        excludedTemplateIds,
+        picked,
+        previousTemplate,
+        weights,
+        month,
+        constraints.dietary_flags,
+        recency,
+      );
+
       res.status(200).json({
         result: {
           template: picked.template,
           substitutions: picked.substitutions,
           ingredients: buildTonightIngredients(engineData, picked, stored.household.members),
           score: picked.score,
+          reasonCodes,
           // One boolean about the dish on screen, not a history list: all the client
           // needs is to render the "Lagad ✓" state after a reload. A list of recent
           // meals would be API surface for the history screen that is explicitly out of
