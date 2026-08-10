@@ -8,6 +8,19 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-10 — Perceived intelligence comes from surfacing the engine's reasoning, not from more AI
+
+**Decision:** Where the app should feel smart, the answer is to expose what the deterministic engine already computed — not to add a model. `rankCandidates` already knows why a dish won (seasonality, familiarity, recency, pantry coverage) and the catalog already carries curated cost tiers per ingredient; none of it is visible, so considered decisions read as arbitrary ones.
+
+**Three rules this settles:**
+1. Intent belongs on the ingredient, not the dish. "Billigare" at dish level is ambiguous; tapping lax and asking for cheaper is exact — same role, lower `default_cost_tier`, no model involved.
+2. AI is for language and for gaps in curated data. Never for numbers, never for safety, never for ranking. An AI alternative is a fallback that must be unreachable while curated data can answer.
+3. Quantities are curated data. Portion scaling currently promises something the templates cannot deliver, so quantities are added by an offline drafted-and-spot-checked pass, never generated at request time.
+
+**Why not more AI for feel:** a chip that returns a dish in 50ms beats one that takes four seconds to look sophisticated. Simplicity is the feature; the differentiator against a chat assistant is that a change propagates — shopping list, allergy gate, cost tier and scaled quantity all update — not that the app can hold a conversation.
+
+---
+
 ## 2026-08-10 — Allergy handling is done after two more small changes; onboarding stops asking up front
 
 **Decision:** Allergy support stays — the verified 206-row mapping is Phase 0's heaviest asset and a household food app that ignores allergies is unserious. But the posture changes, and allergy work stops after two remaining changes: (1) onboarding no longer asks for allergies — a household is people, and allergies/dietary flags become optional attributes added when the user chooses to, not a gate before the first suggestion, per UX_FLOW §1 (prove value before asking for detail); (2) a chosen dish warns and offers a swap rather than being hidden — a nut-allergic diner selected against a dish naming nuts shows a named warning and a role-matched substitution suggestion from the existing substitution groups, no blocking.
