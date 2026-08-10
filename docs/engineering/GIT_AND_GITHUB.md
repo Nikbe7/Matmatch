@@ -95,7 +95,6 @@ For a solo developer, "Review" and "Testing" don't require a second human — th
 - Squash-merge a PR and close its issue — but only once tests are green on the branch, the acceptance criteria are met, and Niklas has said the work is verified. Verification is never inferred from "code written"; without that explicit go-ahead, the PR stays open and the issue sits in Review.
 
 **Should stay manual (human-only), always:**
-- Deleting branches or tags.
 - Changing repo settings, permissions, or billing.
 - Force-pushing anything.
 
