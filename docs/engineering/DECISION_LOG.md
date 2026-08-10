@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-10 — Allergy handling is done after two more small changes; onboarding stops asking up front
+
+**Decision:** Allergy support stays — the verified 206-row mapping is Phase 0's heaviest asset and a household food app that ignores allergies is unserious. But the posture changes, and allergy work stops after two remaining changes: (1) onboarding no longer asks for allergies — a household is people, and allergies/dietary flags become optional attributes added when the user chooses to, not a gate before the first suggestion, per UX_FLOW §1 (prove value before asking for detail); (2) a chosen dish warns and offers a swap rather than being hidden — a nut-allergic diner selected against a dish naming nuts shows a named warning and a role-matched substitution suggestion from the existing substitution groups, no blocking.
+
+**Unchanged:** what the app *proposes* is still filtered silently and deterministically — Tonight and the direction cards make a claim, and that claim must be safe. What the user *asks for* is never hidden. That split is already recorded (2026-08-09, push vs pull) and this entry does not reopen it.
+
+**How to apply:** after these two land, no further allergy machinery until real users show it's needed. The recurring cost was never the data — it was weaving filtering through every new surface.
+
+---
+
 ## 2026-08-09 — Allergies and dietary flags move onto HouseholdMember; §5's "not per-member" line reversed (#115)
 
 **Decision:** `allergies[]` and `dietary_flags[]` are declared per household member, not per household. The household-level columns are dropped, not kept in sync; the effective constraint set is derived on demand (`mealConstraints`, `src/engine/constraints.ts`) and never stored. `HouseholdMember` also gains an optional `name`.
