@@ -567,6 +567,25 @@ select.input {
   margin: 0 0 var(--space-2);
 }
 
+/* The shopping list's per-ingredient allergen marking (#116) — same danger colour as
+   `.allergy-group`/`.excluded-ingredient-notice`, but distinct by more than colour:
+   the "⚠" glyph plus named text carries the meaning, so it still reads correctly for
+   a reader who cannot perceive the colour at all. `flex-basis: 100%` puts it on its
+   own line below the row's label/button pair rather than fighting them for space. */
+.ingredient-allergen-list {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ingredient-allergen-notice {
+  display: block;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
 .direction-list {
   margin-bottom: var(--space-4);
 }

@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GuidedFlow } from "./GuidedFlow";
-import type { StoredShoppingList } from "./shoppingListStorage";
+import { SHOPPING_LIST_VERSION, type StoredShoppingList } from "./shoppingListStorage";
 
 // Renders the guided flow (UX_FLOW §5) against a stubbed API. The step machine
 // itself is covered directly in guided.test.ts; what this file proves is the
@@ -39,8 +39,8 @@ function direction(id: string, name: string, costTier = "mid") {
       cuisine: "swedish_nordic",
     },
     ingredients: [
-      { role: "protein", name: "Kycklingfilé", substituted: false, inPantry: false },
-      { role: "starch", name: "Ris", substituted: false, inPantry: true },
+      { role: "protein", name: "Kycklingfilé", substituted: false, inPantry: false, allergens: [] },
+      { role: "starch", name: "Ris", substituted: false, inPantry: true, allergens: [] },
     ],
     substitutions: [],
     summary: "Kycklingfilé, ris och paprika",
@@ -612,13 +612,13 @@ describe("GuidedFlow — failed requests offer a way forward", () => {
 
 describe("GuidedFlow — a shopping list survives a reload (UX_FLOW §7)", () => {
   const stored: StoredShoppingList = {
-    version: 1,
+    version: SHOPPING_LIST_VERSION,
     templateId: "gryta",
     templateName: "Kycklinggryta",
     substitutions: [],
     items: [
-      { name: "Kycklingfilé", section: "to_buy", bought: false },
-      { name: "Ris", section: "have_at_home", bought: false },
+      { name: "Kycklingfilé", section: "to_buy", bought: false, allergens: [] },
+      { name: "Ris", section: "have_at_home", bought: false, allergens: [] },
     ],
   };
 

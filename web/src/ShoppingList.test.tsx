@@ -1,9 +1,9 @@
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ShoppingList, formatPortions } from "./ShoppingList";
-import { loadShoppingList } from "./shoppingListStorage";
-import type { TonightResult } from "./api";
+import { OfflineShoppingList, ShoppingList, formatPortions } from "./ShoppingList";
+import { loadShoppingList, SHOPPING_LIST_VERSION, type StoredShoppingList } from "./shoppingListStorage";
+import type { IngredientAllergenMarking, TonightResult } from "./api";
 
 // Component-level coverage for the shopping list, independent of the Tonight
 // gate/suggestion flow (that wiring is covered in App.test.tsx). Two kinds of I/O
@@ -15,8 +15,8 @@ function result(overrides: Partial<TonightResult> = {}): TonightResult {
   return {
     template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min", cuisine: "swedish_nordic" },
     ingredients: [
-      { role: "protein", name: "Kyckling", substituted: false },
-      { role: "vegetable", name: "Morot", substituted: false },
+      { role: "protein", name: "Kyckling", substituted: false, allergens: [] },
+      { role: "vegetable", name: "Morot", substituted: false, allergens: [] },
     ],
     substitutions: [],
     score: 0.5,
@@ -133,7 +133,7 @@ describe("ShoppingList", () => {
       <ShoppingList
         result={result({
           template: { id: "fisksoppa", name: "Fisksoppa", cost_tier: "budget", prep_time_band: "<20min", cuisine: "swedish_nordic" },
-          ingredients: [{ role: "protein", name: "Torsk", substituted: false }],
+          ingredients: [{ role: "protein", name: "Torsk", substituted: false, allergens: [] }],
         })}
         portions={2}
         accessToken="tok"
@@ -157,6 +157,72 @@ describe("ShoppingList", () => {
 
     expect(onNewSuggestion).toHaveBeenCalledTimes(1);
     expect(loadShoppingList("kycklinggryta")).toBeNull();
+  });
+
+  describe("allergen marking (#116)", () => {
+    const mjolkAllergen: IngredientAllergenMarking = { allergy: "dairy_lactose", members: ["Elsa"] };
+
+    it("marks an ingredient carrying a declared allergen, naming the allergen and the member", () => {
+      mockFetch();
+      render(
+        <ShoppingList
+          result={result({
+            ingredients: [
+              { role: "protein", name: "Kyckling", substituted: false, allergens: [] },
+              { role: "vegetable", name: "Morot", substituted: false, allergens: [mjolkAllergen] },
+            ],
+          })}
+          portions={2}
+          accessToken="tok"
+          onNewSuggestion={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText("innehåller mjölk — Elsa")).toBeTruthy();
+      // Not just colour: the row also carries the glyph as visible text content.
+      const row = screen.getByText("Morot").closest("li")!;
+      expect(row.textContent).toContain("⚠");
+    });
+
+    it("does not mark an ingredient with no allergens", () => {
+      mockFetch();
+      render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
+
+      expect(screen.queryByText(/innehåller/)).toBeNull();
+    });
+
+    it("renders the marking after moving an item to Har hemma — display only, never a filter", async () => {
+      mockFetch();
+      const user = userEvent.setup();
+      render(
+        <ShoppingList
+          result={result({
+            ingredients: [{ role: "vegetable", name: "Morot", substituted: false, allergens: [mjolkAllergen] }],
+          })}
+          portions={2}
+          accessToken="tok"
+          onNewSuggestion={vi.fn()}
+        />,
+      );
+
+      await user.click(screen.getByText("Morot").closest("li")!.querySelector("button")!);
+
+      expect(screen.getByText("innehåller mjölk — Elsa")).toBeTruthy();
+    });
+
+    it("survives a reload with the network offline, reading only from localStorage (UX_FLOW §7)", () => {
+      const stored: StoredShoppingList = {
+        version: SHOPPING_LIST_VERSION,
+        templateId: "kycklinggryta",
+        items: [
+          { name: "Morot", section: "to_buy", bought: false, allergens: [mjolkAllergen] },
+        ],
+      };
+
+      render(<OfflineShoppingList list={stored} />);
+
+      expect(screen.getByText("innehåller mjölk — Elsa")).toBeTruthy();
+    });
   });
 
   it("never renders a numeric quantity or currency string in an ingredient row", () => {

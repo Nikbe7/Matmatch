@@ -5,10 +5,12 @@ import {
   freshShoppingList,
   loadShoppingList,
   saveShoppingList,
+  SHOPPING_LIST_VERSION,
   type ShoppingListItem,
   type ShoppingListSection,
   type StoredShoppingList,
 } from "./shoppingListStorage";
+import { allergenMarkingText } from "./allergyLabels";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 
@@ -33,6 +35,28 @@ interface IndexedItem extends ShoppingListItem {
 
 function withIndex(items: readonly ShoppingListItem[]): IndexedItem[] {
   return items.map((item, index) => ({ ...item, index }));
+}
+
+/**
+ * The household-union allergen marking for one item (#116). Same visual register as
+ * the allergy chips (#101, UX_FLOW §6, `.allergy-group` in app.css): a warning glyph
+ * plus text, so the distinction is never colour alone, and rendered as plain text
+ * rather than a `Chip` — nothing about it reads as tappable, matching the existing
+ * `.excluded-ingredient-notice` precedent for the same reason.
+ */
+function AllergenMarks({ allergens }: { allergens: ShoppingListItem["allergens"] }) {
+  if (allergens.length === 0) return null;
+
+  return (
+    <ul className="ingredient-allergen-list">
+      {allergens.map((marking) => (
+        <li key={marking.allergy} className="ingredient-allergen-notice">
+          <span aria-hidden="true">⚠ </span>
+          {allergenMarkingText(marking.allergy, marking.members)}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 // Rendered below the shopping list, fetched once when the shopping list screen
@@ -149,7 +173,7 @@ export function ShoppingList({
   // guided flow's dish is one no Tonight response mentions (UX_FLOW §7).
   useEffect(() => {
     saveShoppingList({
-      version: 1,
+      version: SHOPPING_LIST_VERSION,
       templateId: result.template.id,
       templateName: result.template.name,
       substitutions: result.substitutions.map((substitution) => ({
@@ -203,6 +227,7 @@ export function ShoppingList({
               >
                 Har hemma
               </Button>
+              <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>
@@ -217,6 +242,7 @@ export function ShoppingList({
               <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
                 Att köpa
               </Button>
+              <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>
@@ -243,7 +269,7 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
   const [items, setItems] = useState<ShoppingListItem[]>(list.items);
 
   useEffect(() => {
-    saveShoppingList({ version: 1, templateId: list.templateId, items });
+    saveShoppingList({ version: SHOPPING_LIST_VERSION, templateId: list.templateId, items });
   }, [list.templateId, items]);
 
   function moveTo(index: number, section: ShoppingListSection) {
@@ -284,6 +310,7 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
               >
                 Har hemma
               </Button>
+              <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>
@@ -298,6 +325,7 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
               <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
                 Att köpa
               </Button>
+              <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>

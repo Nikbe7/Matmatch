@@ -194,7 +194,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
       const views: GuidedDirectionView[] = directions.map((direction) => ({
         template: direction.template,
         substitutions: direction.substitutions,
-        ingredients: buildGuidedIngredients(engineData, direction),
+        ingredients: buildGuidedIngredients(engineData, direction, stored.household.members),
         summary: buildDirectionSummary(engineData, direction),
         score: direction.score,
       }));

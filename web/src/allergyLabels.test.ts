@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ALLERGIES } from "../../src/schema/vocabulary";
-import { allergyExclusionReason, capitalizeForSentence } from "./allergyLabels";
+import { allergenMarkingText, allergyExclusionReason, capitalizeForSentence } from "./allergyLabels";
 
 describe("allergyExclusionReason", () => {
   it("names every allergy in the locked vocabulary — not a sample", () => {
@@ -22,6 +22,26 @@ describe("allergyExclusionReason", () => {
 
   it("joins more than one allergy with 'och', matching the server's Swedish list style", () => {
     expect(allergyExclusionReason(["fish", "shellfish"])).toBe("fiskallergi och skaldjursallergi");
+  });
+});
+
+describe("allergenMarkingText", () => {
+  it("names the allergen and the affected member", () => {
+    expect(allergenMarkingText("dairy_lactose", ["Elsa"])).toBe("innehåller mjölk — Elsa");
+  });
+
+  it("joins more than one affected member with 'och'", () => {
+    expect(allergenMarkingText("dairy_lactose", ["Elsa", "Sam"])).toBe("innehåller mjölk — Elsa och Sam");
+  });
+
+  it("names the allergen alone when no member is given", () => {
+    expect(allergenMarkingText("gluten", [])).toBe("innehåller gluten");
+  });
+
+  it("covers every value in the locked allergy vocabulary — not a sample", () => {
+    for (const allergy of ALLERGIES) {
+      expect(allergenMarkingText(allergy, ["Elsa"])).toMatch(/^innehåller .+ — Elsa$/);
+    }
   });
 });
 
