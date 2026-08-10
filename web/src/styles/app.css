@@ -395,6 +395,13 @@ select.input {
   font-size: var(--font-size-sm);
 }
 
+.suggestion-card__reason {
+  margin: 0 0 var(--space-5);
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
 .suggestion-card__ingredients {
   list-style: none;
   display: flex;
