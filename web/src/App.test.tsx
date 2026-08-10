@@ -54,8 +54,8 @@ const suggestionBody = {
   result: {
     template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min", cuisine: "swedish_nordic" },
     ingredients: [
-      { role: "protein", name: "Kyckling", substituted: false },
-      { role: "aromatic", name: "Rödlök", substituted: true },
+      { role: "protein", name: "Kyckling", substituted: false, allergens: [] },
+      { role: "aromatic", name: "Rödlök", substituted: true, allergens: [] },
     ],
     substitutions: [],
     score: 0.5,
@@ -68,7 +68,7 @@ function suggestionBodyForTier(tier: CostTier) {
   return {
     result: {
       template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: tier, prep_time_band: "20-40min", cuisine: "swedish_nordic" },
-      ingredients: [{ role: "protein", name: "Kyckling", substituted: false }],
+      ingredients: [{ role: "protein", name: "Kyckling", substituted: false, allergens: [] }],
       substitutions: [],
       score: 0.5,
       cookedToday: false,
@@ -385,7 +385,7 @@ function suggestionBodyFor(id: string, name: string, cuisine = "swedish_nordic")
   return {
     result: {
       template: { id, name, cost_tier: "budget", prep_time_band: "<20min", cuisine },
-      ingredients: [{ role: "protein", name: "Torsk", substituted: false }],
+      ingredients: [{ role: "protein", name: "Torsk", substituted: false, allergens: [] }],
       substitutions: [],
       score: 0.3,
       cookedToday: false,
@@ -845,11 +845,11 @@ describe("App — entering the guided flow", () => {
     localStorage.setItem(
       "matmatch.shoppingList",
       JSON.stringify({
-        version: 1,
+        version: 2,
         templateId: "nagot-annat",
         templateName: "Svartbönsgryta",
         substitutions: [],
-        items: [{ name: "Svarta bönor", section: "to_buy", bought: false }],
+        items: [{ name: "Svarta bönor", section: "to_buy", bought: false, allergens: [] }],
       }),
     );
     vi.stubGlobal(
@@ -872,9 +872,9 @@ describe("App — entering the guided flow", () => {
     localStorage.setItem(
       "matmatch.shoppingList",
       JSON.stringify({
-        version: 1,
+        version: 2,
         templateId: "kycklinggryta",
-        items: [{ name: "Kyckling", section: "to_buy", bought: false }],
+        items: [{ name: "Kyckling", section: "to_buy", bought: false, allergens: [] }],
       }),
     );
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
@@ -920,11 +920,11 @@ describe("App — offline", () => {
     localStorage.setItem(
       "matmatch.shoppingList",
       JSON.stringify({
-        version: 1,
+        version: 2,
         templateId: "kycklinggryta",
         items: [
-          { name: "Kyckling", section: "to_buy", bought: false },
-          { name: "Ris", section: "have_at_home", bought: false },
+          { name: "Kyckling", section: "to_buy", bought: false, allergens: [] },
+          { name: "Ris", section: "have_at_home", bought: false, allergens: [] },
         ],
       }),
     );
@@ -945,9 +945,9 @@ describe("App — offline", () => {
     localStorage.setItem(
       "matmatch.shoppingList",
       JSON.stringify({
-        version: 1,
+        version: 2,
         templateId: "kycklinggryta",
-        items: [{ name: "Kyckling", section: "to_buy", bought: false }],
+        items: [{ name: "Kyckling", section: "to_buy", bought: false, allergens: [] }],
       }),
     );
     vi.stubGlobal("fetch", offlineFetch());
@@ -1011,7 +1011,7 @@ describe("App — the Tonight card's diner picker (#112)", () => {
           prep_time_band: "20-40min",
           cuisine: "swedish_nordic",
         },
-        ingredients: [{ role: "protein", name: "Kyckling", substituted: false }],
+        ingredients: [{ role: "protein", name: "Kyckling", substituted: false, allergens: [] }],
         substitutions: [],
         score: 0.5,
         cookedToday: false,
@@ -1187,7 +1187,7 @@ describe("App — a failed diner change never leaves the card and the picker dis
               prep_time_band: "20-40min",
               cuisine: "swedish_nordic",
             },
-            ingredients: [{ role: "protein", name: "Kyckling", substituted: false }],
+            ingredients: [{ role: "protein", name: "Kyckling", substituted: false, allergens: [] }],
             substitutions: [],
             score: 0.5,
             cookedToday: false,

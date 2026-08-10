@@ -105,7 +105,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         result: {
           template: picked.template,
           substitutions: picked.substitutions,
-          ingredients: buildTonightIngredients(engineData, picked),
+          ingredients: buildTonightIngredients(engineData, picked, stored.household.members),
           score: picked.score,
           // One boolean about the dish on screen, not a history list: all the client
           // needs is to render the "Lagad ✓" state after a reload. A list of recent

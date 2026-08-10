@@ -3,6 +3,7 @@ import type { EngineData } from "../engine/data.js";
 import type { Direction } from "../engine/directions.js";
 import { effectiveIngredientIds } from "../engine/ranking.js";
 import type { Allergy } from "../schema/allergyDietary.js";
+import type { HouseholdMember } from "../schema/household.js";
 import type { IngredientCategory } from "../schema/ingredient.js";
 import { HttpError } from "./httpError.js";
 import { buildTonightIngredients, type TonightIngredientView } from "./tonightIngredients.js";
@@ -156,6 +157,7 @@ export interface GuidedIngredientView extends TonightIngredientView {
 export function buildGuidedIngredients(
   data: EngineData,
   direction: Direction,
+  householdMembers: readonly HouseholdMember[],
 ): GuidedIngredientView[] {
   const covered = new Set(direction.coveredPantryIngredientIds);
   const substituteBySlotIndex = new Map(
@@ -165,7 +167,7 @@ export function buildGuidedIngredients(
     ]),
   );
 
-  return buildTonightIngredients(data, direction).map((view, index) => {
+  return buildTonightIngredients(data, direction, householdMembers).map((view, index) => {
     const ingredientId =
       substituteBySlotIndex.get(index) ?? direction.template.ingredient_slots[index]?.ingredient_id;
     return { ...view, inPantry: ingredientId !== undefined && covered.has(ingredientId) };
@@ -194,7 +196,10 @@ function joinSwedish(parts: readonly string[]): string {
  * rescued, so it never advertises something the household cannot eat.
  */
 export function buildDirectionSummary(data: EngineData, direction: Direction): string {
-  const views = buildTonightIngredients(data, direction);
+  // The summary line only ever reads a view's `name`, so no household is passed
+  // through here — allergen marking is irrelevant to a sentence and this stays a
+  // pure function of the direction, not of who owns the household.
+  const views = buildTonightIngredients(data, direction, []);
 
   const named: string[] = [];
   for (const role of SUMMARY_ROLES) {

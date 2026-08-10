@@ -1,4 +1,5 @@
-import type { TonightIngredient } from "./api";
+import { ALLERGIES } from "../../src/schema/vocabulary";
+import type { IngredientAllergenMarking, TonightIngredient } from "./api";
 
 // localStorage read/write for the shopping list, kept behind one small typed
 // module so the rest of the app never touches raw JSON. A version field means a
@@ -12,10 +13,17 @@ export interface ShoppingListItem {
   name: string;
   section: ShoppingListSection;
   bought: boolean;
+  /**
+   * The household-union allergen marking for this ingredient (#116). Stored
+   * alongside the item, not re-derived on the client — the client holds no
+   * household to derive it from — so it survives a reload with no connection,
+   * which is when it matters most (UX_FLOW §7: usable offline).
+   */
+  allergens: IngredientAllergenMarking[];
 }
 
 export interface StoredShoppingList {
-  version: 1;
+  version: 2;
   templateId: string;
   items: ShoppingListItem[];
   /**
@@ -32,8 +40,24 @@ export interface StoredShoppingList {
   substitutions?: { slot_index: number; substitute_ingredient_id: string }[];
 }
 
-const CURRENT_VERSION = 1;
+// Bumped from 1: `ShoppingListItem` gained a required `allergens` field (#116). A
+// list written before that field existed is discarded rather than merged — the
+// version field's whole purpose (see the module comment) — because a missing
+// marking must never render as "checked safe": the household would rather see a
+// fresh, correctly-marked list than a stale one silently missing the field.
+export const SHOPPING_LIST_VERSION = 2;
 const STORAGE_KEY = "matmatch.shoppingList";
+
+function isAllergenMarking(value: unknown): value is IngredientAllergenMarking {
+  if (typeof value !== "object" || value === null) return false;
+  const marking = value as Record<string, unknown>;
+  return (
+    typeof marking.allergy === "string" &&
+    (ALLERGIES as readonly string[]).includes(marking.allergy) &&
+    Array.isArray(marking.members) &&
+    marking.members.every((member) => typeof member === "string")
+  );
+}
 
 function isShoppingListItem(value: unknown): value is ShoppingListItem {
   if (typeof value !== "object" || value === null) return false;
@@ -41,7 +65,9 @@ function isShoppingListItem(value: unknown): value is ShoppingListItem {
   return (
     typeof item.name === "string" &&
     (item.section === "to_buy" || item.section === "have_at_home") &&
-    typeof item.bought === "boolean"
+    typeof item.bought === "boolean" &&
+    Array.isArray(item.allergens) &&
+    item.allergens.every(isAllergenMarking)
   );
 }
 
@@ -51,7 +77,7 @@ function isStoredShoppingList(value: unknown): value is StoredShoppingList {
   // templateName/substitutions are deliberately not validated: they are optional
   // display extras, and a list that has lost them is still a usable shopping list.
   return (
-    stored.version === CURRENT_VERSION &&
+    stored.version === SHOPPING_LIST_VERSION &&
     typeof stored.templateId === "string" &&
     Array.isArray(stored.items) &&
     stored.items.every(isShoppingListItem)
@@ -121,12 +147,13 @@ export function freshShoppingList(
   ingredients: readonly (TonightIngredient & { inPantry?: boolean })[],
 ): StoredShoppingList {
   return {
-    version: CURRENT_VERSION,
+    version: SHOPPING_LIST_VERSION,
     templateId,
     items: ingredients.map((ingredient) => ({
       name: ingredient.name,
       section: ingredient.inPantry ? "have_at_home" : "to_buy",
       bought: false,
+      allergens: ingredient.allergens,
     })),
   };
 }

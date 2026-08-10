@@ -29,6 +29,33 @@ export function allergyExclusionReason(allergies: readonly Allergy[]): string {
 }
 
 /**
+ * The noun the shopping list's "innehåller X" marking names (#116) — lowercase,
+ * mid-sentence, distinct from `App.tsx`'s `ALLERGY_LABELS` (title-case chip labels)
+ * for the same reason `ALLERGY_ALLERGI_LABELS` above is: the two read differently
+ * mid-sentence.
+ */
+export const ALLERGEN_CONTAINS_LABELS: Record<Allergy, string> = {
+  gluten: "gluten",
+  dairy_lactose: "mjölk",
+  egg: "ägg",
+  tree_nuts: "trädnötter",
+  peanuts: "jordnötter",
+  shellfish: "skaldjur",
+  fish: "fisk",
+  soy: "soja",
+};
+
+/**
+ * "innehåller mjölk — Elsa" / "innehåller mjölk och ägg — Elsa och Sam" — the
+ * shopping list's per-ingredient allergen marking. Members are named because the
+ * marking answers "who must not eat this," not just "what does this contain."
+ */
+export function allergenMarkingText(allergy: Allergy, members: readonly string[]): string {
+  const noun = ALLERGEN_CONTAINS_LABELS[allergy];
+  return members.length > 0 ? `innehåller ${noun} — ${joinSwedish(members)}` : `innehåller ${noun}`;
+}
+
+/**
  * Catalog ingredient names are stored lowercase (`data/ingredients.json`), which is
  * right for a tap-grid label but wrong at the start of a sentence. Display-only —
  * it does not touch the name anywhere it is compared or sent to the API.

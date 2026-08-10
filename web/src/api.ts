@@ -35,10 +35,21 @@ export interface DinerLabel {
   label: string;
 }
 
+/**
+ * One allergen an ingredient carries and who in the household it affects (#116) —
+ * against the full household union, always, never the diner set for tonight.
+ */
+export interface IngredientAllergenMarking {
+  allergy: Allergy;
+  /** A name where the member has one, otherwise the derived "Vuxen 1"/"Barn 2" label. */
+  members: string[];
+}
+
 export interface TonightIngredient {
   role: IngredientSlotRole;
   name: string;
   substituted: boolean;
+  allergens: IngredientAllergenMarking[];
 }
 
 // Only the fields the frontend actually reads (slot_index + substitute_ingredient_id,
