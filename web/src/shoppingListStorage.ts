@@ -1,5 +1,6 @@
 import { ALLERGIES } from "../../src/schema/vocabulary";
-import type { IngredientAllergenMarking, TonightIngredient } from "./api";
+import { QuantityUnitSchema } from "../../src/schema/recipeTemplate";
+import type { IngredientAllergenMarking, ScaledQuantity, TonightIngredient } from "./api";
 
 // localStorage read/write for the shopping list, kept behind one small typed
 // module so the rest of the app never touches raw JSON. A version field means a
@@ -20,10 +21,17 @@ export interface ShoppingListItem {
    * which is when it matters most (UX_FLOW §7: usable offline).
    */
   allergens: IngredientAllergenMarking[];
+  /**
+   * How much to buy, already scaled to tonight's diners by the server (#123).
+   * Stored for the same reason as `allergens`: the client cannot re-derive it — it
+   * holds neither the template's authored amounts nor the portion count — and the
+   * shop is exactly where the list gets re-opened with no connection.
+   */
+  quantity: ScaledQuantity;
 }
 
 export interface StoredShoppingList {
-  version: 2;
+  version: 3;
   templateId: string;
   items: ShoppingListItem[];
   /**
@@ -40,12 +48,14 @@ export interface StoredShoppingList {
   substitutions?: { slot_index: number; substitute_ingredient_id: string }[];
 }
 
-// Bumped from 1: `ShoppingListItem` gained a required `allergens` field (#116). A
-// list written before that field existed is discarded rather than merged — the
-// version field's whole purpose (see the module comment) — because a missing
-// marking must never render as "checked safe": the household would rather see a
-// fresh, correctly-marked list than a stale one silently missing the field.
-export const SHOPPING_LIST_VERSION = 2;
+// Bumped from 2: `ShoppingListItem` gained a required `quantity` field (#123),
+// after gaining `allergens` in #116. A list written before a required field existed
+// is discarded rather than merged — the version field's whole purpose (see the
+// module comment). For `allergens` the reason was safety; for `quantity` it is
+// simpler: half the value of the list is the amounts, and a mixed list where some
+// rows have them and some don't reads as broken. The cost is one discarded list per
+// household, once.
+export const SHOPPING_LIST_VERSION = 3;
 const STORAGE_KEY = "matmatch.shoppingList";
 
 function isAllergenMarking(value: unknown): value is IngredientAllergenMarking {
@@ -59,6 +69,19 @@ function isAllergenMarking(value: unknown): value is IngredientAllergenMarking {
   );
 }
 
+function isScaledQuantity(value: unknown): value is ScaledQuantity {
+  if (typeof value !== "object" || value === null) return false;
+  const quantity = value as Record<string, unknown>;
+  if (quantity.kind === "to_taste") return true;
+  return (
+    quantity.kind === "amount" &&
+    typeof quantity.amount === "number" &&
+    Number.isFinite(quantity.amount) &&
+    typeof quantity.unit === "string" &&
+    (QuantityUnitSchema.options as readonly string[]).includes(quantity.unit)
+  );
+}
+
 function isShoppingListItem(value: unknown): value is ShoppingListItem {
   if (typeof value !== "object" || value === null) return false;
   const item = value as Record<string, unknown>;
@@ -67,7 +90,8 @@ function isShoppingListItem(value: unknown): value is ShoppingListItem {
     (item.section === "to_buy" || item.section === "have_at_home") &&
     typeof item.bought === "boolean" &&
     Array.isArray(item.allergens) &&
-    item.allergens.every(isAllergenMarking)
+    item.allergens.every(isAllergenMarking) &&
+    isScaledQuantity(item.quantity)
   );
 }
 
@@ -154,6 +178,7 @@ export function freshShoppingList(
       section: ingredient.inPantry ? "have_at_home" : "to_buy",
       bought: false,
       allergens: ingredient.allergens,
+      quantity: ingredient.quantity,
     })),
   };
 }

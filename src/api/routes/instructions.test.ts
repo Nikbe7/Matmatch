@@ -11,7 +11,7 @@ import {
   createTestUser,
   isLocalStackAvailable,
 } from "../../db/__fixtures__/localStack.js";
-import { makeEngineData, makeIngredient, makeTemplate } from "../../engine/__fixtures__/engineData.js";
+import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "../../engine/__fixtures__/engineData.js";
 import type { EngineData } from "../../engine/data.js";
 import { createApp } from "../app.js";
 
@@ -61,8 +61,8 @@ function buildFixture(): { engineData: EngineData; templateId: string } {
         cuisine: "swedish_nordic",
         prep_time_band: "20-40min",
         ingredient_slots: [
-          { role: "protein", ingredient_id: "kyckling", substitutable: true },
-          { role: "vegetable", ingredient_id: "morot", substitutable: false },
+          makeSlot({ role: "protein", ingredient_id: "kyckling", substitutable: true }),
+          makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false }),
         ],
       }),
     ],

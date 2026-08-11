@@ -1,7 +1,7 @@
 [
   {
-    "id": "kyckling-utan-familiarity",
-    "name": "Kyckling utan familiarity",
+    "id": "kyckling-wok-fel-enhet",
+    "name": "Kyckling wok fel enhet",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
@@ -19,8 +19,8 @@
         "substitutable": true,
         "quantity": {
           "kind": "amount",
-          "amount": 400,
-          "unit": "g"
+          "amount": 1.5,
+          "unit": "kg"
         }
       },
       {
@@ -33,6 +33,7 @@
           "unit": "g"
         }
       }
-    ]
+    ],
+    "familiarity": "everyday"
   }
 ]

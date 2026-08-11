@@ -15,8 +15,8 @@ function result(overrides: Partial<TonightResult> = {}): TonightResult {
   return {
     template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min", cuisine: "swedish_nordic" },
     ingredients: [
-      { role: "protein", name: "Kyckling", substituted: false, allergens: [] },
-      { role: "vegetable", name: "Morot", substituted: false, allergens: [] },
+      { role: "protein", name: "Kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "vegetable", name: "Morot", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
     ],
     substitutions: [],
     score: 0.5,
@@ -134,7 +134,7 @@ describe("ShoppingList", () => {
       <ShoppingList
         result={result({
           template: { id: "fisksoppa", name: "Fisksoppa", cost_tier: "budget", prep_time_band: "<20min", cuisine: "swedish_nordic" },
-          ingredients: [{ role: "protein", name: "Torsk", substituted: false, allergens: [] }],
+          ingredients: [{ role: "protein", name: "Torsk", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
         })}
         portions={2}
         accessToken="tok"
@@ -169,8 +169,8 @@ describe("ShoppingList", () => {
         <ShoppingList
           result={result({
             ingredients: [
-              { role: "protein", name: "Kyckling", substituted: false, allergens: [] },
-              { role: "vegetable", name: "Morot", substituted: false, allergens: [mjolkAllergen] },
+              { role: "protein", name: "Kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+              { role: "vegetable", name: "Morot", substituted: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" } },
             ],
           })}
           portions={2}
@@ -198,7 +198,7 @@ describe("ShoppingList", () => {
       render(
         <ShoppingList
           result={result({
-            ingredients: [{ role: "vegetable", name: "Morot", substituted: false, allergens: [mjolkAllergen] }],
+            ingredients: [{ role: "vegetable", name: "Morot", substituted: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" } }],
           })}
           portions={2}
           accessToken="tok"
@@ -216,7 +216,7 @@ describe("ShoppingList", () => {
         version: SHOPPING_LIST_VERSION,
         templateId: "kycklinggryta",
         items: [
-          { name: "Morot", section: "to_buy", bought: false, allergens: [mjolkAllergen] },
+          { name: "Morot", section: "to_buy", bought: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" } },
         ],
       };
 
@@ -226,14 +226,130 @@ describe("ShoppingList", () => {
     });
   });
 
-  it("never renders a numeric quantity or currency string in an ingredient row", () => {
+  // Amounts arrived with #123, so a row now legitimately contains digits. What the
+  // original version of this guard was really protecting is untouched and asserted
+  // here instead: no kronor figure ever reaches a row (CLAUDE.md — the app must never
+  // show an invented cost). Quantities are curated data scaled deterministically; a
+  // price is not.
+  it("never renders a currency figure in an ingredient row", () => {
     mockFetch();
     render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
     for (const row of screen.getAllByRole("listitem")) {
-      expect(row.textContent).not.toMatch(/\d/);
-      expect(row.textContent).not.toMatch(/kr|kronor|₤/i);
+      expect(row.textContent).not.toMatch(/\bkr\b|\bkronor\b|₤|SEK/i);
     }
+  });
+
+  // #123: the amounts are the reason the list is worth carrying into a shop.
+  describe("scaled quantities", () => {
+    it("renders the server-scaled amount before each ingredient, on both sections", async () => {
+      mockFetch();
+      const user = userEvent.setup();
+      render(
+        <ShoppingList
+          result={result({
+            ingredients: [
+              {
+                role: "protein",
+                name: "Kyckling",
+                substituted: false,
+                allergens: [],
+                quantity: { kind: "amount", amount: 450, unit: "g" },
+              },
+              {
+                role: "dairy",
+                name: "Matlagningsgrädde",
+                substituted: false,
+                allergens: [],
+                quantity: { kind: "amount", amount: 1.5, unit: "dl" },
+              },
+            ],
+          })}
+          portions={3}
+          accessToken="tok"
+          onNewSuggestion={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText("Kyckling").closest("li")!.textContent).toContain("450 g");
+      // Swedish decimal comma, not a point.
+      expect(screen.getByText("Matlagningsgrädde").closest("li")!.textContent).toContain("1,5 dl");
+
+      // Still there after the row moves to "Har hemma" — the amount belongs to the
+      // ingredient, not to the section it happens to sit in.
+      await user.click(screen.getByText("Kyckling").closest("li")!.querySelector("button")!);
+      expect(screen.getByText("Kyckling").closest("li")!.textContent).toContain("450 g");
+    });
+
+    it("renders 'efter smak' rather than a number for a to-taste slot", () => {
+      mockFetch();
+      render(
+        <ShoppingList
+          result={result({
+            ingredients: [
+              {
+                role: "aromatic",
+                name: "Svartpeppar",
+                substituted: false,
+                allergens: [],
+                quantity: { kind: "to_taste" },
+              },
+            ],
+          })}
+          portions={4}
+          accessToken="tok"
+          onNewSuggestion={vi.fn()}
+        />,
+      );
+
+      const row = screen.getByText("Svartpeppar").closest("li")!;
+      expect(row.textContent).toContain("efter smak");
+      expect(row.textContent).not.toMatch(/\d/);
+    });
+
+    it("shows the amount for a substituted slot — the slot's, carried by the server", () => {
+      mockFetch();
+      render(
+        <ShoppingList
+          result={result({
+            ingredients: [
+              {
+                role: "dairy",
+                name: "Havregrädde",
+                substituted: true,
+                allergens: [],
+                quantity: { kind: "amount", amount: 2, unit: "dl" },
+              },
+            ],
+          })}
+          portions={4}
+          accessToken="tok"
+          onNewSuggestion={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText("Havregrädde").closest("li")!.textContent).toContain("2 dl");
+    });
+
+    it("keeps the amount on a list re-opened offline from storage", () => {
+      const stored: StoredShoppingList = {
+        version: SHOPPING_LIST_VERSION,
+        templateId: "kycklinggryta",
+        items: [
+          {
+            name: "Morot",
+            section: "to_buy",
+            bought: false,
+            allergens: [],
+            quantity: { kind: "amount", amount: 300, unit: "g" },
+          },
+        ],
+      };
+
+      render(<OfflineShoppingList list={stored} />);
+
+      expect(screen.getByText("Morot").closest("li")!.textContent).toContain("300 g");
+    });
   });
 
   describe("instructions", () => {

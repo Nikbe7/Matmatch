@@ -16,12 +16,22 @@
       {
         "role": "protein",
         "ingredient_id": "kyckling",
-        "substitutable": true
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 400,
+          "unit": "g"
+        }
       },
       {
         "role": "aromatic",
         "ingredient_id": "gul-lok",
-        "substitutable": true
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 400,
+          "unit": "g"
+        }
       }
     ],
     "familiarity": "everyday"

@@ -19,7 +19,7 @@ import {
   type RankingWeights,
   type RecencyContext,
 } from "./ranking.js";
-import { makeEngineData, makeIngredient, makeTemplate } from "./__fixtures__/engineData.js";
+import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "./__fixtures__/engineData.js";
 import { makeConstraints } from "./__fixtures__/household.js";
 
 // Seasonality fixtures: "aret-runt" is always in season, "sommar" only in July.
@@ -42,7 +42,7 @@ function candidate(
 /** A candidate with one always-in-season slot, so seasonality is constant across it. */
 function neutralCandidate(id: string, overrides: Parameters<typeof makeTemplate>[1] = {}) {
   return candidate(id, {
-    ingredient_slots: [{ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }],
+    ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "aret-runt", substitutable: true })],
     ...overrides,
   });
 }
@@ -88,7 +88,7 @@ describe("inSeasonFraction", () => {
 
   it("counts a seasonal ingredient only within its peak months", () => {
     const c = candidate("t", {
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "sommar", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true })],
     });
 
     expect(inSeasonFraction(seasonalityData, c, 7)).toBe(1);
@@ -98,8 +98,8 @@ describe("inSeasonFraction", () => {
   it("returns the fraction of slots in season", () => {
     const c = candidate("t", {
       ingredient_slots: [
-        { role: "vegetable", ingredient_id: "aret-runt", substitutable: true },
-        { role: "vegetable", ingredient_id: "sommar", substitutable: true },
+        makeSlot({ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }),
+        makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true }),
       ],
     });
 
@@ -108,7 +108,7 @@ describe("inSeasonFraction", () => {
 
   it("treats an ingredient absent from the catalog as out of season", () => {
     const c = candidate("t", {
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "finns-inte", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "finns-inte", substitutable: true })],
     });
 
     expect(inSeasonFraction(seasonalityData, c, 7)).toBe(0);
@@ -132,7 +132,7 @@ describe("scoreCandidate", () => {
   it("subtracts at most 0.25 for seasonality, less than a single enum step at weight 1", () => {
     const inSeason = neutralCandidate("t");
     const outOfSeason = candidate("t", {
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "sommar", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true })],
     });
     const weights = { cost: 1, time: 1 };
 
@@ -303,11 +303,11 @@ describe("rankCandidates — familiarity", () => {
     // so scoring purely on familiarity vs. seasonality still favors familiarity.
     const everydayOutOfSeason = candidate("everyday-out-of-season", {
       familiarity: "everyday",
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "sommar", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true })],
     });
     const occasionalInSeason = candidate("occasional-in-season", {
       familiarity: "occasional",
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "aret-runt", substitutable: true })],
     });
 
     expect(
@@ -371,18 +371,18 @@ describe("rankCandidates — substitution seasonality", () => {
     const rescued = candidate(
       "b-rescued",
       {
-        ingredient_slots: [{ role: "vegetable", ingredient_id: "sommar", substitutable: true }],
+        ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true })],
       },
       [
         {
           slot_index: 0,
-          slot: { role: "vegetable", ingredient_id: "sommar", substitutable: true },
+          slot: makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true }),
           substitute_ingredient_id: "aret-runt",
         },
       ],
     );
     const baseline = candidate("a-baseline", {
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "sommar", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true })],
     });
 
     const ranked = rankCandidates(seasonalityData, [baseline, rescued], { cost: 0, time: 0 }, 1);
@@ -397,14 +397,14 @@ describe("rankCandidates — substitution seasonality", () => {
       "t",
       {
         ingredient_slots: [
-          { role: "vegetable", ingredient_id: "sommar", substitutable: true },
-          { role: "vegetable", ingredient_id: "sommar", substitutable: true },
+          makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true }),
+          makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true }),
         ],
       },
       [
         {
           slot_index: 1,
-          slot: { role: "vegetable", ingredient_id: "sommar", substitutable: true },
+          slot: makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true }),
           substitute_ingredient_id: "aret-runt",
         },
       ],
@@ -421,20 +421,20 @@ describe("rankCandidates — zero weights", () => {
       // nothing but seasonality can order the set.
       cost_tier: "premium",
       prep_time_band: "40min+",
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "vinter", substitutable: true })],
     });
     const halfInSeason = candidate("budget-fast-half-season", {
       cost_tier: "budget",
       prep_time_band: "<20min",
       ingredient_slots: [
-        { role: "vegetable", ingredient_id: "vinter", substitutable: true },
-        { role: "vegetable", ingredient_id: "sommar", substitutable: true },
+        makeSlot({ role: "vegetable", ingredient_id: "vinter", substitutable: true }),
+        makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true }),
       ],
     });
     const noneInSeason = candidate("budget-fast-out-of-season", {
       cost_tier: "budget",
       prep_time_band: "<20min",
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "sommar", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true })],
     });
 
     const ranked = rankCandidates(
@@ -473,12 +473,12 @@ describe("pickTonight", () => {
       candidate("c", {
         cost_tier: "mid",
         prep_time_band: "20-40min",
-        ingredient_slots: [{ role: "vegetable", ingredient_id: "sommar", substitutable: true }],
+        ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true })],
       }),
       candidate("d", {
         cost_tier: "mid",
         prep_time_band: "20-40min",
-        ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+        ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "vinter", substitutable: true })],
       }),
     ];
 
@@ -666,12 +666,12 @@ describe("rankCandidates — real catalog seasonality (#50)", () => {
     const sparrisCandidate = candidate("uses-sparris", {
       cost_tier: "mid",
       prep_time_band: "20-40min",
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "sparris", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sparris", substitutable: true })],
     });
     const pumpaCandidate = candidate("uses-pumpa", {
       cost_tier: "mid",
       prep_time_band: "20-40min",
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "pumpa", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "pumpa", substitutable: true })],
     });
 
     const may = rankCandidates(data, [pumpaCandidate, sparrisCandidate], { cost: 0, time: 0 }, 5);
@@ -997,10 +997,10 @@ describe("explainSuggestion", () => {
 
   it("credits seasonality when it is the only thing separating the winner from the runner-up", () => {
     const winner = candidate("in-season", {
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "aret-runt", substitutable: true })],
     });
     const runnerUp = candidate("out-of-season", {
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "vinter", substitutable: true })],
     });
 
     const ranked = rankCandidates(seasonalityData, [winner, runnerUp], zero, 7);
@@ -1092,7 +1092,7 @@ describe("explainSuggestion", () => {
     const runnerUp = candidate("runner-up", {
       cost_tier: "premium",
       prep_time_band: "40min+",
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "vinter", substitutable: true })],
     });
     const weights = { cost: 1.5, time: 2 };
 
@@ -1111,7 +1111,7 @@ describe("explainSuggestion", () => {
     const winner = neutralCandidate("winner", { protein_group: "chicken_poultry" });
     const runnerUp = candidate("runner-up", {
       protein_group: "beef_pork",
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "vinter", substitutable: true })],
     });
     const previous = makeTemplate("previous", { protein_group: "beef_pork" });
 
@@ -1126,13 +1126,13 @@ describe("explainSuggestion", () => {
 
   it("respects the same exclusion set pickNextSuggestion was given, comparing against what it would actually show next", () => {
     const winner = candidate("winner", {
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "aret-runt", substitutable: true })],
     });
     const excludedRunnerUp = candidate("excluded", {
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "aret-runt", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "aret-runt", substitutable: true })],
     });
     const realRunnerUp = candidate("real-runner-up", {
-      ingredient_slots: [{ role: "vegetable", ingredient_id: "vinter", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "vinter", substitutable: true })],
     });
 
     const ranked = rankCandidates(seasonalityData, [winner, excludedRunnerUp, realRunnerUp], zero, 7);

@@ -13,7 +13,7 @@ import {
 } from "../../db/__fixtures__/localStack.js";
 import { loadEngineData } from "../../engine/data.js";
 import type { EngineData } from "../../engine/data.js";
-import { makeEngineData, makeIngredient, makeTemplate } from "../../engine/__fixtures__/engineData.js";
+import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "../../engine/__fixtures__/engineData.js";
 import { createApp } from "../app.js";
 import { MAIN_INGREDIENT_GRID_SIZE, PANTRY_GRID_SIZE } from "../guidedCatalog.js";
 import { makeHousehold } from "../../engine/__fixtures__/household.js";
@@ -581,7 +581,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — empty states (U
       ingredients: [makeIngredient("notfars", { category: "protein" })],
       templates: [
         makeTemplate("kottfars", {
-          ingredient_slots: [{ role: "protein", ingredient_id: "notfars", substitutable: false }],
+          ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "notfars", substitutable: false })],
         }),
       ],
     });

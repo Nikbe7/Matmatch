@@ -1,7 +1,7 @@
 [
   {
-    "id": "kyckling-utan-familiarity",
-    "name": "Kyckling utan familiarity",
+    "id": "kyckling-wok-efter-smak",
+    "name": "Kyckling wok efter smak",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
@@ -28,11 +28,10 @@
         "ingredient_id": "gul-lok",
         "substitutable": true,
         "quantity": {
-          "kind": "amount",
-          "amount": 400,
-          "unit": "g"
+          "kind": "to_taste"
         }
       }
-    ]
+    ],
+    "familiarity": "everyday"
   }
 ]

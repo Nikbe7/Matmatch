@@ -4,6 +4,7 @@ import { effectiveAllergens } from "../engine/allergens.js";
 import type { Allergy } from "../schema/allergyDietary.js";
 import { memberLabels, type HouseholdMember } from "../schema/household.js";
 import type { IngredientSlotRole } from "../schema/recipeTemplate.js";
+import { scaleSlotQuantity, type ScaledQuantity } from "../engine/quantities.js";
 import { ALLERGIES } from "../schema/vocabulary.js";
 
 // Display-shaping for the Tonight route only — not Meal Engine logic. The engine
@@ -32,6 +33,13 @@ export interface TonightIngredientView {
   // reimplementing engine logic client-side (see issue #64).
   name: string;
   substituted: boolean;
+  /**
+   * How much of it, already scaled to the diners eating tonight (#123). Structured
+   * rather than a preformatted string, for the same reason `portions` is a raw
+   * number: "600 g" vs "efter smak" is display wording the frontend owns and can
+   * change without an API change.
+   */
+  quantity: ScaledQuantity;
   /** The household-union allergen marking for this ingredient — see #116. Empty when
    * no declared allergy of any member intersects this ingredient's allergens. */
   allergens: IngredientAllergenMarking[];
@@ -99,11 +107,16 @@ function ingredientAllergenMarkings(
  * subset (#116, DECISION_LOG 2026-08-09/-10) — allergen marking answers "who in
  * this home must not eat this," a question the evening's diner selection has no
  * bearing on.
+ *
+ * `portions`, by contrast, is exactly the diner subset's total (`mealDiners`): how
+ * much to buy is precisely the question tonight's selection does bear on, so
+ * deselecting the child stops buying their portion (#123).
  */
 export function buildTonightIngredients(
   engineData: EngineData,
   candidate: Pick<RankedCandidate, "template" | "substitutions">,
   householdMembers: readonly HouseholdMember[],
+  portions: number,
 ): TonightIngredientView[] {
   const substituteBySlotIndex = new Map(
     candidate.substitutions.map((substitution) => [
@@ -127,6 +140,10 @@ export function buildTonightIngredients(
       role: slot.role,
       name: ingredient.name,
       substituted: substituteId !== undefined,
+      // The *slot's* quantity, never the substitute ingredient's: a rescued slot
+      // still has to fill the same hole in the dish, so swapping mandelmjölk for
+      // mjölk changes what you buy, not how much (#123).
+      quantity: scaleSlotQuantity(slot.quantity, portions),
       allergens: ingredientAllergenMarkings(engineData, ingredientId, membersByAllergy),
     };
   });

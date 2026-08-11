@@ -1,6 +1,6 @@
 import type { CostTier } from "../../src/schema/ingredient";
-import type { IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
-import type { SuggestionReasonCode } from "./api";
+import type { IngredientSlotRole, PrepTimeBand, QuantityUnit } from "../../src/schema/recipeTemplate";
+import type { ScaledQuantity, SuggestionReasonCode } from "./api";
 
 // Display mappings for curated engine enums, shared by every screen that renders a
 // dish — the Tonight card and the guided flow's direction cards. One definition, so
@@ -81,4 +81,32 @@ export function suggestionReasonLine(codes: readonly SuggestionReasonCode[]): st
   if (codes.length === 0) return null;
   const phrases = codes.map((code) => SUGGESTION_REASON_PHRASES[code]);
   return `Valt för att ${phrases.join(" och ")}.`;
+}
+
+// #123: how a scaled quantity is worded on the shopping list. The amount itself
+// arrives already scaled and rounded from the engine (src/engine/quantities.ts) —
+// nothing here changes a number, it only writes it in Swedish.
+const PLURAL_UNIT_FORMS: Partial<Record<QuantityUnit, string>> = {
+  klyfta: "klyftor",
+  kruka: "krukor",
+};
+
+/**
+ * "600 g", "1,5 dl", "2 klyftor", "efter smak".
+ *
+ * A Swedish decimal comma, not a point: this is read in a shop by a person, and
+ * "1.5 dl" is the kind of small wrongness that makes an app feel translated. Only
+ * `klyfta` and `kruka` inflect — the measuring units (g, dl, msk, tsk, krm) and `st`
+ * are invariant in Swedish, so there is no general pluralization rule to write.
+ */
+export function formatQuantity(quantity: ScaledQuantity): string {
+  if (quantity.kind === "to_taste") return "efter smak";
+
+  const amount = Number.isInteger(quantity.amount)
+    ? String(quantity.amount)
+    : quantity.amount.toFixed(1).replace(".", ",");
+  const unit =
+    quantity.amount === 1 ? quantity.unit : (PLURAL_UNIT_FORMS[quantity.unit] ?? quantity.unit);
+
+  return `${amount} ${unit}`;
 }

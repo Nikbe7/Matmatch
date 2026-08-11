@@ -13,6 +13,7 @@ import {
 } from "../db/__fixtures__/localStack.js";
 import { createApp } from "./app.js";
 import { makeHousehold } from "../engine/__fixtures__/household.js";
+import { makeSlot } from "../engine/__fixtures__/engineData.js";
 
 // Integration tests against the real local Supabase stack — unmocked DB, unmocked
 // auth. These are the tests proving the wiring, not the logic underneath it: engine
@@ -445,10 +446,10 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
       ingredients: [makeIngredient("morot")],
       templates: [
         makeTemplate("morotssoppa", {
-          ingredient_slots: [{ role: "vegetable", ingredient_id: "morot", substitutable: false }],
+          ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false })],
         }),
         makeTemplate("morotsgryta", {
-          ingredient_slots: [{ role: "vegetable", ingredient_id: "morot", substitutable: false }],
+          ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false })],
         }),
       ],
     });
@@ -494,7 +495,7 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
         ],
         templates: [
           makeTemplate("satay", {
-            ingredient_slots: [{ role: "protein", ingredient_id: "jordnotter", substitutable: false }],
+            ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "jordnotter", substitutable: false })],
           }),
         ],
       }),

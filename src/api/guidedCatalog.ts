@@ -7,6 +7,7 @@ import type { HouseholdMember } from "../schema/household.js";
 import type { IngredientCategory } from "../schema/ingredient.js";
 import { HttpError } from "./httpError.js";
 import { buildTonightIngredients, type TonightIngredientView } from "./tonightIngredients.js";
+import { REFERENCE_PORTIONS } from "../engine/quantities.js";
 
 // Display-shaping for the guided flow's routes, the counterpart to
 // tonightIngredients.ts: the engine deals in ingredient ids, the screen needs
@@ -158,6 +159,7 @@ export function buildGuidedIngredients(
   data: EngineData,
   direction: Direction,
   householdMembers: readonly HouseholdMember[],
+  portions: number,
 ): GuidedIngredientView[] {
   const covered = new Set(direction.coveredPantryIngredientIds);
   const substituteBySlotIndex = new Map(
@@ -167,7 +169,7 @@ export function buildGuidedIngredients(
     ]),
   );
 
-  return buildTonightIngredients(data, direction, householdMembers).map((view, index) => {
+  return buildTonightIngredients(data, direction, householdMembers, portions).map((view, index) => {
     const ingredientId =
       substituteBySlotIndex.get(index) ?? direction.template.ingredient_slots[index]?.ingredient_id;
     return { ...view, inPantry: ingredientId !== undefined && covered.has(ingredientId) };
@@ -196,10 +198,13 @@ function joinSwedish(parts: readonly string[]): string {
  * rescued, so it never advertises something the household cannot eat.
  */
 export function buildDirectionSummary(data: EngineData, direction: Direction): string {
-  // The summary line only ever reads a view's `name`, so no household is passed
-  // through here — allergen marking is irrelevant to a sentence and this stays a
-  // pure function of the direction, not of who owns the household.
-  const views = buildTonightIngredients(data, direction, []);
+  // The summary line only ever reads a view's `name`, so neither a household nor a
+  // real portion count is passed through here — allergen marking and amounts are
+  // irrelevant to a sentence, and this stays a pure function of the direction rather
+  // than of who owns the household or how many of them are eating. The reference
+  // count stands in precisely because its scaled amounts are the authored ones and
+  // nothing reads them.
+  const views = buildTonightIngredients(data, direction, [], REFERENCE_PORTIONS);
 
   const named: string[] = [];
   for (const role of SUMMARY_ROLES) {
