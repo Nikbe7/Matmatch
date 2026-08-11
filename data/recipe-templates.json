@@ -488,6 +488,26 @@
           "amount": 1,
           "unit": "st"
         }
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 50,
+          "unit": "g"
+        }
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 3,
+          "unit": "st"
+        }
       }
     ],
     "meal_types": [
@@ -6881,6 +6901,16 @@
           "amount": 1,
           "unit": "dl"
         }
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "rapsolja",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 6,
+          "unit": "dl"
+        }
       }
     ],
     "meal_types": [
@@ -7228,6 +7258,26 @@
           "amount": 1,
           "unit": "st"
         }
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 50,
+          "unit": "g"
+        }
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 3,
+          "unit": "st"
+        }
       }
     ],
     "meal_types": [
@@ -7364,6 +7414,16 @@
           "amount": 2,
           "unit": "klyfta"
         }
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 50,
+          "unit": "g"
+        }
       }
     ],
     "meal_types": [
@@ -7376,7 +7436,7 @@
     "name": "Melanzane alla parmigiana",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
-    "cost_tier": "mid",
+    "cost_tier": "premium",
     "prep_time_band": "40min+",
     "dietary_tags": [
       "vegetarian",
@@ -7431,6 +7491,26 @@
           "kind": "amount",
           "amount": 2,
           "unit": "tsk"
+        }
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "parmesan",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 50,
+          "unit": "g"
+        }
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "olivolja",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 4,
+          "unit": "msk"
         }
       }
     ],
@@ -7838,6 +7918,26 @@
         "quantity": {
           "kind": "amount",
           "amount": 1,
+          "unit": "st"
+        }
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 50,
+          "unit": "g"
+        }
+      },
+      {
+        "role": "protein",
+        "ingredient_id": "agg",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 3,
           "unit": "st"
         }
       }
@@ -8378,6 +8478,16 @@
         "quantity": {
           "kind": "amount",
           "amount": 3,
+          "unit": "dl"
+        }
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "rapsolja",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 6,
           "unit": "dl"
         }
       }
@@ -9862,6 +9972,16 @@
           "amount": 2,
           "unit": "tsk"
         }
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "margarin",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 2,
+          "unit": "msk"
+        }
       }
     ],
     "meal_types": [
@@ -10034,6 +10154,16 @@
           "amount": 4,
           "unit": "dl"
         }
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "margarin",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 2,
+          "unit": "msk"
+        }
       }
     ],
     "meal_types": [
@@ -10158,6 +10288,16 @@
           "kind": "amount",
           "amount": 3,
           "unit": "st"
+        }
+      },
+      {
+        "role": "dairy",
+        "ingredient_id": "smor",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 50,
+          "unit": "g"
         }
       }
     ],
@@ -10354,6 +10494,16 @@
           "kind": "amount",
           "amount": 1,
           "unit": "kruka"
+        }
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "olivolja",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 3,
+          "unit": "msk"
         }
       }
     ],
@@ -11593,6 +11743,16 @@
           "kind": "amount",
           "amount": 3,
           "unit": "st"
+        }
+      },
+      {
+        "role": "aromatic",
+        "ingredient_id": "margarin",
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 2,
+          "unit": "msk"
         }
       }
     ],
