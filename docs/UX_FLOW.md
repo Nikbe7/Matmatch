@@ -71,6 +71,7 @@ Free-text chat is available as a persistent small affordance at the bottom of st
 - Checkable items, persists across app close/reopen, usable offline
 - Clear "Buy" vs "Already have" split, matching the original brief's example directly
 - **Every row carries an amount** ("450 g Kyckling", "2 klyftor Vitlök"), scaled to the diners eating tonight and rounded to something buyable — a list without amounts is weak in exactly the moment it exists for (#123). An ingredient seasoned at the stove says "efter smak" rather than a number, and a substituted row shows the slot's amount, not the swapped-out ingredient's. The amount is the scannable part of the row, so it is set before the name and weighted heavier; a kronor figure never appears on a row (`CLAUDE.md` — no AI-invented numbers)
+- **Every row is a tap target (#124):** tapping an ingredient opens a popover offering **Billigare**/**Liknande** (same role, curated tier below/equal to what's currently in the slot — omitted, not shown empty, when the curated data doesn't back one) and a search box over the slot's role-valid catalog. Every candidate is allergy-gated for the current diner set before it's shown. Applying a swap replaces the row in place — keeps its section and scaled quantity, resets its checkmark, marked as changed, undoable in one tap. A `substitutable: false` slot (every protein in the library today, DECISION_LOG 2026-08-01) says so plainly and offers nothing to tap into. No AI path in this slice (#132).
 
 ## 8. Re-engagement & Notifications
 
