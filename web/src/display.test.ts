@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SuggestionReasonCode } from "./api";
-import { suggestionReasonLine } from "./display";
+import { formatQuantity, suggestionReasonLine } from "./display";
 
 // #122: display.ts owns the only phrasing of a SuggestionReasonCode, so this is
 // where "never a number" and "never a list" get checked — the engine (ranking.ts)
@@ -39,5 +39,34 @@ describe("suggestionReasonLine", () => {
         expect(suggestionReasonLine([first, second])).not.toMatch(/\d/);
       }
     }
+  });
+});
+
+// #123. The numbers arrive already scaled and rounded from the engine, so these are
+// about wording only — the Swedish decimal comma and the two units that inflect.
+describe("formatQuantity", () => {
+  it("writes a whole amount with its unit", () => {
+    expect(formatQuantity({ kind: "amount", amount: 600, unit: "g" })).toBe("600 g");
+    expect(formatQuantity({ kind: "amount", amount: 2, unit: "dl" })).toBe("2 dl");
+  });
+
+  it("uses a decimal comma, never a point", () => {
+    expect(formatQuantity({ kind: "amount", amount: 1.5, unit: "dl" })).toBe("1,5 dl");
+    expect(formatQuantity({ kind: "amount", amount: 0.5, unit: "msk" })).toBe("0,5 msk");
+  });
+
+  it("inflects only the two units that have a plural in Swedish", () => {
+    expect(formatQuantity({ kind: "amount", amount: 1, unit: "klyfta" })).toBe("1 klyfta");
+    expect(formatQuantity({ kind: "amount", amount: 3, unit: "klyfta" })).toBe("3 klyftor");
+    expect(formatQuantity({ kind: "amount", amount: 1, unit: "kruka" })).toBe("1 kruka");
+    expect(formatQuantity({ kind: "amount", amount: 2, unit: "kruka" })).toBe("2 krukor");
+    // Invariant units stay as they are at any amount.
+    expect(formatQuantity({ kind: "amount", amount: 4, unit: "st" })).toBe("4 st");
+    expect(formatQuantity({ kind: "amount", amount: 3, unit: "krm" })).toBe("3 krm");
+    expect(formatQuantity({ kind: "amount", amount: 2, unit: "tsk" })).toBe("2 tsk");
+  });
+
+  it("words the no-quantity marker rather than showing a number", () => {
+    expect(formatQuantity({ kind: "to_taste" })).toBe("efter smak");
   });
 });

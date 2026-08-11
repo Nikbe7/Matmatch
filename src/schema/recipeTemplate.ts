@@ -55,10 +55,55 @@ export const IngredientSlotRoleSchema = z.enum([
 ]);
 export type IngredientSlotRole = z.infer<typeof IngredientSlotRoleSchema>;
 
+// Closed vocabulary, sized to a Swedish kitchen and to what a shopping list has to
+// say out loud (DECISION_LOG 2026-08-11, #123). Volume is dl/msk/tsk because that is
+// how a Swedish recipe measures — never ml, never cups. `st` keeps naturally counted
+// things whole (ägg, paprika, lagerblad) instead of forcing them into grams.
+// `klyfta` and `kruka` exist because the catalog names the *product*, not the
+// portion of it a dish uses: "2 st vitlök" means two whole bulbs, and fresh herbs
+// are sold in pots, so "1 kruka färsk persilja" is what you actually buy.
+// No kg/l: converting between magnitudes is a separate decision (#123 out of scope),
+// and "900 g" reads fine on a list.
+//
+// `krm` carries a narrow authoring rule, and it is a rule about discipline rather
+// than about measuring: use it only for spices where the amount changes the outcome
+// and you cannot taste your way to it — saffran, muskot, kanel, cayenne, malen
+// ingefära. Salt and svartpeppar are `to_taste` without exception, as are
+// chiliflakes and anything else adjusted at the stove. The failure this prevents is
+// a drafter reaching for "2 krm salt" where `to_taste` was correct: that fills the
+// shopping list with amounts nobody acts on, and once a few of those are on the list
+// `to_taste` stops meaning anything.
+export const QuantityUnitSchema = z.enum(["g", "dl", "msk", "tsk", "krm", "st", "klyfta", "kruka"]);
+export type QuantityUnit = z.infer<typeof QuantityUnitSchema>;
+
+/**
+ * What one slot contributes, at `REFERENCE_PORTIONS` (src/engine/quantities.ts).
+ *
+ * A union rather than an optional number, so "this slot has no sensible amount" is a
+ * stated value and not an absent one: salt, svartpeppar and chiliflakes are seasoned
+ * to taste, and the alternative to saying so is either inventing "0.5 g" or leaving a
+ * hole that reads as unfinished data. Both kinds are curated — never model output at
+ * request time (CLAUDE.md; DECISION_LOG 2026-08-10 rule 3).
+ */
+export const SlotQuantitySchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("amount"),
+    amount: z.number().positive(),
+    unit: QuantityUnitSchema,
+  }),
+  z.object({ kind: z.literal("to_taste") }),
+]);
+export type SlotQuantity = z.infer<typeof SlotQuantitySchema>;
+
 export const IngredientSlotSchema = z.object({
   role: IngredientSlotRoleSchema,
   ingredient_id: z.string().min(1),
   substitutable: z.boolean(),
+  // Required, no default, same discipline as meal_types/familiarity above: a slot
+  // with neither an amount nor the explicit `to_taste` marker must fail validation
+  // rather than render as a bare ingredient name on a shopping list (#123). There is
+  // deliberately no fallback — a missing quantity is missing curated data.
+  quantity: SlotQuantitySchema,
 });
 export type IngredientSlot = z.infer<typeof IngredientSlotSchema>;
 

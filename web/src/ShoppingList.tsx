@@ -11,6 +11,7 @@ import {
   type StoredShoppingList,
 } from "./shoppingListStorage";
 import { allergenMarkingText } from "./allergyLabels";
+import { formatQuantity } from "./display";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 
@@ -31,6 +32,24 @@ export function formatPortions(portions: number): string {
 
 interface IndexedItem extends ShoppingListItem {
   index: number;
+}
+
+/**
+ * "600 g kyckling" — the amount before the ingredient, the way a shopping list is
+ * written and read (#123). The amount is rendered as its own element so it can be
+ * weighted differently from the name without changing the reading order, and
+ * "efter smak" flows through the same path rather than getting a special case: a
+ * seasoned-to-taste ingredient is still something to have in the house.
+ */
+function ItemLabel({ item }: { item: ShoppingListItem }) {
+  // One inline text block, not two flex siblings: the amount and the name have to
+  // wrap as ordinary text ("1 kruka Färsk / persilja"), or a narrow row breaks between
+  // them and leaves an amount stranded on a line of its own.
+  return (
+    <span className="item-text">
+      <span className="item-quantity">{formatQuantity(item.quantity)}</span> {item.name}
+    </span>
+  );
 }
 
 function withIndex(items: readonly ShoppingListItem[]): IndexedItem[] {
@@ -218,7 +237,7 @@ export function ShoppingList({
                   checked={item.bought}
                   onChange={() => toggleBought(item.index)}
                 />
-                {item.name}
+                <ItemLabel item={item} />
               </label>
               <Button
                 type="button"
@@ -238,7 +257,7 @@ export function ShoppingList({
         <ul>
           {haveAtHome.map((item) => (
             <li key={item.index} className="list-row">
-              {item.name}
+              <ItemLabel item={item} />
               <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
                 Att köpa
               </Button>
@@ -301,7 +320,7 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
                   checked={item.bought}
                   onChange={() => toggleBought(item.index)}
                 />
-                {item.name}
+                <ItemLabel item={item} />
               </label>
               <Button
                 type="button"
@@ -321,7 +340,7 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
         <ul>
           {haveAtHome.map((item) => (
             <li key={item.index} className="list-row">
-              {item.name}
+              <ItemLabel item={item} />
               <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
                 Att köpa
               </Button>

@@ -16,7 +16,12 @@
       {
         "role": "protein",
         "ingredient_id": "nonexistent-ingredient",
-        "substitutable": false
+        "substitutable": false,
+        "quantity": {
+          "kind": "amount",
+          "amount": 400,
+          "unit": "g"
+        }
       }
     ],
     "familiarity": "everyday"

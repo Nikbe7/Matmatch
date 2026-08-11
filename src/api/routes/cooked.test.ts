@@ -11,7 +11,7 @@ import {
   createTestUser,
   isLocalStackAvailable,
 } from "../../db/__fixtures__/localStack.js";
-import { makeEngineData, makeIngredient, makeTemplate } from "../../engine/__fixtures__/engineData.js";
+import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "../../engine/__fixtures__/engineData.js";
 import type { EngineData } from "../../engine/data.js";
 import { createApp } from "../app.js";
 import { makeHousehold } from "../../engine/__fixtures__/household.js";
@@ -59,8 +59,8 @@ function buildApp(): { app: Express; first: string; second: string } {
   const first = "a-kycklinggryta";
   const second = "b-fisksoppa";
   const slots = [
-    { role: "protein" as const, ingredient_id: "kyckling", substitutable: true },
-    { role: "vegetable" as const, ingredient_id: "morot", substitutable: false },
+    makeSlot({ role: "protein", ingredient_id: "kyckling", substitutable: true }),
+    makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false }),
   ];
 
   const engineData: EngineData = makeEngineData({
@@ -244,7 +244,7 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — cooked history", () => {
       ingredients: [makeIngredient("morot")],
       templates: [
         makeTemplate(single, {
-          ingredient_slots: [{ role: "vegetable", ingredient_id: "morot", substitutable: false }],
+          ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false })],
         }),
       ],
     });

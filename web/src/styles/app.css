@@ -207,6 +207,26 @@ select.input {
   min-height: var(--touch-target);
 }
 
+/* The amount on a shopping-list row (#123). Bolder than the ingredient name because
+   in a shop the number is what you scan for — you already know you are buying
+   chicken, the question is how much. Kept as tabular figures so a column of amounts
+   lines up rather than shifting with each digit width. */
+.item-quantity {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The amount made rows wide enough that some wrapped their action onto a second line
+   and some didn't, which at 360px reads as a broken list rather than a dense one.
+   `flex: 1 1 0` plus `min-width: 0` lets the label shrink below its content width, so
+   a long ingredient wraps its own text and the action stays on the first line. Every
+   row then has the same shape: amount and ingredient on the left, one action right. */
+.checkbox-label,
+.item-text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .checkbox-label.bought {
   text-decoration: line-through;
   opacity: 0.5;

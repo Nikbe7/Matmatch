@@ -6,7 +6,12 @@
 import type { Allergy } from "../../src/schema/allergyDietary";
 import type { Household } from "../../src/schema/household";
 import type { CostTier } from "../../src/schema/ingredient";
-import type { Cuisine, IngredientSlotRole, PrepTimeBand } from "../../src/schema/recipeTemplate";
+import type {
+  Cuisine,
+  IngredientSlotRole,
+  PrepTimeBand,
+  QuantityUnit,
+} from "../../src/schema/recipeTemplate";
 
 /**
  * The session weight vector, structurally identical to `RankingWeights` in
@@ -59,11 +64,21 @@ export interface IngredientAllergenMarking {
   members: string[];
 }
 
+/**
+ * An amount already scaled to tonight's diners, or the explicit "efter smak" marker
+ * (#123). Structured rather than a formatted string, exactly like `portions`: the
+ * wording is the frontend's to choose (`formatQuantity`, display.ts).
+ */
+export type ScaledQuantity =
+  | { kind: "amount"; amount: number; unit: QuantityUnit }
+  | { kind: "to_taste" };
+
 export interface TonightIngredient {
   role: IngredientSlotRole;
   name: string;
   substituted: boolean;
   allergens: IngredientAllergenMarking[];
+  quantity: ScaledQuantity;
 }
 
 // Only the fields the frontend actually reads (slot_index + substitute_ingredient_id,

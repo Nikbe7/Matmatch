@@ -14,12 +14,22 @@
       {
         "role": "aromatic",
         "ingredient_id": "gul-lok",
-        "substitutable": true
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 400,
+          "unit": "g"
+        }
       },
       {
         "role": "starch",
         "ingredient_id": "ris",
-        "substitutable": true
+        "substitutable": true,
+        "quantity": {
+          "kind": "amount",
+          "amount": 400,
+          "unit": "g"
+        }
       }
     ],
     "familiarity": "everyday"

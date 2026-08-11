@@ -39,8 +39,8 @@ function direction(id: string, name: string, costTier = "mid") {
       cuisine: "swedish_nordic",
     },
     ingredients: [
-      { role: "protein", name: "Kycklingfilé", substituted: false, inPantry: false, allergens: [] },
-      { role: "starch", name: "Ris", substituted: false, inPantry: true, allergens: [] },
+      { role: "protein", name: "Kycklingfilé", substituted: false, inPantry: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "starch", name: "Ris", substituted: false, inPantry: true, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
     ],
     substitutions: [],
     summary: "Kycklingfilé, ris och paprika",
@@ -617,8 +617,8 @@ describe("GuidedFlow — a shopping list survives a reload (UX_FLOW §7)", () =>
     templateName: "Kycklinggryta",
     substitutions: [],
     items: [
-      { name: "Kycklingfilé", section: "to_buy", bought: false, allergens: [] },
-      { name: "Ris", section: "have_at_home", bought: false, allergens: [] },
+      { name: "Kycklingfilé", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { name: "Ris", section: "have_at_home", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
     ],
   };
 

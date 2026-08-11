@@ -5,7 +5,7 @@ import { selectCandidateTemplates } from "./candidates.js";
 import { mealDiners, type MealConstraints } from "./constraints.js";
 import type { HouseholdMember } from "../schema/household.js";
 import { loadEngineData } from "./data.js";
-import { makeEngineData, makeIngredient, makeTemplate } from "./__fixtures__/engineData.js";
+import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "./__fixtures__/engineData.js";
 import { makeConstraints as household } from "./__fixtures__/household.js";
 
 // `household(...)` keeps the pre-#115 call shape on purpose — see the fixture's own
@@ -43,8 +43,8 @@ describe("selectCandidateTemplates — substitution rescue rules", () => {
       templates: [
         makeTemplate("gryta", {
           ingredient_slots: [
-            { role: "protein", ingredient_id: "kyckling", substitutable: false },
-            { role: "aromatic", ingredient_id: "gul-lok", substitutable: true },
+            makeSlot({ role: "protein", ingredient_id: "kyckling", substitutable: false }),
+            makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: true }),
           ],
         }),
       ],
@@ -56,7 +56,7 @@ describe("selectCandidateTemplates — substitution rescue rules", () => {
     expect(candidates[0]!.substitutions).toEqual([
       {
         slot_index: 1,
-        slot: { role: "aromatic", ingredient_id: "gul-lok", substitutable: true },
+        slot: makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: true }),
         substitute_ingredient_id: "rodlok",
       },
     ]);
@@ -71,7 +71,7 @@ describe("selectCandidateTemplates — substitution rescue rules", () => {
         makeTemplate("gryta", {
           ingredient_slots: [
             // Same ingredient and same role as the group above — only the flag differs.
-            { role: "aromatic", ingredient_id: "gul-lok", substitutable: false },
+            makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: false }),
           ],
         }),
       ],
@@ -88,7 +88,7 @@ describe("selectCandidateTemplates — substitution rescue rules", () => {
       substitutionGroups: [{ ...aromaticGroup, role: "vegetable" as const }],
       templates: [
         makeTemplate("gryta", {
-          ingredient_slots: [{ role: "aromatic", ingredient_id: "gul-lok", substitutable: true }],
+          ingredient_slots: [makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: true })],
         }),
       ],
     });
@@ -105,7 +105,7 @@ describe("selectCandidateTemplates — substitution rescue rules", () => {
       substitutionGroups: [aromaticGroup],
       templates: [
         makeTemplate("gryta", {
-          ingredient_slots: [{ role: "aromatic", ingredient_id: "gul-lok", substitutable: true }],
+          ingredient_slots: [makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: true })],
         }),
       ],
     });
@@ -135,8 +135,8 @@ describe("selectCandidateTemplates — substitution rescue rules", () => {
       templates: [
         makeTemplate("gryta", {
           ingredient_slots: [
-            { role: "aromatic", ingredient_id: "gul-lok", substitutable: true },
-            { role: "starch", ingredient_id: "potatis", substitutable: true },
+            makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: true }),
+            makeSlot({ role: "starch", ingredient_id: "potatis", substitutable: true }),
           ],
         }),
       ],
@@ -161,7 +161,7 @@ describe("selectCandidateTemplates — substitution rescue rules", () => {
       templates: [
         makeTemplate("gryta", {
           cost_tier: "premium",
-          ingredient_slots: [{ role: "aromatic", ingredient_id: "gul-lok", substitutable: true }],
+          ingredient_slots: [makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: true })],
         }),
       ],
     });
@@ -171,7 +171,7 @@ describe("selectCandidateTemplates — substitution rescue rules", () => {
 
   it("does not mutate the loaded template", () => {
     const template = makeTemplate("gryta", {
-      ingredient_slots: [{ role: "aromatic", ingredient_id: "gul-lok", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: true })],
     });
     const snapshot = structuredClone(template);
     const data = makeEngineData({
@@ -192,7 +192,7 @@ describe("selectCandidateTemplates — substitution rescue rules", () => {
       allergenMappings,
       templates: [
         makeTemplate("gryta", {
-          ingredient_slots: [{ role: "protein", ingredient_id: "finns-inte", substitutable: false }],
+          ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "finns-inte", substitutable: false })],
         }),
       ],
     });
@@ -214,7 +214,7 @@ describe("selectCandidateTemplates — dietary flags", () => {
       makeTemplate("protein", { dietary_tags: ["high_protein_preference"] }),
     ].map((template) => ({
       ...template,
-      ingredient_slots: [{ role: "vegetable" as const, ingredient_id: "morot", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: true })],
     })),
   });
 
@@ -256,7 +256,7 @@ describe("selectCandidateTemplates — meal_types hard filter (#68)", () => {
       makeTemplate("bara-middag", { meal_types: ["dinner"] }),
     ].map((template) => ({
       ...template,
-      ingredient_slots: [{ role: "vegetable" as const, ingredient_id: "morot", substitutable: true }],
+      ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: true })],
     })),
   });
 

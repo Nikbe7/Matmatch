@@ -10,7 +10,7 @@ import {
   type MainIngredientChoice,
 } from "./directions.js";
 import { effectiveIngredientIds, rankCandidates, type RankedCandidate } from "./ranking.js";
-import { makeEngineData, makeIngredient, makeTemplate } from "./__fixtures__/engineData.js";
+import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "./__fixtures__/engineData.js";
 import { makeConstraints as household } from "./__fixtures__/household.js";
 import type { MealConstraints } from "./constraints.js";
 
@@ -46,11 +46,9 @@ function ranked(
 }
 
 function slots(...ingredientIds: string[]) {
-  return ingredientIds.map((ingredient_id) => ({
-    role: "vegetable" as const,
-    ingredient_id,
-    substitutable: false,
-  }));
+  return ingredientIds.map((ingredient_id) =>
+    makeSlot({ role: "vegetable", ingredient_id, substitutable: false }),
+  );
 }
 
 describe("pickDirections — how many cards", () => {
@@ -100,7 +98,7 @@ describe("pickDirections — main ingredient", () => {
       substitutions: [
         {
           slot_index: 0,
-          slot: { role: "vegetable", ingredient_id: "vetepasta", substitutable: true },
+          slot: makeSlot({ role: "vegetable", ingredient_id: "vetepasta", substitutable: true }),
           substitute_ingredient_id: "ris",
         },
       ],
@@ -282,8 +280,8 @@ describe("suggestMainIngredientId — 'Föreslå åt mig'", () => {
     const list = [
       ranked("best", {
         ingredient_slots: [
-          { role: "starch", ingredient_id: "ris", substitutable: true },
-          { role: "protein", ingredient_id: "lax", substitutable: false },
+          makeSlot({ role: "starch", ingredient_id: "ris", substitutable: true }),
+          makeSlot({ role: "protein", ingredient_id: "lax", substitutable: false }),
         ],
       }),
       ranked("second", { ingredient_slots: slots("kyckling") }),
@@ -293,7 +291,7 @@ describe("suggestMainIngredientId — 'Föreslå åt mig'", () => {
   });
 
   it("falls back to the starch when a dish has no protein slot", () => {
-    const list = [ranked("pasta", { ingredient_slots: [{ role: "starch", ingredient_id: "pasta", substitutable: true }] })];
+    const list = [ranked("pasta", { ingredient_slots: [makeSlot({ role: "starch", ingredient_id: "pasta", substitutable: true })] })];
 
     expect(suggestMainIngredientId(list)).toBe("pasta");
   });
@@ -301,12 +299,12 @@ describe("suggestMainIngredientId — 'Föreslå åt mig'", () => {
   it("suggests the substitute on a rescued protein slot, never the excluded ingredient", () => {
     const candidate: RankedCandidate = {
       template: makeTemplate("rescued", {
-        ingredient_slots: [{ role: "protein", ingredient_id: "rakor", substitutable: true }],
+        ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "rakor", substitutable: true })],
       }),
       substitutions: [
         {
           slot_index: 0,
-          slot: { role: "protein", ingredient_id: "rakor", substitutable: true },
+          slot: makeSlot({ role: "protein", ingredient_id: "rakor", substitutable: true }),
           substitute_ingredient_id: "kyckling",
         },
       ],
@@ -477,8 +475,8 @@ describe("pickDirections — synthetic data sanity", () => {
         makeTemplate("wok", {
           cuisine: "asian",
           ingredient_slots: [
-            { role: "protein", ingredient_id: "kyckling", substitutable: false },
-            { role: "starch", ingredient_id: "ris", substitutable: false },
+            makeSlot({ role: "protein", ingredient_id: "kyckling", substitutable: false }),
+            makeSlot({ role: "starch", ingredient_id: "ris", substitutable: false }),
           ],
         }),
       ],

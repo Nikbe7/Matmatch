@@ -47,6 +47,34 @@ describe("validateFiles", () => {
     expect(result.errors[0]).toMatchObject({ path: "familiarity" });
   });
 
+  // #123: a slot must state an amount or state that it has none. Missing fails; it
+  // must never default, because the two silent alternatives — inventing a number or
+  // rendering a bare ingredient name — are both worse than a failing validation run.
+  it("fails a recipe template slot carrying neither a quantity nor the no-quantity marker", () => {
+    const result = validateFiles([fixture("recipe-template-missing-quantity.json", "recipe-template")]);
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      path: "ingredient_slots.1.quantity",
+      id: "kyckling-wok-utan-mangd",
+    });
+  });
+
+  it("accepts the explicit no-quantity marker as a stated quantity", () => {
+    const result = validateFiles([fixture("recipe-template-to-taste-quantity.json", "recipe-template")]);
+
+    expect(result.errors).toEqual([]);
+  });
+
+  it("fails a quantity unit outside the closed vocabulary", () => {
+    const result = validateFiles([fixture("recipe-template-unknown-unit.json", "recipe-template")]);
+
+    expect(result.errors.length).toBeGreaterThanOrEqual(1);
+    expect(result.errors.some((error) => error.path?.startsWith("ingredient_slots.0.quantity"))).toBe(
+      true,
+    );
+  });
+
   it("fails a malformed id slug", () => {
     const result = validateFiles([fixture("bad-slug-ingredient.json", "ingredient")]);
 

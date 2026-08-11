@@ -121,7 +121,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         result: {
           template: picked.template,
           substitutions: picked.substitutions,
-          ingredients: buildTonightIngredients(engineData, picked, stored.household.members),
+          ingredients: buildTonightIngredients(engineData, picked, stored.household.members, portions),
           score: picked.score,
           reasonCodes,
           // One boolean about the dish on screen, not a history list: all the client

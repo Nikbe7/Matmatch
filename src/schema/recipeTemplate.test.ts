@@ -3,9 +3,11 @@ import {
   CuisineSchema,
   FamiliaritySchema,
   IngredientSlotRoleSchema,
+  IngredientSlotSchema,
   MealTypeSchema,
   PrepTimeBandSchema,
   ProteinGroupSchema,
+  QuantityUnitSchema,
   RecipeTemplateSchema,
 } from "./recipeTemplate.js";
 
@@ -22,9 +24,9 @@ describe("RecipeTemplateSchema", () => {
       meal_types: ["dinner"],
       familiarity: "everyday",
       ingredient_slots: [
-        { role: "protein", ingredient_id: "ing_010", substitutable: true },
-        { role: "starch", ingredient_id: "ing_020", substitutable: false },
-        { role: "aromatic", ingredient_id: "ing_030", substitutable: true },
+        { role: "protein", ingredient_id: "ing_010", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
+        { role: "starch", ingredient_id: "ing_020", substitutable: false, quantity: { kind: "amount", amount: 400, unit: "g" } },
+        { role: "aromatic", ingredient_id: "ing_030", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
       ],
     };
 
@@ -43,7 +45,7 @@ describe("RecipeTemplateSchema", () => {
       meal_types: ["lunch", "dinner"],
       familiarity: "everyday",
       ingredient_slots: [
-        { role: "protein", ingredient_id: "ing_040", substitutable: true },
+        { role: "protein", ingredient_id: "ing_040", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
       ],
     };
 
@@ -79,7 +81,7 @@ describe("RecipeTemplateSchema", () => {
       meal_types: ["dinner"],
       familiarity: "everyday",
       ingredient_slots: [
-        { role: "protein", ingredient_id: "ing_010", substitutable: true },
+        { role: "protein", ingredient_id: "ing_010", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
       ],
     };
 
@@ -96,7 +98,7 @@ describe("RecipeTemplateSchema", () => {
       prep_time_band: "<20min",
       dietary_tags: [],
       familiarity: "everyday",
-      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
     expect(RecipeTemplateSchema.safeParse(fixture).success).toBe(false);
@@ -113,7 +115,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: [],
       meal_types: ["dinner", "dinner"],
       familiarity: "everyday",
-      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
     const result = RecipeTemplateSchema.safeParse(fixture);
@@ -131,7 +133,7 @@ describe("RecipeTemplateSchema", () => {
       prep_time_band: "<20min",
       dietary_tags: [],
       meal_types: ["dinner"],
-      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
     const result = RecipeTemplateSchema.safeParse(fixture);
@@ -150,7 +152,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: [],
       meal_types: ["dinner"],
       familiarity: "exotic",
-      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
     expect(RecipeTemplateSchema.safeParse(fixture).success).toBe(false);
@@ -167,7 +169,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: [],
       meal_types: ["dinner"],
       familiarity,
-      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true }],
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
     expect(RecipeTemplateSchema.safeParse(fixture).success).toBe(true);
@@ -213,5 +215,67 @@ describe("IngredientSlotRoleSchema", () => {
     // Slot role uses "aromatic", not the Ingredient.category value "spice_aromatic" —
     // the two vocabularies are intentionally distinct (see recipeTemplate.ts).
     expect(IngredientSlotRoleSchema.safeParse("spice_aromatic").success).toBe(false);
+  });
+});
+
+// #123. The rule these pin is "state an amount or state that there is none" — the
+// third possibility, an absent quantity, is what must never parse.
+describe("IngredientSlotSchema — quantity", () => {
+  function slot(quantity: unknown) {
+    return { role: "protein", ingredient_id: "ing_010", substitutable: true, quantity };
+  }
+
+  it("rejects a slot with no quantity at all", () => {
+    const { quantity, ...withoutQuantity } = slot(undefined);
+    void quantity;
+    expect(IngredientSlotSchema.safeParse(withoutQuantity).success).toBe(false);
+  });
+
+  it("accepts an amount in a unit from the closed vocabulary", () => {
+    expect(IngredientSlotSchema.safeParse(slot({ kind: "amount", amount: 600, unit: "g" })).success).toBe(
+      true,
+    );
+  });
+
+  it("accepts the explicit to_taste marker", () => {
+    expect(IngredientSlotSchema.safeParse(slot({ kind: "to_taste" })).success).toBe(true);
+  });
+
+  it("rejects a unit outside the closed vocabulary", () => {
+    expect(IngredientSlotSchema.safeParse(slot({ kind: "amount", amount: 1, unit: "kg" })).success).toBe(
+      false,
+    );
+    expect(IngredientSlotSchema.safeParse(slot({ kind: "amount", amount: 100, unit: "ml" })).success).toBe(
+      false,
+    );
+  });
+
+  it("rejects a zero or negative amount", () => {
+    expect(IngredientSlotSchema.safeParse(slot({ kind: "amount", amount: 0, unit: "g" })).success).toBe(
+      false,
+    );
+    expect(IngredientSlotSchema.safeParse(slot({ kind: "amount", amount: -100, unit: "g" })).success).toBe(
+      false,
+    );
+  });
+
+  it("rejects an amount with no unit, and a bare number", () => {
+    expect(IngredientSlotSchema.safeParse(slot({ kind: "amount", amount: 400 })).success).toBe(false);
+    expect(IngredientSlotSchema.safeParse(slot(400)).success).toBe(false);
+  });
+});
+
+describe("QuantityUnitSchema", () => {
+  it("locks the vocabulary to the eight units a Swedish kitchen uses", () => {
+    expect(QuantityUnitSchema.options).toEqual([
+      "g",
+      "dl",
+      "msk",
+      "tsk",
+      "krm",
+      "st",
+      "klyfta",
+      "kruka",
+    ]);
   });
 });

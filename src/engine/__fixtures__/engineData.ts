@@ -1,6 +1,6 @@
 import type { Ingredient } from "../../schema/ingredient.js";
 import type { IngredientAllergenMapping } from "../../schema/ingredientAllergenMapping.js";
-import type { RecipeTemplate } from "../../schema/recipeTemplate.js";
+import type { IngredientSlot, RecipeTemplate } from "../../schema/recipeTemplate.js";
 import type { SubstitutionGroup } from "../../schema/substitution.js";
 import type { EngineData } from "../data.js";
 
@@ -20,6 +20,21 @@ export function makeIngredient(id: string, overrides: Partial<Ingredient> = {}):
     seasonality_strength: "weak",
     ...overrides,
   };
+}
+
+/**
+ * A slot with a stated quantity, for the many tests that care about filtering,
+ * ranking or naming and not at all about amounts (#123).
+ *
+ * The quantity is required on the schema with no default, deliberately — so this
+ * helper exists to keep that strictness from turning every unrelated test into a
+ * place where an arbitrary number had to be invented. A test that *is* about amounts
+ * passes its own via `quantity`.
+ */
+export function makeSlot(
+  slot: Omit<IngredientSlot, "quantity"> & { quantity?: IngredientSlot["quantity"] },
+): IngredientSlot {
+  return { quantity: { kind: "amount", amount: 100, unit: "g" }, ...slot };
 }
 
 export function makeTemplate(id: string, overrides: Partial<RecipeTemplate> = {}): RecipeTemplate {
