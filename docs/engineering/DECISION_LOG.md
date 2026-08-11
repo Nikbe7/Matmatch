@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-11 — Ingredient swaps shipped without the dish-level cost tier or the AI fallback (#124)
+
+**Decision:** #124's popover (Billigare/Liknande filters plus a role-valid search over curated substitution groups) shipped as scoped, but two pieces named in the original spec were cut and filed separately rather than settled inline. First, a swap never recomputes the dish's own `cost_tier` — DECISION_LOG 2026-08-01 already left that undefined, and inventing an answer inside a UI slice would have been exactly the quiet architectural call CLAUDE.md rules out; each alternative shows its own curated tier instead, and #131 tracks defining the real rule. Second, the "Föreslå alternativ (AI)" fallback for the 86 (of 744) substitutable slots with zero curated alternatives was deferred as #132: those are a curation gap, not a product gap, and #132 asks whoever picks it up to weigh an additive substitution-group pass against an AI call before building the AI path by default.
+
+**Why:** both cuts came from spotting that "AI is for language and for gaps in curated data" (2026-08-10) was about to be violated by the wrong entity. A missing dish-tier rule isn't a language gap — it's an engine question this slice had no mandate to answer. Missing curated data for common ingredients (ägg, avokado, majs, svartpeppar) is a curation gap, and curating it once benefits every future request for free, unlike an AI call that's paid per-request forever.
+
+**How to apply:** don't add a swap-driven cost-tier recompute anywhere until #131 lands. Don't build #132's AI fallback without first estimating how much of the 86-slot gap a curated pass would close.
+
+---
+
 ## 2026-08-11 — Missing defining ingredients added to 12 templates; the derived cost_tier rule flips on one mid ingredient (#129)
 
 **Decision:** Investigating a uniform-looking `ingredient_slots.length` distribution across the 170 templates (asked ahead of #124) found the count uniformity itself was fine — Swedish/nordic dishes genuinely average fewer slots than asian ones, and every 4-slot template checked was complete at four — but turned up a real, different gap: `fat_oil` was used in 0 of 903 slots, and 0 of 36 `italian_mediterranean` templates contained olive oil, including **Pasta aglio e olio** ("garlic and oil," no oil) and **Melanzane alla parmigiana** (no parmesan). Fixed additively across exactly 12 templates in two groups: definitional omissions (`pasta-aglio-e-olio-med-prastost` + olivolja; `melanzane-alla-parmigiana` + parmesan + olivolja; the four pie/risotto dishes + smör, three of them + ägg as the filling's binder; three fried breakfast dishes + margarin) and buy-it-or-you-can't-cook-it deep-frying dishes (`fish-and-chips-med-torsk-och-remouladsas`, `friterad-tofu-i-sotsur-sas-med-ananas` + rapsolja).
