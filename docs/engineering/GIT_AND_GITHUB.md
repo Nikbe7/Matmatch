@@ -32,7 +32,7 @@ Commit straight to `main`? Tempting for a solo dev, but PRs earn their keep here
 
 **Merge strategy: squash merge.** One commit per feature/issue on `main`, clean history, and it composes well with Conventional Commits + changelog automation (a squash-merged PR title becomes the one commit message that matters).
 
-Visual evidence (before/after screenshots) belongs in the PR description as an upload, never committed to the tree — it has been committed and then deleted as a follow-up "chore" three times in a row (#101/#102, this pattern before it, #105). `web/screenshots/` is gitignored to make that the only path.
+**No screenshots.** Niklas verifies every PR live in the browser against the running app before merging (see CLAUDE.md's "Verifiera i webbläsaren" checklist requirement) — a screenshot would prove nothing to the one reviewer who is already looking at the real thing, and producing one costs a manual upload step on every PR for no reader. `web/screenshots/` stays gitignored regardless, in case a screenshot is ever taken for some other reason.
 
 ## Labels
 
