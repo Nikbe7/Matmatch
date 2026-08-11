@@ -76,9 +76,77 @@ export type ScaledQuantity =
 export interface TonightIngredient {
   role: IngredientSlotRole;
   name: string;
+  /** The slot's position in the template's ingredient_slots[] (#124) — identifies
+   * which slot a tap targets when asking for swap alternatives. */
+  slotIndex: number;
+  /** The id of the ingredient currently filling this slot (#124) — a bare
+   * identifier, never the catalog row (see `name`'s comment on `TonightIngredientView`
+   * server-side for why). */
+  ingredientId: string;
   substituted: boolean;
   allergens: IngredientAllergenMarking[];
   quantity: ScaledQuantity;
+}
+
+/**
+ * One candidate the ingredient-swap popover can offer (#124) — role-matched, allergy-
+ * gated, with the slot's own scaled quantity so applying it is "replace the item with
+ * this view," no special-casing.
+ */
+export interface IngredientAlternative {
+  ingredientId: string;
+  name: string;
+  costTier: CostTier;
+  quantity: ScaledQuantity;
+  allergens: IngredientAllergenMarking[];
+}
+
+/**
+ * The popover's whole answer for one slot. `cheaper`/`similar` are omitted rather
+ * than empty when no candidate qualifies — the popover must not render a filter with
+ * nothing behind it (#124 requirement 1). `searchPool` is the full role-valid catalog,
+ * fetched once and filtered locally by typed query (the #110 idiom), so it is present
+ * whenever `substitutable` is true, even as `[]`.
+ */
+export interface IngredientAlternativesResult {
+  substitutable: boolean;
+  cheaper?: IngredientAlternative[];
+  similar?: IngredientAlternative[];
+  searchPool?: IngredientAlternative[];
+}
+
+export async function fetchIngredientAlternatives(
+  accessToken: string,
+  templateId: string,
+  slotIndex: number,
+  ingredientId: string,
+  /**
+   * `diners` as the server spells it (see `FetchTonightOptions.diners`) — omitted
+   * for everyone. Without this, allergy gating and quantities would come back
+   * scoped to the whole household even when tonight's diner picker narrowed who is
+   * eating, disagreeing with every other value already on screen.
+   */
+  diners?: string,
+): Promise<IngredientAlternativesResult> {
+  const params = new URLSearchParams({
+    template: templateId,
+    slot: String(slotIndex),
+    ingredient: ingredientId,
+  });
+  if (diners) params.set("diners", diners);
+
+  const response = await fetch(`/api/ingredients/alternatives?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  const body: unknown = await response.json();
+
+  if (!response.ok) {
+    const { error } = body as ApiErrorEnvelope;
+    throw new ApiError(response.status, error.code, error.message);
+  }
+
+  return body as IngredientAlternativesResult;
 }
 
 // Only the fields the frontend actually reads (slot_index + substitute_ingredient_id,

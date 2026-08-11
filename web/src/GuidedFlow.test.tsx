@@ -39,8 +39,8 @@ function direction(id: string, name: string, costTier = "mid") {
       cuisine: "swedish_nordic",
     },
     ingredients: [
-      { role: "protein", name: "Kycklingfilé", substituted: false, inPantry: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
-      { role: "starch", name: "Ris", substituted: false, inPantry: true, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "protein", name: "Kycklingfilé", slotIndex: 0, ingredientId: "kycklingfile", substituted: false, inPantry: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "starch", name: "Ris", slotIndex: 1, ingredientId: "ris", substituted: false, inPantry: true, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
     ],
     substitutions: [],
     summary: "Kycklingfilé, ris och paprika",
@@ -504,7 +504,7 @@ describe("pantry input is never persisted (CLAUDE.md non-negotiable)", () => {
     expect(localStorage.length).toBe(0);
   });
 
-  it("stores no pantry ingredient id even once a shopping list is saved", async () => {
+  it("stores no pantry selection that isn't itself part of the accepted dish", async () => {
     const user = userEvent.setup();
     stubApi();
     renderFlow();
@@ -512,20 +512,25 @@ describe("pantry input is never persisted (CLAUDE.md non-negotiable)", () => {
     await user.click(await screen.findByRole("button", { name: "Använd det jag har" }));
     await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
     await user.click(await screen.findByRole("button", { name: "ris" }));
+    // "gul lök" is tapped as a pantry item but never appears in `direction()`'s own
+    // two slots below — the fixture's one guaranteed case of a pantry pick the
+    // accepted dish does not itself contain.
     await user.click(await screen.findByRole("button", { name: "gul lök" }));
     await user.click(screen.getByRole("button", { name: "Visa förslag" }));
     await user.click((await screen.findAllByRole("button", { name: "Välj" }))[0]!);
     await user.click(await screen.findByRole("button", { name: "Till inköpslistan" }));
     await screen.findByText("Har hemma (1)");
 
-    // The accepted dish's shopping list is the only thing on the device, and it
-    // holds item names for that dish — never the pantry selection, and never an
-    // ingredient id.
+    // The accepted dish's shopping list is the only thing on the device. As of #124
+    // it legitimately carries each item's own `ingredientId` (the ingredient-swap
+    // popover's tap target) — "kycklingfile" and "ris" are expected here because
+    // they are this dish's own protein and starch slots, not because the pantry
+    // selection leaked. "gul-lok" is the invariant this test actually guards: a
+    // pantry pick that never became part of the dish must never reach storage.
     const stored = Object.keys(localStorage).map((key) => localStorage.getItem(key) ?? "");
     expect(Object.keys(localStorage)).toEqual(["matmatch.shoppingList"]);
     for (const value of stored) {
       expect(value).not.toContain("gul-lok");
-      expect(value).not.toContain("kycklingfile");
       expect(value).not.toContain("pantry");
     }
   });
@@ -617,8 +622,8 @@ describe("GuidedFlow — a shopping list survives a reload (UX_FLOW §7)", () =>
     templateName: "Kycklinggryta",
     substitutions: [],
     items: [
-      { name: "Kycklingfilé", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
-      { name: "Ris", section: "have_at_home", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { name: "Kycklingfilé", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kycklingfile" },
+      { name: "Ris", section: "have_at_home", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 1, ingredientId: "ris" },
     ],
   };
 

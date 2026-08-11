@@ -1,7 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { AllergySchema, type Allergy } from "../schema/allergyDietary.js";
-import { selectCandidateTemplates } from "./candidates.js";
+import {
+  classifyCostTier,
+  roleSubstitutionPool,
+  selectCandidateTemplates,
+  substituteCandidateIds,
+} from "./candidates.js";
 import { mealDiners, type MealConstraints } from "./constraints.js";
 import type { HouseholdMember } from "../schema/household.js";
 import { loadEngineData } from "./data.js";
@@ -469,6 +474,164 @@ describe("selectCandidateTemplates — survival counts (DECISION_LOG 2026-08-02)
 
     expect(candidates.length - rescued.length).toBe(69);
     expect(rescued).toHaveLength(29);
+  });
+});
+
+// #124: the ingredient-swap popover's traversal, tested directly rather than only
+// through selectCandidateTemplates/findSubstitute.
+describe("substituteCandidateIds", () => {
+  const ingredients = [
+    makeIngredient("gul-lok"),
+    makeIngredient("rodlok"),
+    makeIngredient("purjolok"),
+    makeIngredient("vitlok", { category: "spice_aromatic" }),
+  ];
+  const allergenMappings = ingredients.map((ingredient) => ({
+    ingredient_id: ingredient.id,
+    allergens: [] as Allergy[],
+    verification_status: "verified" as const,
+  }));
+  const group = {
+    id: "lok",
+    name: "Lök",
+    role: "aromatic" as const,
+    member_ingredient_ids: ["gul-lok", "rodlok", "purjolok"],
+  };
+
+  it("returns every other member of a role-matching group containing the current ingredient", () => {
+    const data = makeEngineData({ ingredients, allergenMappings, substitutionGroups: [group] });
+
+    expect(substituteCandidateIds(data, "aromatic", "gul-lok", [])).toEqual(["rodlok", "purjolok"]);
+  });
+
+  it("never includes the current ingredient itself", () => {
+    const data = makeEngineData({ ingredients, allergenMappings, substitutionGroups: [group] });
+
+    expect(substituteCandidateIds(data, "aromatic", "gul-lok", [])).not.toContain("gul-lok");
+  });
+
+  it("excludes a candidate the given allergies would exclude", () => {
+    const data = makeEngineData({
+      ingredients,
+      allergenMappings: allergenMappings.map((row) =>
+        row.ingredient_id === "rodlok" ? { ...row, allergens: ["soy" as Allergy] } : row,
+      ),
+      substitutionGroups: [group],
+    });
+
+    expect(substituteCandidateIds(data, "aromatic", "gul-lok", ["soy"])).toEqual(["purjolok"]);
+  });
+
+  it("ignores a group whose role does not match", () => {
+    const data = makeEngineData({
+      ingredients,
+      allergenMappings,
+      substitutionGroups: [{ ...group, role: "vegetable" as const }],
+    });
+
+    expect(substituteCandidateIds(data, "aromatic", "gul-lok", [])).toEqual([]);
+  });
+
+  it("de-duplicates a candidate reachable through more than one matching group", () => {
+    const data = makeEngineData({
+      ingredients,
+      allergenMappings,
+      substitutionGroups: [
+        group,
+        { id: "lok-2", name: "Lök 2", role: "aromatic" as const, member_ingredient_ids: ["gul-lok", "rodlok"] },
+      ],
+    });
+
+    expect(substituteCandidateIds(data, "aromatic", "gul-lok", [])).toEqual(["rodlok", "purjolok"]);
+  });
+
+  it("traverses from the given current ingredient, not from any slot's authored one", () => {
+    // rodlok is currently in the slot (e.g. after a prior swap); alternatives are
+    // relative to rodlok, so gul-lok — not rodlok — must be offered back.
+    const data = makeEngineData({ ingredients, allergenMappings, substitutionGroups: [group] });
+
+    expect(substituteCandidateIds(data, "aromatic", "rodlok", [])).toEqual(["gul-lok", "purjolok"]);
+  });
+});
+
+describe("roleSubstitutionPool", () => {
+  const ingredients = [
+    makeIngredient("gul-lok"),
+    makeIngredient("rodlok"),
+    makeIngredient("citron", { category: "fruit" }),
+    makeIngredient("lime", { category: "fruit" }),
+  ];
+  const allergenMappings = ingredients.map((ingredient) => ({
+    ingredient_id: ingredient.id,
+    allergens: [] as Allergy[],
+    verification_status: "verified" as const,
+  }));
+  const groups = [
+    { id: "lok", name: "Lök", role: "aromatic" as const, member_ingredient_ids: ["gul-lok", "rodlok"] },
+    { id: "citrus", name: "Citrus", role: "aromatic" as const, member_ingredient_ids: ["citron", "lime"] },
+  ];
+
+  it("unions every role-matching group, not just groups containing the excluded ingredient", () => {
+    const data = makeEngineData({ ingredients, allergenMappings, substitutionGroups: groups });
+
+    expect(roleSubstitutionPool(data, "aromatic", "gul-lok", [])).toEqual(["rodlok", "citron", "lime"]);
+  });
+
+  it("excludes the given ingredient id even from a group it is not itself a member of", () => {
+    const data = makeEngineData({ ingredients, allergenMappings, substitutionGroups: groups });
+
+    expect(roleSubstitutionPool(data, "aromatic", "citron", [])).not.toContain("citron");
+  });
+
+  it("excludes a member the given allergies would exclude", () => {
+    const data = makeEngineData({
+      ingredients,
+      allergenMappings: allergenMappings.map((row) =>
+        row.ingredient_id === "lime" ? { ...row, allergens: ["gluten" as Allergy] } : row,
+      ),
+      substitutionGroups: groups,
+    });
+
+    expect(roleSubstitutionPool(data, "aromatic", "gul-lok", ["gluten"])).toEqual(["rodlok", "citron"]);
+  });
+
+  it("returns nothing for a role no group is authored under", () => {
+    const data = makeEngineData({ ingredients, allergenMappings, substitutionGroups: groups });
+
+    expect(roleSubstitutionPool(data, "dairy", "gul-lok", [])).toEqual([]);
+  });
+});
+
+describe("classifyCostTier", () => {
+  const data = makeEngineData({
+    ingredients: [
+      makeIngredient("torsk", { default_cost_tier: "mid" }),
+      makeIngredient("lax", { default_cost_tier: "premium" }),
+      makeIngredient("makrill", { default_cost_tier: "budget" }),
+      makeIngredient("sej", { default_cost_tier: "mid" }),
+    ],
+  });
+
+  it("classes a strictly lower curated tier as cheaper", () => {
+    const { cheaper } = classifyCostTier(data, ["makrill"], "mid");
+    expect(cheaper).toEqual(["makrill"]);
+  });
+
+  it("classes an equal curated tier as similar", () => {
+    const { similar } = classifyCostTier(data, ["sej"], "mid");
+    expect(similar).toEqual(["sej"]);
+  });
+
+  it("classes a strictly higher curated tier as neither", () => {
+    const result = classifyCostTier(data, ["lax"], "mid");
+    expect(result.cheaper).toEqual([]);
+    expect(result.similar).toEqual([]);
+  });
+
+  it("partitions a mixed candidate set, preserving input order within each bucket", () => {
+    const result = classifyCostTier(data, ["lax", "makrill", "sej", "torsk"], "mid");
+    expect(result.cheaper).toEqual(["makrill"]);
+    expect(result.similar).toEqual(["sej", "torsk"]);
   });
 });
 

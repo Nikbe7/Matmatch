@@ -207,6 +207,17 @@ select.input {
   min-height: var(--touch-target);
 }
 
+/* #124: the online shopping list's checkbox now sits in its own label, wrapping
+   nothing else — the ingredient text moved into `.ingredient-tap` below so it can be
+   its own tap target. Sized to its content, not `flex: 1`, so the row's growable
+   space goes to the tap target next to it. `OfflineShoppingList` (no popover, no
+   network) keeps the older `.checkbox-label` shape, checkbox and text together. */
+.checkbox-only {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+}
+
 /* The amount on a shopping-list row (#123). Bolder than the ingredient name because
    in a shop the number is what you scan for — you already know you are buying
    chicken, the question is how much. Kept as tabular figures so a column of amounts
@@ -230,6 +241,117 @@ select.input {
 .checkbox-label.bought {
   text-decoration: line-through;
   opacity: 0.5;
+}
+
+/* #124: the online list's tap target — a plain-text button, not a chip, so it reads
+   as the row's ingredient rather than as a control competing with "Har hemma"/"Att
+   köpa". Takes over `.checkbox-label`'s old flex-shrink and bought-strikethrough
+   roles now that the checkbox no longer wraps the text (see `.checkbox-only` above). */
+.ingredient-tap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ingredient-tap.bought {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.swapped-badge {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
+/* The popover itself (#124) — a bottom-anchored sheet rather than a floating
+   tooltip. At 360px there is nowhere reliable to anchor a popover to the tapped
+   row without it running off-screen; a full-width sheet keeps every control (chips,
+   search box, option rows) comfortably above the 44px touch target instead. */
+.ingredient-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 21, 35, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+}
+
+.ingredient-popover {
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: var(--space-4);
+}
+
+.ingredient-popover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.ingredient-popover__close {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  border: none;
+  background: none;
+  font-size: var(--font-size-xl);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ingredient-popover__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.ingredient-popover__search {
+  margin-bottom: var(--space-3);
+}
+
+.ingredient-popover__results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ingredient-popover__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) 0;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ingredient-popover__results li:last-child .ingredient-popover__option {
+  border-bottom: none;
 }
 
 /* Allergies are a safety constraint, not a preference, and must read as a different

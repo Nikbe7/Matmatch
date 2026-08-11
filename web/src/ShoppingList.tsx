@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { ApiError, fetchInstructions, type TonightIngredient, type TonightResult } from "./api";
+import {
+  ApiError,
+  fetchInstructions,
+  type IngredientAlternative,
+  type TonightIngredient,
+  type TonightResult,
+} from "./api";
 import {
   clearShoppingList,
   freshShoppingList,
@@ -14,6 +20,7 @@ import { allergenMarkingText } from "./allergyLabels";
 import { formatQuantity } from "./display";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
+import { IngredientPopover } from "./components/IngredientPopover";
 
 // The shopping list for an accepted Tonight suggestion. Deliberately no fetch here
 // at all — everything it needs (the result, the portions count) arrives as props,
@@ -54,6 +61,33 @@ function ItemLabel({ item }: { item: ShoppingListItem }) {
 
 function withIndex(items: readonly ShoppingListItem[]): IndexedItem[] {
   return items.map((item, index) => ({ ...item, index }));
+}
+
+/**
+ * The row's tap target for #124's ingredient-swap popover — every row's amount and
+ * name, however its checkbox or move-to-section control renders around it. "Bought"
+ * styling moves here from the checkbox `<label>` it used to live inside: the label
+ * now wraps only the checkbox, so the strikethrough has to be reapplied to whatever
+ * still wraps the text.
+ */
+function IngredientTapButton({ item, onTap }: { item: ShoppingListItem; onTap: () => void }) {
+  return (
+    <button
+      type="button"
+      className={item.bought ? "ingredient-tap bought" : "ingredient-tap"}
+      onClick={onTap}
+    >
+      <ItemLabel item={item} />
+      {/* Requirement 6: a swap "stays visibly a change" — a quiet badge, not a
+          celebration, since it is one household member telling another what
+          changed since the list was made, not a success state. */}
+      {item.swappedFrom && (
+        <span className="swapped-badge" role="status">
+          bytt
+        </span>
+      )}
+    </button>
+  );
 }
 
 /**
@@ -167,6 +201,7 @@ export interface ShoppingListMeal {
 export function ShoppingList({
   result,
   portions,
+  diners,
   accessToken,
   onNewSuggestion,
   newSuggestionLabel = "Ny förslag",
@@ -178,6 +213,16 @@ export function ShoppingList({
    * matters in the shop is the list itself.
    */
   portions?: number;
+  /**
+   * The diner subset this list was built for, in the same spelling `fetchTonight`
+   * takes (`FetchTonightOptions.diners`) — forwarded to #124's ingredient-swap
+   * popover so its allergy gate and quantities agree with the list rather than
+   * silently widening to the whole household. Omitted for the same reason
+   * `portions` is: a list reopened from storage has no diner selection in hand
+   * either, and the popover falls back to the whole household exactly as the
+   * accepted list's own quantities would have.
+   */
+  diners?: string;
   accessToken: string;
   onNewSuggestion: () => void;
   newSuggestionLabel?: string;
@@ -203,6 +248,11 @@ export function ShoppingList({
     });
   }, [result.template.id, result.template.name, result.substitutions, items]);
 
+  // #124: the index of the item whose ingredient-swap popover is open, or null.
+  // One popover at a time, closed on apply — matches the "closes on outside tap"
+  // requirement, since the backdrop click already routes through `onClose`.
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
   function moveTo(index: number, section: ShoppingListSection) {
     setItems((current) => current.map((item, i) => (i === index ? { ...item, section } : item)));
   }
@@ -213,6 +263,51 @@ export function ShoppingList({
     );
   }
 
+  /**
+   * Replaces the item at `index` with `alternative`, wholesale — name, ingredient
+   * id, allergens and the (unchanged, but server-carried anyway) scaled quantity all
+   * come from the response, so this never re-derives anything the popover's fetch
+   * already resolved. `section` is left untouched (#124 requirement 6: a swap
+   * updates the have/buy split in place, it does not move the item between
+   * sections), and `bought` resets — a checkmark against the old ingredient means
+   * nothing once the row names a different one. The item's prior state, `bought`
+   * included, is kept on `swappedFrom` so one tap can undo it completely.
+   */
+  function applySwap(index: number, alternative: IngredientAlternative) {
+    setItems((current) =>
+      current.map((item, i) => {
+        if (i !== index) return item;
+        return {
+          ...item,
+          name: alternative.name,
+          ingredientId: alternative.ingredientId,
+          quantity: alternative.quantity,
+          allergens: alternative.allergens,
+          bought: false,
+          swappedFrom: {
+            name: item.name,
+            ingredientId: item.ingredientId,
+            bought: item.bought,
+            quantity: item.quantity,
+            allergens: item.allergens,
+          },
+        };
+      }),
+    );
+    setOpenIndex(null);
+  }
+
+  /** Restores the item's state from right before its most recent swap. Only ever
+   * reaches back one step — see `swappedFrom`'s own comment for why. */
+  function undoSwap(index: number) {
+    setItems((current) =>
+      current.map((item, i) => {
+        if (i !== index || !item.swappedFrom) return item;
+        return { ...item, ...item.swappedFrom, swappedFrom: undefined };
+      }),
+    );
+  }
+
   function handleNewSuggestion() {
     clearShoppingList();
     onNewSuggestion();
@@ -220,6 +315,7 @@ export function ShoppingList({
 
   const toBuy = withIndex(items).filter((item) => item.section === "to_buy");
   const haveAtHome = withIndex(items).filter((item) => item.section === "have_at_home");
+  const openItem = openIndex !== null ? items[openIndex] : undefined;
 
   return (
     <Card>
@@ -231,14 +327,14 @@ export function ShoppingList({
         <ul>
           {toBuy.map((item) => (
             <li key={item.index} className="list-row">
-              <label className={item.bought ? "checkbox-label bought" : "checkbox-label"}>
+              <label className="checkbox-only">
                 <input
                   type="checkbox"
                   checked={item.bought}
                   onChange={() => toggleBought(item.index)}
                 />
-                <ItemLabel item={item} />
               </label>
+              <IngredientTapButton item={item} onTap={() => setOpenIndex(item.index)} />
               <Button
                 type="button"
                 variant="secondary"
@@ -246,6 +342,11 @@ export function ShoppingList({
               >
                 Har hemma
               </Button>
+              {item.swappedFrom && (
+                <Button type="button" variant="secondary" onClick={() => undoSwap(item.index)}>
+                  Ångra bytet
+                </Button>
+              )}
               <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
@@ -257,10 +358,15 @@ export function ShoppingList({
         <ul>
           {haveAtHome.map((item) => (
             <li key={item.index} className="list-row">
-              <ItemLabel item={item} />
+              <IngredientTapButton item={item} onTap={() => setOpenIndex(item.index)} />
               <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
                 Att köpa
               </Button>
+              {item.swappedFrom && (
+                <Button type="button" variant="secondary" onClick={() => undoSwap(item.index)}>
+                  Ångra bytet
+                </Button>
+              )}
               <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
@@ -272,6 +378,19 @@ export function ShoppingList({
       <Button type="button" variant="primary" onClick={handleNewSuggestion}>
         {newSuggestionLabel}
       </Button>
+
+      {openItem && (
+        <IngredientPopover
+          accessToken={accessToken}
+          templateId={result.template.id}
+          diners={diners}
+          ingredientName={openItem.name}
+          slotIndex={openItem.slotIndex}
+          ingredientId={openItem.ingredientId}
+          onApply={(alternative) => applySwap(openIndex!, alternative)}
+          onClose={() => setOpenIndex(null)}
+        />
+      )}
     </Card>
   );
 }

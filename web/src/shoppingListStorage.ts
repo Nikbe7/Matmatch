@@ -28,10 +28,27 @@ export interface ShoppingListItem {
    * shop is exactly where the list gets re-opened with no connection.
    */
   quantity: ScaledQuantity;
+  /** Which template slot this item fills, and the ingredient currently there (#124)
+   * — identifies the tap target for the ingredient-swap popover. */
+  slotIndex: number;
+  ingredientId: string;
+  /**
+   * Present only immediately after a swap (#124) — the item's state right before
+   * that swap, restored verbatim by one-tap undo. Cleared once undone; a second swap
+   * overwrites it with the newer "before" state, so undo only ever reaches back one
+   * step, never a whole history.
+   */
+  swappedFrom?: {
+    name: string;
+    ingredientId: string;
+    bought: boolean;
+    quantity: ScaledQuantity;
+    allergens: IngredientAllergenMarking[];
+  };
 }
 
 export interface StoredShoppingList {
-  version: 3;
+  version: 4;
   templateId: string;
   items: ShoppingListItem[];
   /**
@@ -48,14 +65,14 @@ export interface StoredShoppingList {
   substitutions?: { slot_index: number; substitute_ingredient_id: string }[];
 }
 
-// Bumped from 2: `ShoppingListItem` gained a required `quantity` field (#123),
-// after gaining `allergens` in #116. A list written before a required field existed
-// is discarded rather than merged — the version field's whole purpose (see the
-// module comment). For `allergens` the reason was safety; for `quantity` it is
-// simpler: half the value of the list is the amounts, and a mixed list where some
-// rows have them and some don't reads as broken. The cost is one discarded list per
-// household, once.
-export const SHOPPING_LIST_VERSION = 3;
+// Bumped from 3: `ShoppingListItem` gained required `slotIndex`/`ingredientId`
+// fields (#124) — a tap has nothing to identify a slot with on an item written
+// before they existed. Same discipline as the version-2 and -3 bumps this comment
+// already describes: a required field existing partially across rows reads as
+// broken, so the whole list is discarded rather than merged. `swappedFrom` is
+// optional and not part of this bump — losing mid-swap undo state on an old list is
+// not the same class of problem as a tap target that doesn't exist.
+export const SHOPPING_LIST_VERSION = 4;
 const STORAGE_KEY = "matmatch.shoppingList";
 
 function isAllergenMarking(value: unknown): value is IngredientAllergenMarking {
@@ -82,6 +99,24 @@ function isScaledQuantity(value: unknown): value is ScaledQuantity {
   );
 }
 
+/**
+ * Loosely validated: `swappedFrom` is recoverable undo state, not load-bearing data —
+ * a malformed entry is dropped rather than discarding the whole stored list, the same
+ * posture `templateName`/`substitutions` below already take on optional extras.
+ */
+function isSwappedFrom(value: unknown): value is NonNullable<ShoppingListItem["swappedFrom"]> {
+  if (typeof value !== "object" || value === null) return false;
+  const swapped = value as Record<string, unknown>;
+  return (
+    typeof swapped.name === "string" &&
+    typeof swapped.ingredientId === "string" &&
+    typeof swapped.bought === "boolean" &&
+    isScaledQuantity(swapped.quantity) &&
+    Array.isArray(swapped.allergens) &&
+    swapped.allergens.every(isAllergenMarking)
+  );
+}
+
 function isShoppingListItem(value: unknown): value is ShoppingListItem {
   if (typeof value !== "object" || value === null) return false;
   const item = value as Record<string, unknown>;
@@ -91,7 +126,12 @@ function isShoppingListItem(value: unknown): value is ShoppingListItem {
     typeof item.bought === "boolean" &&
     Array.isArray(item.allergens) &&
     item.allergens.every(isAllergenMarking) &&
-    isScaledQuantity(item.quantity)
+    isScaledQuantity(item.quantity) &&
+    typeof item.slotIndex === "number" &&
+    Number.isInteger(item.slotIndex) &&
+    item.slotIndex >= 0 &&
+    typeof item.ingredientId === "string" &&
+    (item.swappedFrom === undefined || isSwappedFrom(item.swappedFrom))
   );
 }
 
@@ -162,9 +202,10 @@ export function clearShoppingList(): void {
  *
  * `inPantry` is set only by the guided flow (UX_FLOW §5 step 3 feeding step 5's
  * "✓ ris, ✓ grädde"); the Tonight card never asks the question, so its ingredients
- * carry no flag and every item starts in "Att köpa" exactly as before. Note what is
- * stored either way: item *names* for the dish the household accepted, never the
- * pantry selection itself — the ids are not persisted here or anywhere else.
+ * carry no flag and every item starts in "Att köpa" exactly as before. `slotIndex`
+ * and `ingredientId` are stored too, as of #124 — never the pantry selection itself,
+ * which stays unpersisted as before, but the ingredient-swap popover needs an
+ * identifier for its tap target to survive a reload.
  */
 export function freshShoppingList(
   templateId: string,
@@ -179,6 +220,8 @@ export function freshShoppingList(
       bought: false,
       allergens: ingredient.allergens,
       quantity: ingredient.quantity,
+      slotIndex: ingredient.slotIndex,
+      ingredientId: ingredient.ingredientId,
     })),
   };
 }

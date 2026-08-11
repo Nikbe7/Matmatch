@@ -1,5 +1,7 @@
+import { COST_TIER_ORDER } from "../tools/validation.js";
 import type { Allergy, DietaryFlag } from "../schema/allergyDietary.js";
-import type { IngredientSlot, RecipeTemplate } from "../schema/recipeTemplate.js";
+import type { CostTier } from "../schema/ingredient.js";
+import type { IngredientSlot, IngredientSlotRole, RecipeTemplate } from "../schema/recipeTemplate.js";
 import { isIngredientExcluded } from "./allergens.js";
 import type { MealConstraints } from "./constraints.js";
 import type { EngineData } from "./data.js";
@@ -60,6 +62,48 @@ function passesDietaryFilter(template: RecipeTemplate, flags: readonly DietaryFl
 }
 
 /**
+ * Every edible ingredient that can stand in for `currentIngredientId` in a slot of
+ * the given role — every group whose role matches and whose members include
+ * `currentIngredientId`, unioned and de-duplicated, in group-file then member order.
+ * `currentIngredientId` itself is never included.
+ *
+ * Deliberately keyed on `currentIngredientId` rather than a slot's authored
+ * `ingredient_id`: a slot's *current* ingredient may already be a substitution-rescue
+ * or a household-initiated swap (#124), and offering "alternatives to what's on the
+ * plate" has to traverse from there, not from what the template originally named.
+ *
+ * Extracted so both `findSubstitute` below (single rescue candidate) and #124's
+ * ingredient-swap popover (every candidate) traverse the curated groups exactly once,
+ * in exactly one place — a second traversal is how the two could quietly disagree
+ * about which ingredients are interchangeable.
+ */
+export function substituteCandidateIds(
+  data: EngineData,
+  role: IngredientSlotRole,
+  currentIngredientId: string,
+  allergies: readonly Allergy[],
+): string[] {
+  const groups = data.substitutionGroupsByMemberIngredientId.get(currentIngredientId) ?? [];
+  const seen = new Set<string>([currentIngredientId]);
+  const candidateIds: string[] = [];
+
+  for (const group of groups) {
+    if (group.role !== role) continue;
+    for (const memberId of group.member_ingredient_ids) {
+      if (seen.has(memberId)) continue;
+      seen.add(memberId);
+      // Edibility of a candidate member is always resolved through the verified
+      // ingredient-allergen mapping — groups carry no allergen or dietary field
+      // by design (§5.5).
+      if (isIngredientExcluded(data, memberId, allergies)) continue;
+      candidateIds.push(memberId);
+    }
+  }
+
+  return candidateIds;
+}
+
+/**
  * The id of an edible ingredient that can stand in for this slot's excluded
  * ingredient, or undefined if the slot cannot be rescued.
  *
@@ -67,6 +111,10 @@ function passesDietaryFilter(template: RecipeTemplate, flags: readonly DietaryFl
  * `substitutable: false` suppresses swaps entirely regardless of group membership —
  * the template author's statement that this ingredient *is* the dish. Per
  * DECISION_LOG 2026-08-01 that is the case for every protein slot in the library.
+ *
+ * First match wins, in group-file then member order (`substituteCandidateIds`'
+ * order). Which member a household would *prefer* is a ranking judgment driven by
+ * the session weight vector (DECISION_LOG 2026-07-31), not a property of this filter.
  */
 function findSubstitute(
   data: EngineData,
@@ -74,23 +122,75 @@ function findSubstitute(
   allergies: readonly Allergy[],
 ): string | undefined {
   if (!slot.substitutable) return undefined;
+  return substituteCandidateIds(data, slot.role, slot.ingredient_id, allergies)[0];
+}
 
-  const groups = data.substitutionGroupsByMemberIngredientId.get(slot.ingredient_id) ?? [];
-  for (const group of groups) {
-    if (group.role !== slot.role) continue;
+/**
+ * Every catalog member of any substitution group of the given role, regardless of
+ * which group(s) `excludeIngredientId` itself belongs to — the wide pool #124's
+ * ingredient-swap search box filters client-side (the #110 type-to-filter idiom),
+ * as distinct from `substituteCandidateIds`' narrow pool (only groups that already
+ * contain the current ingredient). "Valid for that slot's role" is answered from the
+ * curated groups, never from `Ingredient.category` — the two vocabularies are
+ * deliberately not interchangeable (recipeTemplate.ts's role-vs-category comment).
+ */
+export function roleSubstitutionPool(
+  data: EngineData,
+  role: IngredientSlotRole,
+  excludeIngredientId: string,
+  allergies: readonly Allergy[],
+): string[] {
+  const seen = new Set<string>([excludeIngredientId]);
+  const ids: string[] = [];
+
+  for (const group of data.substitutionGroupsById.values()) {
+    if (group.role !== role) continue;
     for (const memberId of group.member_ingredient_ids) {
-      if (memberId === slot.ingredient_id) continue;
-      // Edibility of a candidate member is always resolved through the verified
-      // ingredient-allergen mapping — groups carry no allergen or dietary field
-      // by design (§5.5).
-      if (!isIngredientExcluded(data, memberId, allergies)) return memberId;
+      if (seen.has(memberId)) continue;
+      seen.add(memberId);
+      if (isIngredientExcluded(data, memberId, allergies)) continue;
+      ids.push(memberId);
     }
   }
 
-  // First match wins, in group-file then member order. Which member a household
-  // would *prefer* is a ranking judgment driven by the session weight vector
-  // (DECISION_LOG 2026-07-31), not a property of this filter.
-  return undefined;
+  return ids;
+}
+
+export interface CostTierClassifiedCandidates {
+  /** Candidates whose curated `default_cost_tier` is strictly below `currentTier`. */
+  cheaper: string[];
+  /** Candidates whose curated `default_cost_tier` equals `currentTier`. */
+  similar: string[];
+}
+
+/**
+ * Splits a candidate set by curated cost tier relative to the ingredient currently in
+ * the slot — the deterministic basis for #124's Billigare/Liknande filters. Never a
+ * kronor figure (CLAUDE.md non-negotiable): only the three-tier vocabulary ever
+ * reaches a household, and it is read straight off `Ingredient.default_cost_tier`,
+ * never computed or estimated.
+ */
+export function classifyCostTier(
+  data: EngineData,
+  candidateIds: readonly string[],
+  currentTier: CostTier,
+): CostTierClassifiedCandidates {
+  const cheaper: string[] = [];
+  const similar: string[] = [];
+
+  for (const id of candidateIds) {
+    const ingredient = data.ingredientsById.get(id);
+    // candidateIds always come from substituteCandidateIds/roleSubstitutionPool,
+    // which only ever emit ids present in ingredientsById — this is defensive, not a
+    // path a caller can reach.
+    if (!ingredient) continue;
+
+    const order = COST_TIER_ORDER[ingredient.default_cost_tier] - COST_TIER_ORDER[currentTier];
+    if (order < 0) cheaper.push(id);
+    else if (order === 0) similar.push(id);
+  }
+
+  return { cheaper, similar };
 }
 
 /**
