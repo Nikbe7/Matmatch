@@ -70,6 +70,7 @@ Free-text chat is available as a persistent small affordance at the bottom of st
 - Grouped by store section where feasible (produce, dairy, meat, pantry) to be genuinely useful while shopping, not just a copy of the recipe ingredient list
 - Checkable items, persists across app close/reopen, usable offline
 - Clear "Buy" vs "Already have" split, matching the original brief's example directly
+- **Every row carries an amount** ("450 g Kyckling", "2 klyftor Vitlök"), scaled to the diners eating tonight and rounded to something buyable — a list without amounts is weak in exactly the moment it exists for (#123). An ingredient seasoned at the stove says "efter smak" rather than a number, and a substituted row shows the slot's amount, not the swapped-out ingredient's. The amount is the scannable part of the row, so it is set before the name and weighted heavier; a kronor figure never appears on a row (`CLAUDE.md` — no AI-invented numbers)
 
 ## 8. Re-engagement & Notifications
 
