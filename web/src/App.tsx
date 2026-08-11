@@ -880,6 +880,7 @@ function TonightView({
         <ShoppingList
           result={result}
           portions={current.portions}
+          diners={diners.parameter}
           accessToken={accessToken}
           onNewSuggestion={() => setState({ status: "suggestion" })}
         />

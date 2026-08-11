@@ -54,8 +54,8 @@ const suggestionBody = {
   result: {
     template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min", cuisine: "swedish_nordic" },
     ingredients: [
-      { role: "protein", name: "Kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
-      { role: "aromatic", name: "Rödlök", substituted: true, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "aromatic", name: "Rödlök", slotIndex: 1, ingredientId: "rodlok", substituted: true, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
     ],
     substitutions: [],
     score: 0.5,
@@ -68,7 +68,7 @@ function suggestionBodyForTier(tier: CostTier) {
   return {
     result: {
       template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: tier, prep_time_band: "20-40min", cuisine: "swedish_nordic" },
-      ingredients: [{ role: "protein", name: "Kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+      ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
       substitutions: [],
       score: 0.5,
       cookedToday: false,
@@ -420,7 +420,7 @@ function suggestionBodyFor(id: string, name: string, cuisine = "swedish_nordic")
   return {
     result: {
       template: { id, name, cost_tier: "budget", prep_time_band: "<20min", cuisine },
-      ingredients: [{ role: "protein", name: "Torsk", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+      ingredients: [{ role: "protein", name: "Torsk", slotIndex: 0, ingredientId: "torsk", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
       substitutions: [],
       score: 0.3,
       cookedToday: false,
@@ -880,11 +880,11 @@ describe("App — entering the guided flow", () => {
     localStorage.setItem(
       "matmatch.shoppingList",
       JSON.stringify({
-        version: 3,
+        version: 4,
         templateId: "nagot-annat",
         templateName: "Svartbönsgryta",
         substitutions: [],
-        items: [{ name: "Svarta bönor", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+        items: [{ name: "Svarta bönor", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "svarta-bonor" }],
       }),
     );
     vi.stubGlobal(
@@ -907,9 +907,9 @@ describe("App — entering the guided flow", () => {
     localStorage.setItem(
       "matmatch.shoppingList",
       JSON.stringify({
-        version: 3,
+        version: 4,
         templateId: "kycklinggryta",
-        items: [{ name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+        items: [{ name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" }],
       }),
     );
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
@@ -955,11 +955,11 @@ describe("App — offline", () => {
     localStorage.setItem(
       "matmatch.shoppingList",
       JSON.stringify({
-        version: 3,
+        version: 4,
         templateId: "kycklinggryta",
         items: [
-          { name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
-          { name: "Ris", section: "have_at_home", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+          { name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" },
+          { name: "Ris", section: "have_at_home", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 1, ingredientId: "ris" },
         ],
       }),
     );
@@ -980,9 +980,9 @@ describe("App — offline", () => {
     localStorage.setItem(
       "matmatch.shoppingList",
       JSON.stringify({
-        version: 3,
+        version: 4,
         templateId: "kycklinggryta",
-        items: [{ name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+        items: [{ name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" }],
       }),
     );
     vi.stubGlobal("fetch", offlineFetch());
@@ -1046,7 +1046,7 @@ describe("App — the Tonight card's diner picker (#112)", () => {
           prep_time_band: "20-40min",
           cuisine: "swedish_nordic",
         },
-        ingredients: [{ role: "protein", name: "Kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+        ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
         substitutions: [],
         score: 0.5,
         cookedToday: false,
@@ -1222,7 +1222,7 @@ describe("App — a failed diner change never leaves the card and the picker dis
               prep_time_band: "20-40min",
               cuisine: "swedish_nordic",
             },
-            ingredients: [{ role: "protein", name: "Kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+            ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
             substitutions: [],
             score: 0.5,
             cookedToday: false,

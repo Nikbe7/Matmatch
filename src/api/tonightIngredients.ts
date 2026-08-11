@@ -32,6 +32,20 @@ export interface TonightIngredientView {
   // would let the frontend start reading default_cost_tier/allergens off it and
   // reimplementing engine logic client-side (see issue #64).
   name: string;
+  /**
+   * The slot's position in the template's ingredient_slots[] (#124). Identifies
+   * which ingredient a tap targets when the client asks for swap alternatives —
+   * never used by the client to read anything about the slot itself.
+   */
+  slotIndex: number;
+  /**
+   * The id of the ingredient currently filling this slot — the substitute if the
+   * slot was rescued or user-swapped, the template's own ingredient otherwise (#124).
+   * A bare identifier only, not the catalog row: it lets the client ask "what else
+   * could go here" without letting it read default_cost_tier or allergens off it
+   * directly (see the `name` comment above, same rule).
+   */
+  ingredientId: string;
   substituted: boolean;
   /**
    * How much of it, already scaled to the diners eating tonight (#123). Structured
@@ -50,7 +64,7 @@ export interface TonightIngredientView {
  * order — the same ordering discipline `mealConstraints` applies, so the same
  * household always produces byte-identical marking order.
  */
-function membersByDeclaredAllergy(
+export function membersByDeclaredAllergy(
   householdMembers: readonly HouseholdMember[],
 ): ReadonlyMap<Allergy, readonly string[]> {
   const labels = memberLabels(householdMembers);
@@ -78,7 +92,7 @@ function membersByDeclaredAllergy(
  * ingredient the household has no matching declared allergy for is never named for
  * a specific allergen, verified or not.
  */
-function ingredientAllergenMarkings(
+export function ingredientAllergenMarkings(
   engineData: EngineData,
   ingredientId: string,
   membersByAllergy: ReadonlyMap<Allergy, readonly string[]>,
@@ -139,6 +153,8 @@ export function buildTonightIngredients(
     return {
       role: slot.role,
       name: ingredient.name,
+      slotIndex: index,
+      ingredientId,
       substituted: substituteId !== undefined,
       // The *slot's* quantity, never the substitute ingredient's: a rescued slot
       // still has to fill the same hole in the dish, so swapping mandelmjölk for

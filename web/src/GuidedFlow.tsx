@@ -560,6 +560,7 @@ export function GuidedFlow({
           <ShoppingList
             result={meal}
             portions={state.portions ?? undefined}
+            diners={diners.parameter}
             accessToken={accessToken}
             onNewSuggestion={() => dispatch({ type: "restart" })}
             newSuggestionLabel="Börja om"

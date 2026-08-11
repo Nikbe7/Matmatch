@@ -10,6 +10,7 @@ import { dishGenerateRouter } from "./routes/dishGenerate.js";
 import { guidedRouter } from "./routes/guided.js";
 import { healthRouter } from "./routes/health.js";
 import { householdsRouter } from "./routes/households.js";
+import { ingredientAlternativesRouter } from "./routes/ingredientAlternatives.js";
 import { instructionsRouter } from "./routes/instructions.js";
 import { tonightRouter } from "./routes/tonight.js";
 import { staticRouter } from "./static.js";
@@ -47,6 +48,7 @@ export function createApp(deps: AppDependencies): Express {
   app.use(guidedRouter(deps.sql, deps.engineData, deps.verifyToken));
   app.use(cookedRouter(deps.sql, deps.engineData, deps.verifyToken));
   app.use(instructionsRouter(deps.sql, deps.engineData, deps.verifyToken, deps.anthropicClient));
+  app.use(ingredientAlternativesRouter(deps.sql, deps.engineData, deps.verifyToken));
   app.use(dishGenerateRouter(deps.sql, deps.engineData, deps.verifyToken, deps.anthropicClient));
   app.use(analyticsRouter(deps.sql, deps.verifyToken));
 

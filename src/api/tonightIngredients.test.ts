@@ -34,6 +34,8 @@ describe("buildTonightIngredients", () => {
       {
         role: "protein",
         name: "Kyckling",
+        slotIndex: 0,
+        ingredientId: "kyckling",
         substituted: false,
         allergens: [],
         quantity: { kind: "amount", amount: 100, unit: "g" },
@@ -41,6 +43,8 @@ describe("buildTonightIngredients", () => {
       {
         role: "starch",
         name: "Potatis",
+        slotIndex: 1,
+        ingredientId: "potatis",
         substituted: false,
         allergens: [],
         quantity: { kind: "amount", amount: 100, unit: "g" },
@@ -80,6 +84,8 @@ describe("buildTonightIngredients", () => {
       {
         role: "aromatic",
         name: "Rödlök",
+        slotIndex: 0,
+        ingredientId: "rodlok",
         substituted: true,
         allergens: [],
         // The slot's quantity, not the substitute ingredient's — a rescued slot fills
