@@ -77,6 +77,16 @@ Whenever AskUserQuestion is used, immediately follow it with the same question a
 ## Task sizing
 Never implement multiple unrelated features in the same session. Prefer small, reviewable changes — one issue, one branch, one PR. If a task turns out to bundle unrelated work, split it into separate issues rather than shipping it as one large change.
 
+Slice size depends on what's at risk, not on habit.
+- **Small, reviewed slices** stay the rule for: database schema and migrations, the allergy and dietary path, AI orchestration, and curated data passes. Mistakes there are expensive or unsafe, and Niklas verifies each one before merge.
+- **Large single-pass slices** are correct for visual and layout work across multiple screens. It is reversible, nothing safety-critical is at stake, and one screen per PR costs more in round trips than it saves in review.
+
+Merge without waiting for verification when all of these hold: the change touches no schema, no migration, no allergy or dietary path, no AI orchestration and no curated data; typecheck, both suites at 0 skipped via the JSON reporter and e2e are green; and the "Verifiera i webbläsaren" checklist is in the PR body. Merge, close the issue, move it to Done, and report what landed rather than asking whether to merge.
+
+Still wait for explicit approval on anything in the first list, on anything that reverses a DECISION_LOG entry, and on any change whose failure mode is that a dish is shown when it should have been withheld — the fail-open direction, regardless of which files it touches.
+
+Deployment stays parked until Niklas says otherwise.
+
 ## Development session workflow
 1. Review the GitHub Project board.
 2. Recommend the highest-priority actionable issue.
