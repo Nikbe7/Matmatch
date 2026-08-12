@@ -84,7 +84,25 @@ export type GuidedAction =
   /** §9 loosen actions: widen the constraints without leaving the direction step. */
   | { type: "clear_pantry" }
   | { type: "clear_main" }
-  | { type: "restart" };
+  | { type: "restart" }
+  /**
+   * #133: a diner change (from the "portions" or "shopping" step) made the chosen
+   * dish unsafe. Back to "directions" — the fresh card set the same request just
+   * fetched is already in hand — with the choice released, exactly like stepping
+   * back manually. Never silent: the caller renders the server's `replacedFor`
+   * alongside the new cards.
+   */
+  | { type: "dish_no_longer_safe" }
+  /**
+   * #133: the chosen dish survived a diner change — re-seeded from the
+   * household's fresh diner-derived total, exactly like `choose_direction`
+   * already does every time a direction is chosen. Any manual stepper
+   * adjustment does not survive a diner change, deliberately: the number this
+   * type carries is what the ingredients underneath it were actually scaled
+   * for server-side, and letting the display drift from that would be its own
+   * "silent swap" — the count would say one thing while the list said another.
+   */
+  | { type: "diner_change_portions"; portions: number };
 
 /**
  * The smallest number of portions a shopping list can be for. One, not zero: a list
@@ -242,6 +260,16 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
 
     case "restart":
       return INITIAL_GUIDED;
+
+    case "dish_no_longer_safe":
+      return { ...state, step: "directions", chosenTemplateId: null, portions: null };
+
+    case "diner_change_portions":
+      // Guarded like `adjust_portions`: nothing to reseed once the choice has
+      // already been released (e.g. a slow response landing after the household
+      // stepped back on its own).
+      if (state.portions === null) return state;
+      return { ...state, portions: Math.max(MIN_PORTIONS, action.portions) };
 
     default: {
       const exhaustive: never = action;

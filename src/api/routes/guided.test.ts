@@ -830,3 +830,72 @@ describe.skipIf(!stackAvailable)("the guided flow's diner set (#112)", () => {
     expect(await getHouseholdForOwner(sql!, user.userId)).toEqual(before);
   });
 });
+
+describe.skipIf(!stackAvailable)("GET /api/guided/directions — `keep` on a diner-set change (#133)", () => {
+  // Same contract as tonight.ts's `keep` (src/api/app.test.ts); this only proves
+  // the guided endpoint's own wiring — forcing the kept dish into the returned
+  // cards, and naming who it was replaced for.
+  const adultAndPeanutChild = {
+    members: [
+      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
+      { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+    ],
+  };
+
+  function keepEngineData(): EngineData {
+    return makeEngineData({
+      ingredients: [makeIngredient("jordnotter"), makeIngredient("morot")],
+      allergenMappings: [
+        { ingredient_id: "jordnotter", allergens: ["peanuts"], verification_status: "verified" },
+        { ingredient_id: "morot", allergens: [], verification_status: "verified" },
+      ],
+      templates: [
+        // Contains peanuts — safe only without the peanut-allergic child.
+        makeTemplate("satay", {
+          ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "jordnotter", substitutable: false })],
+        }),
+        // Safe for everyone, regardless of who is eating.
+        makeTemplate("morotssoppa", {
+          ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false })],
+        }),
+      ],
+    });
+  }
+
+  it("keeps the chosen direction in the returned cards when the new diner set still allows it", async () => {
+    const app = buildApp(keepEngineData());
+    const user = await userWithHousehold(app, adultAndPeanutChild);
+
+    const response = await directions(app, user.accessToken, {
+      intent: "dinner_idea",
+      main: "any",
+      diners: "0,1",
+      keep: "morotssoppa",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.directions.map((d: { template: { id: string } }) => d.template.id)).toContain(
+      "morotssoppa",
+    );
+    expect(response.body.replacedFor).toBeUndefined();
+  });
+
+  it("drops the kept dish and names the affected member once the new diner set makes it unsafe", async () => {
+    const app = buildApp(keepEngineData());
+    const user = await userWithHousehold(app, adultAndPeanutChild);
+
+    const response = await directions(app, user.accessToken, {
+      intent: "dinner_idea",
+      main: "any",
+      diners: "0,1",
+      keep: "satay",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.directions.map((d: { template: { id: string } }) => d.template.id)).not.toContain(
+      "satay",
+    );
+    // The child has no declared name, so the derived label applies.
+    expect(response.body.replacedFor).toBe("Barn 1");
+  });
+});

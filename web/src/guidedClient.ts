@@ -35,6 +35,12 @@ export interface GuidedDirectionsRequest {
    * module holds no pantry state and `shoppingListStorage.ts` never sees an id.
    */
   pantry?: readonly string[];
+  /**
+   * The already-chosen direction's template id (#133), same contract as
+   * `FetchTonightOptions.keep`: keep it if the diner set this client was built
+   * for still allows it, replace (and explain) it if not.
+   */
+  keep?: string;
 }
 
 interface ApiErrorEnvelope {
@@ -79,6 +85,7 @@ export function createGuidedClient(accessToken: string, diners: string | undefin
       if (options.pantry && options.pantry.length > 0) {
         params.set("pantry", options.pantry.join(","));
       }
+      if (options.keep) params.set("keep", options.keep);
 
       const response = await fetch(`/api/guided/directions${withDiners(params)}`, { headers });
       return readJson<GuidedDirectionsResponse>(response);

@@ -799,6 +799,77 @@ describe("GuidedFlow — the diner picker (#112)", () => {
   });
 });
 
+describe("GuidedFlow — a diner change after choosing keeps or explains (#133)", () => {
+  const twoDiners = [{ label: "Vuxen 1" }, { label: "Elsa" }];
+
+  async function reachPortions(user: ReturnType<typeof userEvent.setup>) {
+    await screen.findByRole("heading", { name: "Vad är du sugen på?" });
+    await user.click(screen.getByRole("button", { name: "Middagsidé" }));
+    await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
+    await user.click(await screen.findByRole("button", { name: "Hoppa över" }));
+    await screen.findByRole("heading", { name: "Tre förslag" });
+    await user.click((await screen.findAllByRole("button", { name: "Välj" }))[0]!);
+    await screen.findByRole("heading", { name: "Hur många portioner?" });
+  }
+
+  it("keeps the chosen dish on the portions step when the new diner set still allows it", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) {
+        return jsonResponse(200, { ...options, diners: twoDiners });
+      }
+      if (url.startsWith("/api/guided/directions")) return jsonResponse(200, threeDirections);
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderFlow();
+
+    await reachPortions(user);
+    const callsBefore = directionsQueries(fetchMock).length;
+
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+
+    await waitFor(() => expect(directionsQueries(fetchMock).length).toBeGreaterThan(callsBefore));
+    // Never bounced off the portions step, and still the same dish.
+    expect(screen.getByRole("heading", { name: "Hur många portioner?" })).toBeTruthy();
+    expect(screen.getByText("Kycklinggryta")).toBeTruthy();
+    expect(directionsQueries(fetchMock).at(-1)!.get("keep")).toBe("gryta");
+  });
+
+  it("bounces back to the cards and names the affected member once the new diner set makes it unsafe", async () => {
+    const user = userEvent.setup();
+    let directionsCalls = 0;
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) {
+        return jsonResponse(200, { ...options, diners: twoDiners });
+      }
+      if (url.startsWith("/api/guided/directions")) {
+        directionsCalls += 1;
+        if (directionsCalls === 1) return jsonResponse(200, threeDirections);
+        // The dish chosen at the cards step ("gryta") no longer comes back.
+        return jsonResponse(200, {
+          directions: [direction("wok", "Kycklingwok"), direction("pasta", "Kycklingpasta")],
+          mainIngredientId: "kycklingfile",
+          portions: 2,
+          replacedFor: "Elsa",
+        });
+      }
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderFlow();
+
+    await reachPortions(user);
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+
+    // Never a silent swap: back to the cards, with the reason and the new set —
+    // never left showing "Kycklinggryta" as though nothing happened.
+    await screen.findByRole("heading", { name: "Tre förslag" });
+    expect(screen.getByText("Rätten passar inte Elsa, här är ett nytt förslag")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Hur många portioner?" })).toBeNull();
+  });
+});
+
 describe("GuidedFlow — a failed options refetch drops the stale grid (#112)", () => {
   it("does not leave a grid built for a different diner set tappable", async () => {
     const user = userEvent.setup();

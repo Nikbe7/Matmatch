@@ -193,6 +193,69 @@ export function classifyCostTier(
   return { cheaper, similar };
 }
 
+/** The first ingredient slot a template cannot be safely served with, unrescued. */
+export interface UnsafeSlot {
+  slotIndex: number;
+  ingredientId: string;
+}
+
+/**
+ * One template's outcome against one constraint set: either the rescued candidate,
+ * or specifically *why* it does not survive — a missing hard dietary tag, or the
+ * first slot no substitution could rescue. Never both.
+ *
+ * The three-way split exists for #133/diner-change: keeping the dish shown on
+ * Tonight across a diner-set change, or explaining why it had to be replaced,
+ * needs to ask this exact question of one template — the same question
+ * `selectCandidateTemplates` asks of every template in the catalog. A second,
+ * parallel evaluation is exactly how the two could disagree about what is safe,
+ * so both go through this one function.
+ */
+export type TemplateEvaluation =
+  | { candidate: CandidateTemplate }
+  | { unsafeSlot: UnsafeSlot }
+  | { missingDietaryFlags: readonly DietaryFlag[] };
+
+/**
+ * Whether `template` survives `constraints`, and if not, why — the single
+ * implementation `selectCandidateTemplates` runs over the whole catalog, and the
+ * diner-change flow (tonight.ts, guided.ts) runs directly against one template it
+ * already has in hand.
+ */
+export function evaluateTemplateAgainstConstraints(
+  data: EngineData,
+  template: RecipeTemplate,
+  constraints: MealConstraints,
+): TemplateEvaluation {
+  if (!passesDietaryFilter(template, constraints.dietary_flags)) {
+    const missingDietaryFlags = HARD_DIETARY_FLAGS.filter(
+      (flag) => constraints.dietary_flags.includes(flag) && !template.dietary_tags.includes(flag),
+    );
+    return { missingDietaryFlags };
+  }
+
+  const substitutions: SlotSubstitution[] = [];
+
+  for (const [slotIndex, slot] of template.ingredient_slots.entries()) {
+    if (!isIngredientExcluded(data, slot.ingredient_id, constraints.allergies)) continue;
+
+    const substituteId = findSubstitute(data, slot, constraints.allergies);
+    if (substituteId === undefined) {
+      return { unsafeSlot: { slotIndex, ingredientId: slot.ingredient_id } };
+    }
+
+    substitutions.push({ slot_index: slotIndex, slot, substitute_ingredient_id: substituteId });
+  }
+
+  // `template.cost_tier` is returned unchanged, including for templates rescued by
+  // a substitution. The effective cost tier of a swapped meal is explicitly
+  // undefined until the Meal Engine first has to render one — see DECISION_LOG
+  // 2026-08-01 ("Substitutions are symmetric groups", the swap-drift section) and
+  // ARCHITECTURE.md §5.5. This slice does not render a tier, so it does not make
+  // that call and must not invent one here.
+  return { candidate: { template, substitutions } };
+}
+
 /**
  * Every recipe template these constraints allow, including those rescued by a
  * substitution. A template survives when every one of its slots resolves to an
@@ -211,32 +274,9 @@ export function selectCandidateTemplates(
     // shape should even be. If/when a lunch flow is built, this is the line to
     // parameterize — do not guess the interface ahead of that caller existing.
     if (!template.meal_types.includes("dinner")) continue;
-    if (!passesDietaryFilter(template, constraints.dietary_flags)) continue;
 
-    const substitutions: SlotSubstitution[] = [];
-    let survives = true;
-
-    for (const [slotIndex, slot] of template.ingredient_slots.entries()) {
-      if (!isIngredientExcluded(data, slot.ingredient_id, constraints.allergies)) continue;
-
-      const substituteId = findSubstitute(data, slot, constraints.allergies);
-      if (substituteId === undefined) {
-        survives = false;
-        break;
-      }
-
-      substitutions.push({ slot_index: slotIndex, slot, substitute_ingredient_id: substituteId });
-    }
-
-    if (!survives) continue;
-
-    // `template.cost_tier` is returned unchanged, including for templates rescued by
-    // a substitution. The effective cost tier of a swapped meal is explicitly
-    // undefined until the Meal Engine first has to render one — see DECISION_LOG
-    // 2026-08-01 ("Substitutions are symmetric groups", the swap-drift section) and
-    // ARCHITECTURE.md §5.5. This slice does not render a tier, so it does not make
-    // that call and must not invent one here.
-    candidates.push({ template, substitutions });
+    const evaluation = evaluateTemplateAgainstConstraints(data, template, constraints);
+    if ("candidate" in evaluation) candidates.push(evaluation.candidate);
   }
 
   return candidates;

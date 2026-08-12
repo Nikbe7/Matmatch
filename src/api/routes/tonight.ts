@@ -14,12 +14,18 @@ import {
   RECENCY_HISTORY_WINDOW_DAYS,
   type RecencyContext,
 } from "../../engine/ranking.js";
+import type { RecipeTemplate } from "../../schema/recipeTemplate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../httpError.js";
 import { parseWeightsFromQuery } from "../weights.js";
-import { parseExcludeFromQuery, parsePreviousFromQuery } from "../tonightSelection.js";
+import {
+  parseExcludeFromQuery,
+  parseKeepFromQuery,
+  parsePreviousFromQuery,
+} from "../tonightSelection.js";
 import { buildTonightIngredients } from "../tonightIngredients.js";
 import { parseDinersFromQuery } from "../diners.js";
+import { explainReplacedDish } from "../dinerChangeReason.js";
 import { memberLabels } from "../../schema/household.js";
 
 export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: TokenVerifier): Router {
@@ -30,6 +36,9 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       const weights = parseWeightsFromQuery(req.query as Record<string, unknown>);
       const excludedTemplateIds = parseExcludeFromQuery((req.query as Record<string, unknown>).exclude);
       const previousTemplateId = parsePreviousFromQuery((req.query as Record<string, unknown>).previous);
+      // #133: the dish already on screen, sent only by a diner-set change — see
+      // parseKeepFromQuery's own comment for how this differs from `previous`.
+      const keepTemplateId = parseKeepFromQuery((req.query as Record<string, unknown>).keep);
       // Optional, and absent on the very first request of every session: Tonight is
       // zero-input and assumes everyone (DECISION_LOG 2026-08-09, condition 2).
       const selectedDiners = parseDinersFromQuery((req.query as Record<string, unknown>).diners);
@@ -61,7 +70,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       // Derived once and used for filtering, ranking *and* portions, so none of the
       // three can be handed a different answer about who this meal is for. An
       // unparseable, empty or stale `diners` widens to the whole household here.
-      const { constraints, portions } = mealDiners(stored.household.members, selectedDiners);
+      const { members: eating, constraints, portions } = mealDiners(stored.household.members, selectedDiners);
 
       // Labels for the diner picker, by member position — never the members
       // themselves, so no allergy data crosses the wire and the client never holds a
@@ -79,26 +88,86 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         recency,
       );
 
+      // #133: a diner-set change asks to *keep* the dish already on screen rather
+      // than pick fresh. If it is still in the candidate set for the new
+      // constraints, it is returned outright — the household never sees a dish it
+      // did not ask for just because the ranking order shifted. If it is not, the
+      // affected member is resolved here (from the raw catalog template, since an
+      // unsafe dish never reaches `ranked`) and carried through as `replacedFor`,
+      // and `previousTemplate` below still steers the fallback pick away from it —
+      // the same diversity a reroll gets, on top of an honest explanation.
+      let replacedFor: string | undefined;
+      let previousTemplate: RecipeTemplate | undefined;
+
+      if (keepTemplateId) {
+        const kept = ranked.find((candidate) => candidate.template.id === keepTemplateId);
+
+        if (kept) {
+          const reasonCodes = explainSuggestion(
+            engineData,
+            ranked,
+            excludedTemplateIds,
+            kept,
+            undefined,
+            weights,
+            month,
+            constraints.dietary_flags,
+            recency,
+          );
+
+          res.status(200).json({
+            result: {
+              template: kept.template,
+              substitutions: kept.substitutions,
+              ingredients: buildTonightIngredients(engineData, kept, stored.household.members, portions),
+              score: kept.score,
+              reasonCodes,
+              cookedToday: cookedTodayTemplateIds(history).has(kept.template.id),
+            },
+            portions,
+            diners,
+          });
+          return;
+        }
+
+        const explanation = explainReplacedDish(
+          engineData,
+          keepTemplateId,
+          constraints,
+          stored.household.members,
+          eating,
+        );
+        if (explanation) {
+          previousTemplate = explanation.template;
+          replacedFor = explanation.affectedMemberLabel;
+        }
+      }
+
       if (ranked.length === 0) {
         // Not an error: UX_FLOW §9 says never dead-end the user. A vegan+gluten
         // household hits this today (DECISION_LOG 2026-08-02, #46) and the client
         // needs a machine-readable reason to render "loosen constraints" rather than
         // treat this as a failed request.
-        res.status(200).json({ result: null, reason: "no_safe_templates", portions, diners });
+        res.status(200).json({ result: null, reason: "no_safe_templates", portions, diners, replacedFor });
         return;
       }
 
       // An unknown/stale previous id (e.g. from a household whose constraints
       // changed mid-session) simply matches nothing here — ignored, not rejected.
-      const previousTemplate = previousTemplateId
-        ? ranked.find((candidate) => candidate.template.id === previousTemplateId)?.template
-        : undefined;
-      const picked = pickNextSuggestion(ranked, excludedTemplateIds, previousTemplate);
+      // `previousTemplate` may already be set above (the diner-change "keep"
+      // path); `previous` is never sent alongside `keep` by the client, so the two
+      // cannot disagree about which dish to diversify away from.
+      const resolvedPrevious =
+        previousTemplate ??
+        (previousTemplateId
+          ? ranked.find((candidate) => candidate.template.id === previousTemplateId)?.template
+          : undefined);
+      const picked = pickNextSuggestion(ranked, excludedTemplateIds, resolvedPrevious);
 
       if (!picked) {
         // Distinct from no_safe_templates: the household has safe options, the
         // client has just already been shown all of them this session (#70).
-        res.status(200).json({ result: null, reason: "no_more_suggestions", portions, diners });
+        res.status(200).json({ result: null, reason: "no_more_suggestions", portions, diners, replacedFor });
         return;
       }
 
@@ -110,7 +179,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         ranked,
         excludedTemplateIds,
         picked,
-        previousTemplate,
+        resolvedPrevious,
         weights,
         month,
         constraints.dietary_flags,
@@ -135,6 +204,10 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         },
         portions,
         diners,
+        // Present only when the diner-change "keep" path above actually replaced a
+        // dish — omitted (never `null`) otherwise, so the client's presence check
+        // is the one place this ever gets read.
+        replacedFor,
       });
     } catch (error) {
       next(error);

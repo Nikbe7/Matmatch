@@ -627,3 +627,124 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
     expect(response.body.result).not.toBeNull();
   });
 });
+
+describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set change (#133)", () => {
+  // Selection/exclusion behaviour over `keep` is covered exhaustively in
+  // src/engine/candidates.test.ts and src/api/dinerChangeReason.test.ts; what these
+  // tests prove is the wiring — that a real request reaches those functions with
+  // the right template and the right household, and the response shape a diner
+  // change actually gets back.
+  const adultAndPeanutChild = {
+    members: [
+      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
+      { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+    ],
+  };
+
+  async function keepApp(): Promise<Express> {
+    const { makeEngineData, makeIngredient, makeTemplate } = await import(
+      "../engine/__fixtures__/engineData.js"
+    );
+
+    return createApp({
+      sql: sql!,
+      engineData: makeEngineData({
+        ingredients: [makeIngredient("jordnotter"), makeIngredient("morot")],
+        allergenMappings: [
+          { ingredient_id: "jordnotter", allergens: ["peanuts"], verification_status: "verified" },
+          { ingredient_id: "morot", allergens: [], verification_status: "verified" },
+        ],
+        templates: [
+          // Contains peanuts — safe only without the peanut-allergic child.
+          makeTemplate("satay", {
+            ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "jordnotter", substitutable: false })],
+          }),
+          // Safe for everyone, regardless of who is eating.
+          makeTemplate("morotssoppa", {
+            ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false })],
+          }),
+        ],
+      }),
+      verifyToken: verifyToken!,
+    });
+  }
+
+  async function userWithPeanutChild(): Promise<{ accessToken: string }> {
+    const user = await createTestUser();
+    const created = await request(app!)
+      .post("/api/households")
+      .set(authHeader(user.accessToken))
+      .send(adultAndPeanutChild);
+    expect(created.status).toBe(201);
+    return user;
+  }
+
+  it("returns the same dish, unchanged, when the new diner set still allows it — the regression this closes", async () => {
+    const user = await userWithPeanutChild();
+    const app = await keepApp();
+
+    // "morotssoppa" was already on screen for the adult alone; adding the
+    // peanut-allergic child changes nothing about whether it's safe.
+    const response = await request(app)
+      .get("/api/tonight")
+      .query({ diners: "0,1", keep: "morotssoppa" })
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.result.template.id).toBe("morotssoppa");
+    expect(response.body.replacedFor).toBeUndefined();
+  });
+
+  it("updates portions on a kept dish even though the dish itself did not change", async () => {
+    const user = await userWithPeanutChild();
+    const app = await keepApp();
+
+    const adultOnly = await request(app)
+      .get("/api/tonight")
+      .query({ diners: "0", keep: "morotssoppa" })
+      .set(authHeader(user.accessToken));
+    const both = await request(app)
+      .get("/api/tonight")
+      .query({ diners: "0,1", keep: "morotssoppa" })
+      .set(authHeader(user.accessToken));
+
+    expect(adultOnly.body.result.template.id).toBe("morotssoppa");
+    expect(both.body.result.template.id).toBe("morotssoppa");
+    expect(adultOnly.body.portions).toBe(1);
+    expect(both.body.portions).toBe(1.5);
+  });
+
+  it("replaces the dish and names the affected member when the new diner set makes it unsafe", async () => {
+    const user = await userWithPeanutChild();
+    const app = await keepApp();
+
+    // "satay" was safe for the adult alone; adding the peanut-allergic child makes
+    // it unsafe, so it must never come back — but the household must be told why,
+    // not handed a silently different dish.
+    const response = await request(app)
+      .get("/api/tonight")
+      .query({ diners: "0,1", keep: "satay" })
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.result.template.id).not.toBe("satay");
+    expect(response.body.result.template.id).toBe("morotssoppa");
+    // The child has no declared name, so the derived label applies.
+    expect(response.body.replacedFor).toBe("Barn 1");
+  });
+
+  it("never replaces a dish selecting a diner set that leaves it safe, even repeatedly", async () => {
+    const user = await userWithPeanutChild();
+    const app = await keepApp();
+
+    for (const diners of ["0", "1", "0,1"]) {
+      const response = await request(app)
+        .get("/api/tonight")
+        .query({ diners, keep: "morotssoppa" })
+        .set(authHeader(user.accessToken));
+
+      expect(response.body.result.template.id).toBe("morotssoppa");
+      expect(response.body.replacedFor).toBeUndefined();
+    }
+  });
+});

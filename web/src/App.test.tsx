@@ -1200,6 +1200,132 @@ describe("App — the Tonight card's diner picker (#112)", () => {
   });
 });
 
+describe("App — a diner change keeps the dish when it is still valid (#133)", () => {
+  const twoDiners = [{ label: "Vuxen 1" }, { label: "Elsa" }];
+
+  function suggestion(id: string, extra: { replacedFor?: string } = {}) {
+    return {
+      result: {
+        template: {
+          id,
+          name: id,
+          cost_tier: "mid",
+          prep_time_band: "20-40min",
+          cuisine: "swedish_nordic",
+        },
+        ingredients: [
+          {
+            role: "protein",
+            name: "Kyckling",
+            slotIndex: 0,
+            ingredientId: "kyckling",
+            substituted: false,
+            allergens: [],
+            quantity: { kind: "amount", amount: 400, unit: "g" },
+          },
+        ],
+        substitutions: [],
+        score: 0.5,
+        cookedToday: false,
+      },
+      portions: 2,
+      diners: twoDiners,
+      ...extra,
+    };
+  }
+
+  function stubTonight(...bodies: unknown[]) {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).startsWith("/api/tonight")) {
+        return jsonResponse(200, bodies.length > 1 ? bodies.shift() : bodies[0]);
+      }
+      return jsonResponse(200, {});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  function tonightQueries(fetchMock: ReturnType<typeof vi.fn>): URLSearchParams[] {
+    return fetchMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((url) => url.startsWith("/api/tonight"))
+      .map((url) => new URLSearchParams(url.split("?")[1] ?? ""));
+  }
+
+  it("asks the server to keep the dish on screen, not to reroll away from it", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = stubTonight(suggestion("kycklinggryta"), suggestion("kycklinggryta"));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+    await vi.waitFor(() => expect(tonightQueries(fetchMock)).toHaveLength(2));
+
+    const last = tonightQueries(fetchMock).at(-1)!;
+    expect(last.get("keep")).toBe("kycklinggryta");
+    expect(last.get("previous")).toBeNull();
+  });
+
+  it("regression: a diner change that leaves the dish valid does not change the dish", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    stubTonight(suggestion("kycklinggryta"), suggestion("kycklinggryta"));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+
+    // Still the same dish, and no replacement notice — nothing to explain.
+    await screen.findByRole("button", { name: "Elsa", pressed: false });
+    expect(screen.getByRole("heading", { name: "kycklinggryta" })).toBeTruthy();
+    expect(screen.queryByRole("status", { name: /Rätten passar inte/ })).toBeNull();
+    expect(screen.queryByText(/Rätten passar inte/)).toBeNull();
+  });
+
+  it("shows the Swedish reason and the new dish when the server had to replace it", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    stubTonight(
+      suggestion("kycklinggryta"),
+      suggestion("jordnotsgryta", { replacedFor: "Elsa" }),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Vuxen 1" }));
+
+    await screen.findByRole("heading", { name: "jordnotsgryta" });
+    expect(
+      screen.getByText("Rätten passar inte Elsa, här är ett nytt förslag"),
+    ).toBeTruthy();
+  });
+
+  it("clears the replacement notice once the household does anything else", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    stubTonight(
+      suggestion("kycklinggryta"),
+      suggestion("jordnotsgryta", { replacedFor: "Elsa" }),
+      suggestion("jordnotsgryta"),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Vuxen 1" }));
+    await screen.findByText("Rätten passar inte Elsa, här är ett nytt förslag");
+
+    await user.click(screen.getByRole("button", { name: "Något annat" }));
+
+    await vi.waitFor(() =>
+      expect(screen.queryByText(/Rätten passar inte/)).toBeNull(),
+    );
+  });
+});
+
 describe("App — a failed diner change never leaves the card and the picker disagreeing", () => {
   it("puts the selection back when the refetch fails", async () => {
     // The dangerous shape: the chips say the allergic member is eating again while the
