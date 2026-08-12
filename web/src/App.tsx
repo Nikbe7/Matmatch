@@ -20,6 +20,7 @@ import {
 import {
   costTierLabel,
   costTierMeter,
+  dinerChangeReasonLine,
   INGREDIENT_ROLE_LABELS,
   PREP_TIME_LABELS,
   suggestionReasonLine,
@@ -624,6 +625,13 @@ function TonightView({
   const [markingCooked, setMarkingCooked] = useState(false);
   const [cookedError, setCookedError] = useState<string | null>(null);
 
+  // #133: who the dish on screen was just replaced *for*, when the diner-change
+  // effect below asked to keep it and could not. `null` whenever nothing was
+  // replaced — including every non-diner-change request, so a chip tap always
+  // clears a lingering notice from an earlier diner change rather than leaving it
+  // stranded on a dish it no longer describes.
+  const [dinerReplacedFor, setDinerReplacedFor] = useState<string | undefined>(undefined);
+
   function apply(action: RefinementAction): RefinementState {
     const next = refinementReducer(refinementRef.current, action);
     refinementRef.current = next;
@@ -655,6 +663,11 @@ function TonightView({
     // previous dish's confirmation and keeps one that is genuinely still true.
     setCookedTemplateId(response.result?.cookedToday ? response.result.template.id : null);
     setCookedError(null);
+    // `replacedFor` is only ever present on the diner-change "keep" request's
+    // response (#133) — every other response omits it, which is what clears a
+    // notice left over from an earlier diner change once the household does
+    // anything else.
+    setDinerReplacedFor(response.replacedFor);
     if (response.result) apply({ type: "suggestion_shown", templateId: response.result.template.id });
   }
 
@@ -689,13 +702,19 @@ function TonightView({
     });
   }
 
-  /** The one request shape every chip but "Annat kök" makes. */
-  function requestSuggestion(next: RefinementState, previous: string | undefined) {
+  /**
+   * The one request shape every chip but "Annat kök" makes, plus the diner-change
+   * effect below. `keep` and `previous` are never both passed by a caller — `keep`
+   * is the diner-change "return this exact dish or explain why not" contract
+   * (#133), `previous` is every other caller's plain reroll-diversity hint.
+   */
+  function requestSuggestion(next: RefinementState, previous: string | undefined, keep?: string) {
     return runRefinement(async () => {
       showResponse(
         await fetchTonight(accessToken, {
           exclude: next.excludedTemplateIds,
           previous,
+          keep,
           weights: next.weights,
           diners: diners.parameter,
         }),
@@ -710,8 +729,12 @@ function TonightView({
    *
    * The exclusion list survives the change. The household rejected those dishes on
    * their own merits, and who is at the table tonight does not make a dish they said
-   * no to interesting again. `previous` is passed for the same reason every chip
-   * passes it — the answer should be a step away from what is on screen.
+   * no to interesting again.
+   *
+   * This is a `keep` request (#133), not a `previous`-steered reroll: the household
+   * did not ask for a different dish, so the server returns the exact one on screen
+   * whenever the new diner set still allows it, and only picks (and explains) a
+   * replacement when it does not.
    *
    * On failure the selection is put back. A failed refetch is the one case where the
    * picker and the card can disagree — the chips would show a diner set that the dish
@@ -729,7 +752,7 @@ function TonightView({
     const attempted = diners.selection;
     requestedDinersRef.current = diners.parameter;
 
-    void requestSuggestion(refinementRef.current, current.result?.template.id).then((ok) => {
+    void requestSuggestion(refinementRef.current, undefined, current.result?.template.id).then((ok) => {
       if (ok) {
         servedSelectionRef.current = attempted;
         return;
@@ -752,6 +775,11 @@ function TonightView({
       return true;
     } catch (err) {
       setNextError(err instanceof ApiError ? err.message : String(err));
+      // A failed request never reaches `showResponse`, which is the only place
+      // that otherwise clears this (#133) — left alone, a diner-change notice
+      // would keep describing a dish this new, unrelated failure has nothing to
+      // do with, sitting under an error about a completely different action.
+      setDinerReplacedFor(undefined);
       return false;
     } finally {
       setFetchingNext(false);
@@ -815,6 +843,14 @@ function TonightView({
       {nextError && (
         <p role="alert" className="error-text">
           {nextError}
+        </p>
+      )}
+      {/* #133: only ever rendered right after a diner change that could not keep the
+          dish on screen — never a silent swap. `showResponse` clears this on every
+          other response, so it cannot outlive the change that caused it. */}
+      {dinerReplacedFor && (
+        <p role="status" className="diner-replaced-notice">
+          {dinerChangeReasonLine(dinerReplacedFor)}
         </p>
       )}
       {result === null && current.reason === "no_more_suggestions" && (

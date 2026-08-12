@@ -21,7 +21,7 @@ import { HttpError } from "./httpError.js";
 // dead-end a session that did nothing wrong.
 const MAX_EXCLUDED_IDS = 30;
 
-function requireStringParam(name: "exclude" | "previous", raw: unknown): string | undefined {
+function requireStringParam(name: "exclude" | "previous" | "keep", raw: unknown): string | undefined {
   if (raw === undefined) return undefined;
   if (typeof raw !== "string") {
     throw new HttpError(400, `invalid_${name}`, `${name} must be a single string value`);
@@ -43,5 +43,17 @@ export function parseExcludeFromQuery(raw: unknown): ReadonlySet<string> {
 
 export function parsePreviousFromQuery(raw: unknown): string | undefined {
   const value = requireStringParam("previous", raw);
+  return value !== undefined && value.length > 0 ? value : undefined;
+}
+
+/**
+ * The template id a diner-set change is trying to keep (#133) — distinct from
+ * `previous`, which only ever *steers away from* a dish (the reroll-diversity
+ * hint `pickNextSuggestion` reads). `keep` means "this exact dish was already on
+ * screen; return it again if the new diner set still allows it, and only pick a
+ * replacement if it does not." The two are never sent together by the client.
+ */
+export function parseKeepFromQuery(raw: unknown): string | undefined {
+  const value = requireStringParam("keep", raw);
   return value !== undefined && value.length > 0 ? value : undefined;
 }

@@ -214,6 +214,69 @@ describe("choosing a direction and confirming portions", () => {
   });
 });
 
+describe("dish_no_longer_safe — a diner change made the chosen dish unsafe (#133)", () => {
+  const toPortions: GuidedAction[] = [
+    ...pickChicken,
+    { type: "confirm_pantry" },
+    { type: "choose_direction", templateId: "kycklinggryta", portions: 2.5 },
+  ];
+
+  it("releases the choice and returns to the cards, from the portions step", () => {
+    const state = run(...toPortions, { type: "dish_no_longer_safe" });
+
+    expect(state.step).toBe("directions");
+    expect(state.chosenTemplateId).toBeNull();
+    expect(state.portions).toBeNull();
+  });
+
+  it("releases the choice and returns to the cards, from the shopping step", () => {
+    const state = run(...toPortions, { type: "confirm_portions" }, { type: "dish_no_longer_safe" });
+
+    expect(state.step).toBe("directions");
+    expect(state.chosenTemplateId).toBeNull();
+    expect(state.portions).toBeNull();
+  });
+
+  it("preserves the intent, main ingredient and pantry — a diner change is a refinement, not a reset", () => {
+    const state = run(...toPortions, { type: "dish_no_longer_safe" });
+
+    expect(state.intent).toBe("dinner_idea");
+    expect(state.main).toEqual({ kind: "ingredient", ingredientId: "kycklingfile" });
+  });
+});
+
+describe("diner_change_portions — the kept dish's number stays true to what it was scaled for (#133)", () => {
+  const toPortions: GuidedAction[] = [
+    ...pickChicken,
+    { type: "confirm_pantry" },
+    { type: "choose_direction", templateId: "kycklinggryta", portions: 2.5 },
+  ];
+
+  it("reseeds from the fresh diner-derived total, discarding a manual stepper adjustment", () => {
+    const state = run(
+      ...toPortions,
+      { type: "adjust_portions", delta: 1 },
+      { type: "diner_change_portions", portions: 1.5 },
+    );
+
+    expect(state.portions).toBe(1.5);
+  });
+
+  it("still floors at MIN_PORTIONS, same as the stepper itself", () => {
+    const state = run(...toPortions, { type: "diner_change_portions", portions: 0.5 });
+
+    expect(state.portions).toBe(MIN_PORTIONS);
+  });
+
+  it("is a no-op once the choice has already been released", () => {
+    const released = run(...toPortions, { type: "dish_no_longer_safe" });
+
+    const state = guidedReducer(released, { type: "diner_change_portions", portions: 3 });
+
+    expect(state).toBe(released);
+  });
+});
+
 describe("back navigation preserves earlier selections (requirement 8)", () => {
   it("walks the whole flow backwards without losing the intent, ingredient or pantry", () => {
     const atShopping = run(

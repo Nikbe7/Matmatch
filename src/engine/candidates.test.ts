@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import { AllergySchema, type Allergy } from "../schema/allergyDietary.js";
 import {
   classifyCostTier,
+  evaluateTemplateAgainstConstraints,
   roleSubstitutionPool,
   selectCandidateTemplates,
   substituteCandidateIds,
 } from "./candidates.js";
+import { ALLERGIES } from "../schema/vocabulary.js";
 import { mealDiners, type MealConstraints } from "./constraints.js";
 import type { HouseholdMember } from "../schema/household.js";
 import { loadEngineData } from "./data.js";
@@ -632,6 +634,135 @@ describe("classifyCostTier", () => {
     const result = classifyCostTier(data, ["lax", "makrill", "sej", "torsk"], "mid");
     expect(result.cheaper).toEqual(["makrill"]);
     expect(result.similar).toEqual(["sej", "torsk"]);
+  });
+});
+
+describe("evaluateTemplateAgainstConstraints", () => {
+  // #133: the diner-change "keep the dish if still safe" flow asks this question
+  // of one template directly, and must never disagree with what
+  // `selectCandidateTemplates` would have said about the whole catalog.
+  const nonSubstitutableIngredientId = "kyckling";
+  const template = makeTemplate("kycklinggryta", {
+    ingredient_slots: [
+      makeSlot({ role: "protein", ingredient_id: nonSubstitutableIngredientId, substitutable: false }),
+    ],
+  });
+
+  it("returns the candidate when the template survives", () => {
+    const data = makeEngineData({
+      ingredients: [makeIngredient(nonSubstitutableIngredientId, { category: "protein" })],
+      allergenMappings: [
+        { ingredient_id: nonSubstitutableIngredientId, allergens: [], verification_status: "verified" },
+      ],
+      templates: [template],
+    });
+
+    const result = evaluateTemplateAgainstConstraints(data, template, { allergies: [], dietary_flags: [] });
+
+    expect(result).toEqual({ candidate: { template, substitutions: [] } });
+  });
+
+  it.each(ALLERGIES)(
+    "reports the unrescuable slot when %s is the only thing that excludes it",
+    (allergy) => {
+      const data = makeEngineData({
+        ingredients: [makeIngredient(nonSubstitutableIngredientId, { category: "protein" })],
+        allergenMappings: [
+          {
+            ingredient_id: nonSubstitutableIngredientId,
+            allergens: [allergy],
+            verification_status: "verified",
+          },
+        ],
+        templates: [template],
+      });
+
+      const result = evaluateTemplateAgainstConstraints(data, template, {
+        allergies: [allergy],
+        dietary_flags: [],
+      });
+
+      expect(result).toEqual({
+        unsafeSlot: { slotIndex: 0, ingredientId: nonSubstitutableIngredientId },
+      });
+    },
+  );
+
+  it("agrees with selectCandidateTemplates: excluded from the evaluation means excluded from the catalog scan", () => {
+    const data = makeEngineData({
+      ingredients: [makeIngredient(nonSubstitutableIngredientId, { category: "protein" })],
+      allergenMappings: [
+        {
+          ingredient_id: nonSubstitutableIngredientId,
+          allergens: ["gluten"],
+          verification_status: "verified",
+        },
+      ],
+      templates: [template],
+    });
+    const constraints: MealConstraints = { allergies: ["gluten"], dietary_flags: [] };
+
+    const evaluation = evaluateTemplateAgainstConstraints(data, template, constraints);
+    const catalogResult = selectCandidateTemplates(data, constraints);
+
+    expect("candidate" in evaluation).toBe(false);
+    expect(catalogResult).toEqual([]);
+  });
+
+  it("reports missing dietary flags rather than an unsafe slot when the mismatch is dietary", () => {
+    const data = makeEngineData({ templates: [template] });
+
+    const result = evaluateTemplateAgainstConstraints(data, template, {
+      allergies: [],
+      dietary_flags: ["vegan"],
+    });
+
+    expect(result).toEqual({ missingDietaryFlags: ["vegan"] });
+  });
+
+  it("rescues a substitutable slot instead of reporting it unsafe", () => {
+    const ingredients = [
+      makeIngredient("kyckling", { category: "protein" }),
+      makeIngredient("gul-lok"),
+      makeIngredient("rodlok"),
+    ];
+    const allergenMappings = [
+      { ingredient_id: "kyckling", allergens: [], verification_status: "verified" as const },
+      { ingredient_id: "gul-lok", allergens: ["soy" as Allergy], verification_status: "verified" as const },
+      { ingredient_id: "rodlok", allergens: [], verification_status: "verified" as const },
+    ];
+    const rescuable = makeTemplate("gryta", {
+      ingredient_slots: [
+        makeSlot({ role: "protein", ingredient_id: "kyckling", substitutable: false }),
+        makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: true }),
+      ],
+    });
+    const data = makeEngineData({
+      ingredients,
+      allergenMappings,
+      substitutionGroups: [
+        { id: "lok", name: "Lök", role: "aromatic" as const, member_ingredient_ids: ["gul-lok", "rodlok"] },
+      ],
+      templates: [rescuable],
+    });
+
+    const result = evaluateTemplateAgainstConstraints(data, rescuable, {
+      allergies: ["soy"],
+      dietary_flags: [],
+    });
+
+    expect(result).toEqual({
+      candidate: {
+        template: rescuable,
+        substitutions: [
+          {
+            slot_index: 1,
+            slot: makeSlot({ role: "aromatic", ingredient_id: "gul-lok", substitutable: true }),
+            substitute_ingredient_id: "rodlok",
+          },
+        ],
+      },
+    });
   });
 });
 

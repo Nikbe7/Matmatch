@@ -189,9 +189,16 @@ export interface TonightResult {
 // `diners` is present on every response, empty state included — the picker is a
 // refinement on whatever is on screen, and the §9 empty states are exactly where
 // changing who is eating is most likely to be the way out.
-export type TonightResponse =
-  | { result: TonightResult; portions: number; diners: DinerLabel[] }
-  | { result: null; reason: string; portions: number; diners: DinerLabel[] };
+//
+// `replacedFor` (#133) is present only when a `keep` request (`FetchTonightOptions.keep`)
+// could not honour the dish already on screen — the affected member's label, for
+// `dinerChangeReasonLine` (display.ts) to render. Absent on every other response,
+// including a plain `keep` success: its presence alone is what "was this
+// replaced" means, so there is no separate boolean to keep in sync with it.
+export type TonightResponse = (
+  | { result: TonightResult }
+  | { result: null; reason: string }
+) & { portions: number; diners: DinerLabel[]; replacedFor?: string };
 
 interface ApiErrorEnvelope {
   error: { code: string; message: string };
@@ -227,6 +234,15 @@ export interface FetchTonightOptions {
    * site, so there is one spelling of the default.
    */
   diners?: string;
+  /**
+   * The dish already on screen, sent only by a diner-set change (#133) — asks the
+   * server to return this exact dish again if the new diner set still allows it,
+   * and only pick (and explain) a replacement if it does not. Mutually exclusive
+   * with `previous` in practice: a diner change is a "keep or explain" request,
+   * never a reroll, so the caller sending `keep` has no reason to send `previous`
+   * too.
+   */
+  keep?: string;
 }
 
 export async function fetchTonight(
@@ -239,6 +255,7 @@ export async function fetchTonight(
   if (options.weights?.cost) params.set("cost", String(options.weights.cost));
   if (options.weights?.time) params.set("time", String(options.weights.time));
   if (options.diners) params.set("diners", options.diners);
+  if (options.keep) params.set("keep", options.keep);
   const query = params.toString();
 
   const response = await fetch(`/api/tonight${query ? `?${query}` : ""}`, {
@@ -308,6 +325,10 @@ export interface GuidedDirectionsResponse {
   reason?: string;
   mainIngredientId: string | null;
   portions: number;
+  // Same contract as `TonightResponse.replacedFor` (#133): present only when a
+  // `keep` request's dish had to be dropped from the returned cards, naming the
+  // member it no longer fits.
+  replacedFor?: string;
 }
 
 // The two guided endpoints are deliberately *not* exported from this module. They

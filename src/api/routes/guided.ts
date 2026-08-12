@@ -7,6 +7,8 @@ import { selectCandidateTemplates } from "../../engine/candidates.js";
 import { mealDiners } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import {
+  DIRECTION_COUNT,
+  eligibleDirections,
   pickDirections,
   suggestMainIngredientId,
   type Direction,
@@ -29,6 +31,8 @@ import {
 } from "../guidedCatalog.js";
 import { intentParameters, parseIntentFromQuery } from "../guidedIntent.js";
 import { parseDinersFromQuery } from "../diners.js";
+import { parseKeepFromQuery } from "../tonightSelection.js";
+import { explainReplacedDish } from "../dinerChangeReason.js";
 import { memberLabels } from "../../schema/household.js";
 import { HttpError } from "../httpError.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -103,6 +107,9 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
       const main = parseMainFromQuery(engineData, query.main);
       const pantryIngredientIds = parsePantryFromQuery(engineData, query.pantry);
       const selectedDiners = parseDinersFromQuery(query.diners);
+      // #133: the dish already chosen, sent only by a diner-set change on the
+      // "directions" step — same contract as tonight.ts's `keep`.
+      const keepTemplateId = parseKeepFromQuery(query.keep);
       const { weights, preferHighProtein } = intentParameters(intent);
 
       const stored = await getHouseholdForOwner(sql, req.userId!);
@@ -129,7 +136,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
 
       // The shared pipeline, unchanged and in the same order Tonight runs it. Only
       // the selection step below is specific to this flow.
-      const { constraints, portions } = mealDiners(stored.household.members, selectedDiners);
+      const { members: eating, constraints, portions } = mealDiners(stored.household.members, selectedDiners);
       const candidates = selectCandidateTemplates(engineData, constraints);
       const ranked = rankCandidates(
         engineData,
@@ -139,6 +146,21 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
         constraints.dietary_flags,
         recency,
       );
+
+      // #133: same "keep the already-chosen dish across a diner-set change" contract
+      // as tonight.ts. Resolved here, before the empty-state branches, so a
+      // `replacedFor` explanation can ride along even when the new constraints
+      // leave nothing else to suggest.
+      let replacedFor: string | undefined;
+      if (keepTemplateId && !ranked.some((candidate) => candidate.template.id === keepTemplateId)) {
+        replacedFor = explainReplacedDish(
+          engineData,
+          keepTemplateId,
+          constraints,
+          stored.household.members,
+          eating,
+        )?.affectedMemberLabel;
+      }
 
       if (ranked.length === 0) {
         // The household's own constraints leave nothing at all — a different problem
@@ -150,6 +172,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
           reason: "no_safe_templates",
           mainIngredientId: null,
           portions,
+          replacedFor,
         });
         return;
       }
@@ -169,11 +192,29 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
               // best dishes we have beats showing none.
               { kind: "any" };
 
-      const directions = pickDirections(ranked, {
+      let directions = pickDirections(ranked, {
         main: mainChoice,
         pantryIngredientIds,
         preferHighProtein,
       });
+
+      // #133: `keep` still safe, but not among the cards the ordinary bucket/variety
+      // rules picked — force it to the front rather than silently dropping the
+      // dish the household already chose. Read off `eligibleDirections` for its
+      // pantry-coverage annotation (never re-derived a second way), but with
+      // `main: "any"` rather than `mainChoice` — a "keep" is a safety question,
+      // never a main-ingredient one, and `mainChoice` can itself have changed
+      // this same request (a fresh "Föreslå åt mig" suggestion off the new diner
+      // set's ranking). Filtering by the new `mainChoice` here would silently drop
+      // a dish that is still perfectly safe just because it stopped matching an
+      // unrelated, incidentally-recomputed suggestion — exactly the silent swap
+      // this feature exists to prevent.
+      if (keepTemplateId && !directions.some((direction) => direction.template.id === keepTemplateId)) {
+        const kept = eligibleDirections(ranked, { main: { kind: "any" }, pantryIngredientIds }).find(
+          (direction) => direction.template.id === keepTemplateId,
+        );
+        if (kept) directions = [kept, ...directions].slice(0, DIRECTION_COUNT);
+      }
 
       const mainIngredientId =
         mainChoice.kind === "ingredient" ? mainChoice.ingredientId : null;
@@ -187,6 +228,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
           reason: "no_directions",
           mainIngredientId,
           portions,
+          replacedFor,
         });
         return;
       }
@@ -199,7 +241,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
         score: direction.score,
       }));
 
-      res.status(200).json({ directions: views, mainIngredientId, portions });
+      res.status(200).json({ directions: views, mainIngredientId, portions, replacedFor });
     } catch (error) {
       next(error);
     }

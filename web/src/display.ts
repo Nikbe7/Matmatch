@@ -83,6 +83,19 @@ export function suggestionReasonLine(codes: readonly SuggestionReasonCode[]): st
   return `Valt för att ${phrases.join(" och ")}.`;
 }
 
+/**
+ * #133: the line shown when a diner-set change replaces the dish on screen —
+ * "Rätten passar inte Elsa, här är ett nytt förslag". Never rendered from a bare
+ * boolean: the server only ever sends the affected member's label when a
+ * replacement actually happened (`TonightResponse.replacedFor` /
+ * `GuidedDirectionsResponse.replacedFor`), so its presence is the one thing this
+ * function needs — there is no separate "was it replaced" flag to keep in sync
+ * with it.
+ */
+export function dinerChangeReasonLine(memberLabel: string): string {
+  return `Rätten passar inte ${memberLabel}, här är ett nytt förslag`;
+}
+
 // #123: how a scaled quantity is worded on the shopping list. The amount itself
 // arrives already scaled and rounded from the engine (src/engine/quantities.ts) —
 // nothing here changes a number, it only writes it in Swedish.

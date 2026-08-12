@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   ApiError,
   type ExcludedIngredientOption,
@@ -10,7 +10,7 @@ import {
 import { allergyExclusionReason, capitalizeForSentence } from "./allergyLabels";
 import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { createGuidedClient } from "./guidedClient";
-import { costTierLabel, costTierMeter, PREP_TIME_LABELS } from "./display";
+import { costTierLabel, costTierMeter, dinerChangeReasonLine, PREP_TIME_LABELS } from "./display";
 import { ShoppingList, formatPortions, type ShoppingListMeal } from "./ShoppingList";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
@@ -25,7 +25,7 @@ import {
   matchesIngredientQuery,
   type GuidedState,
 } from "./guided";
-import type { StoredShoppingList } from "./shoppingListStorage";
+import { clearShoppingList, type StoredShoppingList } from "./shoppingListStorage";
 
 // The guided quick-select flow (UX_FLOW §5): intent chip → main ingredient →
 // pantry → three direction cards → portions → shopping list.
@@ -228,6 +228,13 @@ export function GuidedFlow({
   const [response, setResponse] = useState<GuidedDirectionsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // #133: set only around the "diner change after choosing" request below —
+  // distinct from `loading`, which belongs to the "directions" step's own
+  // fetch. Guards "Till inköpslistan": without it, the household could reach
+  // the shopping list before a still-in-flight keep/replace check resolves,
+  // landing `ShoppingList`'s one-time item snapshot on ingredients scaled for
+  // whichever diner set wins the race rather than the one actually on screen.
+  const [dinerChangePending, setDinerChangePending] = useState(false);
   // Bumped by the retry buttons to re-run a fetch below without duplicating its
   // request/cancellation logic in a second callback, as ShoppingList's Instructions
   // and Gate's offline screen both already do.
@@ -304,10 +311,24 @@ export function GuidedFlow({
   const pantryKey = state.pantry.join(",");
   const wantsDirections = state.step === "directions" && state.intent !== null && main !== null;
 
+  // Set right before the "diner change after choosing" effect below dispatches
+  // `dish_no_longer_safe` — that transition flips `wantsDirections` to true and
+  // would otherwise make this effect re-fetch immediately with `keep` gone
+  // (the choice was just released), silently overwriting the `replacedFor`
+  // explanation the household is about to see with a plain, unexplained list.
+  // One-shot: cleared the moment it suppresses a run, so every fetch this effect
+  // is actually meant to make (arriving at "directions" any other way, or an
+  // input changing while already there) still happens.
+  const suppressNextDirectionsFetchRef = useRef(false);
+
   // Refetches whenever the inputs change, which is what makes the §9 loosen actions
   // work without their own request logic: they change `main` or the pantry and stay
   // on this step, so the effect below simply asks again.
   useEffect(() => {
+    if (suppressNextDirectionsFetchRef.current) {
+      suppressNextDirectionsFetchRef.current = false;
+      return;
+    }
     if (!wantsDirections || state.intent === null || main === null) return;
 
     let cancelled = false;
@@ -319,6 +340,11 @@ export function GuidedFlow({
         intent: state.intent,
         main,
         pantry: pantryKey.length > 0 ? pantryKey.split(",") : [],
+        // #133: keep the already-chosen direction across a refetch (a diner
+        // change, or a §9 loosen action) when the new constraints still allow
+        // it — the same "keep or explain" contract Tonight's card uses.
+        // `null` before a direction is chosen, same as every other request here.
+        keep: state.chosenTemplateId ?? undefined,
       })
       .then((loaded) => {
         if (!cancelled) setResponse(loaded);
@@ -339,6 +365,107 @@ export function GuidedFlow({
       cancelled = true;
     };
   }, [client, wantsDirections, state.intent, main, pantryKey, attempt]);
+
+  /**
+   * #133: a diner change *after* a direction is already chosen — the "portions"
+   * and "shopping" steps, where the effect above never fires (`wantsDirections`
+   * is false there by construction). A separate effect rather than widening that
+   * one's condition: the "directions" step already refetches on every `client`
+   * change through its own deps, and firing both here would double-request the
+   * same diner change.
+   *
+   * Kept if the new constraints still allow it — `response` and `chosen` below
+   * simply pick it up again, and the household never leaves "portions"/"shopping".
+   * Replaced, and `dispatch`ed back to "directions" with the choice released, same
+   * as stepping back manually — the fresh card set and `replacedFor` explanation
+   * this same request already carries are what renders there (never a silent
+   * swap). On failure the selection is put back, exactly like Tonight's card: the
+   * picker must never show a diner set the chosen dish was never built for.
+   */
+  const requestedDinersRef = useRef(diners.parameter);
+  const servedSelectionRef = useRef(diners.selection);
+  useEffect(() => {
+    if (requestedDinersRef.current === diners.parameter) return;
+
+    // `requestedDinersRef` is updated unconditionally, even when there is
+    // nothing chosen yet to keep — a diner toggle taken before choosing (owned
+    // by the "directions" step's own effect above, via its `client` dependency)
+    // must still count as "considered" here, or a later toggle back to this
+    // same set would look like a no-op to *this* effect. `servedSelectionRef`
+    // is different: it must only ever hold a diner set this effect actually
+    // confirmed safe (set in the `.then()` below), never one merely attempted —
+    // a failed request's rollback restores *that*, and restoring an
+    // unconfirmed set would be the exact bug this effect exists to avoid.
+    const previousParameter = requestedDinersRef.current;
+    const previousSelection = servedSelectionRef.current;
+    const attempted = diners.selection;
+    requestedDinersRef.current = diners.parameter;
+
+    if (state.chosenTemplateId === null || state.intent === null || main === null) {
+      // No request to make — the "directions" step's own effect (or nothing at
+      // all, pre-choice) already owns this diner change, so there is nothing
+      // for this effect to confirm. Safe to record as served immediately: no
+      // async request from here can later fail and need to roll it back.
+      servedSelectionRef.current = attempted;
+      return;
+    }
+
+    const chosenTemplateId = state.chosenTemplateId;
+    const intent = state.intent;
+
+    let cancelled = false;
+    setDinerChangePending(true);
+    client
+      .fetchDirections({
+        intent,
+        main,
+        pantry: pantryKey.length > 0 ? pantryKey.split(",") : [],
+        keep: chosenTemplateId,
+      })
+      .then((loaded) => {
+        if (cancelled) return;
+        setResponse(loaded);
+        servedSelectionRef.current = attempted;
+        const stillChosen = loaded.directions.some((direction) => direction.template.id === chosenTemplateId);
+        if (!stillChosen) {
+          // Unconditional: this diner control only ever reaches the "portions"
+          // step now (the "shopping" step has none, precisely to keep a saved
+          // list's quantities from going stale under it — see that step's own
+          // comment), so no list for this dish can exist yet in the ordinary
+          // case. Clearing anyway costs nothing when there is nothing to clear,
+          // and forecloses the alternative: a household that raced ahead to
+          // "Till inköpslistan" while this request was still in flight leaving a
+          // list behind for a dish just found unsafe, for a reload to resume
+          // straight into with no safety re-check (#133).
+          clearShoppingList();
+          suppressNextDirectionsFetchRef.current = true;
+          dispatch({ type: "dish_no_longer_safe" });
+        } else {
+          // Kept, but the diner set's total may not be what the stepper still
+          // shows — `loaded.portions` is what the server actually scaled these
+          // ingredients for, so the displayed count has to match it exactly,
+          // the same way `choose_direction` always reseeds from a fresh number
+          // rather than carrying one over from a dish the household left behind.
+          dispatch({ type: "diner_change_portions", portions: loaded.portions });
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(err instanceof ApiError ? err.message : String(err));
+        requestedDinersRef.current = previousParameter;
+        diners.restore(previousSelection);
+      })
+      .finally(() => {
+        if (!cancelled) setDinerChangePending(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // Deliberately keyed on the diner set alone, matching the effect above's own
+    // rule: this must fire when who is eating changes and at no other time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diners.parameter]);
 
   const chosen = response?.directions.find(
     (direction) => direction.template.id === state.chosenTemplateId,
@@ -476,6 +603,13 @@ export function GuidedFlow({
       {state.step === "directions" && (
         <>
           <StepHeader title="Tre förslag" onBack={handleBack} backLabel={backLabel} />
+          {/* #133: only when a chosen direction had to be dropped from this list —
+              same "never a silent swap" contract as Tonight's card. */}
+          {!loading && response?.replacedFor && (
+            <p role="status" className="diner-replaced-notice">
+              {dinerChangeReasonLine(response.replacedFor)}
+            </p>
+          )}
           {loading && <p className="muted">Hämtar förslag…</p>}
           {!loading && response && response.directions.length > 0 && (
             <div className="direction-list">
@@ -518,6 +652,9 @@ export function GuidedFlow({
       {state.step === "portions" && chosen && state.portions !== null && (
         <>
           <StepHeader title="Hur många portioner?" onBack={handleBack} backLabel={backLabel} />
+          {/* #133: the chosen dish is a refinement target here too — kept when the
+              new diner set still allows it, replaced (never silently) when not. */}
+          <DinerPicker state={diners} busy={dinerChangePending} />
           <Card className="portions-card">
             <h3>{chosen.template.name}</h3>
             <div className="portions-stepper">
@@ -547,6 +684,10 @@ export function GuidedFlow({
               variant="primary"
               onClick={() => dispatch({ type: "confirm_portions" })}
               className="guided-action"
+              // #133: a still-in-flight keep/replace check must resolve before the
+              // shopping list is built — it can still change which dish (and which
+              // portions) "the chosen dish" even means.
+              disabled={dinerChangePending}
             >
               Till inköpslistan
             </Button>
@@ -557,6 +698,12 @@ export function GuidedFlow({
       {state.step === "shopping" && meal && (
         <>
           <StepHeader title="Inköpslista" onBack={handleBack} backLabel={backLabel} />
+          {/* No diner picker here, deliberately, matching Tonight's own card
+              (#133): `ShoppingList` reads its items into state once at mount and
+              never rescales them from a later `portions`/`ingredients` change, so
+              a diner toggle at this step could only move the header's count out
+              of sync with the list underneath it — same reason Tonight's own
+              picker is never rendered once its shopping list is on screen. */}
           <ShoppingList
             result={meal}
             portions={state.portions ?? undefined}
