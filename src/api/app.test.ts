@@ -747,4 +747,59 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set cha
       expect(response.body.replacedFor).toBeUndefined();
     }
   });
+
+  it("keeps a genuine 'why this dish' explanation on a kept dish, not the silence a self-excluded dish would produce", async () => {
+    // A dish always carries its own id in `exclude` by the time a diner change
+    // fires (the client adds every shown dish the moment it appears) — so
+    // explaining *this* dish while it also counts as its own exclusion must not
+    // make `explainSuggestion` treat it as absent from the candidate set it is
+    // being explained against.
+    const { makeEngineData, makeIngredient, makeTemplate } = await import(
+      "../engine/__fixtures__/engineData.js"
+    );
+    const costTieredApp = createApp({
+      sql: sql!,
+      engineData: makeEngineData({
+        ingredients: [makeIngredient("morot"), makeIngredient("hummer")],
+        allergenMappings: [
+          { ingredient_id: "morot", allergens: [], verification_status: "verified" },
+          { ingredient_id: "hummer", allergens: [], verification_status: "verified" },
+        ],
+        templates: [
+          makeTemplate("morotssoppa", {
+            cost_tier: "budget",
+            ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false })],
+          }),
+          makeTemplate("hummergryta", {
+            cost_tier: "premium",
+            ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "hummer", substitutable: false })],
+          }),
+        ],
+      }),
+      verifyToken: verifyToken!,
+    });
+    const user = await createTestUser();
+    await request(costTieredApp)
+      .post("/api/households")
+      .set(authHeader(user.accessToken))
+      .send(noRestrictionsBody);
+
+    // The household's "Billigare" chip already picked the budget dish for the
+    // cost preference — this is the real reason the client's `exclude` carries
+    // its id by the time any diner change can happen.
+    const first = await request(costTieredApp)
+      .get("/api/tonight")
+      .query({ cost: "10" })
+      .set(authHeader(user.accessToken));
+    expect(first.body.result.template.id).toBe("morotssoppa");
+    expect(first.body.result.reasonCodes).toContain("cost_preference");
+
+    const afterDinerChange = await request(costTieredApp)
+      .get("/api/tonight")
+      .query({ cost: "10", exclude: "morotssoppa", keep: "morotssoppa" })
+      .set(authHeader(user.accessToken));
+
+    expect(afterDinerChange.body.result.template.id).toBe("morotssoppa");
+    expect(afterDinerChange.body.result.reasonCodes).toContain("cost_preference");
+  });
 });

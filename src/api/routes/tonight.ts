@@ -103,10 +103,22 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         const kept = ranked.find((candidate) => candidate.template.id === keepTemplateId);
 
         if (kept) {
+          // `excludedTemplateIds` always contains `kept.template.id` by the time a
+          // diner change fires — the client adds every shown dish to `exclude` the
+          // moment it appears, including this one, on the very request that first
+          // showed it. Explaining a dish while it counts as its own exclusion would
+          // drop it out of `explainSuggestion`'s `remaining` list entirely, so the
+          // score-term comparison could never recognise it as the score's own
+          // pick and would silently go quiet ("Valt för att …" disappearing on
+          // every diner change that keeps the same dish, for no reason the
+          // household did anything to deserve).
+          const excludedForExplanation = new Set(excludedTemplateIds);
+          excludedForExplanation.delete(kept.template.id);
+
           const reasonCodes = explainSuggestion(
             engineData,
             ranked,
-            excludedTemplateIds,
+            excludedForExplanation,
             kept,
             undefined,
             weights,

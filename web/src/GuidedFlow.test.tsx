@@ -836,6 +836,44 @@ describe("GuidedFlow — a diner change after choosing keeps or explains (#133)"
     expect(directionsQueries(fetchMock).at(-1)!.get("keep")).toBe("gryta");
   });
 
+  it("disables 'Till inköpslistan' and the diner picker while a keep/replace check is in flight", async () => {
+    const user = userEvent.setup();
+    let resolveDirections: ((response: Response) => void) | undefined;
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) {
+        return jsonResponse(200, { ...options, diners: twoDiners });
+      }
+      if (url.startsWith("/api/guided/directions")) {
+        const query = new URLSearchParams(url.split("?")[1] ?? "");
+        // The initial fetch (reaching "Tre förslag") resolves immediately; only
+        // the diner-change one hangs, so the race window is exactly the one
+        // this test is about.
+        if (query.get("keep")) {
+          return new Promise<Response>((resolve) => {
+            resolveDirections = resolve;
+          });
+        }
+        return jsonResponse(200, threeDirections);
+      }
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderFlow();
+
+    await reachPortions(user);
+    await user.click(screen.getByRole("button", { name: "Elsa" }));
+
+    const confirmButton = await screen.findByRole("button", { name: "Till inköpslistan" });
+    await waitFor(() => expect((confirmButton as HTMLButtonElement).disabled).toBe(true));
+    await waitFor(() =>
+      expect((screen.getByRole("button", { name: "Elsa" }) as HTMLButtonElement).disabled).toBe(true),
+    );
+
+    resolveDirections!(jsonResponse(200, threeDirections));
+
+    await waitFor(() => expect((confirmButton as HTMLButtonElement).disabled).toBe(false));
+  });
+
   it("bounces back to the cards and names the affected member once the new diner set makes it unsafe", async () => {
     const user = userEvent.setup();
     let directionsCalls = 0;

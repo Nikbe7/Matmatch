@@ -228,6 +228,13 @@ export function GuidedFlow({
   const [response, setResponse] = useState<GuidedDirectionsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // #133: set only around the "diner change after choosing" request below —
+  // distinct from `loading`, which belongs to the "directions" step's own
+  // fetch. Guards "Till inköpslistan": without it, the household could reach
+  // the shopping list before a still-in-flight keep/replace check resolves,
+  // landing `ShoppingList`'s one-time item snapshot on ingredients scaled for
+  // whichever diner set wins the race rather than the one actually on screen.
+  const [dinerChangePending, setDinerChangePending] = useState(false);
   // Bumped by the retry buttons to re-run a fetch below without duplicating its
   // request/cancellation logic in a second callback, as ShoppingList's Instructions
   // and Gate's offline screen both already do.
@@ -407,6 +414,7 @@ export function GuidedFlow({
     const intent = state.intent;
 
     let cancelled = false;
+    setDinerChangePending(true);
     client
       .fetchDirections({
         intent,
@@ -446,6 +454,9 @@ export function GuidedFlow({
         setError(err instanceof ApiError ? err.message : String(err));
         requestedDinersRef.current = previousParameter;
         diners.restore(previousSelection);
+      })
+      .finally(() => {
+        if (!cancelled) setDinerChangePending(false);
       });
 
     return () => {
@@ -643,7 +654,7 @@ export function GuidedFlow({
           <StepHeader title="Hur många portioner?" onBack={handleBack} backLabel={backLabel} />
           {/* #133: the chosen dish is a refinement target here too — kept when the
               new diner set still allows it, replaced (never silently) when not. */}
-          <DinerPicker state={diners} busy={false} />
+          <DinerPicker state={diners} busy={dinerChangePending} />
           <Card className="portions-card">
             <h3>{chosen.template.name}</h3>
             <div className="portions-stepper">
@@ -673,6 +684,10 @@ export function GuidedFlow({
               variant="primary"
               onClick={() => dispatch({ type: "confirm_portions" })}
               className="guided-action"
+              // #133: a still-in-flight keep/replace check must resolve before the
+              // shopping list is built — it can still change which dish (and which
+              // portions) "the chosen dish" even means.
+              disabled={dinerChangePending}
             >
               Till inköpslistan
             </Button>
