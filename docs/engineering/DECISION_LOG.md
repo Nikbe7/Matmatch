@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-12 — Lovable export kept as a frozen design reference; frontend rebuilt on Tailwind v4
+
+**Decision:** `lovable-reference/` is pruned to source and screenshots only and kept permanently as a design reference — we take Lovable's visual language (oklch palette, Fraunces/DM Sans type, spacing, shadows, card and chip patterns) and none of its code. `web/` migrates to Tailwind v4 via `@tailwindcss/vite`, with the Lovable palette and type scale ported in as tokens; no shadcn, no TanStack Router. All existing product logic, the API layer, analytics, tests, and allergy treatment carry over unchanged and are rebuilt presentation-only against the new tokens.
+
+**Why:** The Lovable export is a frozen, incomplete prototype (missing `BottomNav`, mock data/engine, no server) that was never going to become the production frontend, but its visual design is worth reusing rather than re-deriving from scratch. Two patterns from the export are explicitly rejected rather than carried forward: the preference sliders (already rejected in the 2026-07-31 entry above — no observable consequence per notch) and the undifferentiated allergy/preference chip styling in `profil.tsx`, which would be a safety regression against UX_FLOW.md §6's requirement that allergies stay visually distinct by border, ground, and glyph, never by color alone.
+
+**How to apply:** Frontend issues touching visual design cite the relevant `lovable-reference/screenshots/*.png` and source file (see `lovable-reference/README.md`'s Take/Do-not-copy lists) and verify at 360/390/430px. Do not resurrect sliders or single-style chip groups for allergies. See `lovable-reference/README.md` for the full file map.
+
+---
+
 ## 2026-08-11 — Ingredient swaps shipped without the dish-level cost tier or the AI fallback (#124)
 
 **Decision:** #124's popover (Billigare/Liknande filters plus a role-valid search over curated substitution groups) shipped as scoped, but two pieces named in the original spec were cut and filed separately rather than settled inline. First, a swap never recomputes the dish's own `cost_tier` — DECISION_LOG 2026-08-01 already left that undefined, and inventing an answer inside a UI slice would have been exactly the quiet architectural call CLAUDE.md rules out; each alternative shows its own curated tier instead, and #131 tracks defining the real rule. Second, the "Föreslå alternativ (AI)" fallback for the 86 (of 744) substitutable slots with zero curated alternatives was deferred as #132: those are a curation gap, not a product gap, and #132 asks whoever picks it up to weigh an additive substitution-group pass against an AI call before building the AI path by default.

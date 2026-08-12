@@ -1,0 +1,129 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Matmatch design system — warm, calm, Scandinavian.
+ * Serif display (Fraunces) for dish names, humanist sans (DM Sans) for UI.
+ * All colors in oklch, all tokens semantic.
+ */
+
+@theme inline {
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+  --radius-3xl: calc(var(--radius) + 20px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --shadow-soft: 0 1px 2px oklch(0.28 0.04 60 / 4%), 0 8px 24px -12px oklch(0.28 0.04 60 / 12%);
+  --shadow-lift: 0 2px 4px oklch(0.28 0.04 60 / 5%), 0 18px 40px -18px oklch(0.28 0.04 60 / 18%);
+}
+
+:root {
+  --radius: 1rem;
+  --background: oklch(0.984 0.008 85);
+  --foreground: oklch(0.25 0.024 55);
+  --surface: oklch(0.965 0.014 82);
+  --surface-foreground: oklch(0.25 0.024 55);
+  --card: oklch(1 0.003 85);
+  --card-foreground: oklch(0.25 0.024 55);
+  --popover: oklch(1 0.003 85);
+  --popover-foreground: oklch(0.25 0.024 55);
+  --primary: oklch(0.44 0.088 148);
+  --primary-foreground: oklch(0.985 0.01 120);
+  --secondary: oklch(0.94 0.02 80);
+  --secondary-foreground: oklch(0.3 0.03 60);
+  --muted: oklch(0.955 0.014 82);
+  --muted-foreground: oklch(0.53 0.024 60);
+  --accent: oklch(0.72 0.12 55);
+  --accent-foreground: oklch(0.22 0.03 55);
+  --destructive: oklch(0.55 0.19 27);
+  --destructive-foreground: oklch(0.985 0.01 60);
+  --border: oklch(0.9 0.016 78);
+  --input: oklch(0.9 0.016 78);
+  --ring: oklch(0.44 0.088 148);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+}
+
+@utility text-eyebrow {
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+}
+
+@utility dot-scale {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+@keyframes mm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-rise {
+  animation: mm-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
