@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "@fontsource-variable/fraunces";
 @import "@fontsource-variable/dm-sans";
+/* Real italic face, not the browser's synthetic slant — the two existing
+   `font-style: italic` rules below (.suggestion-card__reason, .swapped-badge)
+   predate this file and used to fake it against a system font. */
 @import "@fontsource-variable/dm-sans/wght-italic.css";
 @import "./tokens.css";
 
@@ -303,7 +306,7 @@ select.input {
 .ingredient-popover-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(26, 21, 35, 0.4);
+  background: oklch(0.25 0.024 55 / 40%);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -536,7 +539,7 @@ select.input {
   border: 1px solid var(--color-border);
   border-top: none;
   border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: 0 1px 2px rgba(26, 21, 35, 0.08);
+  box-shadow: var(--shadow-soft);
 }
 
 .tonight-fetching {
@@ -666,8 +669,11 @@ select.input {
 }
 
 .skeleton-line--button {
+  /* Matches .btn-primary's 56px real height — the skeleton stands in for the
+     "Acceptera" button specifically, so a mismatch here is exactly the layout
+     jump this skeleton exists to prevent. */
   width: 100%;
-  height: var(--touch-target);
+  height: 56px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -726,8 +732,10 @@ select.input {
 }
 
 .guided-action {
+  /* No min-height here: all three call sites are variant="primary", and
+     .btn-primary's own 56px would otherwise lose the cascade to this
+     same-specificity, later-declared rule. */
   width: 100%;
-  min-height: var(--touch-target);
 }
 
 /* Step 2's type-to-filter (#110): a plain field styled like every other `.input`
