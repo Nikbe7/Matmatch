@@ -313,16 +313,16 @@ export function ShoppingList({
   return (
     <div className="shopping-list">
       <header className="shopping-list__header">
-        <h1 className="shopping-list__title">{result.template.name}</h1>
+        <h2 className="shopping-list__title">{result.template.name}</h2>
         {portions !== undefined && (
           <p className="shopping-list__portions">{formatPortions(portions)}</p>
         )}
       </header>
 
       <section className="shopping-list__section">
-        <h2 className="text-eyebrow shopping-list__section-label">
+        <h3 className="text-eyebrow shopping-list__section-label">
           Behöver handlas ({toBuy.length})
-        </h2>
+        </h3>
         <ul className="shopping-list__card">
           {toBuy.map((item) => (
             <li key={item.index} className="list-row">
@@ -356,9 +356,9 @@ export function ShoppingList({
       </section>
 
       <section className="shopping-list__section">
-        <h2 className="text-eyebrow shopping-list__section-label">
+        <h3 className="text-eyebrow shopping-list__section-label">
           Har hemma ({haveAtHome.length})
-        </h2>
+        </h3>
         <ul className="shopping-list__quiet-list">
           {haveAtHome.map((item) => (
             <li key={item.index} className="list-row list-row--quiet">
@@ -366,7 +366,7 @@ export function ShoppingList({
               <ItemAmount item={item} />
               <div className="list-row__actions">
                 <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
-                  Att köpa
+                  Behöver handlas
                 </Button>
                 {item.swappedFrom && (
                   <Button type="button" variant="secondary" onClick={() => undoSwap(item.index)}>
@@ -433,16 +433,16 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
   return (
     <div className="shopping-list">
       <header className="shopping-list__header">
-        <h1 className="shopping-list__title">Inköpslista</h1>
+        <h2 className="shopping-list__title">Inköpslista</h2>
         <p className="shopping-list__portions" role="status">
           Ingen anslutning — visar din sparade inköpslista.
         </p>
       </header>
 
       <section className="shopping-list__section">
-        <h2 className="text-eyebrow shopping-list__section-label">
+        <h3 className="text-eyebrow shopping-list__section-label">
           Behöver handlas ({toBuy.length})
-        </h2>
+        </h3>
         <ul className="shopping-list__card">
           {toBuy.map((item) => (
             <li key={item.index} className="list-row">
@@ -471,9 +471,9 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
       </section>
 
       <section className="shopping-list__section">
-        <h2 className="text-eyebrow shopping-list__section-label">
+        <h3 className="text-eyebrow shopping-list__section-label">
           Har hemma ({haveAtHome.length})
-        </h2>
+        </h3>
         <ul className="shopping-list__quiet-list">
           {haveAtHome.map((item) => (
             <li key={item.index} className="list-row list-row--quiet">
@@ -481,7 +481,7 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
               <ItemAmount item={item} />
               <div className="list-row__actions">
                 <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
-                  Att köpa
+                  Behöver handlas
                 </Button>
               </div>
               <AllergenMarks allergens={item.allergens} />

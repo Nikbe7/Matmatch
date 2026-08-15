@@ -158,8 +158,13 @@ select.input {
   margin-bottom: var(--space-6);
 }
 
+/* `<h2>`, not `<h1>`: this heading sits under GuidedFlow's own step `<h2>`
+   ("Inköpslista") when the shopping list is reached from the guided flow, so
+   an `<h1>` here would invert the document outline. Sized independently of
+   that semantic level so it still reads as the page's visual headline. */
 .shopping-list__title {
   margin: 0;
+  font-size: var(--font-size-xl);
 }
 
 .shopping-list__portions {
@@ -284,13 +289,6 @@ select.input {
   margin-bottom: 0;
 }
 
-.checkbox-label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--touch-target);
-}
-
 /* #124: the online shopping list's checkbox now sits in its own label, wrapping
    nothing else — the ingredient text moved into `.ingredient-tap` below so it can be
    its own tap target. Sized to its content, not `flex: 1`, so the row's growable
@@ -385,7 +383,7 @@ select.input {
   font-style: italic;
 }
 
-/* #139: the "Har hemma"/"Att köpa"/"Ångra bytet" controls, forced onto their own
+/* #139: the "Har hemma"/"Behöver handlas"/"Ångra bytet" controls, forced onto their own
    line under the checkbox/name/amount line so they never compete with the amount
    for the row's first-line space at 360px. */
 .list-row__actions {
