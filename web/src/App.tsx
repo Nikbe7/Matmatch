@@ -7,6 +7,7 @@ import {
   createHousehold,
   fetchTonight,
   markCooked,
+  type DinerLabel,
   type TonightResponse,
   type TonightResult,
 } from "./api";
@@ -393,6 +394,21 @@ function OnboardingForm({
   );
 }
 
+const WEEKDAYS = ["Söndag", "Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag"];
+
+// The Tonight eyebrow's weekday (#138) — read from the local clock, since the
+// server response carries no day of its own to trust or mistrust.
+function weekdayLabel(): string {
+  return WEEKDAYS[new Date().getDay()]!;
+}
+
+// The Tonight eyebrow's household half (#138), built from the diner labels the
+// response already carries (DinerLabel has no `type`, so this cannot reproduce
+// Lovable's "2 vuxna + 1 barn" breakdown — it joins whatever labels the server sent).
+function dinersLabel(diners: readonly DinerLabel[] | undefined): string {
+  return (diners ?? []).map((diner) => diner.label).join(", ");
+}
+
 // The visible level of a "Billigare"/"Snabbare" chip. Same dot idiom as the cost
 // tier meter above, and purely visual for the same reason — AdjustmentChips wires
 // the level into the chip's accessible name so it is never conveyed by fill alone.
@@ -448,7 +464,7 @@ function AdjustmentChips({
   onReset: () => void;
 }) {
   return (
-    <div role="group" aria-label="Justera förslaget" className="chip-row tonight-group__chips">
+    <div role="group" aria-label="Justera förslaget" className="chip-row">
       <LevelChip
         label="Billigare"
         level={weightLevel(refinement, "cost")}
@@ -505,20 +521,13 @@ function SuggestionCard({
     <Card className="suggestion-card">
       <h3 className="suggestion-card__name">{result.template.name}</h3>
       <p className="suggestion-card__meta">
+        {PREP_TIME_LABELS[result.template.prep_time_band]}
+        {" · "}
         <span role="img" aria-label={costTierLabel(result.template.cost_tier)}>
           <span aria-hidden="true">{costTierMeter(result.template.cost_tier)}</span>
-        </span>{" "}
-        · {PREP_TIME_LABELS[result.template.prep_time_band]}
+        </span>
       </p>
       {reasonLine && <p className="suggestion-card__reason">{reasonLine}</p>}
-      <ul className="suggestion-card__ingredients">
-        {result.ingredients.map((ingredient, index) => (
-          <li key={index}>
-            {INGREDIENT_ROLE_LABELS[ingredient.role]}: {ingredient.name}
-            {ingredient.substituted ? " (ersättning)" : ""}
-          </li>
-        ))}
-      </ul>
       <div className="suggestion-card__actions">
         <Button type="button" variant="primary" onClick={onAccept}>
           Acceptera
@@ -543,6 +552,14 @@ function SuggestionCard({
           {error}
         </p>
       )}
+      <ul className="suggestion-card__ingredients">
+        {result.ingredients.map((ingredient, index) => (
+          <li key={index}>
+            {INGREDIENT_ROLE_LABELS[ingredient.role]}: {ingredient.name}
+            {ingredient.substituted ? " (ersättning)" : ""}
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }
@@ -557,12 +574,17 @@ function SuggestionCardSkeleton() {
   return (
     <Card className="suggestion-card skeleton-card" aria-hidden="true">
       <div className="skeleton-line skeleton-line--title" />
+      <div className="skeleton-line skeleton-line--title-2" />
       <div className="skeleton-line skeleton-line--meta" />
+      <div className="skeleton-line skeleton-line--reason" />
+      <div className="skeleton-card__actions">
+        <div className="skeleton-line skeleton-line--button" />
+        <div className="skeleton-line skeleton-line--button-secondary" />
+      </div>
       <div className="skeleton-card__rows">
         <div className="skeleton-line skeleton-line--row" />
         <div className="skeleton-line skeleton-line--row" />
       </div>
-      <div className="skeleton-line skeleton-line--button" />
     </Card>
   );
 }
@@ -823,6 +845,9 @@ function TonightView({
 
   return (
     <div>
+      <p className="text-eyebrow tonight-eyebrow">
+        {weekdayLabel()} · {dinersLabel(current.diners)}
+      </p>
       <h2 className="tonight-kicker">Ikväll</h2>
       {nextError && (
         <p role="alert" className="error-text">
@@ -855,25 +880,26 @@ function TonightView({
       )}
       {result !== null && (
         <>
-          <div className="tonight-group">
-            <SuggestionCard
-              result={result}
-              cooked={cookedTemplateId === result.template.id}
-              marking={markingCooked}
-              error={cookedError}
-              onAccept={() => {
-                acceptedRef.current = true;
-                // #137: the shopping list now lives at its own route so it
-                // survives a reload and is reachable from the bottom nav —
-                // handed over via navigation state rather than lifted into
-                // Gate, since TonightView already holds everything `/lista`
-                // needs to render it (ListaRoute below).
-                navigate("/lista", {
-                  state: { result, portions: current.portions, diners: diners.parameter },
-                });
-              }}
-              onMarkCooked={() => void handleMarkCooked()}
-            />
+          <SuggestionCard
+            result={result}
+            cooked={cookedTemplateId === result.template.id}
+            marking={markingCooked}
+            error={cookedError}
+            onAccept={() => {
+              acceptedRef.current = true;
+              // #137: the shopping list now lives at its own route so it
+              // survives a reload and is reachable from the bottom nav —
+              // handed over via navigation state rather than lifted into
+              // Gate, since TonightView already holds everything `/lista`
+              // needs to render it (ListaRoute below).
+              navigate("/lista", {
+                state: { result, portions: current.portions, diners: diners.parameter },
+              });
+            }}
+            onMarkCooked={() => void handleMarkCooked()}
+          />
+          <section className="tonight-adjust">
+            <p className="text-eyebrow">Justera</p>
             <AdjustmentChips
               refinement={refinement}
               busy={fetchingNext}
@@ -882,7 +908,7 @@ function TonightView({
               onSomethingElse={handleSomethingElse}
               onReset={handleReset}
             />
-          </div>
+          </section>
           {fetchingNext && <p className="muted tonight-fetching">Hämtar…</p>}
         </>
       )}
