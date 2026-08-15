@@ -8,6 +8,16 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-15 — Adopted `react-router-dom` for the app shell's four routes
+
+**Decision:** `web/` adds `react-router-dom` (v7, `BrowserRouter`) and moves from `App.tsx`'s hand-rolled `view` state machine to four real routes — `/` (Tonight), `/bygg` (guided flow), `/lista` (shopping list), `/profil` (account) — each reachable by URL, with a shared bottom navigation. Not TanStack Router (already ruled out, 2026-08-12 entry) and not a home-rolled path-matcher.
+
+**Why:** The bottom nav (#137) needs each tab to be a real, bookmarkable, back-button-aware destination — in particular, the shopping list must be resumable at its own URL when a household reopens the app mid-shop (UX_FLOW §7), which a `view` variable in component state cannot give a browser's history stack or a page reload. `react-router-dom` is the boring, standard choice for this in a Vite + React SPA; the alternative (extending the existing state machine with manual `history.pushState` calls) is more code for a worse version of what the library already does correctly, including the server-side SPA fallback the backend (`src/api/static.ts`) already serves for any unmatched path.
+
+**How to apply:** All four top-level screens are routes under one `BrowserRouter`, mounted once inside `Gate` so route changes never remount the analytics sink or the offline/error/loading states, which stay rendered directly by `Gate`'s own status, independent of the current route. Routing must not spread further than these four screens — no nested/child routes without a fresh decision.
+
+---
+
 ## 2026-08-12 — Lovable export kept as a frozen design reference; frontend rebuilt on Tailwind v4
 
 **Decision:** `lovable-reference/` is pruned to source and screenshots only and kept permanently as a design reference — we take Lovable's visual language (oklch palette, Fraunces/DM Sans type, spacing, shadows, card and chip patterns) and none of its code. `web/` migrates to Tailwind v4 via `@tailwindcss/vite`, with the Lovable palette and type scale ported in as tokens; no shadcn, no TanStack Router. All existing product logic, the API layer, analytics, tests, and allergy treatment carry over unchanged and are rebuilt presentation-only against the new tokens.

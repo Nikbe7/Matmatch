@@ -30,6 +30,19 @@ vi.mock("./supabaseClient", () => ({
   },
 }));
 
+// #137: Gate installs the analytics sink once per session, above the routed
+// screens, specifically so switching tabs never tears it down mid-buffer — see
+// the "App — bottom navigation" describe block below for the test.
+const analyticsSinkHandle = { stop: vi.fn() };
+const createHttpAnalyticsSinkSpy = vi.fn((_accessToken: string) => ({
+  sink: () => {},
+  flush: () => {},
+  stop: analyticsSinkHandle.stop,
+}));
+vi.mock("./analyticsSink", () => ({
+  createHttpAnalyticsSink: (accessToken: string) => createHttpAnalyticsSinkSpy(accessToken),
+}));
+
 const { default: App } = await import("./App");
 const { ALLERGY_LABELS, costTierMeter, costTierLabel } = await import("./App");
 
@@ -80,6 +93,13 @@ function suggestionBodyForTier(tier: CostTier) {
 beforeEach(() => {
   sessionHolder.current = null;
   localStorage.clear();
+  // #137: App now renders a real router against the jsdom window, whose
+  // location/history persist across tests in the same file unless reset — a
+  // previous test's navigate("/lista") would otherwise leak into the next
+  // test's fresh render.
+  window.history.replaceState(null, "", "/");
+  createHttpAnalyticsSinkSpy.mockClear();
+  analyticsSinkHandle.stop.mockClear();
 });
 
 afterEach(() => {
@@ -902,7 +922,9 @@ describe("App — entering the guided flow", () => {
     expect(screen.getByText("Att köpa (1)")).toBeTruthy();
   });
 
-  it("stays on Tonight when the stored list is the Tonight suggestion's own", async () => {
+  it("also lands on the list when the stored list is the Tonight suggestion's own (#137)", async () => {
+    // Same redirect as the mismatched case above — /lista is now the one place a
+    // stored list resumes, whether it belongs to tonight's own suggestion or not.
     sessionHolder.current = fakeSession;
     localStorage.setItem(
       "matmatch.shoppingList",
@@ -916,7 +938,8 @@ describe("App — entering the guided flow", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Ikväll" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Att köpa (1)" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Lista" }).getAttribute("aria-current")).toBe("page");
   });
 });
 
@@ -996,13 +1019,17 @@ describe("App — offline", () => {
   });
 });
 
+// #137: the install affordance moved from a bar above the whole app to the
+// Profil tab, so these now navigate there first via the bottom nav.
 describe("App — install prompt", () => {
   it("shows no install button until the browser fires beforeinstallprompt", async () => {
     sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
 
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("link", { name: "Profil" }));
 
     expect(screen.queryByRole("button", { name: "Installera appen" })).toBeNull();
   });
@@ -1014,6 +1041,7 @@ describe("App — install prompt", () => {
 
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("link", { name: "Profil" }));
 
     const promptSpy = vi.fn().mockResolvedValue(undefined);
     const event = new Event("beforeinstallprompt", { cancelable: true }) as Event & {
@@ -1375,5 +1403,56 @@ describe("App — a failed diner change never leaves the card and the picker dis
     const before = fetchMock.mock.calls.length;
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(fetchMock.mock.calls.length).toBe(before);
+  });
+});
+
+describe("App — bottom navigation (#137)", () => {
+  it("reaches all four tabs, marks the active one, and keeps one analytics sink alive across them", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (url: string) =>
+      url.startsWith("/api/guided/options")
+        ? jsonResponse(200, { mainIngredients: [], pantryIngredients: [] })
+        : jsonResponse(200, suggestionBody),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    // Installed once, on mount — not per screen.
+    expect(createHttpAnalyticsSinkSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("link", { name: "Ikväll" }).getAttribute("aria-current")).toBe("page");
+
+    await user.click(screen.getByRole("link", { name: "Bygg" }));
+    await screen.findByRole("heading", { name: "Vad är du sugen på?" });
+    expect(screen.getByRole("link", { name: "Bygg" }).getAttribute("aria-current")).toBe("page");
+
+    await user.click(screen.getByRole("link", { name: "Lista" }));
+    await screen.findByRole("heading", { name: "Ingen middag vald ännu" });
+    expect(screen.getByRole("link", { name: "Lista" }).getAttribute("aria-current")).toBe("page");
+
+    await user.click(screen.getByRole("link", { name: "Profil" }));
+    await screen.findByText("chef@example.com");
+    expect(screen.getByRole("link", { name: "Profil" }).getAttribute("aria-current")).toBe("page");
+
+    await user.click(screen.getByRole("link", { name: "Ikväll" }));
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    expect(screen.getByRole("link", { name: "Ikväll" }).getAttribute("aria-current")).toBe("page");
+
+    // Four tab switches later, still the one sink from mount — never torn down
+    // and reinstalled, which would drop whatever it had buffered.
+    expect(createHttpAnalyticsSinkSpy).toHaveBeenCalledTimes(1);
+    expect(analyticsSinkHandle.stop).not.toHaveBeenCalled();
+  });
+
+  it("hides the bottom nav during onboarding", async () => {
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Skapa hushåll" });
+
+    expect(screen.queryByRole("navigation", { name: "Huvudnavigation" })).toBeNull();
   });
 });

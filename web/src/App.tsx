@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { BrowserRouter, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import {
@@ -27,17 +28,14 @@ import {
 } from "./display";
 import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { GuidedFlow } from "./GuidedFlow";
-import { OfflineShoppingList, ShoppingList } from "./ShoppingList";
-import {
-  loadAnyShoppingList,
-  loadShoppingList,
-  type StoredShoppingList,
-} from "./shoppingListStorage";
+import { OfflineShoppingList, ShoppingList, type ShoppingListMeal } from "./ShoppingList";
+import { loadAnyShoppingList, type StoredShoppingList } from "./shoppingListStorage";
 import { setAnalyticsSink, track } from "./analytics";
 import { createHttpAnalyticsSink } from "./analyticsSink";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Chip } from "./components/Chip";
+import { Screen } from "./components/Screen";
 import {
   INITIAL_REFINEMENT,
   MAX_WEIGHT_LEVEL,
@@ -569,29 +567,15 @@ function SuggestionCardSkeleton() {
   );
 }
 
-type TonightViewState = { status: "suggestion" } | { status: "shopping" };
-
 function TonightView({
   data,
   accessToken,
-  onGuided,
 }: {
   data: TonightResponse;
   accessToken: string;
-  onGuided: () => void;
 }) {
+  const navigate = useNavigate();
   const initialResult = data.result;
-
-  // A page reload in the shop must land back on the shopping list, not the
-  // suggestion card — so the initial state checks for a stored list matching this
-  // result's template id, once, at mount. TonightView is remounted fresh by Gate
-  // on every "ready" transition (see Gate below), so this lazy initializer always
-  // sees the current result.
-  const [state, setState] = useState<TonightViewState>(() =>
-    initialResult !== null && loadShoppingList(initialResult.template.id)
-      ? { status: "shopping" }
-      : { status: "suggestion" },
-  );
 
   // Refinement state — React state only, per CLAUDE.md's session-scoped rule for
   // ephemeral input: nothing here touches localStorage, the URL or the household
@@ -869,7 +853,7 @@ function TonightView({
           <pre className="error-text">{`no result: ${current.reason}`}</pre>
         </Card>
       )}
-      {result !== null && state.status === "suggestion" && (
+      {result !== null && (
         <>
           <div className="tonight-group">
             <SuggestionCard
@@ -879,7 +863,14 @@ function TonightView({
               error={cookedError}
               onAccept={() => {
                 acceptedRef.current = true;
-                setState({ status: "shopping" });
+                // #137: the shopping list now lives at its own route so it
+                // survives a reload and is reachable from the bottom nav —
+                // handed over via navigation state rather than lifted into
+                // Gate, since TonightView already holds everything `/lista`
+                // needs to render it (ListaRoute below).
+                navigate("/lista", {
+                  state: { result, portions: current.portions, diners: diners.parameter },
+                });
               }}
               onMarkCooked={() => void handleMarkCooked()}
             />
@@ -895,33 +886,146 @@ function TonightView({
           {fetchingNext && <p className="muted tonight-fetching">Hämtar…</p>}
         </>
       )}
-      {state.status === "suggestion" && (
+      {
         // Under the card and the chips, never in front of them: Tonight is zero-input
         // and assumes everyone (DECISION_LOG 2026-08-09, condition 2), so this is a
         // refinement on a suggestion the household already has. Rendered in the empty
         // states too — "the child is eating at a grandparent's" is often the way out
         // of one.
         <DinerPicker state={diners} busy={fetchingNext} />
-      )}
-      {state.status === "suggestion" && (
+      }
+      {
         // The way into the guided quick-select flow (UX_FLOW §5): the path for a
         // household that wants control without typing. Deliberately secondary to the
         // card above — Tonight is the zero-input default, and §4 is explicit that
         // this must not become a menu of options in front of it.
-        <Button type="button" variant="secondary" className="guided-entry" onClick={onGuided}>
+        <Button
+          type="button"
+          variant="secondary"
+          className="guided-entry"
+          onClick={() => navigate("/bygg")}
+        >
           Välj själv
         </Button>
-      )}
-      {result !== null && state.status === "shopping" && (
-        <ShoppingList
-          result={result}
-          portions={current.portions}
-          diners={diners.parameter}
-          accessToken={accessToken}
-          onNewSuggestion={() => setState({ status: "suggestion" })}
-        />
-      )}
+      }
     </div>
+  );
+}
+
+/**
+ * `/bygg` (#137) — the guided flow unchanged, just wired to a real route: exiting
+ * it now navigates back to Tonight instead of flipping a `view` variable. Its
+ * `resume` prop is deliberately never passed here: Gate's own redirect (below)
+ * now sends a device with any stored list straight to `/lista` before this ever
+ * mounts, so GuidedFlow always starts fresh from here.
+ */
+function BuildRoute({ accessToken }: { accessToken: string }) {
+  const navigate = useNavigate();
+  return <GuidedFlow accessToken={accessToken} onExit={() => navigate("/")} />;
+}
+
+/**
+ * A stored list, but with none of the live fetch data a fresh accept carries —
+ * only what `shoppingListStorage.ts` persisted. Same reconstruction GuidedFlow's
+ * own resume path used before #137; `/lista` is now the one place it happens.
+ */
+function resumedShoppingListMeal(stored: StoredShoppingList): ShoppingListMeal {
+  return {
+    template: { id: stored.templateId, name: stored.templateName ?? "Inköpslista" },
+    ingredients: [],
+    substitutions: stored.substitutions ?? [],
+  };
+}
+
+/** The state TonightView's accept handler hands to `navigate("/lista", { state })`. */
+interface AcceptedListingState {
+  result: TonightResult;
+  portions: number;
+  diners?: string;
+}
+
+/**
+ * `/lista` (#137 requirement 5) — always reachable from the bottom nav, unlike
+ * the old inline rendering it replaces. Three states: a suggestion just accepted
+ * on Tonight (carried via router navigation state, so a full reload still finds
+ * it through `stored` below once the state is gone), a list already on the
+ * device from an earlier session or the guided flow, or nothing at all yet.
+ */
+function ListaRoute({ accessToken }: { accessToken: string }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const accepted = location.state as AcceptedListingState | null;
+  const [stored] = useState(() => (accepted ? null : loadAnyShoppingList()));
+
+  if (accepted) {
+    return (
+      <ShoppingList
+        result={accepted.result}
+        portions={accepted.portions}
+        diners={accepted.diners}
+        accessToken={accessToken}
+        onNewSuggestion={() => navigate("/")}
+      />
+    );
+  }
+
+  if (stored) {
+    return (
+      <ShoppingList
+        result={resumedShoppingListMeal(stored)}
+        accessToken={accessToken}
+        onNewSuggestion={() => navigate("/")}
+      />
+    );
+  }
+
+  return (
+    <div className="empty-state">
+      <h2>Ingen middag vald ännu</h2>
+      <p>
+        Välj kvällens middag så delar vi upp listan i vad du redan har hemma och vad du behöver
+        handla.
+      </p>
+      <Button type="button" variant="primary" onClick={() => navigate("/")}>
+        Se förslag för ikväll
+      </Button>
+    </div>
+  );
+}
+
+/** `/profil` (#137) — the account surface that used to sit loose above the app:
+ * signed-in email, sign out, and the install affordance. Household editing is
+ * #141, deliberately not built here. */
+function ProfilRoute({ session }: { session: Session }) {
+  return (
+    <div>
+      <p className="muted">{session.user.email}</p>
+      <Button type="button" variant="secondary" onClick={() => supabase.auth.signOut()}>
+        Logga ut
+      </Button>
+      <InstallButton />
+      <p className="muted">Redigering av hushållet kommer hit senare.</p>
+    </div>
+  );
+}
+
+const ROUTE_EYEBROWS: Record<string, string> = {
+  "/lista": "Inköpslista",
+  "/profil": "Profil",
+};
+
+/**
+ * The one `Screen`/`BottomNav` instance for all four tabs (#137) — a layout
+ * route wrapping an `<Outlet/>`, not four separate `<Screen>` wrappers each
+ * mounting their own nav. Tonight and the guided flow render their own inline
+ * headers, so they carry no eyebrow here.
+ */
+function AppShell() {
+  const location = useLocation();
+  return (
+    <Screen eyebrow={ROUTE_EYEBROWS[location.pathname]}>
+      <Outlet />
+    </Screen>
   );
 }
 
@@ -946,15 +1050,7 @@ function toGateState(error: unknown): GateState {
 
 function Gate({ session }: { session: Session }) {
   const [state, setState] = useState<GateState>({ status: "checking" });
-  // Which of the two paths is on screen. Session state only: the app opens on the
-  // zero-input Tonight card (UX_FLOW §4), never on the flow the household happened
-  // to leave open — with one exception, resolved once the Tonight response arrives.
-  const [view, setView] = useState<"tonight" | "guided">("tonight");
-  // A shopping list on the device that is not the Tonight suggestion's belongs to a
-  // dish chosen in the guided flow. Reloading in the shop must land back on it
-  // (UX_FLOW §7), which TonightView cannot do — it only restores a list matching the
-  // dish it is showing.
-  const [resumed, setResumed] = useState<StoredShoppingList | undefined>(undefined);
+  const navigate = useNavigate();
 
   // Installs the real transport (issue #91) — analytics.ts's default sink just logs
   // in dev otherwise. Owned by Gate rather than by TonightView because switching to
@@ -985,10 +1081,14 @@ function Gate({ session }: { session: Session }) {
     fetchTonight(session.access_token)
       .then((data) => {
         if (cancelled) return;
-        const stored = loadAnyShoppingList();
-        if (stored && stored.templateId !== data.result?.template.id) {
-          setResumed(stored);
-          setView("guided");
+        // A shopping list already on the device — Tonight's own suggestion just
+        // accepted in an earlier session, or a dish chosen in the guided flow —
+        // must be resumed at its own route on reload (UX_FLOW §7), not jumped into
+        // the guided flow the way this used to work for a non-matching list
+        // (#137, DECISION_LOG 2026-08-15). `replace` so this redirect doesn't leave
+        // a phantom "/" the household never actually saw in the back-button history.
+        if (loadAnyShoppingList()) {
+          navigate("/lista", { replace: true });
         }
         setState({ status: "ready", data });
       })
@@ -1010,55 +1110,50 @@ function Gate({ session }: { session: Session }) {
       .catch((error: unknown) => setState(toGateState(error)));
   }
 
-  return (
-    <div>
-      <div className="list-row">
-        <span className="muted">Signed in as {session.user.email}</span>
-        <Button type="button" variant="secondary" onClick={() => supabase.auth.signOut()}>
-          Sign out
-        </Button>
+  // These four states pre-empt routing entirely and render the same regardless of
+  // which URL the household is on — the offline/error/loading shell must open no
+  // matter what (UX_FLOW §7), and none of them have a nav to route between yet.
+  if (state.status !== "ready") {
+    return (
+      <div className="page">
+        {state.status === "checking" && (
+          <>
+            <p className="muted sr-only">Loading…</p>
+            <SuggestionCardSkeleton />
+          </>
+        )}
+        {state.status === "error" && (
+          <Card className="state-card">
+            <pre className="error-text">{`error: ${state.code}\n${state.message}`}</pre>
+          </Card>
+        )}
+        {state.status === "offline" && state.list && <OfflineShoppingList list={state.list} />}
+        {state.status === "offline" && !state.list && (
+          <Card className="state-card">
+            <p role="status">Ingen anslutning. Anslut till internet för att komma igång.</p>
+            <Button type="button" variant="primary" onClick={() => setRetryCount((n) => n + 1)}>
+              Försök igen
+            </Button>
+          </Card>
+        )}
+        {state.status === "no_household" && (
+          <OnboardingForm session={session} onCreated={handleCreated} />
+        )}
       </div>
-      {state.status === "checking" && (
-        <>
-          <p className="muted sr-only">Loading…</p>
-          <SuggestionCardSkeleton />
-        </>
-      )}
-      {state.status === "error" && (
-        <Card className="state-card">
-          <pre className="error-text">{`error: ${state.code}\n${state.message}`}</pre>
-        </Card>
-      )}
-      {state.status === "offline" && state.list && <OfflineShoppingList list={state.list} />}
-      {state.status === "offline" && !state.list && (
-        <Card className="state-card">
-          <p role="status">Ingen anslutning. Anslut till internet för att komma igång.</p>
-          <Button type="button" variant="primary" onClick={() => setRetryCount((n) => n + 1)}>
-            Försök igen
-          </Button>
-        </Card>
-      )}
-      {state.status === "no_household" && (
-        <OnboardingForm session={session} onCreated={handleCreated} />
-      )}
-      {state.status === "ready" && view === "tonight" && (
-        <TonightView
-          data={state.data}
-          accessToken={session.access_token}
-          onGuided={() => setView("guided")}
-        />
-      )}
-      {state.status === "ready" && view === "guided" && (
-        <GuidedFlow
-          accessToken={session.access_token}
-          resume={resumed}
-          onExit={() => {
-            setResumed(undefined);
-            setView("tonight");
-          }}
-        />
-      )}
-    </div>
+    );
+  }
+
+  const accessToken = session.access_token;
+
+  return (
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route path="/" element={<TonightView data={state.data} accessToken={accessToken} />} />
+        <Route path="/bygg" element={<BuildRoute accessToken={accessToken} />} />
+        <Route path="/lista" element={<ListaRoute accessToken={accessToken} />} />
+        <Route path="/profil" element={<ProfilRoute session={session} />} />
+      </Route>
+    </Routes>
   );
 }
 
@@ -1125,11 +1220,16 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (session === undefined) return <p>Loading…</p>;
+  if (session === undefined) return <p className="page">Loading…</p>;
   return (
-    <>
-      <InstallButton />
-      {session === null ? <LoginForm /> : <Gate session={session} />}
-    </>
+    <BrowserRouter>
+      {session === null ? (
+        <div className="page">
+          <LoginForm />
+        </div>
+      ) : (
+        <Gate session={session} />
+      )}
+    </BrowserRouter>
   );
 }
