@@ -922,7 +922,9 @@ describe("App — entering the guided flow", () => {
     expect(screen.getByText("Att köpa (1)")).toBeTruthy();
   });
 
-  it("stays on Tonight when the stored list is the Tonight suggestion's own", async () => {
+  it("also lands on the list when the stored list is the Tonight suggestion's own (#137)", async () => {
+    // Same redirect as the mismatched case above — /lista is now the one place a
+    // stored list resumes, whether it belongs to tonight's own suggestion or not.
     sessionHolder.current = fakeSession;
     localStorage.setItem(
       "matmatch.shoppingList",
@@ -936,7 +938,8 @@ describe("App — entering the guided flow", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Ikväll" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Att köpa (1)" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Lista" }).getAttribute("aria-current")).toBe("page");
   });
 });
 

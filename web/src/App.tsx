@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import {
@@ -29,11 +29,7 @@ import {
 import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { GuidedFlow } from "./GuidedFlow";
 import { OfflineShoppingList, ShoppingList, type ShoppingListMeal } from "./ShoppingList";
-import {
-  loadAnyShoppingList,
-  loadShoppingList,
-  type StoredShoppingList,
-} from "./shoppingListStorage";
+import { loadAnyShoppingList, type StoredShoppingList } from "./shoppingListStorage";
 import { setAnalyticsSink, track } from "./analytics";
 import { createHttpAnalyticsSink } from "./analyticsSink";
 import { Button } from "./components/Button";
@@ -571,8 +567,6 @@ function SuggestionCardSkeleton() {
   );
 }
 
-type TonightViewState = { status: "suggestion" } | { status: "shopping" };
-
 function TonightView({
   data,
   accessToken,
@@ -582,17 +576,6 @@ function TonightView({
 }) {
   const navigate = useNavigate();
   const initialResult = data.result;
-
-  // A page reload in the shop must land back on the shopping list, not the
-  // suggestion card — so the initial state checks for a stored list matching this
-  // result's template id, once, at mount. TonightView is remounted fresh by Gate
-  // on every "ready" transition (see Gate below), so this lazy initializer always
-  // sees the current result.
-  const [state, setState] = useState<TonightViewState>(() =>
-    initialResult !== null && loadShoppingList(initialResult.template.id)
-      ? { status: "shopping" }
-      : { status: "suggestion" },
-  );
 
   // Refinement state — React state only, per CLAUDE.md's session-scoped rule for
   // ephemeral input: nothing here touches localStorage, the URL or the household
@@ -870,7 +853,7 @@ function TonightView({
           <pre className="error-text">{`no result: ${current.reason}`}</pre>
         </Card>
       )}
-      {result !== null && state.status === "suggestion" && (
+      {result !== null && (
         <>
           <div className="tonight-group">
             <SuggestionCard
@@ -903,15 +886,15 @@ function TonightView({
           {fetchingNext && <p className="muted tonight-fetching">Hämtar…</p>}
         </>
       )}
-      {state.status === "suggestion" && (
+      {
         // Under the card and the chips, never in front of them: Tonight is zero-input
         // and assumes everyone (DECISION_LOG 2026-08-09, condition 2), so this is a
         // refinement on a suggestion the household already has. Rendered in the empty
         // states too — "the child is eating at a grandparent's" is often the way out
         // of one.
         <DinerPicker state={diners} busy={fetchingNext} />
-      )}
-      {state.status === "suggestion" && (
+      }
+      {
         // The way into the guided quick-select flow (UX_FLOW §5): the path for a
         // household that wants control without typing. Deliberately secondary to the
         // card above — Tonight is the zero-input default, and §4 is explicit that
@@ -924,22 +907,18 @@ function TonightView({
         >
           Välj själv
         </Button>
-      )}
-      {result !== null && state.status === "shopping" && (
-        <ShoppingList
-          result={result}
-          portions={current.portions}
-          diners={diners.parameter}
-          accessToken={accessToken}
-          onNewSuggestion={() => setState({ status: "suggestion" })}
-        />
-      )}
+      }
     </div>
   );
 }
 
-/** `/bygg` (#137) — the guided flow unchanged, just wired to a real route: exiting
- * it now navigates back to Tonight instead of flipping a `view` variable. */
+/**
+ * `/bygg` (#137) — the guided flow unchanged, just wired to a real route: exiting
+ * it now navigates back to Tonight instead of flipping a `view` variable. Its
+ * `resume` prop is deliberately never passed here: Gate's own redirect (below)
+ * now sends a device with any stored list straight to `/lista` before this ever
+ * mounts, so GuidedFlow always starts fresh from here.
+ */
 function BuildRoute({ accessToken }: { accessToken: string }) {
   const navigate = useNavigate();
   return <GuidedFlow accessToken={accessToken} onExit={() => navigate("/")} />;
@@ -1030,6 +1009,26 @@ function ProfilRoute({ session }: { session: Session }) {
   );
 }
 
+const ROUTE_EYEBROWS: Record<string, string> = {
+  "/lista": "Inköpslista",
+  "/profil": "Profil",
+};
+
+/**
+ * The one `Screen`/`BottomNav` instance for all four tabs (#137) — a layout
+ * route wrapping an `<Outlet/>`, not four separate `<Screen>` wrappers each
+ * mounting their own nav. Tonight and the guided flow render their own inline
+ * headers, so they carry no eyebrow here.
+ */
+function AppShell() {
+  const location = useLocation();
+  return (
+    <Screen eyebrow={ROUTE_EYEBROWS[location.pathname]}>
+      <Outlet />
+    </Screen>
+  );
+}
+
 type GateState =
   | { status: "checking" }
   | { status: "no_household" }
@@ -1082,15 +1081,14 @@ function Gate({ session }: { session: Session }) {
     fetchTonight(session.access_token)
       .then((data) => {
         if (cancelled) return;
-        // A shopping list on the device that isn't tonight's own suggestion belongs
-        // to an earlier session or the guided flow — reloading (UX_FLOW §7) must
-        // land back on it, at its own route rather than jumping into the guided
-        // flow the way this used to work (#137, DECISION_LOG 2026-08-15). A list
-        // that *does* match stays on Tonight, exactly as before: TonightView's own
-        // initializer restores it inline.
-        const stored = loadAnyShoppingList();
-        if (stored && stored.templateId !== data.result?.template.id) {
-          navigate("/lista");
+        // A shopping list already on the device — Tonight's own suggestion just
+        // accepted in an earlier session, or a dish chosen in the guided flow —
+        // must be resumed at its own route on reload (UX_FLOW §7), not jumped into
+        // the guided flow the way this used to work for a non-matching list
+        // (#137, DECISION_LOG 2026-08-15). `replace` so this redirect doesn't leave
+        // a phantom "/" the household never actually saw in the back-button history.
+        if (loadAnyShoppingList()) {
+          navigate("/lista", { replace: true });
         }
         setState({ status: "ready", data });
       })
@@ -1149,38 +1147,12 @@ function Gate({ session }: { session: Session }) {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          <Screen>
-            <TonightView data={state.data} accessToken={accessToken} />
-          </Screen>
-        }
-      />
-      <Route
-        path="/bygg"
-        element={
-          <Screen>
-            <BuildRoute accessToken={accessToken} />
-          </Screen>
-        }
-      />
-      <Route
-        path="/lista"
-        element={
-          <Screen eyebrow="Inköpslista">
-            <ListaRoute accessToken={accessToken} />
-          </Screen>
-        }
-      />
-      <Route
-        path="/profil"
-        element={
-          <Screen eyebrow="Profil">
-            <ProfilRoute session={session} />
-          </Screen>
-        }
-      />
+      <Route element={<AppShell />}>
+        <Route path="/" element={<TonightView data={state.data} accessToken={accessToken} />} />
+        <Route path="/bygg" element={<BuildRoute accessToken={accessToken} />} />
+        <Route path="/lista" element={<ListaRoute accessToken={accessToken} />} />
+        <Route path="/profil" element={<ProfilRoute session={session} />} />
+      </Route>
     </Routes>
   );
 }
