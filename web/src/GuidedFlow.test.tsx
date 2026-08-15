@@ -127,7 +127,7 @@ describe("GuidedFlow — the happy path, tap by tap", () => {
     await user.click(screen.getByRole("button", { name: "Till inköpslistan" }));
 
     await screen.findByRole("heading", { name: "Kycklinggryta", level: 2 });
-    expect(screen.getByText("Att köpa (1)")).toBeTruthy();
+    expect(screen.getByText("Behöver handlas (1)")).toBeTruthy();
     // The pantry selection carries through: the ingredient the household said it
     // has starts in "Har hemma" rather than on the shopping list.
     expect(screen.getByText("Har hemma (1)")).toBeTruthy();
@@ -635,7 +635,7 @@ describe("GuidedFlow — a shopping list survives a reload (UX_FLOW §7)", () =>
     renderFlow(vi.fn(), stored);
 
     expect(await screen.findByRole("heading", { name: "Kycklinggryta", level: 2 })).toBeTruthy();
-    expect(screen.getByText("Att köpa (1)")).toBeTruthy();
+    expect(screen.getByText("Behöver handlas (1)")).toBeTruthy();
     expect(screen.getByText("Har hemma (1)")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Vad är du sugen på?" })).toBeNull();
   });

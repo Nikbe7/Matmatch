@@ -408,7 +408,7 @@ describe("App — Tonight suggestion card", () => {
     await user.click(screen.getByRole("button", { name: "Acceptera" }));
 
     // The shopping list, not the old dead-end confirmation text.
-    await screen.findByRole("heading", { name: "Att köpa (2)" });
+    await screen.findByRole("heading", { name: "Behöver handlas (2)" });
     expect(screen.getByText("För 2 portioner")).toBeTruthy();
 
     // Simulate a reload: unmount and mount a fresh App against the same session
@@ -417,7 +417,7 @@ describe("App — Tonight suggestion card", () => {
     // already exists.
     unmount();
     render(<App />);
-    await screen.findByRole("heading", { name: "Att köpa (2)" });
+    await screen.findByRole("heading", { name: "Behöver handlas (2)" });
     expect(screen.queryByRole("heading", { name: "Kycklinggryta", level: 3 })).toBeNull();
   });
 
@@ -919,7 +919,7 @@ describe("App — entering the guided flow", () => {
     render(<App />);
 
     expect(await screen.findByRole("heading", { name: "Svartbönsgryta" })).toBeTruthy();
-    expect(screen.getByText("Att köpa (1)")).toBeTruthy();
+    expect(screen.getByText("Behöver handlas (1)")).toBeTruthy();
   });
 
   it("also lands on the list when the stored list is the Tonight suggestion's own (#137)", async () => {
@@ -938,7 +938,7 @@ describe("App — entering the guided flow", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Att köpa (1)" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Behöver handlas (1)" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Lista" }).getAttribute("aria-current")).toBe("page");
   });
 });
@@ -991,7 +991,7 @@ describe("App — offline", () => {
     render(<App />);
 
     await screen.findByText("Ingen anslutning — visar din sparade inköpslista.");
-    expect(screen.getByRole("heading", { name: "Att köpa (1)" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Behöver handlas (1)" })).toBeTruthy();
     expect(screen.getByText("Kyckling")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Har hemma (1)" })).toBeTruthy();
     expect(screen.getByText("Ris")).toBeTruthy();

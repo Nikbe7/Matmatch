@@ -19,7 +19,6 @@ import {
 import { allergenMarkingText } from "./allergyLabels";
 import { formatQuantity } from "./display";
 import { Button } from "./components/Button";
-import { Card } from "./components/Card";
 import { IngredientPopover } from "./components/IngredientPopover";
 
 // The shopping list for an accepted Tonight suggestion. Deliberately no fetch here
@@ -42,21 +41,15 @@ interface IndexedItem extends ShoppingListItem {
 }
 
 /**
- * "600 g kyckling" — the amount before the ingredient, the way a shopping list is
- * written and read (#123). The amount is rendered as its own element so it can be
- * weighted differently from the name without changing the reading order, and
- * "efter smak" flows through the same path rather than getting a special case: a
- * seasoned-to-taste ingredient is still something to have in the house.
+ * The right-aligned amount column (#139 rebuild) — its own element, separate from
+ * the ingredient name, so a column of amounts lines up against the row's right
+ * edge regardless of how long the name to its left runs. Tabular figures so the
+ * digits themselves don't shift width row to row. "efter smak" flows through the
+ * same path rather than getting a special case: a seasoned-to-taste ingredient is
+ * still something to have in the house.
  */
-function ItemLabel({ item }: { item: ShoppingListItem }) {
-  // One inline text block, not two flex siblings: the amount and the name have to
-  // wrap as ordinary text ("1 kruka Färsk / persilja"), or a narrow row breaks between
-  // them and leaves an amount stranded on a line of its own.
-  return (
-    <span className="item-text">
-      <span className="item-quantity">{formatQuantity(item.quantity)}</span> {item.name}
-    </span>
-  );
+function ItemAmount({ item }: { item: ShoppingListItem }) {
+  return <span className="item-amount">{formatQuantity(item.quantity)}</span>;
 }
 
 function withIndex(items: readonly ShoppingListItem[]): IndexedItem[] {
@@ -64,11 +57,11 @@ function withIndex(items: readonly ShoppingListItem[]): IndexedItem[] {
 }
 
 /**
- * The row's tap target for #124's ingredient-swap popover — every row's amount and
- * name, however its checkbox or move-to-section control renders around it. "Bought"
- * styling moves here from the checkbox `<label>` it used to live inside: the label
- * now wraps only the checkbox, so the strikethrough has to be reapplied to whatever
- * still wraps the text.
+ * The row's tap target for #124's ingredient-swap popover — the ingredient name
+ * only (#139: the amount sits in its own right-aligned column outside this
+ * button). "Bought" styling moves here from the checkbox `<label>` it used to
+ * live inside: the label now wraps only the checkbox, so the strikethrough has
+ * to be reapplied to whatever still wraps the text.
  */
 function IngredientTapButton({ item, onTap }: { item: ShoppingListItem; onTap: () => void }) {
   return (
@@ -77,7 +70,7 @@ function IngredientTapButton({ item, onTap }: { item: ShoppingListItem; onTap: (
       className={item.bought ? "ingredient-tap bought" : "ingredient-tap"}
       onClick={onTap}
     >
-      <ItemLabel item={item} />
+      <span className="item-name">{item.name}</span>
       {/* Requirement 6: a swap "stays visibly a change" — a quiet badge, not a
           celebration, since it is one household member telling another what
           changed since the list was made, not a success state. */}
@@ -318,13 +311,19 @@ export function ShoppingList({
   const openItem = openIndex !== null ? items[openIndex] : undefined;
 
   return (
-    <Card>
-      <h2>{result.template.name}</h2>
-      {portions !== undefined && <p>{formatPortions(portions)}</p>}
+    <div className="shopping-list">
+      <header className="shopping-list__header">
+        <h2 className="shopping-list__title">{result.template.name}</h2>
+        {portions !== undefined && (
+          <p className="shopping-list__portions">{formatPortions(portions)}</p>
+        )}
+      </header>
 
-      <section className="list-section">
-        <h3>Att köpa ({toBuy.length})</h3>
-        <ul>
+      <section className="shopping-list__section">
+        <h3 className="text-eyebrow shopping-list__section-label">
+          Behöver handlas ({toBuy.length})
+        </h3>
+        <ul className="shopping-list__card">
           {toBuy.map((item) => (
             <li key={item.index} className="list-row">
               <label className="checkbox-only">
@@ -335,38 +334,46 @@ export function ShoppingList({
                 />
               </label>
               <IngredientTapButton item={item} onTap={() => setOpenIndex(item.index)} />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => moveTo(item.index, "have_at_home")}
-              >
-                Har hemma
-              </Button>
-              {item.swappedFrom && (
-                <Button type="button" variant="secondary" onClick={() => undoSwap(item.index)}>
-                  Ångra bytet
+              <ItemAmount item={item} />
+              <div className="list-row__actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => moveTo(item.index, "have_at_home")}
+                >
+                  Har hemma
                 </Button>
-              )}
+                {item.swappedFrom && (
+                  <Button type="button" variant="secondary" onClick={() => undoSwap(item.index)}>
+                    Ångra bytet
+                  </Button>
+                )}
+              </div>
               <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="list-section">
-        <h3>Har hemma ({haveAtHome.length})</h3>
-        <ul>
+      <section className="shopping-list__section">
+        <h3 className="text-eyebrow shopping-list__section-label">
+          Har hemma ({haveAtHome.length})
+        </h3>
+        <ul className="shopping-list__quiet-list">
           {haveAtHome.map((item) => (
-            <li key={item.index} className="list-row">
+            <li key={item.index} className="list-row list-row--quiet">
               <IngredientTapButton item={item} onTap={() => setOpenIndex(item.index)} />
-              <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
-                Att köpa
-              </Button>
-              {item.swappedFrom && (
-                <Button type="button" variant="secondary" onClick={() => undoSwap(item.index)}>
-                  Ångra bytet
+              <ItemAmount item={item} />
+              <div className="list-row__actions">
+                <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
+                  Behöver handlas
                 </Button>
-              )}
+                {item.swappedFrom && (
+                  <Button type="button" variant="secondary" onClick={() => undoSwap(item.index)}>
+                    Ångra bytet
+                  </Button>
+                )}
+              </div>
               <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
@@ -391,7 +398,7 @@ export function ShoppingList({
           onClose={() => setOpenIndex(null)}
         />
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -424,13 +431,19 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
   const haveAtHome = withIndex(items).filter((item) => item.section === "have_at_home");
 
   return (
-    <Card>
-      <h2>Inköpslista</h2>
-      <p role="status">Ingen anslutning — visar din sparade inköpslista.</p>
+    <div className="shopping-list">
+      <header className="shopping-list__header">
+        <h2 className="shopping-list__title">Inköpslista</h2>
+        <p className="shopping-list__portions" role="status">
+          Ingen anslutning — visar din sparade inköpslista.
+        </p>
+      </header>
 
-      <section className="list-section">
-        <h3>Att köpa ({toBuy.length})</h3>
-        <ul>
+      <section className="shopping-list__section">
+        <h3 className="text-eyebrow shopping-list__section-label">
+          Behöver handlas ({toBuy.length})
+        </h3>
+        <ul className="shopping-list__card">
           {toBuy.map((item) => (
             <li key={item.index} className="list-row">
               <label className={item.bought ? "checkbox-label bought" : "checkbox-label"}>
@@ -439,35 +452,43 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
                   checked={item.bought}
                   onChange={() => toggleBought(item.index)}
                 />
-                <ItemLabel item={item} />
+                <span className="item-name">{item.name}</span>
               </label>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => moveTo(item.index, "have_at_home")}
-              >
-                Har hemma
-              </Button>
+              <ItemAmount item={item} />
+              <div className="list-row__actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => moveTo(item.index, "have_at_home")}
+                >
+                  Har hemma
+                </Button>
+              </div>
               <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="list-section">
-        <h3>Har hemma ({haveAtHome.length})</h3>
-        <ul>
+      <section className="shopping-list__section">
+        <h3 className="text-eyebrow shopping-list__section-label">
+          Har hemma ({haveAtHome.length})
+        </h3>
+        <ul className="shopping-list__quiet-list">
           {haveAtHome.map((item) => (
-            <li key={item.index} className="list-row">
-              <ItemLabel item={item} />
-              <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
-                Att köpa
-              </Button>
+            <li key={item.index} className="list-row list-row--quiet">
+              <span className="item-name">{item.name}</span>
+              <ItemAmount item={item} />
+              <div className="list-row__actions">
+                <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
+                  Behöver handlas
+                </Button>
+              </div>
               <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>
       </section>
-    </Card>
+    </div>
   );
 }
