@@ -31,7 +31,10 @@ body {
   background: var(--color-page-bg);
 }
 
-#root {
+/* Pre-shell screens (login, onboarding, loading/offline/error) render outside
+   `Screen` — that component owns layout for the four routed tabs only (below),
+   so this keeps the same centered-column look #root used to provide globally. */
+.page {
   max-width: 480px;
   margin: 0 auto;
   padding: var(--space-4);
@@ -839,4 +842,89 @@ select.input {
   font-size: var(--font-size-sm);
   color: var(--color-muted);
   margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * App shell (#137): the `Screen` wrapper every routed tab renders through, and
+ * the bottom navigation it owns a slot for. `Screen` is the one place layout
+ * (max-width column, padding, safe-area-aware bottom clearance) is decided for
+ * the four routed screens — see `.page` above for the pre-shell equivalent.
+ * --------------------------------------------------------------------------- */
+
+.screen {
+  min-height: 100vh;
+  background: var(--color-page-bg);
+}
+
+.screen-content {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) 0;
+  /* Clears the fixed bottom nav (its own height plus the safe-area inset it
+     already pads itself with) so nothing on the page ever sits under it. */
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
+}
+
+.screen-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.screen-header__title {
+  margin: var(--space-1) 0 0;
+}
+
+/* The empty shopping-list state (#137 requirement 5) — a dashed container so it
+   reads as "nothing here yet", not a broken card. */
+.empty-state {
+  margin-top: var(--space-2);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-6) var(--space-5);
+  text-align: center;
+  background: color-mix(in oklch, var(--color-surface) 60%, transparent);
+}
+
+.empty-state p {
+  color: var(--color-muted);
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  background: var(--color-page-bg);
+  border-top: 1px solid var(--color-border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.bottom-nav__tab {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--touch-target);
+  padding: var(--space-2) 0;
+  color: var(--color-muted);
+  text-decoration: none;
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.bottom-nav__tab svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bottom-nav__tab[aria-current="page"] {
+  color: var(--color-accent);
+  font-weight: 600;
 }
