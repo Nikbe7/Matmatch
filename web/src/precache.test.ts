@@ -63,6 +63,30 @@ describe("PWA precache manifest (built dist/)", () => {
     }
   });
 
+  it("precaches the self-hosted font files, so display/UI type doesn't silently fall back offline", () => {
+    // Fraunces/DM Sans are self-hosted (issue #136) specifically so the PWA
+    // never depends on a network fetch to a font CDN. That guarantee only
+    // holds if the woff2 files actually end up in the precache manifest.
+    const fontEntries = readPrecacheEntries().filter((entry) => entry.url.endsWith(".woff2"));
+    expect(fontEntries.length).toBeGreaterThan(0);
+  });
+
+  it("keeps the self-hosted font payload within an offline-install budget", () => {
+    // A guard against accidentally importing a font package's full axis range
+    // (every optical-size/italic/weight variant) instead of the subset actually
+    // used — every precached font byte is downloaded before the app can be
+    // installed offline. Current payload is ~200 KiB; this caps it well above
+    // that so it fails loudly on real growth, not on noise.
+    const MAX_FONT_BYTES = 1024 * 1024;
+
+    const fontEntries = readPrecacheEntries().filter((entry) => entry.url.endsWith(".woff2"));
+    const totalBytes = fontEntries.reduce(
+      (sum, entry) => sum + statSync(path.join(webDir, "dist", entry.url)).size,
+      0,
+    );
+    expect(totalBytes).toBeLessThan(MAX_FONT_BYTES);
+  });
+
   it("keeps every precached JS/CSS file under the precache size cap that would silently drop it", () => {
     // workbox injectManifest's default `maximumFileSizeToCacheInBytes` — not
     // configured explicitly in vite.config.ts, so this is the cap actually in

@@ -3,19 +3,31 @@
  * type, color and touch-target sizing. See docs/UX_FLOW.md §6 for why danger
  * (allergies) is a separate color from everything else: it must never look
  * like an ordinary preference.
+ *
+ * Palette ported from lovable-reference/src/styles.css (issue #136) — same
+ * oklch values, kept under the token *names* the rest of app.css already
+ * references, so this is a value swap, not a rename. Danger is not a Lovable
+ * value: it's tuned separately (see below) because Lovable's own allergy
+ * styling was explicitly rejected as a safety regression (README "Do not
+ * copy"). Verified against WCAG AA: danger text ≥7:1 on background/card/
+ * danger-bg, danger-contrast ≥6.3:1 on solid danger fill.
  */
 :root {
-  /* Color — accent/background match the PWA manifest's theme_color/background_color. */
-  --color-accent: #7e14ff;
-  --color-accent-contrast: #ffffff;
-  --color-page-bg: #ede6ff;
-  --color-surface: #ffffff;
-  --color-text: #1a1523;
-  --color-muted: #6b6478;
-  --color-border: #ddd4ee;
-  --color-danger: #c62828;
-  --color-danger-bg: #fdecea;
-  --color-danger-contrast: #ffffff;
+  /* Color — accent/background match the PWA manifest's theme_color/background_color
+     (web/public/manifest.webmanifest) and index.html's theme-color meta. Those two
+     files can't reference oklch custom properties (read before any stylesheet
+     loads), so their hex values are hand-derived from these and must be updated
+     together: #2c6036 = --color-accent, #fcf9f4 = --color-page-bg. */
+  --color-accent: oklch(0.44 0.088 148);
+  --color-accent-contrast: oklch(0.985 0.01 120);
+  --color-page-bg: oklch(0.984 0.008 85);
+  --color-surface: oklch(1 0.003 85);
+  --color-text: oklch(0.25 0.024 55);
+  --color-muted: oklch(0.53 0.024 60);
+  --color-border: oklch(0.9 0.016 78);
+  --color-danger: oklch(0.42 0.16 27);
+  --color-danger-bg: oklch(0.93 0.05 27);
+  --color-danger-contrast: oklch(0.985 0.01 60);
 
   /* Spacing scale */
   --space-1: 0.25rem;
@@ -25,17 +37,26 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
 
-  /* Type scale — at most four sizes, system fonts only */
-  --font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Type scale — self-hosted Fraunces/DM Sans since #136 (DECISION_LOG
+     2026-08-12); the earlier "system fonts only" constraint no longer holds.
+     --font-size-display/--line-height-display land unused here — #138 is the
+     dish-name treatment that consumes them. */
+  --font-family: "DM Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
   --font-size-lg: 1.25rem;
   --font-size-xl: 1.75rem;
+  --font-size-display: 2.5rem;
   --line-height: 1.4;
+  --line-height-display: 1.05;
 
   /* Shape */
-  --radius: 0.5rem;
+  --radius: 1rem;
   --radius-pill: 999px;
+  --shadow-soft: 0 1px 2px oklch(0.28 0.04 60 / 4%), 0 8px 24px -12px oklch(0.28 0.04 60 / 12%);
+  --shadow-lift: 0 2px 4px oklch(0.28 0.04 60 / 5%), 0 18px 40px -18px oklch(0.28 0.04 60 / 18%);
 
   /* Minimum touch target (44px per requirement 3) */
   --touch-target: 44px;
