@@ -143,22 +143,78 @@ select.input {
   margin-bottom: var(--space-3);
 }
 
-.list-section {
-  margin-bottom: var(--space-4);
+/* ---------------------------------------------------------------------------
+ * Shopping list (issue #139, rebuilt from the Lovable reference). Header sits
+ * directly on the page — eyebrow above it comes from `Screen` — with the dish
+ * name in the display face and the portions line muted underneath, one register
+ * calmer than the Tonight card's own headline. "Behöver handlas" is a grouped
+ * card (`--shadow-soft`, rows divided by hairlines, no border per row); "Har
+ * hemma" is a quiet list with no card at all — the same split the reference
+ * draws, kept because a shopping trip cares about "what do I still need" far
+ * more than "what did I already have".
+ * --------------------------------------------------------------------------- */
+
+.shopping-list__header {
+  margin-bottom: var(--space-6);
+}
+
+.shopping-list__title {
+  margin: 0;
+}
+
+.shopping-list__portions {
+  margin: var(--space-1) 0 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+
+.shopping-list__section {
+  margin-bottom: var(--space-5);
+}
+
+.shopping-list__section-label {
+  margin: 0 0 var(--space-3);
+}
+
+/* The "Behöver handlas" card — rounded, shadowed, its rows divided by
+ * `.list-row`'s own border-bottom rather than a border per `<li>`. `overflow:
+ * hidden` keeps the first/last row's flat top/bottom edge from poking past the
+ * card's rounded corners. */
+.shopping-list__card {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+/* "Har hemma" — no card, no dividers, just quieter rows (`.list-row--quiet`
+ * below dims the text) with a little breathing room between them. */
+.shopping-list__quiet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .list-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding: var(--space-2) 0;
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 
-.list-row:last-child {
+.shopping-list__card > .list-row:last-child {
   border-bottom: none;
+}
+
+.list-row--quiet {
+  padding: var(--space-2) 0;
+  border-bottom: none;
+  color: var(--color-muted);
 }
 
 /* One member of the household profile (#115). A bordered block rather than a flat
@@ -243,27 +299,56 @@ select.input {
 .checkbox-only {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: var(--touch-target);
   min-height: var(--touch-target);
 }
 
-/* The amount on a shopping-list row (#123). Bolder than the ingredient name because
-   in a shop the number is what you scan for — you already know you are buying
-   chicken, the question is how much. Kept as tabular figures so a column of amounts
-   lines up rather than shifting with each digit width. */
-.item-quantity {
-  font-weight: 600;
+.checkbox-only input,
+.checkbox-label input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--color-accent);
+}
+
+/* The amount column (#139: rebuilt as a standalone right-aligned element,
+   previously prefixed onto the name as one text block — see `ItemAmount`'s own
+   comment in ShoppingList.tsx for why that changed). Muted and tabular: in a
+   shop the ingredient name is what you read, the number is what you compare
+   against the shelf, and tabular figures keep a column of them from jittering
+   digit to digit. `flex: 0 0 auto` plus `text-align: right` is what makes the
+   column "line up" — every row's amount sits flush against the same right
+   edge regardless of how wide its own text is. */
+.item-amount {
+  flex: 0 0 auto;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.item-name {
+  overflow-wrap: anywhere;
 }
 
 /* The amount made rows wide enough that some wrapped their action onto a second line
    and some didn't, which at 360px reads as a broken list rather than a dense one.
    `flex: 1 1 0` plus `min-width: 0` lets the label shrink below its content width, so
    a long ingredient wraps its own text and the action stays on the first line. Every
-   row then has the same shape: amount and ingredient on the left, one action right. */
+   row then has the same shape: checkbox, ingredient and amount on the first line,
+   actions and allergen marking (each `flex-basis: 100%`) forced onto their own lines
+   below it. */
 .checkbox-label,
-.item-text {
+.ingredient-tap {
   flex: 1 1 0;
   min-width: 0;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
 }
 
 .checkbox-label.bought {
@@ -279,8 +364,6 @@ select.input {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  flex: 1 1 0;
-  min-width: 0;
   min-height: var(--touch-target);
   padding: 0;
   border: none;
@@ -300,6 +383,16 @@ select.input {
   color: var(--color-muted);
   font-size: var(--font-size-sm);
   font-style: italic;
+}
+
+/* #139: the "Har hemma"/"Att köpa"/"Ångra bytet" controls, forced onto their own
+   line under the checkbox/name/amount line so they never compete with the amount
+   for the row's first-line space at 360px. */
+.list-row__actions {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 /* The popover itself (#124) — a bottom-anchored sheet rather than a floating
@@ -324,6 +417,7 @@ select.input {
   background: var(--color-surface);
   border-radius: var(--radius) var(--radius) 0 0;
   padding: var(--space-4);
+  box-shadow: var(--shadow-lift);
 }
 
 .ingredient-popover__header {

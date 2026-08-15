@@ -69,11 +69,11 @@ afterEach(() => {
 });
 
 describe("ShoppingList", () => {
-  it("starts every ingredient in Att köpa", () => {
+  it("starts every ingredient in Behöver handlas", () => {
     mockFetch();
     render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
-    expect(screen.getByRole("heading", { name: "Att köpa (2)" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Behöver handlas (2)" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Har hemma (0)" })).toBeTruthy();
     expect(screen.getByText("Kyckling")).toBeTruthy();
     expect(screen.getByText("Morot")).toBeTruthy();
@@ -87,7 +87,7 @@ describe("ShoppingList", () => {
     const row = screen.getByText("Kyckling").closest("li")!;
     await user.click(within(row).getByRole("button", { name: "Har hemma" }));
 
-    expect(screen.getByRole("heading", { name: "Att köpa (1)" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Behöver handlas (1)" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Har hemma (1)" })).toBeTruthy();
 
     const homeSection = screen.getByRole("heading", { name: "Har hemma (1)" }).closest("section")!;
@@ -106,8 +106,8 @@ describe("ShoppingList", () => {
     await user.click(checkbox);
 
     expect(checkbox.checked).toBe(true);
-    // Still in Att köpa — checking never moves a row between sections.
-    expect(screen.getByRole("heading", { name: "Att köpa (2)" })).toBeTruthy();
+    // Still in Behöver handlas — checking never moves a row between sections.
+    expect(screen.getByRole("heading", { name: "Behöver handlas (2)" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Har hemma (0)" })).toBeTruthy();
 
     // The bought styling lives on the ingredient tap target (#124), not the checkbox
@@ -131,7 +131,7 @@ describe("ShoppingList", () => {
 
     render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
-    expect(screen.getByRole("heading", { name: "Att köpa (1)" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Behöver handlas (1)" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Har hemma (1)" })).toBeTruthy();
     const restoredCheckbox = screen
       .getByText("Kyckling")
@@ -161,7 +161,7 @@ describe("ShoppingList", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Att köpa (1)" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Behöver handlas (1)" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Har hemma (0)" })).toBeTruthy();
     expect(screen.getByText("Torsk")).toBeTruthy();
     expect(screen.queryByText("Morot")).toBeNull();
@@ -242,6 +242,85 @@ describe("ShoppingList", () => {
       render(<OfflineShoppingList list={stored} />);
 
       expect(screen.getByText("innehåller mjölk — Elsa")).toBeTruthy();
+    });
+
+    // Exhaustive, not a sample: every ingredient carrying a declared allergen must
+    // show its own marking, and every ingredient that doesn't must show none — for
+    // every ingredient in the list, in both sections, checked one by one rather than
+    // spot-checked (#139 requirement).
+    it("marks every allergen-carrying ingredient and none of the rest, across both sections", () => {
+      mockFetch();
+      const glutenAllergen: IngredientAllergenMarking = { allergy: "gluten", members: ["Sam"] };
+      const nutAllergen: IngredientAllergenMarking = { allergy: "tree_nuts", members: ["Elsa", "Sam"] };
+
+      render(
+        <ShoppingList
+          result={result({
+            ingredients: [
+              { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+              { role: "vegetable", name: "Morot", slotIndex: 1, ingredientId: "morot", substituted: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" } },
+              { role: "starch", name: "Pasta", slotIndex: 2, ingredientId: "pasta", substituted: false, allergens: [glutenAllergen], quantity: { kind: "amount", amount: 300, unit: "g" } },
+              { role: "dairy", name: "Mandlar", slotIndex: 3, ingredientId: "mandlar", substituted: false, allergens: [nutAllergen], quantity: { kind: "amount", amount: 50, unit: "g" } },
+              { role: "aromatic", name: "Salt", slotIndex: 4, ingredientId: "salt", substituted: false, allergens: [], quantity: { kind: "to_taste" } },
+            ],
+          })}
+          portions={2}
+          accessToken="tok"
+          onNewSuggestion={vi.fn()}
+        />,
+      );
+
+      const expectations: Array<{ name: string; text: string | null }> = [
+        { name: "Kyckling", text: null },
+        { name: "Morot", text: "innehåller mjölk — Elsa" },
+        { name: "Pasta", text: "innehåller gluten — Sam" },
+        { name: "Mandlar", text: "innehåller trädnötter — Elsa och Sam" },
+        { name: "Salt", text: null },
+      ];
+
+      for (const { name, text } of expectations) {
+        const row = screen.getByText(name).closest("li")!;
+        if (text === null) {
+          expect(within(row).queryByText(/innehåller/)).toBeNull();
+          expect(row.textContent).not.toContain("⚠");
+        } else {
+          expect(within(row).getByText(text)).toBeTruthy();
+          expect(row.textContent).toContain("⚠");
+        }
+      }
+    });
+
+    it("marks every allergen-carrying ingredient and none of the rest in the offline variant", () => {
+      const glutenAllergen: IngredientAllergenMarking = { allergy: "gluten", members: ["Sam"] };
+
+      const stored: StoredShoppingList = {
+        version: SHOPPING_LIST_VERSION,
+        templateId: "kycklinggryta",
+        items: [
+          { name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" },
+          { name: "Morot", section: "to_buy", bought: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 1, ingredientId: "morot" },
+          { name: "Pasta", section: "have_at_home", bought: false, allergens: [glutenAllergen], quantity: { kind: "amount", amount: 300, unit: "g" }, slotIndex: 2, ingredientId: "pasta" },
+        ],
+      };
+
+      render(<OfflineShoppingList list={stored} />);
+
+      const expectations: Array<{ name: string; text: string | null }> = [
+        { name: "Kyckling", text: null },
+        { name: "Morot", text: "innehåller mjölk — Elsa" },
+        { name: "Pasta", text: "innehåller gluten — Sam" },
+      ];
+
+      for (const { name, text } of expectations) {
+        const row = screen.getByText(name).closest("li")!;
+        if (text === null) {
+          expect(within(row).queryByText(/innehåller/)).toBeNull();
+          expect(row.textContent).not.toContain("⚠");
+        } else {
+          expect(within(row).getByText(text)).toBeTruthy();
+          expect(row.textContent).toContain("⚠");
+        }
+      }
     });
   });
 
@@ -529,8 +608,8 @@ describe("ShoppingList", () => {
 
       // Popover closes on apply.
       expect(screen.queryByRole("dialog")).toBeNull();
-      // Still in Att köpa (2) — a swap updates the row, it does not move it.
-      expect(screen.getByRole("heading", { name: "Att köpa (2)" })).toBeTruthy();
+      // Still in Behöver handlas (2) — a swap updates the row, it does not move it.
+      expect(screen.getByRole("heading", { name: "Behöver handlas (2)" })).toBeTruthy();
       expect(screen.queryByText("Kyckling")).toBeNull();
       const row = screen.getByText("Rödlök").closest("li")!;
       expect(row.textContent).toContain("bytt");
