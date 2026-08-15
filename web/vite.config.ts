@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 // Dev/preview-only proxy: the browser calls same-origin `/api/*`, Vite forwards it
@@ -11,6 +12,7 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     // `injectManifest`, not the default `generateSW`: the never-cache-`/api/*`
     // rule and cache-version eviction (issue #93) are safety-critical enough
     // that they need to be plain, readable, unit-tested code in `src/sw.ts`,
@@ -30,7 +32,7 @@ export default defineConfig({
         // content changes), so it must never be precached — doing so would
         // pin the browser to whichever service worker script happened to be
         // cached, defeating the version-eviction logic inside it.
-        globPatterns: ["**/*.{js,css,html,svg,png,webmanifest}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,webmanifest,woff2}"],
       },
       // No dev-mode service worker: the whole point of `npm run dev`'s proxy
       // is to see live changes, which a caching worker would fight.
