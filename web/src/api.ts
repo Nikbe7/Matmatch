@@ -428,3 +428,42 @@ export async function createHousehold(accessToken: string, household: Household)
     throw new ApiError(response.status, error.code, error.message);
   }
 }
+
+/**
+ * The profile screen's own fetch (#166) — deliberately never cached or reused from
+ * the onboarding/Gate flow. DECISION_LOG's PUT-as-full-replacement entry only holds
+ * because every editing surface fetches fresh immediately before editing; a stale
+ * copy here could silently drop an allergy the household added elsewhere.
+ */
+export async function fetchHousehold(accessToken: string): Promise<Household> {
+  const response = await fetch("/api/households", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  const body: unknown = await response.json();
+
+  if (!response.ok) {
+    const { error } = body as ApiErrorEnvelope;
+    throw new ApiError(response.status, error.code, error.message);
+  }
+
+  return (body as { household: Household }).household;
+}
+
+/** Full replacement, same as `PUT /api/households` — never a partial patch. */
+export async function updateHousehold(accessToken: string, household: Household): Promise<void> {
+  const response = await fetch("/api/households", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(household),
+  });
+
+  if (!response.ok) {
+    const body: unknown = await response.json();
+    const { error } = body as ApiErrorEnvelope;
+    throw new ApiError(response.status, error.code, error.message);
+  }
+}

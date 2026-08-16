@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ALLERGIES } from "../../src/schema/vocabulary";
@@ -1423,5 +1423,202 @@ describe("App — bottom navigation (#137)", () => {
     await screen.findByRole("heading", { name: "Skapa hushåll" });
 
     expect(screen.queryByRole("navigation", { name: "Huvudnavigation" })).toBeNull();
+  });
+});
+
+// #166: /profil as the household's real editing screen. Covers a fresh fetch on
+// mount (never the Gate/onboarding data), the collapsed row showing *which*
+// allergies apply, remove-member, a failed save retaining form state, and the
+// safety-critical piece — Tonight refetching (never staying stale) after a save.
+describe("App — the profile screen (#166)", () => {
+  const ella = {
+    type: "child",
+    name: "Ella",
+    portion_factor: 0.5,
+    allergies: [],
+    dietary_flags: [],
+  };
+  const niklas = {
+    type: "adult",
+    name: "Niklas",
+    portion_factor: 1,
+    allergies: [],
+    dietary_flags: [],
+  };
+
+  function storedHousehold(members: unknown[]) {
+    return {
+      id: "h1",
+      owner_user_id: "u1",
+      created_at: "2026-08-01T00:00:00.000Z",
+      updated_at: "2026-08-01T00:00:00.000Z",
+      household: { members },
+    };
+  }
+
+  /**
+   * Routes each call by method + URL to a queue of responses, shifted one at a
+   * time (repeating the last entry once a queue drains) — the profile screen's
+   * mount fetch, its save, and Gate's own Tonight fetches all hit the same
+   * `/api/*` paths a single blanket mock can't tell apart.
+   */
+  function routedFetch(queues: Record<string, Response[]>) {
+    return vi.fn((url: string, init?: RequestInit) => {
+      const key = `${init?.method ?? "GET"} ${url}`;
+      const queue = queues[key];
+      if (!queue || queue.length === 0) {
+        throw new Error(`no mock response queued for ${key}`);
+      }
+      return Promise.resolve(queue.length > 1 ? queue.shift()! : queue[0]!);
+    });
+  }
+
+  async function openProfil(user: ReturnType<typeof userEvent.setup>) {
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("link", { name: "Profil" }));
+  }
+
+  it("fetches the household fresh on mount, not from the Tonight/onboarding response", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = routedFetch({
+      "GET /api/tonight": [jsonResponse(200, suggestionBody)],
+      "GET /api/households": [jsonResponse(200, storedHousehold([niklas, ella]))],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await openProfil(user);
+
+    await screen.findByText("1 vuxen + 1 barn", { exact: false });
+    expect(fetchMock).toHaveBeenCalledWith("/api/households", expect.anything());
+  });
+
+  it("adding an allergy shows it in the collapsed row, by name — not a count", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      routedFetch({
+        "GET /api/tonight": [jsonResponse(200, suggestionBody)],
+        "GET /api/households": [jsonResponse(200, storedHousehold([ella]))],
+      }),
+    );
+
+    render(<App />);
+    await openProfil(user);
+
+    const row = await screen.findByRole("button", { name: /^Ella/ });
+    expect(row.textContent).toContain("Ella");
+    expect(row.textContent).toContain("Barn");
+    expect(row.textContent).not.toContain("Nötter");
+
+    await user.click(row);
+    await user.click(screen.getByRole("button", { name: ALLERGY_LABELS.tree_nuts }));
+
+    expect(screen.getByRole("button", { name: /^Ella/ }).textContent).toContain(
+      ALLERGY_LABELS.tree_nuts,
+    );
+  });
+
+  it("removing a member drops their row", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      routedFetch({
+        "GET /api/tonight": [jsonResponse(200, suggestionBody)],
+        "GET /api/households": [jsonResponse(200, storedHousehold([niklas, ella]))],
+      }),
+    );
+
+    render(<App />);
+    await openProfil(user);
+
+    await user.click(await screen.findByRole("button", { name: /^Ella/ }));
+    await user.click(screen.getByRole("button", { name: "Ta bort Ella" }));
+
+    expect(screen.queryByRole("button", { name: /^Ella/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /^Niklas/ })).toBeTruthy();
+  });
+
+  it("keeps the form's edits and shows the error when a save fails", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      routedFetch({
+        "GET /api/tonight": [jsonResponse(200, suggestionBody)],
+        "GET /api/households": [jsonResponse(200, storedHousehold([ella]))],
+        "PUT /api/households": [
+          jsonResponse(500, { error: { code: "internal_error", message: "server exploded" } }),
+        ],
+      }),
+    );
+
+    render(<App />);
+    await openProfil(user);
+
+    await user.click(await screen.findByRole("button", { name: /^Ella/ }));
+    await user.click(screen.getByRole("button", { name: ALLERGY_LABELS.tree_nuts }));
+    await user.click(screen.getByRole("button", { name: "Spara" }));
+
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    // The edit survives the failed save — retrying does not mean re-selecting it.
+    expect(screen.getByRole("button", { name: /^Ella/ }).textContent).toContain(
+      ALLERGY_LABELS.tree_nuts,
+    );
+  });
+
+  it("says the save needs internet when the request never reaches the network", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      const key = `${init?.method ?? "GET"} ${url}`;
+      if (key === "GET /api/tonight") return Promise.resolve(jsonResponse(200, suggestionBody));
+      if (key === "GET /api/households") return Promise.resolve(jsonResponse(200, storedHousehold([ella])));
+      return Promise.reject(new TypeError("Failed to fetch"));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await openProfil(user);
+
+    await user.click(screen.getByRole("button", { name: "Spara" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("internet");
+  });
+
+  it("invalidates Tonight's current suggestion on save, and refetches so Ikväll never shows the stale dish", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const refreshedSuggestion = {
+      ...suggestionBody,
+      result: { ...suggestionBody.result, template: { ...suggestionBody.result.template, id: "sopp", name: "Svampsoppa" } },
+    };
+    const fetchMock = routedFetch({
+      "GET /api/tonight": [jsonResponse(200, suggestionBody), jsonResponse(200, refreshedSuggestion)],
+      "GET /api/households": [jsonResponse(200, storedHousehold([ella]))],
+      "PUT /api/households": [jsonResponse(200, storedHousehold([ella]))],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await openProfil(user);
+
+    await user.click(screen.getByRole("button", { name: "Spara" }));
+
+    // The refetch that follows a save happens right away — before the household
+    // ever navigates back — so by the time Ikväll is reached the second Tonight
+    // response is already in place, never the dish from before the edit.
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => url === "/api/tonight")).toHaveLength(2),
+    );
+
+    await user.click(screen.getByRole("link", { name: "Ikväll" }));
+
+    await screen.findByRole("heading", { name: "Svampsoppa" });
+    expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
   });
 });

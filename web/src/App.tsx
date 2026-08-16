@@ -5,8 +5,10 @@ import { supabase } from "./supabaseClient";
 import {
   ApiError,
   createHousehold,
+  fetchHousehold,
   fetchTonight,
   markCooked,
+  updateHousehold,
   type DinerLabel,
   type TonightResponse,
   type TonightResult,
@@ -161,53 +163,67 @@ function emptyMember(type: HouseholdMemberType): HouseholdMember {
   };
 }
 
+// Turns edited form members into what the API accepts, shared by onboarding (#115)
+// and the profile screen (#166) so there is exactly one place that decides a blank
+// name is normalised away rather than sent as "".
+function toHouseholdPayload(members: readonly HouseholdMember[]): Household {
+  return {
+    members: members.map(({ name, ...member }) => ({
+      ...member,
+      ...(name?.trim() ? { name: name.trim() } : {}),
+    })),
+  };
+}
+
+const TYPE_LABELS: Record<HouseholdMemberType, string> = {
+  adult: "Vuxen",
+  child: "Barn",
+};
+
 /**
- * One member's own row of the profile form (#115).
- *
- * A stacked block rather than a flat row: since constraints moved onto members, a
- * member carries a name, a type, a portion factor, three dietary chips and eight
- * allergy chips, and there is no honest way to fit that on one line at 360px. It is
- * still one screen and one form — the alternative (a step per member) would turn
- * onboarding into the wizard UX_FLOW §3 is explicit about avoiding.
- *
- * Allergies keep their own bordered, differently-labelled fieldset inside the member
- * block, exactly as they had at household level (#101, UX_FLOW §6). Flattening the
- * two chip groups into one row per member would have been the easy way to save
- * vertical space and is precisely the regression that must not happen: a preference
- * and a safety constraint have to stay tellable apart at a glance.
+ * The profile screen's collapsed member row (#166): name, type, and *which*
+ * allergies apply, never a count — a count can't be checked at a glance, and
+ * confirming the app knows what to avoid is the point of that row. Capped at two
+ * names plus an overflow count so the row never wraps at 360px.
  */
-function MemberFields({
+function memberAllergySummary(allergies: readonly Allergy[]): string | null {
+  if (allergies.length === 0) return null;
+  const labels = allergies.map((allergy) => ALLERGY_LABELS[allergy]);
+  if (labels.length <= 2) return labels.join(", ");
+  return `${labels.slice(0, 2).join(", ")} +${labels.length - 2}`;
+}
+
+/**
+ * One member's editable fields — name, type, portion, diet preferences and
+ * allergies. Shared by onboarding's always-open `MemberFields` and the profile
+ * screen's expand-on-"Ändra" row (#166), which is the same set of controls behind
+ * two different amounts of chrome around them.
+ *
+ * Allergies keep their own bordered, differently-labelled fieldset (#101, UX_FLOW
+ * §6). Flattening the two chip groups into one row per member would have been the
+ * easy way to save vertical space and is precisely the regression that must not
+ * happen: a preference and a safety constraint have to stay tellable apart at a
+ * glance.
+ */
+function MemberDetailFields({
   member,
-  label,
   fallbackLabel,
-  index,
+  idPrefix,
   onChange,
-  onRemove,
-  removable,
 }: {
   member: HouseholdMember;
-  /** How this member is shown right now — their name if they have one. */
-  label: string;
-  /** What blank would produce. Distinct from `label`: for a named member the hint
-   *  still has to say what clearing the field gets you, not repeat their name back. */
+  /** What blank would produce. Distinct from the member's current label: for a
+   *  named member the hint still has to say what clearing the field gets you, not
+   *  repeat their name back. */
   fallbackLabel: string;
-  index: number;
+  idPrefix: string;
   onChange: (patch: Partial<HouseholdMember>) => void;
-  onRemove: () => void;
-  removable: boolean;
 }) {
-  const nameId = `member-${index}-name`;
-  const nameHintId = `member-${index}-name-hint`;
+  const nameId = `${idPrefix}-name`;
+  const nameHintId = `${idPrefix}-name-hint`;
 
   return (
-    <div className="member-card">
-      <div className="member-card-header">
-        <h3 className="member-card-title">{label}</h3>
-        <Button type="button" variant="destructive" onClick={onRemove} disabled={!removable}>
-          Ta bort
-        </Button>
-      </div>
-
+    <>
       <div className="member-row">
         <div className="field member-field-name">
           <label htmlFor={nameId}>Namn</label>
@@ -293,6 +309,44 @@ function MemberFields({
           ))}
         </div>
       </fieldset>
+    </>
+  );
+}
+
+/** Onboarding's own member block (#115) — always open, since onboarding is a single
+ *  short form rather than a household of established members to skim through. */
+function MemberFields({
+  member,
+  label,
+  fallbackLabel,
+  index,
+  onChange,
+  onRemove,
+  removable,
+}: {
+  member: HouseholdMember;
+  /** How this member is shown right now — their name if they have one. */
+  label: string;
+  fallbackLabel: string;
+  index: number;
+  onChange: (patch: Partial<HouseholdMember>) => void;
+  onRemove: () => void;
+  removable: boolean;
+}) {
+  return (
+    <div className="member-card">
+      <div className="member-card-header">
+        <h3 className="member-card-title">{label}</h3>
+        <Button type="button" variant="destructive" onClick={onRemove} disabled={!removable}>
+          Ta bort
+        </Button>
+      </div>
+      <MemberDetailFields
+        member={member}
+        fallbackLabel={fallbackLabel}
+        idPrefix={`member-${index}`}
+        onChange={onChange}
+      />
     </div>
   );
 }
@@ -335,16 +389,8 @@ function OnboardingForm({
     event.preventDefault();
     setBusy(true);
     setError(null);
-    // A blank name is normalised away rather than sent as "": the schema treats
-    // absent and empty identically, and the label fallback depends on it.
-    const household: Household = {
-      members: members.map(({ name, ...member }) => ({
-        ...member,
-        ...(name?.trim() ? { name: name.trim() } : {}),
-      })),
-    };
     try {
-      await createHousehold(session.access_token, household);
+      await createHousehold(session.access_token, toHouseholdPayload(members));
       onCreated();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
@@ -993,25 +1039,290 @@ function ListaRoute({ accessToken }: { accessToken: string }) {
   );
 }
 
-/** `/profil` (#137) — the account surface that used to sit loose above the app:
- * signed-in email, sign out, and the install affordance. Household editing is
- * #141, deliberately not built here. */
-function ProfilRoute({ session }: { session: Session }) {
+/** A household of one — plural "n barn"/"N vuxna" would jar next to it, and the
+ *  reference writes it out for exactly this reason. */
+function householdLabel(members: readonly HouseholdMember[]): string {
+  const adults = members.filter((member) => member.type === "adult").length;
+  const children = members.filter((member) => member.type === "child").length;
+  const parts: string[] = [];
+  if (adults > 0) parts.push(`${adults} ${adults === 1 ? "vuxen" : "vuxna"}`);
+  if (children > 0) parts.push(`${children} barn`);
+  return parts.join(" + ");
+}
+
+/** A stand-in for one collapsed member row while the profile screen's own fetch
+ *  (never the Gate/onboarding data — see `fetchHousehold`'s comment) is in flight,
+ *  sized to the real row's proportions rather than a spinner on empty space. */
+function ProfileMemberRowSkeleton() {
   return (
-    <div>
+    <div className="member-card" aria-hidden="true">
+      <div className="skeleton-line skeleton-line--row" />
+    </div>
+  );
+}
+
+/**
+ * One household member on the profile screen (#166): collapsed to a single
+ * summary line — name, type, and *which* allergies apply — until "Ändra" opens
+ * the same fields onboarding uses. Collapsed by default even for a freshly-added
+ * member would hide the fields the household just asked to fill in, so
+ * `expanded` is driven by the parent rather than defaulted here.
+ */
+function ProfileMemberRow({
+  member,
+  label,
+  fallbackLabel,
+  index,
+  expanded,
+  onToggle,
+  onChange,
+  onRemove,
+  removable,
+}: {
+  member: HouseholdMember;
+  label: string;
+  fallbackLabel: string;
+  index: number;
+  expanded: boolean;
+  onToggle: () => void;
+  onChange: (patch: Partial<HouseholdMember>) => void;
+  onRemove: () => void;
+  removable: boolean;
+}) {
+  const allergySummary = memberAllergySummary(member.allergies);
+
+  return (
+    <div className="member-card">
+      <button
+        type="button"
+        className="profile-member-row"
+        onClick={onToggle}
+        aria-expanded={expanded}
+      >
+        <span className="profile-member-row__summary">
+          <span className="profile-member-row__name">{label}</span>
+          <span className="profile-member-row__meta">
+            {" · "}
+            {TYPE_LABELS[member.type]}
+            {allergySummary ? ` · ${allergySummary}` : ""}
+          </span>
+        </span>
+        <span className="profile-member-row__action">{expanded ? "Stäng" : "Ändra"}</span>
+      </button>
+
+      {expanded && (
+        <div className="profile-member-detail">
+          <MemberDetailFields
+            member={member}
+            fallbackLabel={fallbackLabel}
+            idPrefix={`profile-member-${index}`}
+            onChange={onChange}
+          />
+          <Button type="button" variant="destructive" onClick={onRemove} disabled={!removable}>
+            Ta bort {label}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type ProfileLoadState =
+  | { status: "loading" }
+  | { status: "ready" }
+  | { status: "offline" }
+  | { status: "error"; code: string; message: string };
+
+function toProfileLoadState(error: unknown): ProfileLoadState {
+  if (error instanceof ApiError) return { status: "error", code: error.code, message: error.message };
+  return { status: "offline" };
+}
+
+const PROFILE_OFFLINE_SAVE_MESSAGE =
+  "Det gick inte att spara ändringen. Anslut till internet och försök igen.";
+
+/**
+ * `/profil` (#166) — the household's real editing screen on top of
+ * `GET`/`PUT /api/households` (#164/#165). The household is what this screen is
+ * for, so it dominates: eyebrow, the household label as the heading, the rule the
+ * screen rests on, then the members. Account controls (email, sign out, install)
+ * move to `ProfileAccount` below, muted and separated at the bottom — they are not
+ * why anyone opens this screen.
+ *
+ * Always fetches fresh on mount (`fetchHousehold`, never the Gate/onboarding
+ * response) per the DECISION_LOG entry on PUT-as-full-replacement: a stale copy
+ * held from an earlier screen could silently drop an allergy added elsewhere.
+ */
+function ProfilRoute({
+  session,
+  accessToken,
+  onHouseholdUpdated,
+}: {
+  session: Session;
+  accessToken: string;
+  onHouseholdUpdated: () => Promise<void>;
+}) {
+  const [loadState, setLoadState] = useState<ProfileLoadState>({ status: "loading" });
+  const [members, setMembers] = useState<HouseholdMember[] | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadState({ status: "loading" });
+    fetchHousehold(accessToken)
+      .then((household) => {
+        if (cancelled) return;
+        setMembers(household.members);
+        setOpenIndex(null);
+        setLoadState({ status: "ready" });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setLoadState(toProfileLoadState(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, retryCount]);
+
+  function updateMember(index: number, patch: Partial<HouseholdMember>) {
+    setMembers((current) =>
+      current ? current.map((member, i) => (i === index ? { ...member, ...patch } : member)) : current,
+    );
+  }
+
+  function addMember() {
+    // Computes the new member's index from `current`, the updater's own
+    // argument, not the closed-over `members` — a double-tap before the first
+    // add re-renders would otherwise have both calls read the same stale
+    // length and open the same (first) newly-added member.
+    setMembers((current) => {
+      if (!current) return current;
+      const next = [...current, emptyMember("adult")];
+      setOpenIndex(next.length - 1);
+      return next;
+    });
+  }
+
+  function removeMember(index: number) {
+    setMembers((current) => (current ? current.filter((_, i) => i !== index) : current));
+    setOpenIndex((current) => {
+      if (current === null) return current;
+      if (current === index) return null;
+      return current > index ? current - 1 : current;
+    });
+  }
+
+  async function handleSave(event: FormEvent) {
+    event.preventDefault();
+    if (!members) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await updateHousehold(accessToken, toHouseholdPayload(members));
+      // Tonight must never keep showing a suggestion this edit may have made
+      // unsafe — awaited so the request is in flight before the household can
+      // navigate away, even though `Gate` applies the result itself.
+      await onHouseholdUpdated();
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : PROFILE_OFFLINE_SAVE_MESSAGE);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const labels = members ? memberLabels(members) : [];
+  const fallbackLabels = members
+    ? memberLabels(members.map((member) => ({ ...member, name: undefined })))
+    : [];
+
+  return (
+    <div className="profile-screen">
+      <p className="text-eyebrow">Hushållet</p>
+      <h1 className="screen-header__title">
+        {members ? householdLabel(members) : "Laddar…"}
+      </h1>
+      <p className="profile-intro">
+        Allergier är hårda uteslutningar. Preferenser påverkar rankningen.
+      </p>
+
+      {loadState.status === "offline" && (
+        <Card className="state-card">
+          <p role="status">Ingen anslutning. Anslut till internet för att komma igång.</p>
+          <Button type="button" variant="primary" onClick={() => setRetryCount((n) => n + 1)}>
+            Försök igen
+          </Button>
+        </Card>
+      )}
+      {loadState.status === "error" && (
+        <Card className="state-card">
+          <pre className="error-text">{`error: ${loadState.code}\n${loadState.message}`}</pre>
+        </Card>
+      )}
+      {loadState.status === "loading" && (
+        <div className="profile-member-skeleton">
+          <ProfileMemberRowSkeleton />
+          <ProfileMemberRowSkeleton />
+        </div>
+      )}
+
+      {loadState.status === "ready" && members && (
+        <form onSubmit={(event) => void handleSave(event)}>
+          <section>
+            {members.map((member, index) => (
+              <ProfileMemberRow
+                key={index}
+                member={member}
+                label={labels[index]!}
+                fallbackLabel={fallbackLabels[index]!}
+                index={index}
+                expanded={openIndex === index}
+                onToggle={() => setOpenIndex((current) => (current === index ? null : index))}
+                onChange={(patch) => updateMember(index, patch)}
+                onRemove={() => removeMember(index)}
+                removable={members.length > 1}
+              />
+            ))}
+            <button type="button" className="member-add-row" onClick={addMember}>
+              + Lägg till medlem
+            </button>
+          </section>
+
+          <Button type="submit" variant="primary" className="profile-save" disabled={saving}>
+            Spara
+          </Button>
+          {saveError && (
+            <p role="alert" className="error-text">
+              {saveError}
+            </p>
+          )}
+        </form>
+      )}
+
+      <ProfileAccount session={session} />
+    </div>
+  );
+}
+
+/** The account surface (#137) — email, sign out, install. Unchanged in function,
+ *  just moved to the bottom and muted (#166): it's not why anyone opens this
+ *  screen. */
+function ProfileAccount({ session }: { session: Session }) {
+  return (
+    <div className="profile-account">
       <p className="muted">{session.user.email}</p>
       <Button type="button" variant="secondary" onClick={() => supabase.auth.signOut()}>
         Logga ut
       </Button>
       <InstallButton />
-      <p className="muted">Redigering av hushållet kommer hit senare.</p>
     </div>
   );
 }
 
 const ROUTE_EYEBROWS: Record<string, string> = {
   "/lista": "Inköpslista",
-  "/profil": "Profil",
 };
 
 /**
@@ -1110,6 +1421,44 @@ function Gate({ session }: { session: Session }) {
       .catch((error: unknown) => setState(toGateState(error)));
   }
 
+  /**
+   * A saved household edit (#166) must invalidate whatever Tonight is currently
+   * holding — the suggestion on screen may contain an allergen the household just
+   * added. Applied in place, `status` staying "ready" throughout: unlike
+   * `handleCreated`, the household is on `/profil` when this fires, and switching
+   * `status` away from "ready" would tear down the routed shell (and its nav)
+   * out from under them for what should be an invisible background refresh.
+   *
+   * `TonightView` only reads `data` at mount, so this takes effect the moment the
+   * household navigates back to "/" and it remounts — never by reaching into an
+   * already-mounted instance. Invalidated to a null result *before* the refetch
+   * rather than after: if the refetch itself fails (offline right after a
+   * successful save), the stale suggestion must not be what's left on screen —
+   * fail closed, not fail open.
+   */
+  async function handleHouseholdUpdated() {
+    setState((current) =>
+      current.status === "ready"
+        ? {
+            status: "ready",
+            data: {
+              result: null,
+              reason: "household_updated",
+              portions: current.data.portions,
+              diners: current.data.diners,
+            },
+          }
+        : current,
+    );
+    try {
+      const data = await fetchTonight(session.access_token);
+      setState((current) => (current.status === "ready" ? { status: "ready", data } : current));
+    } catch {
+      // Already invalidated above — left as the "no suggestion" state rather than
+      // resurfacing a dish that may no longer be safe.
+    }
+  }
+
   // These four states pre-empt routing entirely and render the same regardless of
   // which URL the household is on — the offline/error/loading shell must open no
   // matter what (UX_FLOW §7), and none of them have a nav to route between yet.
@@ -1151,7 +1500,16 @@ function Gate({ session }: { session: Session }) {
         <Route path="/" element={<TonightView data={state.data} accessToken={accessToken} />} />
         <Route path="/bygg" element={<BuildRoute accessToken={accessToken} />} />
         <Route path="/lista" element={<ListaRoute accessToken={accessToken} />} />
-        <Route path="/profil" element={<ProfilRoute session={session} />} />
+        <Route
+          path="/profil"
+          element={
+            <ProfilRoute
+              session={session}
+              accessToken={accessToken}
+              onHouseholdUpdated={handleHouseholdUpdated}
+            />
+          }
+        />
       </Route>
     </Routes>
   );
