@@ -41,6 +41,8 @@ import { Card } from "./components/Card";
 import { Chip } from "./components/Chip";
 import { RefreshIcon } from "./components/RefreshIcon";
 import { Screen } from "./components/Screen";
+import { StateScreen } from "./components/StateScreen";
+import { presentError, GENERIC_ERROR_MESSAGE, OFFLINE_MESSAGE } from "./errorPresentation";
 import {
   INITIAL_REFINEMENT,
   MAX_WEIGHT_LEVEL,
@@ -554,7 +556,8 @@ function OnboardingForm({
       await createHousehold(session.access_token, toHouseholdPayload(members));
       onCreated();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err));
+      const presented = presentError(err, "onboarding");
+      setError(presented.kind === "offline" ? OFFLINE_MESSAGE : GENERIC_ERROR_MESSAGE);
     } finally {
       setBusy(false);
     }
@@ -819,6 +822,92 @@ function SuggestionCardSkeleton() {
   );
 }
 
+/**
+ * What replaces the suggestion card when Tonight has nothing to show (#170).
+ * Three named reasons the server actually sends, or the client sets while a
+ * background refetch is in flight, plus a defensive fallback for anything
+ * else. Only the fallback ever logs a code — the three named branches are
+ * expected, everyday states, not failures.
+ */
+function TonightEmptyState({
+  reason,
+  busy,
+  onReset,
+  onGoToProfile,
+}: {
+  reason: string;
+  busy: boolean;
+  onReset: () => void;
+  onGoToProfile: () => void;
+}) {
+  if (reason === "household_updated") {
+    // Transient: Gate's own background refetch after a profile save
+    // (`handleHouseholdUpdated`) is already in flight — a loading beat, not a
+    // state to explain, so it gets the same placeholder the initial load does.
+    return <SuggestionCardSkeleton />;
+  }
+
+  if (reason === "no_safe_templates") {
+    // Nothing is broken — the household's own allergies and diet leave no
+    // safe dish tonight, which is the profile's problem to solve, not this
+    // screen's (mirrors GuidedFlow's NoSafeTemplates).
+    return (
+      <StateScreen
+        variant="dashed"
+        role="status"
+        title="Inget i kvällens meny passar hushållet"
+        body="Se över allergier och kostval i hushållet, så öppnar fler rätter upp sig."
+        action={{ label: "Till hushållet", onClick: onGoToProfile }}
+      />
+    );
+  }
+
+  if (reason === "no_more_suggestions") {
+    // UX_FLOW §9: recoverable, never a dead end — the household has safe
+    // options left, it has just excluded all of them this session, described
+    // honestly as a catalog limit rather than a failure.
+    return (
+      <StateScreen
+        variant="dashed"
+        role="status"
+        title="Du har sett kvällens hela urval"
+        body="Med dagens val finns inget mer i katalogen ikväll. Återställ så börjar vi om."
+        action={{ label: "Återställ", onClick: onReset, disabled: busy }}
+      />
+    );
+  }
+
+  return <TonightUnknownReasonState reason={reason} busy={busy} onRetry={onReset} />;
+}
+
+/** The one branch of `TonightEmptyState` that is an actual failure — a reason
+ *  the server should never send. Logged in an effect, not inline, so a
+ *  re-render of the same state never logs the same code twice. */
+function TonightUnknownReasonState({
+  reason,
+  busy,
+  onRetry,
+}: {
+  reason: string;
+  busy: boolean;
+  onRetry: () => void;
+}) {
+  useEffect(() => {
+    track({ name: "app_error_shown", context: "tonight_no_result", code: reason });
+  }, [reason]);
+
+  return (
+    <StateScreen
+      variant="solid"
+      role="alert"
+      title="Kunde inte visa kvällens förslag"
+      body={GENERIC_ERROR_MESSAGE}
+      action={{ label: "Försök igen", onClick: onRetry, disabled: busy }}
+      reference={reason}
+    />
+  );
+}
+
 function TonightView({
   data,
   accessToken,
@@ -1012,7 +1101,8 @@ function TonightView({
       await request();
       return true;
     } catch (err) {
-      setNextError(err instanceof ApiError ? err.message : String(err));
+      const presented = presentError(err, "tonight_refinement");
+      setNextError(presented.kind === "offline" ? OFFLINE_MESSAGE : GENERIC_ERROR_MESSAGE);
       // A failed request never reaches `showResponse`, which is the only place
       // that otherwise clears this (#133) — left alone, a diner-change notice
       // would keep describing a dish this new, unrelated failure has nothing to
@@ -1094,21 +1184,13 @@ function TonightView({
           {dinerChangeReasonLine(dinerReplacedFor)}
         </p>
       )}
-      {result === null && current.reason === "no_more_suggestions" && (
-        // Recoverable, never a dead end (UX_FLOW §9): the household has safe
-        // options left, it has just excluded all of them this session, so the way
-        // out is the same "Återställ" the chip row offers.
-        <Card className="state-card">
-          <p>Du har sett allt vi har för ikväll</p>
-          <Button type="button" variant="primary" onClick={handleReset} disabled={fetchingNext}>
-            Återställ
-          </Button>
-        </Card>
-      )}
-      {result === null && current.reason !== "no_more_suggestions" && (
-        <Card className="state-card">
-          <pre className="error-text">{`no result: ${current.reason}`}</pre>
-        </Card>
+      {result === null && (
+        <TonightEmptyState
+          reason={current.reason}
+          busy={fetchingNext}
+          onReset={handleReset}
+          onGoToProfile={() => navigate("/profil")}
+        />
       )}
       {result !== null && (
         <>
@@ -1225,16 +1307,13 @@ function ListaRoute({ accessToken }: { accessToken: string }) {
   }
 
   return (
-    <div className="empty-state">
-      <h2>Ingen middag vald ännu</h2>
-      <p>
-        Välj kvällens middag så delar vi upp listan i vad du redan har hemma och vad du behöver
-        handla.
-      </p>
-      <Button type="button" variant="primary" onClick={() => navigate("/")}>
-        Se förslag för ikväll
-      </Button>
-    </div>
+    <StateScreen
+      variant="dashed"
+      role="status"
+      title="Ingen middag vald ännu"
+      body="Välj kvällens middag så delar vi upp listan i vad du redan har hemma och vad du behöver handla."
+      action={{ label: "Se förslag för ikväll", onClick: () => navigate("/") }}
+    />
   );
 }
 
@@ -1330,15 +1409,14 @@ type ProfileLoadState =
   | { status: "loading" }
   | { status: "ready" }
   | { status: "offline" }
-  | { status: "error"; code: string; message: string };
+  | { status: "error"; code: string };
 
 function toProfileLoadState(error: unknown): ProfileLoadState {
-  if (error instanceof ApiError) return { status: "error", code: error.code, message: error.message };
-  return { status: "offline" };
+  const presented = presentError(error, "profile_load");
+  return presented.kind === "offline" ? { status: "offline" } : { status: "error", code: presented.code };
 }
 
-const PROFILE_OFFLINE_SAVE_MESSAGE =
-  "Det gick inte att spara ändringen. Anslut till internet och försök igen.";
+const PROFILE_SAVE_ERROR_MESSAGE = "Det gick inte att spara ändringarna. Försök igen om en liten stund.";
 
 /**
  * `/profil` (#166) — the household's real editing screen on top of
@@ -1426,7 +1504,8 @@ function ProfilRoute({
       // navigate away, even though `Gate` applies the result itself.
       await onHouseholdUpdated();
     } catch (err) {
-      setSaveError(err instanceof ApiError ? err.message : PROFILE_OFFLINE_SAVE_MESSAGE);
+      const presented = presentError(err, "profile_save");
+      setSaveError(presented.kind === "offline" ? OFFLINE_MESSAGE : PROFILE_SAVE_ERROR_MESSAGE);
     } finally {
       setSaving(false);
     }
@@ -1448,17 +1527,23 @@ function ProfilRoute({
       </p>
 
       {loadState.status === "offline" && (
-        <Card className="state-card">
-          <p role="status">Ingen anslutning. Anslut till internet för att komma igång.</p>
-          <Button type="button" variant="primary" onClick={() => setRetryCount((n) => n + 1)}>
-            Försök igen
-          </Button>
-        </Card>
+        <StateScreen
+          variant="solid"
+          role="status"
+          title="Ingen anslutning"
+          body="Anslut till internet för att komma igång."
+          action={{ label: "Försök igen", onClick: () => setRetryCount((n) => n + 1) }}
+        />
       )}
       {loadState.status === "error" && (
-        <Card className="state-card">
-          <pre className="error-text">{`error: ${loadState.code}\n${loadState.message}`}</pre>
-        </Card>
+        <StateScreen
+          variant="solid"
+          role="alert"
+          title="Det gick inte att hämta hushållet"
+          body={GENERIC_ERROR_MESSAGE}
+          action={{ label: "Försök igen", onClick: () => setRetryCount((n) => n + 1) }}
+          reference={loadState.code}
+        />
       )}
       {loadState.status === "loading" && (
         <div className="profile-member-skeleton">
@@ -1548,14 +1633,16 @@ type GateState =
   // open and show whatever shopping list is already on the device, never a
   // blank screen or a raw error.
   | { status: "offline"; list: ReturnType<typeof loadAnyShoppingList> }
-  | { status: "error"; code: string; message: string };
+  | { status: "error"; code: string };
 
 function toGateState(error: unknown): GateState {
-  if (error instanceof ApiError) {
-    if (error.code === "household_not_found") return { status: "no_household" };
-    return { status: "error", code: error.code, message: error.message };
+  if (error instanceof ApiError && error.code === "household_not_found") {
+    return { status: "no_household" };
   }
-  return { status: "offline", list: loadAnyShoppingList() };
+  const presented = presentError(error, "gate");
+  return presented.kind === "offline"
+    ? { status: "offline", list: loadAnyShoppingList() }
+    : { status: "error", code: presented.code };
 }
 
 function Gate({ session }: { session: Session }) {
@@ -1666,23 +1753,29 @@ function Gate({ session }: { session: Session }) {
       <div className="page">
         {state.status === "checking" && (
           <>
-            <p className="muted sr-only">Loading…</p>
+            <p className="muted sr-only">Laddar…</p>
             <SuggestionCardSkeleton />
           </>
         )}
         {state.status === "error" && (
-          <Card className="state-card">
-            <pre className="error-text">{`error: ${state.code}\n${state.message}`}</pre>
-          </Card>
+          <StateScreen
+            variant="solid"
+            role="alert"
+            title="Det gick inte att hämta kvällens förslag"
+            body={GENERIC_ERROR_MESSAGE}
+            action={{ label: "Försök igen", onClick: () => setRetryCount((n) => n + 1) }}
+            reference={state.code}
+          />
         )}
         {state.status === "offline" && state.list && <OfflineShoppingList list={state.list} />}
         {state.status === "offline" && !state.list && (
-          <Card className="state-card">
-            <p role="status">Ingen anslutning. Anslut till internet för att komma igång.</p>
-            <Button type="button" variant="primary" onClick={() => setRetryCount((n) => n + 1)}>
-              Försök igen
-            </Button>
-          </Card>
+          <StateScreen
+            variant="solid"
+            role="status"
+            title="Ingen anslutning"
+            body="Anslut till internet för att komma igång."
+            action={{ label: "Försök igen", onClick: () => setRetryCount((n) => n + 1) }}
+          />
         )}
         {state.status === "no_household" && (
           <OnboardingForm session={session} onCreated={handleCreated} />
@@ -1777,7 +1870,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (session === undefined) return <p className="page">Loading…</p>;
+  if (session === undefined) return <p className="page muted">Laddar…</p>;
   return (
     <BrowserRouter>
       {session === null ? (

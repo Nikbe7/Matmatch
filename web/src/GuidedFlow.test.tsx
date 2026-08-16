@@ -574,7 +574,12 @@ describe("GuidedFlow — failed requests offer a way forward", () => {
     await screen.findByRole("heading", { name: "Vilken huvudingrediens?" });
 
     // Not a permanent "Hämtar ingredienser…" over a request that is no longer running.
-    expect(await screen.findByRole("alert")).toBeTruthy();
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("Försök igen om en liten stund.");
+    // The server's raw message never reaches the DOM — the code survives only as
+    // the quiet reference line below the action (#170).
+    expect(screen.queryByText("gick fel")).toBeNull();
+    expect(document.body.textContent).toContain("internal");
     expect(screen.queryByText("Hämtar ingredienser…")).toBeNull();
 
     failOptions = false;
@@ -612,6 +617,64 @@ describe("GuidedFlow — failed requests offer a way forward", () => {
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
     expect(screen.getByRole("button", { name: "Försök igen" })).toBeTruthy();
+  });
+});
+
+describe("GuidedFlow — loading states are placeholders, not spinners on empty space (#170)", () => {
+  it("shows an ingredient-grid-shaped skeleton while the options request is in flight", async () => {
+    let resolveOptions: ((response: Response) => void) | undefined;
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) {
+        return new Promise<Response>((resolve) => {
+          resolveOptions = resolve;
+        });
+      }
+      return jsonResponse(200, threeDirections);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await screen.findByRole("heading", { name: "Vilken huvudingrediens?" });
+
+    const grid = document.querySelector(".ingredient-grid");
+    expect(grid).toBeTruthy();
+    expect(grid!.querySelectorAll(".skeleton-line--chip").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "kycklingfilé" })).toBeNull();
+
+    resolveOptions!(jsonResponse(200, options));
+
+    expect(await screen.findByRole("button", { name: "kycklingfilé" })).toBeTruthy();
+  });
+
+  it("shows three placeholder direction cards while directions are in flight", async () => {
+    let resolveDirections: ((response: Response) => void) | undefined;
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) return jsonResponse(200, options);
+      if (url.startsWith("/api/guided/directions")) {
+        return new Promise<Response>((resolve) => {
+          resolveDirections = resolve;
+        });
+      }
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
+    await user.click(screen.getByRole("button", { name: "Hoppa över" }));
+    await screen.findByRole("heading", { name: "Tre förslag" });
+
+    const skeletonCards = document.querySelectorAll(".direction-list .direction-card");
+    expect(skeletonCards).toHaveLength(3);
+    expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
+
+    resolveDirections!(jsonResponse(200, threeDirections));
+
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
   });
 });
 
@@ -936,7 +999,10 @@ describe("GuidedFlow — a failed options refetch drops the stale grid (#112)", 
     await user.click(screen.getByRole("button", { name: "Elsa" }));
 
     // The grid the previous diner set produced is gone rather than left tappable.
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("network down"));
+    // A network failure never reaches the DOM as raw text (#170) — it renders the
+    // offline state (role "status", not "alert") instead.
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Anslut till internet och försök igen."));
+    expect(screen.queryByText("network down")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Tillbaka" }));
     await screen.findByRole("heading", { name: "Vad har du hemma?" });
     expect(screen.queryByRole("button", { name: "ris" })).toBeNull();

@@ -526,7 +526,7 @@ describe("App — household gate", () => {
     expect(legend.textContent).toContain("⚠");
   });
 
-  it("keeps the form filled and shows a readable message on API error", async () => {
+  it("keeps the form filled and shows a friendly message, never the server's raw text, on API error", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = vi
@@ -548,8 +548,8 @@ describe("App — household gate", () => {
     await user.click(submit());
 
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toBe("members must contain at least 1 element(s)");
-    expect(alert.textContent).not.toContain("{");
+    expect(alert.textContent).toBe("Något gick fel. Försök igen om en liten stund.");
+    expect(alert.textContent).not.toContain("members must contain");
     expect(screen.getAllByText("Typ")).toHaveLength(2);
   });
 
@@ -608,9 +608,72 @@ describe("App — household gate", () => {
     render(<App />);
 
     await screen.findByRole("heading", { name: "Ikväll" });
-    expect(screen.getByText(/no result: no_safe_templates/)).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Inget i kvällens meny passar hushållet" }),
+    ).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Vilka bor här?" })).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the loading skeleton, not an error, for the transient 'household_updated' reason", async () => {
+    // Set client-side by Gate's own handleHouseholdUpdated while its background
+    // refetch is in flight (App.tsx) — a loading beat, not a state to explain.
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { result: null, reason: "household_updated" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Ikväll" });
+    expect(document.querySelector(".skeleton-card")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("shows an unrecognised no-result reason as a generic error, never the raw reason string as body text", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { result: null, reason: "some_future_reason" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Ikväll" });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("Något gick fel. Försök igen om en liten stund.");
+    // The reason code only ever appears in the quiet debugging reference below the
+    // action, never as the headline or the message itself.
+    expect(
+      screen.getByRole("heading", { name: "Kunde inte visa kvällens förslag" }),
+    ).toBeTruthy();
+    expect(document.querySelector("pre")).toBeNull();
+  });
+
+  it("shows a full-screen error, never the server's raw code or message, when the initial fetch fails", async () => {
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(500, { error: { code: "internal_error", message: "something went wrong" } }),
+      ),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Det gick inte att hämta kvällens förslag" }),
+    ).toBeTruthy();
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toBe("Något gick fel. Försök igen om en liten stund.");
+    expect(screen.queryByText(/something went wrong/)).toBeNull();
+    expect(document.querySelector("pre")).toBeNull();
+    // The code is still visible, but only as the quiet reference line, not as
+    // the headline or the body message.
+    expect(document.body.textContent).toContain("internal_error");
+    expect(screen.getByRole("button", { name: "Försök igen" })).toBeTruthy();
   });
 });
 
@@ -895,7 +958,7 @@ describe("App — adjustment chips", () => {
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
     await user.click(screen.getByRole("button", { name: "Byt förslag" }));
-    await screen.findByText("Du har sett allt vi har för ikväll");
+    await screen.findByRole("heading", { name: "Du har sett kvällens hela urval" });
     expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
     // Recoverable, not an error and not a blank card.
     expect(screen.queryByRole("alert")).toBeNull();
@@ -1212,8 +1275,9 @@ describe("App — offline", () => {
 
     render(<App />);
 
-    const status = await screen.findByRole("status");
-    expect(status.textContent).toBe("Ingen anslutning. Anslut till internet för att komma igång.");
+    expect(await screen.findByRole("heading", { name: "Ingen anslutning" })).toBeTruthy();
+    const status = screen.getByRole("status");
+    expect(status.textContent).toBe("Anslut till internet för att komma igång.");
     expect(screen.queryByRole("heading", { name: "Ikväll" })).toBeNull();
   });
 
@@ -1662,7 +1726,11 @@ describe("App — a failed diner change never leaves the card and the picker dis
     // Back to everyone, and the dish that was served to everyone is still on screen.
     expect(await screen.findByRole("button", { name: "Elsa", pressed: true })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "kycklinggryta" })).toBeTruthy();
-    expect(screen.getByRole("alert").textContent).toContain("network down");
+    // A network failure never reaches the DOM as raw text (#170).
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Ingen anslutning. Anslut till internet och försök igen.",
+    );
+    expect(screen.queryByText("network down")).toBeNull();
 
     // And the revert does not re-fire the request that just failed.
     const before = fetchMock.mock.calls.length;
@@ -1957,5 +2025,55 @@ describe("App — the profile screen (#166)", () => {
 
     await screen.findByRole("heading", { name: "Svampsoppa" });
     expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
+  });
+
+  it("shows a friendly error, never the raw code or message, when the household fails to load", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      routedFetch({
+        "GET /api/tonight": [jsonResponse(200, suggestionBody)],
+        "GET /api/households": [
+          jsonResponse(500, { error: { code: "internal_error", message: "database on fire" } }),
+        ],
+      }),
+    );
+
+    render(<App />);
+    await openProfil(user);
+
+    expect(
+      await screen.findByRole("heading", { name: "Det gick inte att hämta hushållet" }),
+    ).toBeTruthy();
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toBe("Något gick fel. Försök igen om en liten stund.");
+    expect(screen.queryByText(/database on fire/)).toBeNull();
+    expect(document.querySelector("pre")).toBeNull();
+    expect(document.body.textContent).toContain("internal_error");
+  });
+
+  it("shows the offline state, not a blank screen, when the household can't be reached at all", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    let householdCalls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url === "/api/tonight") return Promise.resolve(jsonResponse(200, suggestionBody));
+        if (url === "/api/households") {
+          householdCalls += 1;
+          return Promise.reject(new TypeError("Failed to fetch"));
+        }
+        throw new Error(`unexpected fetch ${url}`);
+      }),
+    );
+
+    render(<App />);
+    await openProfil(user);
+
+    expect(await screen.findByRole("heading", { name: "Ingen anslutning" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Anslut till internet för att komma igång.");
+    expect(householdCalls).toBe(1);
   });
 });

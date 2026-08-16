@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
-  ApiError,
   type ExcludedIngredientOption,
   type GuidedDirection,
   type GuidedDirectionsResponse,
@@ -15,6 +14,8 @@ import { ShoppingList, formatPortions, type ShoppingListMeal } from "./ShoppingL
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Chip } from "./components/Chip";
+import { StateScreen } from "./components/StateScreen";
+import { presentError, type PresentedError } from "./errorPresentation";
 import {
   GUIDED_INTENTS,
   INITIAL_GUIDED,
@@ -203,6 +204,45 @@ function NoSafeTemplates({ onRestart }: { onRestart: () => void }) {
   );
 }
 
+/** Placeholder chips at `.ingredient-grid`'s own cell size (#170) — stands in
+ *  for step 2/3's grid while `fetchOptions` is in flight, so nothing jumps
+ *  once the real ingredients land. */
+function IngredientGridSkeleton() {
+  return (
+    <div className="ingredient-grid" aria-hidden="true">
+      {Array.from({ length: 9 }, (_, index) => (
+        <div key={index} className="skeleton-line skeleton-line--chip" />
+      ))}
+    </div>
+  );
+}
+
+/** One placeholder `DirectionCard`, sized to its real content (name, two-line
+ *  summary, meta, "Välj" button). */
+function DirectionCardSkeleton() {
+  return (
+    <Card className="direction-card" aria-hidden="true">
+      <div className="skeleton-line skeleton-line--direction-name" />
+      <div className="skeleton-line skeleton-line--direction-summary" />
+      <div className="skeleton-line skeleton-line--direction-summary-2" />
+      <div className="skeleton-line skeleton-line--direction-meta" />
+      <div className="skeleton-line skeleton-line--direction-button" />
+    </Card>
+  );
+}
+
+/** Step 4's loading state (#170) — three placeholder cards, matching the real
+ *  three-direction result exactly, standing in while `fetchDirections` runs. */
+function DirectionListSkeleton() {
+  return (
+    <div className="direction-list" aria-hidden="true">
+      <DirectionCardSkeleton />
+      <DirectionCardSkeleton />
+      <DirectionCardSkeleton />
+    </div>
+  );
+}
+
 export function GuidedFlow({
   accessToken,
   onExit,
@@ -227,7 +267,7 @@ export function GuidedFlow({
   const [options, setOptions] = useState<GuidedOptions | null>(null);
   const [response, setResponse] = useState<GuidedDirectionsResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PresentedError | null>(null);
   // #133: set only around the "diner change after choosing" request below —
   // distinct from `loading`, which belongs to the "directions" step's own
   // fetch. Guards "Till inköpslistan": without it, the household could reach
@@ -277,7 +317,7 @@ export function GuidedFlow({
         // this is not a safety hole; it is the trap tap target the flow is built to
         // avoid.
         setOptions(null);
-        setError(err instanceof ApiError ? err.message : String(err));
+        setError(presentError(err, "guided_options"));
       });
     return () => {
       cancelled = true;
@@ -355,7 +395,7 @@ export function GuidedFlow({
         // answers a question the household has already changed — tapping one of its
         // cards would build a shopping list for the constraints it just abandoned.
         setResponse(null);
-        setError(err instanceof ApiError ? err.message : String(err));
+        setError(presentError(err, "guided_directions"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -451,7 +491,7 @@ export function GuidedFlow({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : String(err));
+        setError(presentError(err, "guided_diner_change"));
         requestedDinersRef.current = previousParameter;
         diners.restore(previousSelection);
       })
@@ -493,21 +533,24 @@ export function GuidedFlow({
   return (
     <div className="guided-flow">
       {error && (
-        <Card className="state-card">
-          <p role="alert" className="error-text">
-            {error}
-          </p>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => {
+        <StateScreen
+          variant="solid"
+          role={error.kind === "offline" ? "status" : "alert"}
+          title={error.kind === "offline" ? "Ingen anslutning" : "Något gick fel"}
+          body={
+            error.kind === "offline"
+              ? "Anslut till internet och försök igen."
+              : "Försök igen om en liten stund."
+          }
+          action={{
+            label: "Försök igen",
+            onClick: () => {
               setError(null);
               setAttempt((n) => n + 1);
-            }}
-          >
-            Försök igen
-          </Button>
-        </Card>
+            },
+          }}
+          reference={error.kind === "error" ? error.code : undefined}
+        />
       )}
 
       {state.step === "intent" && (
@@ -564,7 +607,12 @@ export function GuidedFlow({
               </Button>
             </>
           ) : (
-            !error && <p className="muted">Hämtar ingredienser…</p>
+            !error && (
+              <>
+                <p className="muted sr-only">Hämtar ingredienser…</p>
+                <IngredientGridSkeleton />
+              </>
+            )
           )}
         </>
       )}
@@ -595,7 +643,12 @@ export function GuidedFlow({
               </Button>
             </>
           ) : (
-            !error && <p className="muted">Hämtar ingredienser…</p>
+            !error && (
+              <>
+                <p className="muted sr-only">Hämtar ingredienser…</p>
+                <IngredientGridSkeleton />
+              </>
+            )
           )}
         </>
       )}
@@ -610,7 +663,12 @@ export function GuidedFlow({
               {dinerChangeReasonLine(response.replacedFor)}
             </p>
           )}
-          {loading && <p className="muted">Hämtar förslag…</p>}
+          {loading && (
+            <>
+              <p className="muted sr-only">Hämtar förslag…</p>
+              <DirectionListSkeleton />
+            </>
+          )}
           {!loading && response && response.directions.length > 0 && (
             <div className="direction-list">
               {response.directions.map((direction) => (
