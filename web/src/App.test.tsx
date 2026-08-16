@@ -397,7 +397,7 @@ describe("App — Tonight suggestion card", () => {
     expect(screen.queryByText(/^Valt för att/)).toBeNull();
   });
 
-  it("Accept moves to the shopping list, and a page reload restores it directly", async () => {
+  it("Laga ikväll moves to the shopping list, and a page reload restores it directly", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
@@ -405,7 +405,7 @@ describe("App — Tonight suggestion card", () => {
     const { unmount } = render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Acceptera" }));
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
 
     // The shopping list, not the old dead-end confirmation text.
     await screen.findByRole("heading", { name: "Behöver handlas (2)" });
@@ -468,7 +468,7 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
 
     await screen.findByRole("heading", { name: "Fisksoppa" });
     const nextUrl = fetchMock.mock.calls[1]![0] as string;
@@ -489,11 +489,11 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByRole("heading", { name: "Fisksoppa" });
     expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
     expect(screen.queryByRole("heading", { name: "Fisksoppa" })).toBeNull();
 
@@ -526,7 +526,7 @@ describe("App — adjustment chips", () => {
     const pressed = screen.getByRole("button", { name: "Billigare, nivå 1 av 2" });
     expect(pressed.getAttribute("aria-pressed")).toBe("true");
 
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByRole("heading", { name: "Ärtsoppa" });
     expect(screen.getByRole("button", { name: "Billigare, nivå 1 av 2" })).toBeTruthy();
     expect((fetchMock.mock.calls[2]![0] as string)).toContain("cost=1");
@@ -597,7 +597,7 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByText("Du har sett allt vi har för ikväll");
     expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
     // Recoverable, not an error and not a blank card.
@@ -659,7 +659,7 @@ describe("App — refinement instrumentation", () => {
 
     await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByRole("heading", { name: "Ärtsoppa" });
 
     expect(events).toEqual([
@@ -694,7 +694,7 @@ describe("App — refinement instrumentation", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
     setAnalyticsSink((event) => events.push(event));
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
 
     window.dispatchEvent(new Event("pagehide"));
@@ -702,7 +702,7 @@ describe("App — refinement instrumentation", () => {
     expect(events.at(-1)).toEqual({ name: "refinement_session_abandoned", rerollDepth: 1 });
   });
 
-  it("reports nothing on leaving once a suggestion has been accepted", async () => {
+  it("reports nothing on leaving once a suggestion has been chosen", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const events: AnalyticsEvent[] = [];
@@ -713,7 +713,7 @@ describe("App — refinement instrumentation", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
     setAnalyticsSink((event) => events.push(event));
-    await user.click(screen.getByRole("button", { name: "Acceptera" }));
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
 
     window.dispatchEvent(new Event("pagehide"));
 
@@ -721,7 +721,7 @@ describe("App — refinement instrumentation", () => {
   });
 });
 
-describe("App — Lagad ikväll", () => {
+describe("App — Laga ikväll", () => {
   afterEach(() => setAnalyticsSink(null));
 
   /** Tonight first, then whatever the POST /api/cooked call should answer with. */
@@ -736,7 +736,7 @@ describe("App — Lagad ikväll", () => {
     cooked: { templateId: "kycklinggryta", cookedAt: "2026-08-05T18:00:00.000Z" },
   });
 
-  it("posts the dish and its substitutions, then confirms visibly", async () => {
+  it("posts the dish and its substitutions, and moves straight to the shopping list — accepting and marking cooked are the same tap (#142)", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = fetchWithCooked(cookedOk);
@@ -744,9 +744,9 @@ describe("App — Lagad ikväll", () => {
 
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
-    await user.click(screen.getByRole("button", { name: "Lagad ikväll" }));
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
 
-    await screen.findByText("Lagad ✓");
+    await screen.findByRole("heading", { name: "Behöver handlas (2)" });
 
     const [url, init] = fetchMock.mock.calls[1]!;
     expect(url).toBe("/api/cooked");
@@ -757,64 +757,7 @@ describe("App — Lagad ikväll", () => {
     });
   });
 
-  it("disables the action once the meal is marked, so a second tap cannot fire", async () => {
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    const fetchMock = fetchWithCooked(cookedOk);
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<App />);
-    await screen.findByRole("heading", { name: "Kycklinggryta" });
-    await user.click(screen.getByRole("button", { name: "Lagad ikväll" }));
-    await screen.findByText("Lagad ✓");
-
-    await user.click(screen.getByRole("button", { name: "Lagad ikväll" }));
-
-    // Tonight + one cooked call. The backend is idempotent anyway, but the UI should not
-    // be sending a request it knows is a no-op.
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("starts already confirmed when the server says the dish was cooked today", async () => {
-    // The reload case: state comes from the server, not from this session's memory.
-    sessionHolder.current = fakeSession;
-    const alreadyCooked = {
-      ...suggestionBody,
-      result: { ...suggestionBody.result, cookedToday: true },
-    };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, alreadyCooked)));
-
-    render(<App />);
-    await screen.findByRole("heading", { name: "Kycklinggryta" });
-
-    expect(screen.getByText("Lagad ✓")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Lagad ikväll" }).hasAttribute("disabled")).toBe(true);
-  });
-
-  it("clears the confirmation when a chip brings up a different dish", async () => {
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
-      .mockResolvedValueOnce(cookedOk)
-      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("fisksoppa", "Fisksoppa")));
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<App />);
-    await screen.findByRole("heading", { name: "Kycklinggryta" });
-    await user.click(screen.getByRole("button", { name: "Lagad ikväll" }));
-    await screen.findByText("Lagad ✓");
-
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
-    await screen.findByRole("heading", { name: "Fisksoppa" });
-
-    // The confirmation belonged to the previous dish, not to the card.
-    expect(screen.queryByText("Lagad ✓")).toBeNull();
-    expect(screen.getByRole("button", { name: "Lagad ikväll" }).hasAttribute("disabled")).toBe(false);
-  });
-
-  it("shows the error and keeps the action available when the request fails", async () => {
+  it("navigates to the shopping list even when the history write fails, without showing the error in the UI", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = fetchWithCooked(
@@ -824,14 +767,36 @@ describe("App — Lagad ikväll", () => {
 
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
-    await user.click(screen.getByRole("button", { name: "Lagad ikväll" }));
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
 
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "inget hushåll");
-    expect(screen.queryByText("Lagad ✓")).toBeNull();
-    expect(screen.getByRole("button", { name: "Lagad ikväll" }).hasAttribute("disabled")).toBe(false);
+    // A failed history write is nothing the household can act on (DECISION_LOG
+    // 2026-08-16) — it must not block the shopping list or surface as an alert.
+    await screen.findByRole("heading", { name: "Behöver handlas (2)" });
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("instruments the cooked event with the reroll depth it took to get there", async () => {
+  it("reports a failed history write as its own analytics event instead of meal_chosen failing loudly", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const events: AnalyticsEvent[] = [];
+    const fetchMock = fetchWithCooked(
+      jsonResponse(404, { error: { code: "household_not_found", message: "inget hushåll" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    setAnalyticsSink((event) => events.push(event));
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+    await screen.findByRole("heading", { name: "Behöver handlas (2)" });
+
+    expect(events).toEqual([
+      { name: "meal_chosen", templateId: "kycklinggryta", rerollDepth: 0 },
+      { name: "meal_choice_history_failed", templateId: "kycklinggryta" },
+    ]);
+  });
+
+  it("instruments meal_chosen with the reroll depth it took to get there", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const events: AnalyticsEvent[] = [];
@@ -851,13 +816,13 @@ describe("App — Lagad ikväll", () => {
     // effect just installed — the same override order setAnalyticsSink is always
     // used with in these tests, per its own doc comment.
     setAnalyticsSink((event) => events.push(event));
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByRole("heading", { name: "Fisksoppa" });
-    await user.click(screen.getByRole("button", { name: "Lagad ikväll" }));
-    await screen.findByText("Lagad ✓");
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+    await screen.findByRole("heading", { name: /Behöver handlas/ });
 
     expect(events.at(-1)).toEqual({
-      name: "meal_cooked",
+      name: "meal_chosen",
       templateId: "fisksoppa",
       rerollDepth: 1,
     });
@@ -885,7 +850,7 @@ describe("App — entering the guided flow", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Ikväll" });
 
-    await user.click(screen.getByRole("button", { name: "Välj själv" }));
+    await user.click(screen.getByRole("button", { name: "Bygg en middag" }));
     await screen.findByRole("heading", { name: "Vad är du sugen på?" });
 
     await user.click(screen.getByRole("button", { name: "Till ikväll" }));
@@ -1346,7 +1311,7 @@ describe("App — a diner change keeps the dish when it is still valid (#133)", 
     await user.click(screen.getByRole("button", { name: "Vuxen 1" }));
     await screen.findByText("Rätten passar inte Elsa, här är ett nytt förslag");
 
-    await user.click(screen.getByRole("button", { name: "Något annat" }));
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
 
     await vi.waitFor(() =>
       expect(screen.queryByText(/Rätten passar inte/)).toBeNull(),

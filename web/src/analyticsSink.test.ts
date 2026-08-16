@@ -4,8 +4,8 @@ import { createHttpAnalyticsSink } from "./analyticsSink";
 // Unit-level: exercises the sink's buffering and flush behaviour directly, without
 // going through setAnalyticsSink/App.tsx wiring (issue #91).
 
-function mealCooked(templateId: string) {
-  return { name: "meal_cooked" as const, templateId, rerollDepth: 0 };
+function mealChosen(templateId: string) {
+  return { name: "meal_chosen" as const, templateId, rerollDepth: 0 };
 }
 
 describe("createHttpAnalyticsSink", () => {
@@ -20,7 +20,7 @@ describe("createHttpAnalyticsSink", () => {
     const handle = createHttpAnalyticsSink("token-123");
     // 55 taps against a cap of 50 — the first 5 must not survive to the flush.
     for (let i = 0; i < 55; i++) {
-      handle.sink(mealCooked(`dish-${i}`));
+      handle.sink(mealChosen(`dish-${i}`));
     }
     handle.flush();
     handle.stop();
@@ -41,7 +41,7 @@ describe("createHttpAnalyticsSink", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const handle = createHttpAnalyticsSink("token-123");
-    handle.sink(mealCooked("kycklinggryta"));
+    handle.sink(mealChosen("kycklinggryta"));
 
     expect(() => handle.flush()).not.toThrow();
     // The rejected fetch promise is handled inside flush(); let it settle before
@@ -58,7 +58,7 @@ describe("createHttpAnalyticsSink", () => {
 
     // And the sink still accepts new events — a broken transport never stops the
     // interaction that produces them.
-    expect(() => handle.sink(mealCooked("fisksoppa"))).not.toThrow();
+    expect(() => handle.sink(mealChosen("fisksoppa"))).not.toThrow();
     handle.stop();
   });
 
@@ -78,7 +78,7 @@ describe("createHttpAnalyticsSink", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const handle = createHttpAnalyticsSink("token-123");
-    handle.sink(mealCooked("kycklinggryta"));
+    handle.sink(mealChosen("kycklinggryta"));
     window.dispatchEvent(new Event("pagehide"));
     handle.stop();
 
@@ -90,7 +90,7 @@ describe("createHttpAnalyticsSink", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const handle = createHttpAnalyticsSink("token-123");
-    handle.sink(mealCooked("kycklinggryta"));
+    handle.sink(mealChosen("kycklinggryta"));
     handle.stop();
     window.dispatchEvent(new Event("pagehide"));
 

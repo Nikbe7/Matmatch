@@ -12,8 +12,8 @@ import type { ChipId } from "./refinement";
 // The real sink (buffering, batching, POSTing to the backend) lives in
 // analyticsSink.ts and is installed via `setAnalyticsSink` from App.tsx; nothing at
 // the call sites below knows or cares which sink is active. Deliberately not a
-// generic event bus — three typed events, widened only when a real question needs
-// a fourth.
+// generic event bus — a small set of typed events, widened only when a real
+// question needs another one.
 
 export interface ChipTapEvent {
   name: "refinement_chip_tap";
@@ -41,22 +41,45 @@ export interface SessionAbandonedEvent {
 }
 
 /**
- * The household marked the suggestion as cooked (#88) — the closest thing the app has
- * to a completed loop, and therefore the event the roadmap's Weekly Active Deciders and
+ * The household chose "Laga ikväll" (#88, renamed from `meal_cooked` by #142's
+ * accept/cooked merge, DECISION_LOG 2026-08-16) — the closest thing the app has to a
+ * completed loop, and therefore the event the roadmap's Weekly Active Deciders and
  * repeat-use metrics are counted from. This is the third event the module comment
  * reserves: a real question needs it, not symmetry with the two above.
  *
- * `rerollDepth` comes along because "cooked the first suggestion" and "cooked the sixth"
+ * Fires at the moment of choice, not at a later confirmed-cooked step — there is no
+ * such step any more. A household that chooses a dish and then orders pizza instead
+ * still produces this event; the name says "chosen", not "cooked", precisely so a
+ * reader of the analytics data does not assume otherwise.
+ *
+ * `rerollDepth` comes along because "chose the first suggestion" and "chose the sixth"
  * are the same outcome reached very differently, and that difference is the same
  * control-vs-coverage question the chip events exist to answer.
  */
-export interface MealCookedEvent {
-  name: "meal_cooked";
+export interface MealChosenEvent {
+  name: "meal_chosen";
   templateId: string;
   rerollDepth: number;
 }
 
-export type AnalyticsEvent = ChipTapEvent | SessionAbandonedEvent | MealCookedEvent;
+/**
+ * The `POST /api/cooked` call behind a "Laga ikväll" tap failed — the history write
+ * that suppresses this dish from ranking for about two weeks (#88) did not happen,
+ * though the household still went on to the shopping list (DECISION_LOG 2026-08-16).
+ * Nothing the household can act on, so the UI swallows the error; this is the only
+ * record that the write is missing, for anyone later reconciling `meal_chosen` counts
+ * against actual repeat-avoidance behaviour.
+ */
+export interface MealChoiceHistoryFailedEvent {
+  name: "meal_choice_history_failed";
+  templateId: string;
+}
+
+export type AnalyticsEvent =
+  | ChipTapEvent
+  | SessionAbandonedEvent
+  | MealChosenEvent
+  | MealChoiceHistoryFailedEvent;
 
 export type AnalyticsSink = (event: AnalyticsEvent) => void;
 

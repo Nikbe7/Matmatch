@@ -50,18 +50,26 @@ const SessionAbandonedEventSchema = z
   })
   .strict();
 
-const MealCookedEventSchema = z
+const MealChosenEventSchema = z
   .object({
-    name: z.literal("meal_cooked"),
+    name: z.literal("meal_chosen"),
     templateId: z.string().min(1),
     rerollDepth: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const MealChoiceHistoryFailedEventSchema = z
+  .object({
+    name: z.literal("meal_choice_history_failed"),
+    templateId: z.string().min(1),
   })
   .strict();
 
 const AnalyticsEventSchema = z.discriminatedUnion("name", [
   ChipTapEventSchema,
   SessionAbandonedEventSchema,
-  MealCookedEventSchema,
+  MealChosenEventSchema,
+  MealChoiceHistoryFailedEventSchema,
 ]);
 
 // Mirrors the frontend buffer cap (web/src/analyticsSink.ts) — a batch larger than

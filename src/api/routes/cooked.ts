@@ -9,8 +9,11 @@ import { validateSubstitutionRefs } from "../instructionsIngredients.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../httpError.js";
 
-// "Lagad ikväll" (issue #88): the household cooked the dish on the Tonight card. One
-// row, which Tonight then ranks against — this is the write half of repeat-avoidance.
+// The write half of repeat-avoidance (issue #88): one row per household/template/day,
+// which Tonight's ranking then penalises for about two weeks. Called from "Laga
+// ikväll" (#142, DECISION_LOG 2026-08-16) — choosing the dish, not a separate
+// confirmation step — but this route's contract (and the table underneath it) is
+// unaffected by what triggers the call.
 //
 // Idempotent by contract, not by best effort: a double tap answers 200 with the same
 // `cookedAt` the first tap produced (the table's day constraint collapses them), so the

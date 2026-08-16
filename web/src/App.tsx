@@ -36,6 +36,7 @@ import { createHttpAnalyticsSink } from "./analyticsSink";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Chip } from "./components/Chip";
+import { RefreshIcon } from "./components/RefreshIcon";
 import { Screen } from "./components/Screen";
 import {
   INITIAL_REFINEMENT,
@@ -445,22 +446,22 @@ function LevelChip({
  * immediately — that is the whole reason these are chips and not slider notches
  * (DECISION_LOG 2026-07-31, and the 2026-08-05 chip entry). "Billigare" and "Snabbare" stay pressed
  * and keep showing their level for the rest of the session, so a household several
- * rerolls deep can still see what it asked for; the other three are momentary
- * actions and carry no pressed state.
+ * rerolls deep can still see what it asked for; the other two are momentary actions
+ * and carry no pressed state. "Något annat" is not here — #142 moved that control
+ * onto the suggestion itself as "Byt förslag", matching the reference exactly
+ * rather than duplicating it in both places.
  */
 function AdjustmentChips({
   refinement,
   busy,
   onIncrement,
   onOtherCuisine,
-  onSomethingElse,
   onReset,
 }: {
   refinement: RefinementState;
   busy: boolean;
   onIncrement: (axis: WeightAxis) => void;
   onOtherCuisine: () => void;
-  onSomethingElse: () => void;
   onReset: () => void;
 }) {
   return (
@@ -480,9 +481,6 @@ function AdjustmentChips({
       <Chip onClick={onOtherCuisine} disabled={busy}>
         Annat kök
       </Chip>
-      <Chip onClick={onSomethingElse} disabled={busy}>
-        Något annat
-      </Chip>
       <Chip onClick={onReset} disabled={busy}>
         Återställ
       </Chip>
@@ -491,68 +489,54 @@ function AdjustmentChips({
 }
 
 /**
- * The Tonight card (UX_FLOW §4). Two actions: accept (→ shopping list) and "Lagad
- * ikväll", which records the dish as cooked so it stops being suggested for a while
- * (#88, UX_FLOW §5 step 8).
- *
- * "Lagad ikväll" is one tap with a visible, persistent confirmation and no new screen:
- * once marked it becomes a disabled button plus a `role="status"` line, so the state is
- * announced rather than conveyed by styling alone. `cooked` comes from the server on
- * load, so a reload lands on the confirmed state instead of offering the tap again.
+ * The Tonight suggestion (UX_FLOW §4). Rendered directly on the page background,
+ * not in a `Card` — #142 removed the card chrome to match the reference exactly;
+ * cards group lists and collapsible blocks, never a screen's own main content (see
+ * `docs/UX_FLOW.md` §4). One action: "Laga ikväll", which both records the dish as
+ * cooked (#88) and takes the household straight to the shopping list — there is no
+ * separate accept step and no separate confirmation state (DECISION_LOG 2026-08-16).
+ * "Byt förslag" takes over exactly what the "Något annat" chip used to do.
  */
 function SuggestionCard({
   result,
-  cooked,
-  marking,
-  error,
-  onAccept,
-  onMarkCooked,
+  swapBusy,
+  onChoose,
+  onSwap,
 }: {
   result: TonightResult;
-  cooked: boolean;
-  marking: boolean;
-  error: string | null;
-  onAccept: () => void;
-  onMarkCooked: () => void;
+  swapBusy: boolean;
+  onChoose: () => void;
+  onSwap: () => void;
 }) {
   const reasonLine = suggestionReasonLine(result.reasonCodes ?? []);
 
   return (
-    <Card className="suggestion-card">
-      <h3 className="suggestion-card__name">{result.template.name}</h3>
-      <p className="suggestion-card__meta">
+    <div className="suggestion">
+      <h3 className="suggestion__name">{result.template.name}</h3>
+      <p className="suggestion__meta">
         {PREP_TIME_LABELS[result.template.prep_time_band]}
         {" · "}
         <span role="img" aria-label={costTierLabel(result.template.cost_tier)}>
           <span aria-hidden="true">{costTierMeter(result.template.cost_tier)}</span>
         </span>
       </p>
-      {reasonLine && <p className="suggestion-card__reason">{reasonLine}</p>}
-      <div className="suggestion-card__actions">
-        <Button type="button" variant="primary" onClick={onAccept}>
-          Acceptera
+      {reasonLine && <p className="suggestion__reason">{reasonLine}</p>}
+      <div className="suggestion__actions">
+        <Button type="button" variant="primary" className="suggestion__choose" onClick={onChoose}>
+          Laga ikväll
         </Button>
         <Button
           type="button"
           variant="secondary"
-          className="suggestion-card__cooked"
-          onClick={onMarkCooked}
-          disabled={cooked || marking}
+          className="suggestion__swap"
+          onClick={onSwap}
+          disabled={swapBusy}
         >
-          Lagad ikväll
+          <RefreshIcon />
+          Byt förslag
         </Button>
       </div>
-      {cooked && (
-        <p role="status" className="status-line">
-          Lagad ✓
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="error-text">
-          {error}
-        </p>
-      )}
-      <ul className="suggestion-card__ingredients">
+      <ul className="suggestion__ingredients">
         {result.ingredients.map((ingredient, index) => (
           <li key={index}>
             {INGREDIENT_ROLE_LABELS[ingredient.role]}: {ingredient.name}
@@ -560,19 +544,19 @@ function SuggestionCard({
           </li>
         ))}
       </ul>
-    </Card>
+    </div>
   );
 }
 
 /**
- * Stands in for the Tonight card while the first fetch is in flight, sized to
- * roughly the same footprint as the real card so nothing jumps once it resolves
+ * Stands in for the Tonight suggestion while the first fetch is in flight, sized to
+ * roughly the same footprint as the real content so nothing jumps once it resolves
  * (requirement 5 — no spinner on a blank screen). Purely decorative, so it's
  * hidden from assistive tech; the loading state is still announced via text.
  */
 function SuggestionCardSkeleton() {
   return (
-    <Card className="suggestion-card skeleton-card" aria-hidden="true">
+    <div className="suggestion skeleton-card" aria-hidden="true">
       <div className="skeleton-line skeleton-line--title" />
       <div className="skeleton-line skeleton-line--title-2" />
       <div className="skeleton-line skeleton-line--meta" />
@@ -585,7 +569,7 @@ function SuggestionCardSkeleton() {
         <div className="skeleton-line skeleton-line--row" />
         <div className="skeleton-line skeleton-line--row" />
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -622,15 +606,6 @@ function TonightView({
   const [nextError, setNextError] = useState<string | null>(null);
   const acceptedRef = useRef(false);
 
-  // Which dish is confirmed cooked, by template id rather than a bare boolean: the card
-  // can change under a chip tap, and a flag would carry the previous dish's confirmation
-  // over to a new suggestion. Seeded from the server so a reload keeps the confirmation.
-  const [cookedTemplateId, setCookedTemplateId] = useState<string | null>(
-    initialResult?.cookedToday ? initialResult.template.id : null,
-  );
-  const [markingCooked, setMarkingCooked] = useState(false);
-  const [cookedError, setCookedError] = useState<string | null>(null);
-
   // #133: who the dish on screen was just replaced *for*, when the diner-change
   // effect below asked to keep it and could not. `null` whenever nothing was
   // replaced — including every non-diner-change request, so a chip tap always
@@ -665,10 +640,6 @@ function TonightView({
 
   function showResponse(response: TonightResponse) {
     setCurrent(response);
-    // The new dish carries its own cooked state from the server, so this both clears a
-    // previous dish's confirmation and keeps one that is genuinely still true.
-    setCookedTemplateId(response.result?.cookedToday ? response.result.template.id : null);
-    setCookedError(null);
     // `replacedFor` is only ever present on the diner-change "keep" request's
     // response (#133) — every other response omits it, which is what clears a
     // notice left over from an earlier diner change once the household does
@@ -677,25 +648,40 @@ function TonightView({
     if (response.result) apply({ type: "suggestion_shown", templateId: response.result.template.id });
   }
 
-  async function handleMarkCooked() {
+  /**
+   * "Laga ikväll" (#142, DECISION_LOG 2026-08-16): choosing the dish *is* the
+   * accept action, merged with what used to be a separate "Lagad ikväll" tap. Fires
+   * `meal_chosen` at the moment of choice, regardless of whether the history write
+   * that follows succeeds — the household chose the dish either way, and Phase 2's
+   * choice metric must count that, not the bookkeeping outcome. A failed write
+   * cannot be acted on by the household, so it never reaches the UI: it is reported
+   * as `meal_choice_history_failed` and navigation to the shopping list proceeds
+   * regardless, exactly as it does on success.
+   */
+  async function handleChooseTonight() {
     const shown = current.result;
     if (!shown) return;
 
-    setMarkingCooked(true);
-    setCookedError(null);
+    acceptedRef.current = true;
+    track({
+      name: "meal_chosen",
+      templateId: shown.template.id,
+      rerollDepth: refinementRef.current.rerollDepth,
+    });
+
     try {
       await markCooked(accessToken, shown.template.id, shown.substitutions);
-      setCookedTemplateId(shown.template.id);
-      track({
-        name: "meal_cooked",
-        templateId: shown.template.id,
-        rerollDepth: refinementRef.current.rerollDepth,
-      });
-    } catch (err) {
-      setCookedError(err instanceof ApiError ? err.message : String(err));
-    } finally {
-      setMarkingCooked(false);
+    } catch {
+      track({ name: "meal_choice_history_failed", templateId: shown.template.id });
     }
+
+    // #137: the shopping list now lives at its own route so it survives a reload
+    // and is reachable from the bottom nav — handed over via navigation state
+    // rather than lifted into Gate, since TonightView already holds everything
+    // `/lista` needs to render it (ListaRoute below).
+    navigate("/lista", {
+      state: { result: shown, portions: current.portions, diners: diners.parameter },
+    });
   }
 
   function reportChipTap(chip: ChipId, next: RefinementState, level?: number) {
@@ -882,21 +868,9 @@ function TonightView({
         <>
           <SuggestionCard
             result={result}
-            cooked={cookedTemplateId === result.template.id}
-            marking={markingCooked}
-            error={cookedError}
-            onAccept={() => {
-              acceptedRef.current = true;
-              // #137: the shopping list now lives at its own route so it
-              // survives a reload and is reachable from the bottom nav —
-              // handed over via navigation state rather than lifted into
-              // Gate, since TonightView already holds everything `/lista`
-              // needs to render it (ListaRoute below).
-              navigate("/lista", {
-                state: { result, portions: current.portions, diners: diners.parameter },
-              });
-            }}
-            onMarkCooked={() => void handleMarkCooked()}
+            swapBusy={fetchingNext}
+            onChoose={() => void handleChooseTonight()}
+            onSwap={handleSomethingElse}
           />
           <section className="tonight-adjust">
             <p className="text-eyebrow">Justera</p>
@@ -905,7 +879,6 @@ function TonightView({
               busy={fetchingNext}
               onIncrement={handleIncrement}
               onOtherCuisine={handleOtherCuisine}
-              onSomethingElse={handleSomethingElse}
               onReset={handleReset}
             />
           </section>
@@ -931,7 +904,7 @@ function TonightView({
           className="guided-entry"
           onClick={() => navigate("/bygg")}
         >
-          Välj själv
+          Bygg en middag
         </Button>
       }
     </div>
@@ -1082,7 +1055,7 @@ function Gate({ session }: { session: Session }) {
   // in dev otherwise. Owned by Gate rather than by TonightView because switching to
   // the guided flow unmounts TonightView, and `handle.stop()` deliberately does not
   // flush: an owner that comes and goes with the view would drop up to one flush
-  // interval of buffered events every time the household taps "Välj själv".
+  // interval of buffered events every time the household taps "Bygg en middag".
   //
   // Registered before TonightView mounts, so TonightView's own pagehide listener
   // (the abandoned-session event) registers second and therefore *runs* second —
