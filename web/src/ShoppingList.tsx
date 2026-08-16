@@ -17,30 +17,13 @@ import {
   type StoredShoppingList,
 } from "./shoppingListStorage";
 import { allergenMarkingText } from "./allergyLabels";
-import { formatQuantity } from "./display";
+import { formatQuantity, formatPortions } from "./display";
 import { Button } from "./components/Button";
 import { IngredientPopover } from "./components/IngredientPopover";
 
 // The shopping list for an accepted Tonight suggestion. Deliberately no fetch here
 // at all — everything it needs (the result, the portions count) arrives as props,
 // and its own state round-trips through localStorage only (shoppingListStorage.ts).
-
-/**
- * Rounded to one decimal only when the total isn't whole, so a plain household
- * of adults never sees a stray ".0". portions itself stays a raw number over
- * the wire; this formatting is the frontend's alone to change.
- */
-export function formatPortionsCount(portions: number): string {
-  const rounded = Math.round(portions * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-}
-
-/** "För 4 portioner" — the guided flow's portions step (#174) renders the same
- *  three words but sizes the count on its own, since `formatPortionsCount`
- *  is what it actually wants to make large. */
-export function formatPortions(portions: number): string {
-  return `För ${formatPortionsCount(portions)} portioner`;
-}
 
 interface IndexedItem extends ShoppingListItem {
   index: number;

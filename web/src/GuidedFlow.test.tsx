@@ -489,6 +489,24 @@ describe("GuidedFlow — portion confirmation", () => {
     expect(screen.getByRole("status").textContent).toBe("För 2 portioner");
   });
 
+  it("uses singular 'portion' at 1, plural 'portioner' above it (#176)", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
+    await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
+
+    await screen.findByRole("heading", { name: "Hur många portioner?" });
+    expect(screen.getByRole("status").textContent).toBe("För 2 portioner");
+
+    await user.click(screen.getByRole("button", { name: "Färre portioner" }));
+    expect(screen.getByRole("status").textContent).toBe("För 1 portion");
+
+    await user.click(screen.getByRole("button", { name: "Fler portioner" }));
+    expect(screen.getByRole("status").textContent).toBe("För 2 portioner");
+  });
+
   it("carries the confirmed count into the shopping list", async () => {
     const user = userEvent.setup();
     stubApi();

@@ -1,7 +1,8 @@
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OfflineShoppingList, ShoppingList, formatPortions } from "./ShoppingList";
+import { OfflineShoppingList, ShoppingList } from "./ShoppingList";
+import { formatPortions } from "./display";
 import { loadShoppingList, SHOPPING_LIST_VERSION, type StoredShoppingList } from "./shoppingListStorage";
 import type { IngredientAllergenMarking, TonightResult } from "./api";
 

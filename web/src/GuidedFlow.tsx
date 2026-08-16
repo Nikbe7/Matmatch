@@ -10,7 +10,8 @@ import { allergyExclusionReason, capitalizeForSentence } from "./allergyLabels";
 import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { createGuidedClient } from "./guidedClient";
 import { costTierLabel, costTierMeter, dinerChangeReasonLine, PREP_TIME_LABELS } from "./display";
-import { ShoppingList, formatPortionsCount, type ShoppingListMeal } from "./ShoppingList";
+import { ShoppingList, type ShoppingListMeal } from "./ShoppingList";
+import { formatPortionsCount, portionsNoun } from "./display";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Chip } from "./components/Chip";
@@ -822,7 +823,7 @@ export function GuidedFlow({
                     <span className="portions-value__count">
                       {formatPortionsCount(state.portions)}
                     </span>{" "}
-                    <span className="portions-value__word">portioner</span>
+                    <span className="portions-value__word">{portionsNoun(state.portions)}</span>
                   </span>
                   <button
                     type="button"
