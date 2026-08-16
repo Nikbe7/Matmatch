@@ -22,9 +22,13 @@ import { dishGenerateRouter } from "./dishGenerate.js";
 
 // Integration tests against the real local Supabase stack, mirroring
 // instructions.test.ts's pattern: real DB, real auth, a mocked Anthropic client so
-// the suite never makes a real (billed) API call. The generated_dishes and
-// dish_generation_attempts tables are real and not cleaned up between runs, so
-// every test uses a fresh, randomly-generated query rather than a shared one.
+// the suite never makes a real (billed) API call. `generated_dishes` is real and
+// not cleaned up between runs, so every test uses a fresh, randomly-generated query
+// rather than a shared one, keeping every row collision-free regardless of what
+// earlier runs left behind. `dish_generation_attempts` has no such per-row key —
+// the ceiling below counts every row in the window, not a lookup by key — so it is
+// reset once per `npm test` invocation instead, by vitest's globalSetup
+// (src/db/__fixtures__/globalSetup.ts, #155).
 
 const stackAvailable = await isLocalStackAvailable();
 
