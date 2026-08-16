@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SuggestionReasonCode } from "./api";
-import { formatQuantity, suggestionReasonLine } from "./display";
+import { formatPortions, formatQuantity, portionsNoun, suggestionReasonLine } from "./display";
 
 // #122: display.ts owns the only phrasing of a SuggestionReasonCode, so this is
 // where "never a number" and "never a list" get checked — the engine (ranking.ts)
@@ -68,5 +68,39 @@ describe("formatQuantity", () => {
 
   it("words the no-quantity marker rather than showing a number", () => {
     expect(formatQuantity({ kind: "to_taste" })).toBe("efter smak");
+  });
+});
+
+// #176: singular only at exactly 1 portion — every other count, including the
+// 1.5 a mixed adult/child household can land on, takes the plural.
+describe("portionsNoun", () => {
+  it("is singular only at exactly 1", () => {
+    expect(portionsNoun(1)).toBe("portion");
+  });
+
+  it("is plural for a fractional count, even one that rounds toward 1", () => {
+    expect(portionsNoun(1.5)).toBe("portioner");
+  });
+
+  it("is plural for any count above 1", () => {
+    expect(portionsNoun(2)).toBe("portioner");
+    expect(portionsNoun(4)).toBe("portioner");
+  });
+});
+
+describe("formatPortions", () => {
+  it("renders singular for 1 portion", () => {
+    expect(formatPortions(1)).toBe("För 1 portion");
+  });
+
+  it("renders plural for a fractional count", () => {
+    // formatPortionsCount is unchanged by #176 — it still renders the raw
+    // decimal point, not a Swedish comma; only the noun is new here.
+    expect(formatPortions(1.5)).toBe("För 1.5 portioner");
+  });
+
+  it("renders plural for 2 and 4 portions", () => {
+    expect(formatPortions(2)).toBe("För 2 portioner");
+    expect(formatPortions(4)).toBe("För 4 portioner");
   });
 });

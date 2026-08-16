@@ -123,3 +123,30 @@ export function formatQuantity(quantity: ScaledQuantity): string {
 
   return `${amount} ${unit}`;
 }
+
+/**
+ * Rounded to one decimal only when the total isn't whole, so a plain household
+ * of adults never sees a stray ".0". portions itself stays a raw number over
+ * the wire; this formatting is the frontend's alone to change.
+ */
+export function formatPortionsCount(portions: number): string {
+  const rounded = Math.round(portions * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+/**
+ * "portion" only when the rounded value is exactly 1 — 1.5 and 0 both take the
+ * plural (#176: MIN_PORTIONS keeps 0 from happening in practice, but the plural
+ * is the safe fallback if it ever did).
+ */
+export function portionsNoun(portions: number): "portion" | "portioner" {
+  const rounded = Math.round(portions * 10) / 10;
+  return rounded === 1 ? "portion" : "portioner";
+}
+
+/** "För 4 portioner" — the guided flow's portions step (#174) renders the same
+ *  three words but sizes the count on its own, since `formatPortionsCount`
+ *  is what it actually wants to make large. */
+export function formatPortions(portions: number): string {
+  return `För ${formatPortionsCount(portions)} ${portionsNoun(portions)}`;
+}
