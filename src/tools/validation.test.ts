@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { derivePrepTimeBand, validateFiles, type FileInput, type RecordType } from "./validation.js";
+import { validateFiles, type FileInput, type RecordType } from "./validation.js";
 
 const fixturesDir = fileURLToPath(new URL("./__fixtures__/", import.meta.url));
 
@@ -405,52 +405,5 @@ describe("validateFiles — substitution groups", () => {
     expect(
       result.warnings.some((warning) => warning.message.includes("substitution member resolution")),
     ).toBe(false);
-  });
-});
-
-// #151 — prep_time_band is derived from prep_minutes, not independently authored.
-describe("derivePrepTimeBand", () => {
-  it("returns \"<20min\" for 0 and 19 minutes", () => {
-    expect(derivePrepTimeBand(0)).toBe("<20min");
-    expect(derivePrepTimeBand(19)).toBe("<20min");
-  });
-
-  it("returns \"20-40min\" for the 20 and 40 minute boundaries", () => {
-    expect(derivePrepTimeBand(20)).toBe("20-40min");
-    expect(derivePrepTimeBand(40)).toBe("20-40min");
-  });
-
-  it("returns \"40min+\" for 41 minutes and anything longer", () => {
-    expect(derivePrepTimeBand(41)).toBe("40min+");
-    expect(derivePrepTimeBand(180)).toBe("40min+");
-  });
-});
-
-describe("validateFiles — prep_time_band derivation", () => {
-  it("passes a template whose prep_time_band matches its derived value", () => {
-    const result = validateFiles([fixture("valid-recipe-templates.json", "recipe-template")]);
-
-    expect(result.errors).toEqual([]);
-  });
-
-  it("fails a template whose stored prep_time_band disagrees with prep_minutes", () => {
-    const result = validateFiles([
-      fixture("recipe-template-prep-time-band-mismatch.json", "recipe-template"),
-    ]);
-
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]!.message).toBe(
-      'template "kyckling-fel-band": prep_time_band "40min+" should be "20-40min" (derived from prep_minutes=25)',
-    );
-  });
-
-  it("runs without an ingredient file passed alongside (self-contained, unlike cost_tier)", () => {
-    const result = validateFiles([
-      fixture("recipe-template-prep-time-band-mismatch.json", "recipe-template"),
-    ]);
-
-    expect(
-      result.errors.some((error) => error.message.includes("prep_time_band")),
-    ).toBe(true);
   });
 });

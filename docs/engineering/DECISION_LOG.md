@@ -8,6 +8,12 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-16 — Removed `prep_minutes` again: a worksheet identical to its own prefill is not curation
+
+Curated data must never be prefilled from a derived value and then treated as curated: `prep_minutes` shipped in #162 off a worksheet whose reviewed values matched their band-midpoint prefill exactly, meaning no real review happened. A worksheet that comes back identical to its prefill means the curation pass didn't happen, and that must stop the work rather than pass as "0 avvikelser" — `prep_time_band` reverts to its directly curated, pre-#162 value; `blurb` is unaffected and stays.
+
+---
+
 ## 2026-08-16 — Preference sliders introduced on Tonight and the profile — four axes, as a collapsed block under the suggestion, not as a step before it
 
 Sliders for Pris, Tid, Variation and Enkelt are introduced on two surfaces editing the same values: a collapsed block under the Tonight suggestion, and an expanded section on the profile. The 2026-07-31 entry ("Rejected user-facing priority sliders") stands unchanged and is marked superseded, not rewritten.

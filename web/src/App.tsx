@@ -23,7 +23,6 @@ import {
   costTierLabel,
   costTierMeter,
   dinerChangeReasonLine,
-  formatPrepMinutes,
   INGREDIENT_ROLE_LABELS,
   PREP_TIME_LABELS,
   suggestionReasonLine,
@@ -515,7 +514,7 @@ function SuggestionCard({
     <div className="suggestion">
       <h3 className="suggestion__name">{result.template.name}</h3>
       <p className="suggestion__meta">
-        {formatPrepMinutes(result.template.prep_minutes)}
+        {PREP_TIME_LABELS[result.template.prep_time_band]}
         {" · "}
         <span role="img" aria-label={costTierLabel(result.template.cost_tier)}>
           <span aria-hidden="true">{costTierMeter(result.template.cost_tier)}</span>

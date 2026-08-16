@@ -7,7 +7,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -94,7 +93,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -161,7 +159,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -236,7 +233,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -303,7 +299,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -381,7 +376,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -450,7 +444,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -538,7 +531,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -605,7 +597,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -682,7 +673,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -749,7 +739,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -816,7 +805,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -883,7 +871,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -953,7 +940,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1030,7 +1016,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1107,7 +1092,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1174,7 +1158,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1261,7 +1244,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1348,7 +1330,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1425,7 +1406,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1502,7 +1482,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1580,7 +1559,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1657,7 +1635,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1724,7 +1701,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1801,7 +1777,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1879,7 +1854,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1956,7 +1930,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2033,7 +2006,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2110,7 +2082,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2178,7 +2149,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2255,7 +2225,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2333,7 +2302,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -2412,7 +2380,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2489,7 +2456,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2576,7 +2542,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2653,7 +2618,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2731,7 +2695,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2809,7 +2772,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2886,7 +2848,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -2965,7 +2926,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3043,7 +3003,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3118,7 +3077,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3175,7 +3133,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3242,7 +3199,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3307,7 +3263,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3364,7 +3319,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3421,7 +3375,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3478,7 +3431,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3535,7 +3487,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3612,7 +3563,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -3681,7 +3631,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3748,7 +3697,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3805,7 +3753,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3862,7 +3809,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3939,7 +3885,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4006,7 +3951,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4083,7 +4027,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4150,7 +4093,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4217,7 +4159,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4295,7 +4236,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4362,7 +4302,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4429,7 +4368,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4496,7 +4434,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4573,7 +4510,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -4652,7 +4588,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4719,7 +4654,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4796,7 +4730,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4863,7 +4796,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4930,7 +4862,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "budget",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5007,7 +4938,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5084,7 +5014,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -5153,7 +5082,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "budget",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5230,7 +5158,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5307,7 +5234,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5374,7 +5300,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5431,7 +5356,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5498,7 +5422,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5565,7 +5488,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5622,7 +5544,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5679,7 +5600,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "premium",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5747,7 +5667,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "premium",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5824,7 +5743,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5881,7 +5799,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5948,7 +5865,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6015,7 +5931,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6072,7 +5987,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6139,7 +6053,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -6209,7 +6122,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6276,7 +6188,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -6346,7 +6257,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6413,7 +6323,6 @@
     "cuisine": "asian",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6480,7 +6389,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6558,7 +6466,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6625,7 +6532,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6692,7 +6598,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6769,7 +6674,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6836,7 +6740,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "premium",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -6915,7 +6818,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6982,7 +6884,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -7049,7 +6950,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -7126,7 +7026,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7207,7 +7106,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7276,7 +7174,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7345,7 +7242,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7414,7 +7310,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7504,7 +7399,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7574,7 +7468,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7653,7 +7546,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian",
       "high_protein_preference"
@@ -7743,7 +7635,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7813,7 +7704,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7883,7 +7773,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "high_protein_preference"
@@ -7943,7 +7832,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8024,7 +7912,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8094,7 +7981,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -8184,7 +8070,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8264,7 +8149,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8334,7 +8218,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8425,7 +8308,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8506,7 +8388,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8587,7 +8468,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8667,7 +8547,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8747,7 +8626,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8838,7 +8716,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -8918,7 +8795,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8998,7 +8874,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan",
@@ -9079,7 +8954,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9149,7 +9023,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -9219,7 +9092,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9300,7 +9172,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -9369,7 +9240,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -9438,7 +9308,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9519,7 +9388,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9600,7 +9468,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9680,7 +9547,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9750,7 +9616,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -9819,7 +9684,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9900,7 +9764,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9981,7 +9844,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -10061,7 +9923,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10130,7 +9991,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -10210,7 +10070,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10280,7 +10139,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10340,7 +10198,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -10398,7 +10255,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10467,7 +10323,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -10527,7 +10382,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10607,7 +10461,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -10674,7 +10527,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -10741,7 +10593,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10818,7 +10669,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "high_protein_preference"
@@ -10879,7 +10729,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10958,7 +10807,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11028,7 +10876,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan",
@@ -11099,7 +10946,6 @@
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11166,7 +11012,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11246,7 +11091,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11325,7 +11169,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11394,7 +11237,6 @@
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -11475,7 +11317,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11555,7 +11396,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11625,7 +11465,6 @@
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11684,7 +11523,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "high_protein_preference"
@@ -11766,7 +11604,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11836,7 +11673,6 @@
     "cuisine": "middle_eastern",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11905,7 +11741,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11974,7 +11809,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
-    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -12034,7 +11868,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -12104,7 +11937,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "premium",
     "prep_time_band": "40min+",
-    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -12171,7 +12003,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -12238,7 +12069,6 @@
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],

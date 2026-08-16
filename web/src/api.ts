@@ -166,9 +166,6 @@ export interface TonightResult {
     blurb: string;
     cost_tier: CostTier;
     prep_time_band: PrepTimeBand;
-    // #151: curated total minutes backing prep_time_band — see
-    // `formatPrepMinutes` (display.ts) for how it's worded on screen.
-    prep_minutes: number;
     // Read by the "Annat kök" chip, which resolves cuisine to template-id
     // exclusions client-side rather than sending it as a request parameter.
     cuisine: Cuisine;

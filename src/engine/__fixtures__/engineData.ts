@@ -46,7 +46,6 @@ export function makeTemplate(id: string, overrides: Partial<RecipeTemplate> = {}
     cuisine: "swedish_nordic",
     cost_tier: "budget",
     prep_time_band: "<20min",
-    prep_minutes: 15,
     dietary_tags: [],
     meal_types: ["dinner"],
     familiarity: "everyday",

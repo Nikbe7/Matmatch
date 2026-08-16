@@ -20,7 +20,7 @@ import {
 function suggestion(id: string, cuisine: Cuisine = "swedish_nordic"): TonightResponse {
   return {
     result: {
-      template: { id, name: id, blurb: "Testblurb.", cost_tier: "mid", prep_time_band: "20-40min", prep_minutes: 30, cuisine },
+      template: { id, name: id, blurb: "Testblurb.", cost_tier: "mid", prep_time_band: "20-40min", cuisine },
       ingredients: [],
       substitutions: [],
       score: 1,

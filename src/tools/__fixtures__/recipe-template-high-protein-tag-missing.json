@@ -7,7 +7,6 @@
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "meal_types": [
       "dinner"
