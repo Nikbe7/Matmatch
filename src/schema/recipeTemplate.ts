@@ -116,12 +116,6 @@ export const RecipeTemplateSchema = z.object({
   protein_group: ProteinGroupSchema,
   cuisine: CuisineSchema,
   cost_tier: CostTierSchema,
-  // Curated total time from start to serving (#151). `prep_time_band` is
-  // derived from this — see `derivePrepTimeBand` in src/tools/validation.ts —
-  // and validator-enforced to match, the same discipline `cost_tier` already
-  // has against ingredient_slots (DECISION_LOG 2026-07-31): two independently
-  // authored sources of truth for the same thing drift apart.
-  prep_minutes: z.number().int().positive(),
   prep_time_band: PrepTimeBandSchema,
   dietary_tags: z.array(DietaryFlagSchema),
   // Required, no default: a template missing this must fail validation rather

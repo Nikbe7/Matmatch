@@ -7,7 +7,6 @@
     "cuisine": "asian",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
-    "prep_minutes": 30,
     "dietary_tags": [],
     "meal_types": [
       "dinner"
