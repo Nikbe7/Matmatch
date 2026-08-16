@@ -4,7 +4,7 @@ export type ChipVariant = "default" | "danger";
 
 /**
  * `pressed` is optional, not defaulted, because some chips (the momentary
- * "Annat kök" / "Något annat" / "Återställ" actions, UX_FLOW §4) carry no
+ * "Annat kök" / "Återställ" actions, UX_FLOW §4) carry no
  * pressed state at all and must not render `aria-pressed="false"`.
  */
 export function Chip({

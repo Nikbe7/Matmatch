@@ -61,7 +61,7 @@ describe.skipIf(!stackAvailable)("analytics_events repository (local Supabase)",
         clientTimestamp,
       },
       {
-        name: "meal_cooked",
+        name: "meal_chosen",
         payload: { templateId: "kycklinggryta", rerollDepth: 2 },
         clientTimestamp,
       },
@@ -75,7 +75,7 @@ describe.skipIf(!stackAvailable)("analytics_events repository (local Supabase)",
     // within this batch.
     const rows = await readHouseholdEvents(userId, householdId);
     expect(new Set(rows.map((row) => row.event_name))).toEqual(
-      new Set(["refinement_chip_tap", "meal_cooked"]),
+      new Set(["refinement_chip_tap", "meal_chosen"]),
     );
 
     const byName = new Map(rows.map((row) => [row.event_name, row]));
@@ -87,7 +87,7 @@ describe.skipIf(!stackAvailable)("analytics_events repository (local Supabase)",
     expect(byName.get("refinement_chip_tap")!.client_timestamp.toISOString()).toBe(
       clientTimestamp.toISOString(),
     );
-    expect(byName.get("meal_cooked")!.payload).toEqual({
+    expect(byName.get("meal_chosen")!.payload).toEqual({
       templateId: "kycklinggryta",
       rerollDepth: 2,
     });
@@ -113,7 +113,7 @@ describe.skipIf(!stackAvailable)("analytics_events repository (local Supabase)",
 
     await expect(
       recordAnalyticsEvents(sql!, "", householdId, [
-        { name: "meal_cooked", payload: { templateId: "x", rerollDepth: 0 }, clientTimestamp: new Date() },
+        { name: "meal_chosen", payload: { templateId: "x", rerollDepth: 0 }, clientTimestamp: new Date() },
       ]),
     ).rejects.toThrow(/refusing to query without RLS context/i);
   });
@@ -124,10 +124,10 @@ describe.skipIf(!stackAvailable)("analytics_events row level security", () => {
     const alice = await newHousehold();
     const bob = await newHousehold();
     await recordAnalyticsEvents(sql!, alice.userId, alice.householdId, [
-      { name: "meal_cooked", payload: { templateId: "alices", rerollDepth: 0 }, clientTimestamp: new Date() },
+      { name: "meal_chosen", payload: { templateId: "alices", rerollDepth: 0 }, clientTimestamp: new Date() },
     ]);
     await recordAnalyticsEvents(sql!, bob.userId, bob.householdId, [
-      { name: "meal_cooked", payload: { templateId: "bobs", rerollDepth: 0 }, clientTimestamp: new Date() },
+      { name: "meal_chosen", payload: { templateId: "bobs", rerollDepth: 0 }, clientTimestamp: new Date() },
     ]);
 
     // Deliberately unfiltered: everything narrowing this result set is RLS.
@@ -144,7 +144,7 @@ describe.skipIf(!stackAvailable)("analytics_events row level security", () => {
 
     await expect(
       recordAnalyticsEvents(sql!, alice.userId, bob.householdId, [
-        { name: "meal_cooked", payload: { templateId: "smuggled", rerollDepth: 0 }, clientTimestamp: new Date() },
+        { name: "meal_chosen", payload: { templateId: "smuggled", rerollDepth: 0 }, clientTimestamp: new Date() },
       ]),
     ).rejects.toThrow(/row-level security/i);
 
@@ -157,7 +157,7 @@ describe.skipIf(!stackAvailable)("analytics_events row level security", () => {
   it("cannot rewrite or delete events at all — the app role has no UPDATE or DELETE", async () => {
     const owner = await newHousehold();
     await recordAnalyticsEvents(sql!, owner.userId, owner.householdId, [
-      { name: "meal_cooked", payload: { templateId: "kycklinggryta", rerollDepth: 0 }, clientTimestamp: new Date() },
+      { name: "meal_chosen", payload: { templateId: "kycklinggryta", rerollDepth: 0 }, clientTimestamp: new Date() },
     ]);
 
     await expect(
@@ -175,13 +175,13 @@ describe.skipIf(!stackAvailable)("analytics_events row level security", () => {
     const [row] = await admin!<{ event_name: string }[]>`
       select event_name from analytics_events where household_id = ${owner.householdId}
     `;
-    expect(row!.event_name).toBe("meal_cooked");
+    expect(row!.event_name).toBe("meal_chosen");
   });
 
   it("returns zero rows for a raw query with no RLS claim set", async () => {
     const owner = await newHousehold();
     await recordAnalyticsEvents(sql!, owner.userId, owner.householdId, [
-      { name: "meal_cooked", payload: { templateId: "kycklinggryta", rerollDepth: 0 }, clientTimestamp: new Date() },
+      { name: "meal_chosen", payload: { templateId: "kycklinggryta", rerollDepth: 0 }, clientTimestamp: new Date() },
     ]);
 
     expect(await sql!<{ id: string }[]>`select id from analytics_events`).toEqual([]);
@@ -190,7 +190,7 @@ describe.skipIf(!stackAvailable)("analytics_events row level security", () => {
   it("removes a household's events when the household itself is deleted", async () => {
     const owner = await newHousehold();
     await recordAnalyticsEvents(sql!, owner.userId, owner.householdId, [
-      { name: "meal_cooked", payload: { templateId: "kycklinggryta", rerollDepth: 0 }, clientTimestamp: new Date() },
+      { name: "meal_chosen", payload: { templateId: "kycklinggryta", rerollDepth: 0 }, clientTimestamp: new Date() },
     ]);
 
     await withUserContext(sql!, owner.userId, (tx) => tx`

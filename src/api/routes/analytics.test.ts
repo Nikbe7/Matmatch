@@ -66,8 +66,8 @@ async function userWithHousehold(app: Express) {
 
 const validClientTimestamp = "2026-08-05T18:00:00.000Z";
 
-const validMealCookedEvent = {
-  event: { name: "meal_cooked", templateId: "kycklinggryta", rerollDepth: 0 },
+const validMealChosenEvent = {
+  event: { name: "meal_chosen", templateId: "kycklinggryta", rerollDepth: 0 },
   clientTimestamp: validClientTimestamp,
 };
 
@@ -87,7 +87,7 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
 
     const response = await request(app)
       .post("/api/analytics/events")
-      .send({ events: [validMealCookedEvent] });
+      .send({ events: [validMealChosenEvent] });
 
     expect(response.status).toBe(401);
   });
@@ -99,7 +99,7 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
     const response = await request(app)
       .post("/api/analytics/events")
       .set(authHeader(user.accessToken))
-      .send({ events: [validMealCookedEvent] });
+      .send({ events: [validMealChosenEvent] });
 
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe("household_not_found");
@@ -127,7 +127,7 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
       .set(authHeader(user.accessToken))
       .send({
         events: [
-          validMealCookedEvent,
+          validMealChosenEvent,
           { event: { name: "typoed_event", rerollDepth: 0 }, clientTimestamp: validClientTimestamp },
         ],
       });
@@ -148,7 +148,7 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
         events: [
           {
             event: {
-              name: "meal_cooked",
+              name: "meal_chosen",
               templateId: "kycklinggryta",
               rerollDepth: 0,
               freeText: "not part of the contract",
@@ -171,7 +171,7 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
       .set(authHeader(user.accessToken))
       .send({
         events: [
-          validMealCookedEvent,
+          validMealChosenEvent,
           {
             event: {
               name: "refinement_chip_tap",
@@ -186,11 +186,15 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
             event: { name: "refinement_session_abandoned", rerollDepth: 3 },
             clientTimestamp: validClientTimestamp,
           },
+          {
+            event: { name: "meal_choice_history_failed", templateId: "kycklinggryta" },
+            clientTimestamp: validClientTimestamp,
+          },
         ],
       });
 
     expect(response.status).toBe(204);
-    expect(await countEvents(user.userId)).toBe(3);
+    expect(await countEvents(user.userId)).toBe(4);
   });
 
   it("stores events under the caller's own household only", async () => {
@@ -201,7 +205,7 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
     await request(app)
       .post("/api/analytics/events")
       .set(authHeader(alice.accessToken))
-      .send({ events: [validMealCookedEvent] });
+      .send({ events: [validMealChosenEvent] });
 
     expect(await countEvents(bob.userId)).toBe(0);
     expect(await countEvents(alice.userId)).toBe(1);

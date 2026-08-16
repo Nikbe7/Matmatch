@@ -2,7 +2,7 @@
 @import "@fontsource-variable/fraunces";
 @import "@fontsource-variable/dm-sans";
 /* Real italic face, not the browser's synthetic slant — the two existing
-   `font-style: italic` rules below (.suggestion-card__reason, .swapped-badge)
+   `font-style: italic` rules below (.suggestion__reason, .swapped-badge)
    predate this file and used to fake it against a system font. */
 @import "@fontsource-variable/dm-sans/wght-italic.css";
 @import "./tokens.css";
@@ -600,17 +600,20 @@ select.input {
 }
 
 /*
- * Tonight screen (issue #138, rebuilt from the Lovable reference). Hierarchy
- * top to bottom: a small eyebrow (weekday · household) and the muted "Ikväll"
- * kicker sit above the card as the screen's own header — the card underneath
- * is the one unmistakable focal point, with the dish name in the display face
- * as its sole headline. Cost tier / prep time stay quiet supporting metadata
- * (never a competing headline, never an invented number — CLAUDE.md), then
- * the explanation line, then actions (accepting is the single primary
- * action, "Lagad ikväll" deliberately quieter), then the ingredient list as
- * its own quieter block below them. "Justera" is a separate section below the
- * card, not glued to it, so the generous spacing between sections reads as
- * finished rather than dense (issue #138 requirement).
+ * Tonight screen (issue #138, rebuilt from the Lovable reference; #142 removed
+ * the card chrome around the suggestion to match the reference exactly). A card
+ * groups lists and collapsible blocks — it is never a screen's own main content
+ * (`docs/UX_FLOW.md` §4). Hierarchy top to bottom: a small eyebrow (weekday ·
+ * household) and the muted "Ikväll" kicker as the screen's own header, then the
+ * suggestion sitting directly on the page background — the dish name in the
+ * display face is its sole headline. Cost tier / prep time stay quiet supporting
+ * metadata (never a competing headline, never an invented number — CLAUDE.md),
+ * then the explanation line, then the two actions (#142: "Laga ikväll" is the
+ * single primary action — choosing *is* accepting — "Byt förslag" deliberately
+ * quieter), then the ingredient list as its own quieter block below them,
+ * grouped only by a top hairline, never a card. "Justera" is a separate section
+ * below the suggestion, not glued to it, so the generous spacing between
+ * sections reads as finished rather than dense (issue #138 requirement).
  */
 .tonight-eyebrow {
   margin: 0 0 var(--space-2);
@@ -638,12 +641,7 @@ select.input {
   text-align: center;
 }
 
-.suggestion-card {
-  padding: var(--space-6) var(--space-5);
-  margin-bottom: 0;
-}
-
-.suggestion-card__name {
+.suggestion__name {
   margin: 0 0 var(--space-5);
   font-family: var(--font-display);
   font-size: var(--font-size-display);
@@ -653,7 +651,7 @@ select.input {
   color: var(--color-text);
 }
 
-.suggestion-card__meta {
+.suggestion__meta {
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -662,32 +660,38 @@ select.input {
   font-size: var(--font-size-sm);
 }
 
-.suggestion-card__reason {
+.suggestion__reason {
   margin: 0 0 var(--space-6);
   color: var(--color-muted);
   font-size: var(--font-size-sm);
 }
 
-.suggestion-card__actions {
+.suggestion__actions {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-3);
 }
 
-/* The Tonight card's one primary action gets the deeper "lifted" shadow
- * (issue #138 requirement 6) — scoped to this card's accept button rather
- * than `.btn-primary` globally, so onboarding/retry buttons elsewhere keep
- * the plain soft shadow. */
-.suggestion-card__actions .btn-primary {
+/* "Laga ikväll" is the suggestion's one primary action and gets the deeper
+ * "lifted" shadow (issue #138 requirement 6) — scoped here rather than
+ * `.btn-primary` globally, so onboarding/retry buttons elsewhere keep the
+ * plain soft shadow. Full width, 56px tall (the shared `.btn` touch target is
+ * smaller), matching the reference exactly. */
+.suggestion__choose {
+  height: 56px;
   box-shadow: var(--shadow-lift);
 }
 
-/* "Lagad ikväll" is a secondary action and must read as quieter than
-   "Acceptera" even though both use the Button component — override the
-   secondary variant's surface/border to a plain text-weight tap target. */
-.suggestion-card__cooked {
-  align-self: center;
+/* "Byt förslag" is a secondary action and must read as quieter than "Laga
+   ikväll" even though both use the Button component — a plain, borderless,
+   muted-text tap target with its glyph inline before the label. */
+.suggestion__swap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--touch-target);
   background: transparent;
   border-color: transparent;
   color: var(--color-muted);
@@ -695,21 +699,19 @@ select.input {
   box-shadow: none;
 }
 
-.suggestion-card__cooked:hover:not(:disabled) {
-  color: var(--color-text);
+.suggestion__swap svg {
+  width: 1rem;
+  height: 1rem;
 }
 
-.suggestion-card .status-line,
-.suggestion-card .error-text {
-  margin: var(--space-3) 0 0;
-  text-align: center;
+.suggestion__swap:hover:not(:disabled) {
+  color: var(--color-text);
 }
 
 /* The ingredient list is its own quieter block *under* the actions (issue
    #138 requirement 8) — a lighter block than the name/meta/reason group
-   above it, separated by the same top border the old above-actions position
-   used. */
-.suggestion-card__ingredients {
+   above it, grouped only by a top hairline rather than a card. */
+.suggestion__ingredients {
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -719,13 +721,16 @@ select.input {
   border-top: 1px solid var(--color-border);
 }
 
-.suggestion-card__ingredients li {
+.suggestion__ingredients li {
   font-size: var(--font-size-sm);
   color: var(--color-muted);
 }
 
 /* A state sized and padded like the real suggestion card (empty/error/offline
-   states), so nothing jumps once a real result replaces it. */
+   states), so nothing jumps once a real result replaces it. Kept as a `Card`
+   deliberately (#142) — these are the one Tonight state still allowed to be a
+   card, since a bare "no suggestion" message benefits from the same grouping
+   a list or collapsible block gets, unlike the suggestion itself. */
 .state-card {
   padding: var(--space-6) var(--space-5);
   text-align: center;
@@ -735,14 +740,10 @@ select.input {
   margin-top: var(--space-3);
 }
 
-/* Loading skeleton: static placeholder bars at roughly the real card's new
+/* Loading skeleton: static placeholder bars at roughly the real content's
    proportions (dish name in the display face runs two lines tall, actions are
    now two stacked buttons, ingredients sit below them), standing in for the
    not-yet-loaded content rather than a bare "Loading…" line on empty space. */
-.skeleton-card {
-  padding: var(--space-6) var(--space-5);
-}
-
 .skeleton-line {
   background: var(--color-border);
   border-radius: var(--radius);
@@ -780,8 +781,8 @@ select.input {
 }
 
 .skeleton-line--button {
-  /* Matches .btn-primary's 56px real height — the skeleton stands in for the
-     "Acceptera" button specifically, so a mismatch here is exactly the layout
+  /* Matches .suggestion__choose's 56px real height — the skeleton stands in
+     for "Laga ikväll" specifically, so a mismatch here is exactly the layout
      jump this skeleton exists to prevent. */
   width: 100%;
   height: 56px;
