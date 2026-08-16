@@ -56,7 +56,7 @@ dependencies, do not import from it.
 - `src/routes/bygg.tsx` — the guided quick-select (Build) flow.
 - `src/routes/lista.tsx` — the shopping list screen: grouped cards, checkbox rows.
 - `src/routes/profil.tsx` — the household profile screen: member cards, allergy/diet
-  chip groups, preference sliders (see Do not copy).
+  chip groups (chip styling: see Do not copy), preference sliders (see Take).
 - `src/routes/laga.$id.tsx` — the cook/instructions screen (see Do not copy).
 - `src/routes/__root.tsx` — app shell boilerplate (fonts, meta, service worker
   registration); low design signal, kept for completeness.
@@ -64,8 +64,8 @@ dependencies, do not import from it.
   header, bottom-nav slot, max-width mobile container.
 - `src/components/matmatch/Chip.tsx` — the chip primitive (sm/md sizes, selected
   state) — see Do not copy for the `sm` size.
-- `src/components/matmatch/PreferenceSlider.tsx` — kept only as the artifact the
-  "Do not copy" entry below refers to.
+- `src/components/matmatch/PreferenceSlider.tsx` — the Pris/Tid/Variation/Enkelt
+  slider, with value-dependent hint text (see Take).
 - `src/lib/utils.ts` — the `cn()` class-merge helper (clsx + tailwind-merge), trivial
   but referenced by the components above.
 - `screenshots/` — rendered UI, the authority for anything the source doesn't show
@@ -82,12 +82,15 @@ dependencies, do not import from it.
 - The 56px (`h-13`/`h-14`) primary button.
 - The bottom-nav shell concept (screenshots are the authority for its actual look,
   since `BottomNav.tsx` itself is missing).
+- `PreferenceSlider.tsx` — the Pris/Tid/Variation/Enkelt slider, including its
+  value-dependent hint text. Adopted in DECISION_LOG.md (2026-08-16, "Preference
+  sliders introduced on Tonight and the profile"), superseding the 2026-07-31
+  rejection. Condition: always collapsed under the Tonight suggestion and never
+  before it, expanded on the profile section, and always alongside the chips —
+  never a replacement for them.
 
 ## Do not copy
 
-- `PreferenceSlider.tsx` and the preference-slider/accordion pattern it implements.
-  Rejected in DECISION_LOG.md (2026-07-31, "Rejected user-facing priority sliders") —
-  sliders give no observable consequence per notch, so users can't calibrate them.
 - The allergy chip styling in `profil.tsx`. Allergies and preferences are rendered
   with the identical `<Chip size="sm">` there — a safety regression against
   UX_FLOW.md §6, which requires allergies to always be visually distinct by border,
