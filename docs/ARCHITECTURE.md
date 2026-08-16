@@ -242,13 +242,14 @@ Storage: `data/substitutions.json`. Validated via the CLI validator (#15) as `--
 
 Shipped (`src/api/routes/`):
 - `POST /api/households` — create a household profile
+- `GET /api/households` — the caller's own household, `404 household_not_found` if none exists yet
+- `PUT /api/households` — full replacement of the caller's household profile (same `HouseholdSchema` validation and error codes as `POST`; never upserts — `404 household_not_found` if none exists yet). All three are owner-scoped with no `:id` in the path: `households_one_per_owner` means there is exactly one household per owner, so an id in the URL would carry no information
 - `GET /api/tonight` — zero-input flagship suggestion (Tier 0 first, falling back to Tier 1 if needed). Optional query parameters carry the session's refinement state, nothing else: `cost`/`time` (the weight vector the adjustment chips mutate), `exclude` (comma-separated template ids already shown), `previous` (the id just rejected). Wrong-typed values are 400s; unknown or stale ids are ignored. There is deliberately no cuisine parameter — see the "Annat kök" note below.
 - `POST /api/instructions` — Tier 1 cooking instructions for a suggestion, cached by template + substitution set
 - `POST /api/cooked` — marks the dish on the Tonight card as cooked (`{templateId, substitutions[]}`), which is what feeds repeat-avoidance. Idempotent: a repeat tap on the same Swedish calendar day answers 200 with the first tap's timestamp rather than 409, and writes no second row. Recent history itself is *not* an endpoint — `GET /api/tonight` loads it server-side for ranking and returns only `cookedToday` on the suggestion, the one fact the card needs to render its confirmation after a reload.
 - `POST /api/analytics/events` — batch ingest for `web/src/analytics.ts`'s typed events (`{events: [{event, clientTimestamp}]}`), issue #91. All-or-nothing: an unrecognised event name or a payload shape that doesn't match the closed vocabulary 400s the whole batch before anything is stored. 204 on success. Read access is a psql query for now — no dashboard or reporting endpoint exists.
 
 Planned, not yet built:
-- `GET /households/:id` / `PATCH /households/:id/members`
 - `POST /suggestions/directions` — given intent + main ingredient + pantry input, returns 3 direction candidates (Meal Engine filters first, AI Orchestrator fills in only if needed)
 - `POST /meals/:id/adjust` — apply a **guided-flow** (§5.5) adjustment chip or a free-text tweak. Tonight-card refinement does *not* use this: it re-requests `GET /api/tonight` with the query parameters above, so a chip tap stays a plain re-rank rather than server-side mutable meal state. Cuisine is never a parameter on either — "Annat kök" resolves it to template-id exclusions client-side, so no new filter dimension enters the API (DECISION_LOG 2026-08-05).
 - `POST /meals/:id/confirm` — finalize portions, generate shopping list

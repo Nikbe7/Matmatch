@@ -8,6 +8,14 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-16 — `PUT /api/households` is full replacement with no version check
+
+`PUT /api/households` overwrites the whole household profile with no `updated_at`/version precondition, so a client writing from a stale copy can silently drop an allergy that was added elsewhere in the meantime — the fail-open direction. Nothing in code prevents this yet; it's held off by a rule instead: every editing surface must fetch the household fresh immediately before editing and must never edit from cached data.
+
+If the household ever moves past one editing device/tab at a time, optimistic locking on `updated_at` (reject the write if it doesn't match what the client last read) is the real fix, not another rule.
+
+---
+
 ## 2026-08-16 — Removed `prep_minutes` again: a worksheet identical to its own prefill is not curation
 
 Curated data must never be prefilled from a derived value and then treated as curated: `prep_minutes` shipped in #162 off a worksheet whose reviewed values matched their band-midpoint prefill exactly, meaning no real review happened. A worksheet that comes back identical to its prefill means the curation pass didn't happen, and that must stop the work rather than pass as "0 avvikelser" — `prep_time_band` reverts to its directly curated, pre-#162 value; `blurb` is unaffected and stays.
