@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import {
   type ExcludedIngredientOption,
   type GuidedDirection,
@@ -10,7 +10,7 @@ import { allergyExclusionReason, capitalizeForSentence } from "./allergyLabels";
 import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { createGuidedClient } from "./guidedClient";
 import { costTierLabel, costTierMeter, dinerChangeReasonLine, PREP_TIME_LABELS } from "./display";
-import { ShoppingList, formatPortions, type ShoppingListMeal } from "./ShoppingList";
+import { ShoppingList, formatPortionsCount, type ShoppingListMeal } from "./ShoppingList";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Chip } from "./components/Chip";
@@ -36,25 +36,63 @@ import { clearShoppingList, type StoredShoppingList } from "./shoppingListStorag
 // distinction between this product and prompting a chatbot (UX_FLOW §1/§2). There is
 // also no AI call: the direction set is the Meal Engine's, deterministic end to end.
 
-function StepHeader({
+function BackIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 12H5" />
+      <path d="M11 18 5 12l6-6" />
+    </svg>
+  );
+}
+
+/** The one round icon button every step (and the error screen) navigates back
+ *  through — same accessible name (`backLabel`) the old full-width button
+ *  carried, just a smaller tap target that still meets `--touch-target`. */
+function GuidedBackButton({ onBack, label }: { onBack: () => void; label: string }) {
+  return (
+    <button type="button" className="guided-back" onClick={onBack} aria-label={label}>
+      <BackIcon />
+    </button>
+  );
+}
+
+/**
+ * The step header (requirement: read as a question, not a form) — reuses
+ * `Screen`'s own header shape (`.screen-header`) rather than a second visual
+ * language: an eyebrow above a display-face title, with the back button in
+ * the header's action slot. `eyebrow` numbers only the three real choice
+ * steps ("Steg 1 av 3" …); the three result steps get a named, unnumbered one.
+ */
+function GuidedStepHeader({
+  eyebrow,
   title,
   hint,
   onBack,
   backLabel,
 }: {
+  eyebrow: string;
   title: string;
   hint?: string;
   onBack: () => void;
   backLabel: string;
 }) {
   return (
-    <div className="guided-header">
-      <Button type="button" variant="secondary" className="guided-back" onClick={onBack}>
-        {backLabel}
-      </Button>
-      <h2 className="guided-title">{title}</h2>
-      {hint && <p className="muted guided-hint">{hint}</p>}
-    </div>
+    <header className="screen-header guided-header">
+      <div>
+        <p className="text-eyebrow">{eyebrow}</p>
+        <h2 className="screen-header__title">{title}</h2>
+        {hint && <p className="muted guided-hint">{hint}</p>}
+      </div>
+      <GuidedBackButton onBack={onBack} label={backLabel} />
+    </header>
   );
 }
 
@@ -106,38 +144,63 @@ function ExcludedIngredientNotice({ excluded }: { excluded: ExcludedIngredientOp
 }
 
 /**
- * One direction card (§5 step 4). Cost is the shared three-dot meter with a Swedish
- * accessible label — a display-only rendering of the curated `cost_tier`, never the
- * raw enum and never an invented kronor figure (ARCHITECTURE §5.1).
+ * One direction card (§5 step 4) — the whole card is the tap target (no inner
+ * "Välj" button: three primary buttons on one screen would mean none of them
+ * reads as primary). The accessible name is set explicitly to the dish name
+ * alone (`aria-label`), so `<button>`'s content model — which does not permit
+ * a heading — stays valid: the dish name is a styled `<p>`, not an `<h3>`.
+ * The summary, meta line and pantry match are wired in via
+ * `aria-describedby` rather than left to the button's own text content,
+ * which an explicit `aria-label` would otherwise hide from assistive tech
+ * entirely. Cost is the shared three-dot meter with a Swedish accessible
+ * label — a display-only rendering of the curated `cost_tier`, never the raw
+ * enum and never an invented kronor figure (ARCHITECTURE §5.1).
  */
 function DirectionCard({
   direction,
   onChoose,
+  style,
 }: {
   direction: GuidedDirection;
   onChoose: () => void;
+  style?: CSSProperties;
 }) {
   const covered = direction.ingredients.filter((ingredient) => ingredient.inPantry);
+  const summaryId = useId();
+  const metaId = useId();
+  const coveredId = useId();
+  const describedBy = [summaryId, metaId, covered.length > 0 ? coveredId : null]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <Card className="direction-card">
-      <h3 className="direction-card__name">{direction.template.name}</h3>
-      <p className="direction-card__summary">{direction.summary}</p>
-      <p className="direction-card__meta">
+    <button
+      type="button"
+      className="card direction-card direction-card--enter"
+      style={style}
+      onClick={onChoose}
+      aria-label={direction.template.name}
+      aria-describedby={describedBy}
+    >
+      <p className="direction-card__name">{direction.template.name}</p>
+      <p id={summaryId} className="direction-card__summary">
+        {direction.summary}
+      </p>
+      <p id={metaId} className="direction-card__meta">
+        {PREP_TIME_LABELS[direction.template.prep_time_band]}
+        <span aria-hidden="true"> · </span>
         <span role="img" aria-label={costTierLabel(direction.template.cost_tier)}>
           <span aria-hidden="true">{costTierMeter(direction.template.cost_tier)}</span>
-        </span>{" "}
-        · {PREP_TIME_LABELS[direction.template.prep_time_band]}
+        </span>
+        <span aria-hidden="true"> · </span>
+        <span aria-hidden="true">{costTierLabel(direction.template.cost_tier)}</span>
       </p>
       {covered.length > 0 && (
-        <p className="direction-card__covered">
+        <p id={coveredId} className="direction-card__covered">
           Du har redan: {covered.map((ingredient) => ingredient.name).join(", ")}
         </p>
       )}
-      <Button type="button" variant="primary" onClick={onChoose}>
-        Välj
-      </Button>
-    </Card>
+    </button>
   );
 }
 
@@ -218,7 +281,7 @@ function IngredientGridSkeleton() {
 }
 
 /** One placeholder `DirectionCard`, sized to its real content (name, two-line
- *  summary, meta, "Välj" button). */
+ *  summary, meta) — no button row, since the card itself is the tap target now. */
 function DirectionCardSkeleton() {
   return (
     <Card className="direction-card" aria-hidden="true">
@@ -226,7 +289,6 @@ function DirectionCardSkeleton() {
       <div className="skeleton-line skeleton-line--direction-summary" />
       <div className="skeleton-line skeleton-line--direction-summary-2" />
       <div className="skeleton-line skeleton-line--direction-meta" />
-      <div className="skeleton-line skeleton-line--direction-button" />
     </Card>
   );
 }
@@ -524,252 +586,293 @@ export function GuidedFlow({
   const meal = chosen ?? (state.step === "shopping" ? resumedMeal : undefined);
 
   function handleBack() {
-    if (isFirstStep(state)) onExit();
-    else dispatch({ type: "back" });
+    if (isFirstStep(state)) {
+      onExit();
+      return;
+    }
+    // A stale error describes a request tied to the step being left, same as a
+    // failed refetch drops its stale response elsewhere in this file — going
+    // back must not strand the household staring at an error the current step
+    // no longer explains.
+    setError(null);
+    dispatch({ type: "back" });
   }
 
   const backLabel = isFirstStep(state) ? "Till ikväll" : "Tillbaka";
 
   return (
     <div className="guided-flow">
-      {error && (
-        <StateScreen
-          variant="solid"
-          role={error.kind === "offline" ? "status" : "alert"}
-          title={error.kind === "offline" ? "Ingen anslutning" : "Något gick fel"}
-          body={
-            error.kind === "offline"
-              ? "Anslut till internet och försök igen."
-              : "Försök igen om en liten stund."
-          }
-          action={{
-            label: "Försök igen",
-            onClick: () => {
-              setError(null);
-              setAttempt((n) => n + 1);
-            },
-          }}
-          reference={error.kind === "error" ? error.code : undefined}
-        />
-      )}
-
-      {state.step === "intent" && (
+      {error ? (
         <>
-          <StepHeader title="Vad är du sugen på?" onBack={handleBack} backLabel={backLabel} />
-          <div role="group" aria-label="Välj inriktning" className="chip-row">
-            {GUIDED_INTENTS.map((intent) => (
-              <Chip
-                key={intent.id}
-                pressed={state.intent === intent.id}
-                onClick={() => dispatch({ type: "select_intent", intent: intent.id })}
-              >
-                {intent.label}
-              </Chip>
-            ))}
+          {/* Replaces the step's own content rather than stacking above it (#170)
+              — the back button is the one piece of step chrome that survives, so
+              a broken request never strands the household without a way out. */}
+          <div className="guided-header guided-header--error">
+            <GuidedBackButton onBack={handleBack} label={backLabel} />
           </div>
-        </>
-      )}
-
-      {state.step === "main" && (
-        <>
-          <StepHeader
-            title="Vilken huvudingrediens?"
-            hint="Välj en, eller låt oss föreslå utifrån säsong och pris."
-            onBack={handleBack}
-            backLabel={backLabel}
+          <StateScreen
+            variant="solid"
+            role={error.kind === "offline" ? "status" : "alert"}
+            title={error.kind === "offline" ? "Ingen anslutning" : "Något gick fel"}
+            body={
+              error.kind === "offline"
+                ? "Anslut till internet och försök igen."
+                : "Försök igen om en liten stund."
+            }
+            action={{
+              label: "Försök igen",
+              onClick: () => {
+                setError(null);
+                setAttempt((n) => n + 1);
+              },
+            }}
+            reference={error.kind === "error" ? error.code : undefined}
           />
-          {options ? (
-            <>
-              <input
-                type="text"
-                className="input guided-main-filter"
-                placeholder="Skriv för att smalna av listan…"
-                aria-label="Smalna av huvudingredienserna"
-                value={state.mainQuery}
-                onChange={(event) => dispatch({ type: "set_main_query", query: event.target.value })}
-              />
-              {excludedMainMatches.map((excluded) => (
-                <ExcludedIngredientNotice key={excluded.id} excluded={excluded} />
-              ))}
-              {noMainMatches && <p className="muted" role="status">Ingen träff.</p>}
-              <IngredientGrid
-                label="Huvudingredienser"
-                options={mainGridOptions}
-                onTap={(ingredientId) => dispatch({ type: "select_main", ingredientId })}
-              />
-              <Button
-                type="button"
-                variant="primary"
-                className="guided-action"
-                onClick={() => dispatch({ type: "suggest_main" })}
-              >
-                Föreslå åt mig
-              </Button>
-            </>
-          ) : (
-            !error && (
-              <>
-                <p className="muted sr-only">Hämtar ingredienser…</p>
-                <IngredientGridSkeleton />
-              </>
-            )
-          )}
         </>
-      )}
-
-      {state.step === "pantry" && (
+      ) : (
         <>
-          <StepHeader
-            title="Vad har du hemma?"
-            hint="Valfritt — vi använder det bara för att välja förslag, och sparar det inte."
-            onBack={handleBack}
-            backLabel={backLabel}
-          />
-          {options ? (
+          {state.step === "intent" && (
             <>
-              <IngredientGrid
-                label="Varor hemma"
-                options={options.pantryIngredients}
-                selected={state.pantry}
-                onTap={(ingredientId) => dispatch({ type: "toggle_pantry", ingredientId })}
+              <GuidedStepHeader
+                eyebrow="Steg 1 av 3"
+                title="Vad är du sugen på?"
+                onBack={handleBack}
+                backLabel={backLabel}
               />
-              <Button
-                type="button"
-                variant="primary"
-                className="guided-action"
-                onClick={() => dispatch({ type: "confirm_pantry" })}
-              >
-                {state.pantry.length > 0 ? "Visa förslag" : "Hoppa över"}
-              </Button>
+              <div role="group" aria-label="Välj inriktning" className="chip-row">
+                {GUIDED_INTENTS.map((intent) => (
+                  <Chip
+                    key={intent.id}
+                    pressed={state.intent === intent.id}
+                    onClick={() => dispatch({ type: "select_intent", intent: intent.id })}
+                  >
+                    {intent.label}
+                  </Chip>
+                ))}
+              </div>
             </>
-          ) : (
-            !error && (
-              <>
-                <p className="muted sr-only">Hämtar ingredienser…</p>
-                <IngredientGridSkeleton />
-              </>
-            )
           )}
-        </>
-      )}
 
-      {state.step === "directions" && (
-        <>
-          <StepHeader title="Tre förslag" onBack={handleBack} backLabel={backLabel} />
-          {/* #133: only when a chosen direction had to be dropped from this list —
-              same "never a silent swap" contract as Tonight's card. */}
-          {!loading && response?.replacedFor && (
-            <p role="status" className="diner-replaced-notice">
-              {dinerChangeReasonLine(response.replacedFor)}
-            </p>
-          )}
-          {loading && (
+          {state.step === "main" && (
             <>
-              <p className="muted sr-only">Hämtar förslag…</p>
-              <DirectionListSkeleton />
+              <GuidedStepHeader
+                eyebrow="Steg 2 av 3"
+                title="Vilken huvudingrediens?"
+                hint="Välj en, eller låt oss föreslå utifrån säsong och pris."
+                onBack={handleBack}
+                backLabel={backLabel}
+              />
+              {options ? (
+                <>
+                  <input
+                    type="text"
+                    className="input guided-main-filter"
+                    placeholder="Skriv för att smalna av listan…"
+                    aria-label="Smalna av huvudingredienserna"
+                    value={state.mainQuery}
+                    onChange={(event) => dispatch({ type: "set_main_query", query: event.target.value })}
+                  />
+                  {excludedMainMatches.map((excluded) => (
+                    <ExcludedIngredientNotice key={excluded.id} excluded={excluded} />
+                  ))}
+                  {noMainMatches && <p className="muted" role="status">Ingen träff.</p>}
+                  <IngredientGrid
+                    label="Huvudingredienser"
+                    options={mainGridOptions}
+                    onTap={(ingredientId) => dispatch({ type: "select_main", ingredientId })}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="guided-quiet-action"
+                    onClick={() => dispatch({ type: "suggest_main" })}
+                  >
+                    Föreslå åt mig
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="muted sr-only">Hämtar ingredienser…</p>
+                  <IngredientGridSkeleton />
+                </>
+              )}
             </>
           )}
-          {!loading && response && response.directions.length > 0 && (
-            <div className="direction-list">
-              {response.directions.map((direction) => (
-                <DirectionCard
-                  key={direction.template.id}
-                  direction={direction}
-                  onChoose={() =>
-                    dispatch({
-                      type: "choose_direction",
-                      templateId: direction.template.id,
-                      portions: response.portions,
-                    })
-                  }
+
+          {state.step === "pantry" && (
+            <>
+              <GuidedStepHeader
+                eyebrow="Steg 3 av 3"
+                title="Vad har du hemma?"
+                hint="Valfritt — vi använder det bara för att välja förslag, och sparar det inte."
+                onBack={handleBack}
+                backLabel={backLabel}
+              />
+              {options ? (
+                <>
+                  <IngredientGrid
+                    label="Varor hemma"
+                    options={options.pantryIngredients}
+                    selected={state.pantry}
+                    onTap={(ingredientId) => dispatch({ type: "toggle_pantry", ingredientId })}
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    className="guided-action"
+                    onClick={() => dispatch({ type: "confirm_pantry" })}
+                  >
+                    {state.pantry.length > 0 ? "Visa förslag" : "Hoppa över"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="muted sr-only">Hämtar ingredienser…</p>
+                  <IngredientGridSkeleton />
+                </>
+              )}
+            </>
+          )}
+
+          {state.step === "directions" && (
+            <>
+              <GuidedStepHeader
+                eyebrow="Förslag"
+                title="Tre förslag"
+                onBack={handleBack}
+                backLabel={backLabel}
+              />
+              {/* #133: only when a chosen direction had to be dropped from this list —
+                  same "never a silent swap" contract as Tonight's card. */}
+              {!loading && response?.replacedFor && (
+                <p role="status" className="diner-replaced-notice">
+                  {dinerChangeReasonLine(response.replacedFor)}
+                </p>
+              )}
+              {loading && (
+                <>
+                  <p className="muted sr-only">Hämtar förslag…</p>
+                  <DirectionListSkeleton />
+                </>
+              )}
+              {!loading && response && response.directions.length > 0 && (
+                <div className="direction-list">
+                  {response.directions.map((direction, index) => (
+                    <DirectionCard
+                      key={direction.template.id}
+                      direction={direction}
+                      style={{ animationDelay: `${index * 70}ms` }}
+                      onChoose={() =>
+                        dispatch({
+                          type: "choose_direction",
+                          templateId: direction.template.id,
+                          portions: response.portions,
+                        })
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+              {!loading && response?.reason === "no_directions" && (
+                <NoDirections
+                  state={state}
+                  onClearPantry={() => dispatch({ type: "clear_pantry" })}
+                  onClearMain={() => dispatch({ type: "clear_main" })}
+                  onBack={handleBack}
                 />
-              ))}
-            </div>
+              )}
+              {!loading && response?.reason === "no_safe_templates" && (
+                <NoSafeTemplates onRestart={() => dispatch({ type: "restart" })} />
+              )}
+              {/*
+                Below the cards, not above them: a refinement on the suggestions already
+                on screen, never a question asked before there is anything to refine. It
+                stays rendered through both §9 empty states, where "the child is not
+                eating tonight" is often the real way out.
+              */}
+              <DinerPicker state={diners} busy={loading} />
+            </>
           )}
-          {!loading && response?.reason === "no_directions" && (
-            <NoDirections
-              state={state}
-              onClearPantry={() => dispatch({ type: "clear_pantry" })}
-              onClearMain={() => dispatch({ type: "clear_main" })}
-              onBack={handleBack}
-            />
-          )}
-          {!loading && response?.reason === "no_safe_templates" && (
-            <NoSafeTemplates onRestart={() => dispatch({ type: "restart" })} />
-          )}
-          {/*
-            Below the cards, not above them: a refinement on the suggestions already
-            on screen, never a question asked before there is anything to refine. It
-            stays rendered through both §9 empty states, where "the child is not
-            eating tonight" is often the real way out.
-          */}
-          <DinerPicker state={diners} busy={loading} />
-        </>
-      )}
 
-      {state.step === "portions" && chosen && state.portions !== null && (
-        <>
-          <StepHeader title="Hur många portioner?" onBack={handleBack} backLabel={backLabel} />
-          {/* #133: the chosen dish is a refinement target here too — kept when the
-              new diner set still allows it, replaced (never silently) when not. */}
-          <DinerPicker state={diners} busy={dinerChangePending} />
-          <Card className="portions-card">
-            <h3>{chosen.template.name}</h3>
-            <div className="portions-stepper">
-              <Button
-                type="button"
-                variant="secondary"
-                aria-label="Färre portioner"
-                disabled={state.portions <= MIN_PORTIONS}
-                onClick={() => dispatch({ type: "adjust_portions", delta: -1 })}
-              >
-                −
-              </Button>
-              <span role="status" className="portions-value">
-                {formatPortions(state.portions)}
-              </span>
-              <Button
-                type="button"
-                variant="secondary"
-                aria-label="Fler portioner"
-                onClick={() => dispatch({ type: "adjust_portions", delta: 1 })}
-              >
-                +
-              </Button>
-            </div>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => dispatch({ type: "confirm_portions" })}
-              className="guided-action"
-              // #133: a still-in-flight keep/replace check must resolve before the
-              // shopping list is built — it can still change which dish (and which
-              // portions) "the chosen dish" even means.
-              disabled={dinerChangePending}
-            >
-              Till inköpslistan
-            </Button>
-          </Card>
-        </>
-      )}
+          {state.step === "portions" && chosen && state.portions !== null && (
+            <>
+              <GuidedStepHeader
+                eyebrow="Portioner"
+                title="Hur många portioner?"
+                onBack={handleBack}
+                backLabel={backLabel}
+              />
+              {/* #133: the chosen dish is a refinement target here too — kept when the
+                  new diner set still allows it, replaced (never silently) when not. */}
+              <DinerPicker state={diners} busy={dinerChangePending} />
+              <Card className="portions-card">
+                <h3 className="portions-card__dish">{chosen.template.name}</h3>
+                <div className="portions-stepper">
+                  <button
+                    type="button"
+                    className="portions-stepper__btn"
+                    aria-label="Färre portioner"
+                    disabled={state.portions <= MIN_PORTIONS}
+                    onClick={() => dispatch({ type: "adjust_portions", delta: -1 })}
+                  >
+                    −
+                  </button>
+                  <span role="status" className="portions-value">
+                    <span className="portions-value__word">För</span>{" "}
+                    <span className="portions-value__count">
+                      {formatPortionsCount(state.portions)}
+                    </span>{" "}
+                    <span className="portions-value__word">portioner</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="portions-stepper__btn"
+                    aria-label="Fler portioner"
+                    onClick={() => dispatch({ type: "adjust_portions", delta: 1 })}
+                  >
+                    +
+                  </button>
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => dispatch({ type: "confirm_portions" })}
+                  className="guided-action"
+                  // #133: a still-in-flight keep/replace check must resolve before the
+                  // shopping list is built — it can still change which dish (and which
+                  // portions) "the chosen dish" even means.
+                  disabled={dinerChangePending}
+                >
+                  Till inköpslistan
+                </Button>
+              </Card>
+            </>
+          )}
 
-      {state.step === "shopping" && meal && (
-        <>
-          <StepHeader title="Inköpslista" onBack={handleBack} backLabel={backLabel} />
-          {/* No diner picker here, deliberately, matching Tonight's own card
-              (#133): `ShoppingList` reads its items into state once at mount and
-              never rescales them from a later `portions`/`ingredients` change, so
-              a diner toggle at this step could only move the header's count out
-              of sync with the list underneath it — same reason Tonight's own
-              picker is never rendered once its shopping list is on screen. */}
-          <ShoppingList
-            result={meal}
-            portions={state.portions ?? undefined}
-            diners={diners.parameter}
-            accessToken={accessToken}
-            onNewSuggestion={() => dispatch({ type: "restart" })}
-            newSuggestionLabel="Börja om"
-          />
+          {state.step === "shopping" && meal && (
+            <>
+              <GuidedStepHeader
+                eyebrow="Inköpslista"
+                title="Inköpslista"
+                onBack={handleBack}
+                backLabel={backLabel}
+              />
+              {/* No diner picker here, deliberately, matching Tonight's own card
+                  (#133): `ShoppingList` reads its items into state once at mount and
+                  never rescales them from a later `portions`/`ingredients` change, so
+                  a diner toggle at this step could only move the header's count out
+                  of sync with the list underneath it — same reason Tonight's own
+                  picker is never rendered once its shopping list is on screen. */}
+              <ShoppingList
+                result={meal}
+                portions={state.portions ?? undefined}
+                diners={diners.parameter}
+                accessToken={accessToken}
+                onNewSuggestion={() => dispatch({ type: "restart" })}
+                newSuggestionLabel="Börja om"
+              />
+            </>
+          )}
         </>
       )}
     </div>
