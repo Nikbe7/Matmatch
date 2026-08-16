@@ -17,16 +17,15 @@ The original vision describes a conversational, turn-by-turn dialogue. That *ton
 
 ## 3. Onboarding Flow
 
-1. **Welcome** — one screen, states the value prop directly ("Matmatch decides dinner with you, not for you — in under a minute").
-2. **Household setup** — add members quickly, each with their own:
+1. **Sign-in / sign-up** — the first screen anyone sees, and it leads with what the product does ("Vad ska ni äta ikväll?"), not with its own name. **Shipped (#168):** one form with a mode switch, not two equal buttons — signing in is the default and "Skapa konto" is a quiet text link that changes the mode and the primary button's label. One primary action per screen. Swedish throughout, including translated auth errors for the common cases (wrong credentials, address already taken, weak password) with a generic Swedish fallback, so Supabase's English never reaches the screen. A sign-up that returns no session (email confirmation on) says so — an unhandled state, not a verification flow. There is no separate welcome screen: the value proposition is this screen's heading.
+2. **Household setup** — add members quickly. **Shipped (#168):** each member row is name, type and portion size, and nothing else:
    - Adult / Child toggle
-   - Portion size (small/regular/large)
+   - Portion size
    - Optional name (falls back to "Vuxen 1" / "Barn 2" if left blank)
-   - Dietary flag chips (vegetarian, high-protein preference, etc.)
-   - **Allergies** — a distinct, clearly-marked field per member, not bundled into general "preferences" (safety-critical, per-person data — see Architecture doc §5/§5.2)
-   - Lunch boxes needed (yes/no, how many)
-3. Skip-friendly: user can add just themselves and move on; household can be edited any time from settings. Don't force a long form before the first "aha" moment.
-4. First suggestion is shown immediately after minimal setup — the app should prove its value before asking for more detail.
+3. **One allergy question**, below the member list: "Har någon i hushållet en allergi?" **Neither answer is preselected, and the primary action stays disabled until it is answered** — a checked "Nej" would make a household that answered no indistinguishable from one that never saw the question, and the app would treat both as allergy-free (DECISION_LOG 2026-08-16). "Ja" reveals the allergy chips per member, each in its own bordered, warning-toned block with the ⚠ glyph — safety-critical, per-person data that must never pick up the visual language of a preference (§6, ARCHITECTURE.md §5/§5.2). Answering "nej" after picking allergies clears them: what is shown and what is stored are the same thing.
+4. **Dietary preference chips are not part of onboarding** — they are ranking influence, not safety, and are edited on the profile (§6) once the household has seen what the app suggests. Lunch boxes are not collected at all (#108).
+5. Skip-friendly: user can add just themselves and move on; household can be edited any time from the profile. Don't force a long form before the first "aha" moment — "nej" to the allergy question is two taps to the first suggestion.
+6. First suggestion is shown immediately after minimal setup — the app should prove its value before asking for more detail. The primary action says what happens next ("Visa kvällens middag"), not "Spara hushåll".
 
 ## 4. Home Screen — The Flagship "Tonight" Experience
 

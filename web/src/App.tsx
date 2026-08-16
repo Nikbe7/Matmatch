@@ -33,6 +33,7 @@ import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { GuidedFlow } from "./GuidedFlow";
 import { OfflineShoppingList, ShoppingList, type ShoppingListMeal } from "./ShoppingList";
 import { loadAnyShoppingList, type StoredShoppingList } from "./shoppingListStorage";
+import { authErrorMessage, GENERIC_AUTH_ERROR } from "./authErrors";
 import { setAnalyticsSink, track } from "./analytics";
 import { createHttpAnalyticsSink } from "./analyticsSink";
 import { Button } from "./components/Button";
@@ -79,67 +80,116 @@ export const DIETARY_FLAG_LABELS: Record<DietaryFlag, string> = {
 // other. The definitions live in display.ts.
 export { costTierLabel, costTierMeter, INGREDIENT_ROLE_LABELS, PREP_TIME_LABELS };
 
+type AuthMode = "sign_in" | "sign_up";
+
+/**
+ * The first screen anyone sees (#168). It leads with what the product does, not
+ * with its own name, and carries **one** primary action: the old two-equal-buttons
+ * layout made the household decide whether they were new before they were allowed
+ * to do anything, which is the wrong decision to put first. Signing in is the
+ * default mode; "Skapa konto" is a quiet text link that switches the mode and the
+ * button's label, not a second button competing with it.
+ */
 function LoginForm() {
+  const [mode, setMode] = useState<AuthMode>("sign_in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function handleSignIn(event: FormEvent) {
+  function switchMode() {
+    setMode((current) => (current === "sign_in" ? "sign_up" : "sign_in"));
+    // Both belong to the mode that produced them — a "wrong password" line left
+    // hanging over a freshly-switched sign-up form describes nothing on screen.
+    setError(null);
+    setNotice(null);
+  }
+
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInError) setError(signInError.message);
-    setBusy(false);
+    setNotice(null);
+
+    try {
+      if (mode === "sign_in") {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) setError(authErrorMessage(signInError));
+      } else {
+        const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+        if (signUpError) {
+          setError(authErrorMessage(signUpError));
+        } else if (!data.session) {
+          // Sign-up succeeded but the project requires email confirmation, so no
+          // session arrives and `onAuthStateChange` never fires: without this line
+          // the primary action would visibly do nothing at all. Not a verification
+          // flow — just the acknowledgement that unhandled state was missing.
+          setNotice("Kontot är skapat. Bekräfta din e-postadress så kan du logga in.");
+        }
+      }
+    } catch {
+      // supabase-js rethrows anything that isn't an AuthError — a failed session
+      // write in private browsing, for one. Without this the form would stay busy
+      // forever with nothing on screen, which is the same "the primary action did
+      // nothing" failure the notice above exists to close.
+      setError(GENERIC_AUTH_ERROR);
+    } finally {
+      setBusy(false);
+    }
   }
 
-  async function handleSignUp() {
-    setBusy(true);
-    setError(null);
-    const { error: signUpError } = await supabase.auth.signUp({ email, password });
-    if (signUpError) setError(signUpError.message);
-    setBusy(false);
-  }
+  const submitLabel = mode === "sign_in" ? "Logga in" : "Skapa konto";
+  const switchLabel =
+    mode === "sign_in" ? "Ny här? Skapa konto" : "Har du redan ett konto? Logga in";
 
   return (
-    <Card>
-      <form onSubmit={handleSignIn}>
-        <h1>Matmatch</h1>
+    <Card className="auth-card">
+      <form onSubmit={(event) => void handleSubmit(event)}>
+        <h1 className="auth-title">Vad ska ni äta ikväll?</h1>
+        <p className="auth-lede">
+          Matmatch föreslår kvällens middag utifrån vilka ni är i hushållet — utan att du
+          behöver leta recept.
+        </p>
         <div className="field">
-          <label>
-            Email
-            <input
-              className="input"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </label>
+          <label htmlFor="auth-email">E-post</label>
+          <input
+            id="auth-email"
+            className="input"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
         </div>
         <div className="field">
-          <label>
-            Password
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              minLength={6}
-            />
-          </label>
+          <label htmlFor="auth-password">Lösenord</label>
+          <input
+            id="auth-password"
+            className="input"
+            type="password"
+            autoComplete={mode === "sign_in" ? "current-password" : "new-password"}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            minLength={6}
+          />
         </div>
-        <Button type="submit" variant="primary" disabled={busy}>
-          Sign in
-        </Button>{" "}
-        <Button type="button" variant="secondary" disabled={busy} onClick={handleSignUp}>
-          Sign up
+        <Button type="submit" variant="primary" className="auth-submit" disabled={busy}>
+          {submitLabel}
         </Button>
+        <button type="button" className="auth-switch" onClick={switchMode} disabled={busy}>
+          {switchLabel}
+        </button>
         {error && (
           <p role="alert" className="error-text">
             {error}
+          </p>
+        )}
+        {notice && (
+          <p role="status" className="auth-notice">
+            {notice}
           </p>
         )}
       </form>
@@ -194,18 +244,11 @@ function memberAllergySummary(allergies: readonly Allergy[]): string | null {
 }
 
 /**
- * One member's editable fields — name, type, portion, diet preferences and
- * allergies. Shared by onboarding's always-open `MemberFields` and the profile
- * screen's expand-on-"Ändra" row (#166), which is the same set of controls behind
- * two different amounts of chrome around them.
- *
- * Allergies keep their own bordered, differently-labelled fieldset (#101, UX_FLOW
- * §6). Flattening the two chip groups into one row per member would have been the
- * easy way to save vertical space and is precisely the regression that must not
- * happen: a preference and a safety constraint have to stay tellable apart at a
- * glance.
+ * Who a member is — name, type, portion size. Nothing here is a constraint on what
+ * they can eat: onboarding (#168) asks for exactly this and nothing else, and the
+ * profile screen wraps the same row in its preference and allergy groups below.
  */
-function MemberDetailFields({
+function MemberBasicFields({
   member,
   fallbackLabel,
   idPrefix,
@@ -270,6 +313,76 @@ function MemberDetailFields({
           />
         </label>
       </div>
+    </>
+  );
+}
+
+/**
+ * One member's allergies, in their own bordered, warning-toned, differently-labelled
+ * fieldset (#101, UX_FLOW §6) — the same block on the profile screen and in
+ * onboarding's "ja" branch, so a safety constraint never picks up the visual
+ * language of the preference chips. The warning glyph and the word "Allergier"
+ * carry the distinction on their own; the red treatment is reinforcement, never the
+ * only signal.
+ *
+ * `subject` names whose allergies these are, and is only passed where several of
+ * these blocks stand together (onboarding): on the profile the block already sits
+ * inside one member's expanded row, and repeating the name there would be noise.
+ */
+function AllergyFieldset({
+  member,
+  subject,
+  onChange,
+}: {
+  member: HouseholdMember;
+  subject?: string;
+  onChange: (patch: Partial<HouseholdMember>) => void;
+}) {
+  return (
+    <fieldset className="member-constraints allergy-group">
+      <legend>
+        <span aria-hidden="true">⚠ </span>Allergier{subject ? ` · ${subject}` : ""}
+      </legend>
+      <div className="chip-row">
+        {ALLERGIES.map((allergy) => (
+          <Chip
+            key={allergy}
+            variant="danger"
+            pressed={member.allergies.includes(allergy)}
+            onClick={() => onChange({ allergies: toggleValue(member.allergies, allergy) })}
+          >
+            {ALLERGY_LABELS[allergy]}
+          </Chip>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/**
+ * One member's editable fields on the profile screen (#166) — who they are, plus
+ * both constraint groups. Onboarding deliberately does not use this: it asks who
+ * lives here and one allergy question, and nothing else (#168).
+ */
+function MemberDetailFields({
+  member,
+  fallbackLabel,
+  idPrefix,
+  onChange,
+}: {
+  member: HouseholdMember;
+  fallbackLabel: string;
+  idPrefix: string;
+  onChange: (patch: Partial<HouseholdMember>) => void;
+}) {
+  return (
+    <>
+      <MemberBasicFields
+        member={member}
+        fallbackLabel={fallbackLabel}
+        idPrefix={idPrefix}
+        onChange={onChange}
+      />
 
       <fieldset className="member-constraints">
         <legend>Kostpreferenser</legend>
@@ -288,33 +401,15 @@ function MemberDetailFields({
         </div>
       </fieldset>
 
-      <fieldset className="member-constraints allergy-group">
-        {/* The warning glyph and the word "Allergier" carry the distinction on their
-            own, so the red treatment is reinforcement rather than the only signal —
-            this group must stay tellable from the preferences above it without
-            relying on colour. */}
-        <legend>
-          <span aria-hidden="true">⚠ </span>Allergier
-        </legend>
-        <div className="chip-row">
-          {ALLERGIES.map((allergy) => (
-            <Chip
-              key={allergy}
-              variant="danger"
-              pressed={member.allergies.includes(allergy)}
-              onClick={() => onChange({ allergies: toggleValue(member.allergies, allergy) })}
-            >
-              {ALLERGY_LABELS[allergy]}
-            </Chip>
-          ))}
-        </div>
-      </fieldset>
+      <AllergyFieldset member={member} onChange={onChange} />
     </>
   );
 }
 
-/** Onboarding's own member block (#115) — always open, since onboarding is a single
- *  short form rather than a household of established members to skim through. */
+/** Onboarding's member block (#168) — name, type and portion size, always open.
+ *  Dietary preferences are not here at all: they are ranking influence, not safety,
+ *  and belong on the profile where they can be adjusted once the household has seen
+ *  what the app suggests. Allergies live behind the question below the list. */
 function MemberFields({
   member,
   label,
@@ -341,13 +436,61 @@ function MemberFields({
           Ta bort
         </Button>
       </div>
-      <MemberDetailFields
+      <MemberBasicFields
         member={member}
         fallbackLabel={fallbackLabel}
         idPrefix={`member-${index}`}
         onChange={onChange}
       />
     </div>
+  );
+}
+
+/**
+ * Onboarding's one question, and the reason this screen was rebuilt (#168,
+ * DECISION_LOG 2026-08-16). Neither option is preselected and the primary action
+ * stays disabled until one is picked: a checked "Nej" would make a household that
+ * answered no indistinguishable from one that never saw the question, and the app
+ * would treat both as allergy-free — assuming a safety answer nobody gave.
+ *
+ * A radio group rather than chips, because these are two mutually exclusive answers
+ * to one question and must be announced as such.
+ */
+type AllergyAnswer = "unanswered" | "no" | "yes";
+
+function AllergyQuestion({
+  answer,
+  onAnswer,
+}: {
+  answer: AllergyAnswer;
+  onAnswer: (answer: Exclude<AllergyAnswer, "unanswered">) => void;
+}) {
+  return (
+    <fieldset className="allergy-question">
+      <legend>Har någon i hushållet en allergi?</legend>
+      <div className="choice-row">
+        <label className="choice">
+          <input
+            type="radio"
+            name="allergy-answer"
+            value="no"
+            checked={answer === "no"}
+            onChange={() => onAnswer("no")}
+          />
+          Nej
+        </label>
+        <label className="choice">
+          <input
+            type="radio"
+            name="allergy-answer"
+            value="yes"
+            checked={answer === "yes"}
+            onChange={() => onAnswer("yes")}
+          />
+          Ja
+        </label>
+      </div>
+    </fieldset>
   );
 }
 
@@ -359,6 +502,7 @@ function OnboardingForm({
   onCreated: () => void;
 }) {
   const [members, setMembers] = useState<HouseholdMember[]>([emptyMember("adult")]);
+  const [allergyAnswer, setAllergyAnswer] = useState<AllergyAnswer>("unanswered");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -385,8 +529,25 @@ function OnboardingForm({
     setMembers((current) => current.filter((_, i) => i !== index));
   }
 
+  /**
+   * Answering "nej" after having picked allergies clears them. Keeping them hidden
+   * would mean the household is saved with constraints the screen no longer shows —
+   * what is displayed and what is stored have to be the same thing, and hidden state
+   * that is nonetheless persisted is the worse failure mode of the two.
+   */
+  function answerAllergyQuestion(answer: Exclude<AllergyAnswer, "unanswered">) {
+    setAllergyAnswer(answer);
+    if (answer === "no") {
+      setMembers((current) => current.map((member) => ({ ...member, allergies: [] })));
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    // The disabled button already prevents this; the guard is here because the one
+    // thing that must never happen is a household being created — and a suggestion
+    // shown — while the allergy question stands unanswered or half-answered.
+    if (blockingAnswer !== null) return;
     setBusy(true);
     setError(null);
     try {
@@ -399,38 +560,76 @@ function OnboardingForm({
     }
   }
 
-  return (
-    <Card>
-      <form onSubmit={handleSubmit}>
-        <h2>Skapa hushåll</h2>
-        <fieldset>
-          <legend>Medlemmar</legend>
-          {/* Allergies and preferences are set per person (#115): a household does
-              not have allergies, people do, and knowing whose is what lets a meal be
-              matched to whoever is actually eating it. */}
-          <p className="field-hint">
-            Ange allergier och kostpreferenser för varje person i hushållet.
-          </p>
-          {members.map((member, index) => (
-            <MemberFields
-              key={index}
-              member={member}
-              label={labels[index]!}
-              fallbackLabel={fallbackLabels[index]!}
-              index={index}
-              onChange={(patch) => updateMember(index, patch)}
-              onRemove={() => removeMember(index)}
-              removable={members.length > 1}
-            />
-          ))}
-          <Button type="button" variant="secondary" onClick={addMember}>
-            Lägg till medlem
-          </Button>
-        </fieldset>
+  /**
+   * Why the answer is not yet usable, or `null` when it is. "Ja" without a single
+   * chip picked is the half-answer that matters: it would produce a payload
+   * identical to "Nej", so a household that just declared an allergy would be
+   * stored as allergy-free and its first suggestion filtered against nothing —
+   * the fail-open case this screen exists to close.
+   */
+  const blockingAnswer: string | null =
+    allergyAnswer === "unanswered"
+      ? "Svara på frågan om allergier först."
+      : allergyAnswer === "yes" && members.every((member) => member.allergies.length === 0)
+        ? "Välj vilken allergi det gäller, eller svara Nej."
+        : null;
 
-        <Button type="submit" variant="primary" disabled={busy}>
-          Spara hushåll
+  return (
+    <Card className="onboarding-card">
+      <form onSubmit={(event) => void handleSubmit(event)}>
+        <h2 className="onboarding-title">Vilka bor här?</h2>
+        <p className="onboarding-lede">
+          Portionerna och förslagen utgår från hushållet. Du kan ändra allt senare.
+        </p>
+
+        {members.map((member, index) => (
+          <MemberFields
+            key={index}
+            member={member}
+            label={labels[index]!}
+            fallbackLabel={fallbackLabels[index]!}
+            index={index}
+            onChange={(patch) => updateMember(index, patch)}
+            onRemove={() => removeMember(index)}
+            removable={members.length > 1}
+          />
+        ))}
+        <button type="button" className="member-add-row" onClick={addMember}>
+          + Lägg till medlem
+        </button>
+
+        <AllergyQuestion answer={allergyAnswer} onAnswer={answerAllergyQuestion} />
+
+        {/* Allergies are declared per person (#115): a household does not have
+            allergies, people do, and knowing whose is what lets a meal be matched to
+            whoever is actually eating it (#112). */}
+        {allergyAnswer === "yes" && (
+          <div className="allergy-picker">
+            {members.map((member, index) => (
+              <AllergyFieldset
+                key={index}
+                member={member}
+                subject={labels[index]!}
+                onChange={(patch) => updateMember(index, patch)}
+              />
+            ))}
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          variant="primary"
+          className="onboarding-submit"
+          disabled={busy || blockingAnswer !== null}
+          aria-describedby={blockingAnswer ? "onboarding-submit-hint" : undefined}
+        >
+          Visa kvällens middag
         </Button>
+        {blockingAnswer && (
+          <p id="onboarding-submit-hint" className="field-hint onboarding-submit-hint">
+            {blockingAnswer}
+          </p>
+        )}
         {error && (
           <p role="alert" className="error-text">
             {error}

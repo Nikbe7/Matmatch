@@ -8,6 +8,18 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-16 — Onboarding asks one mandatory allergy question, instead of a chip wall or nothing at all (#168)
+
+Onboarding keeps asking about allergies, but as a single yes/no question below the member list, with **no preselected answer**: the primary action stays disabled until it is answered, and "ja" reveals the per-member allergy chips in their own warning-toned block. Dietary preferences leave onboarding entirely — they are ranking influence, not safety, and are edited on the profile (#166) once the household has seen what the app suggests.
+
+**Both the previous positions were wrong.** The 2026-08-10 entry ("onboarding stops asking up front") is marked superseded on this point only — its other half, the warn-and-swap posture for a *chosen* dish, stands unchanged and is not reopened. Not asking at all makes the very first suggestion unsafe for an allergic household: Tonight is a push surface, it makes a claim, and the first claim it makes would be one the app had no basis for — fail-open, and precisely what the push/pull split (2026-08-09) exists to prevent. But what shipped instead was the opposite failure: the full eight-chip allergy set plus three preference chips per member, on the first screen, before anything of value had been shown — maximum friction where UX_FLOW §1 asks for the least.
+
+**Why a forced choice beats a default of "nej".** A preselected "Nej" costs zero taps and was the obvious design, but it makes a household that answered no indistinguishable from one that scrolled past the question — and the app treats both as allergy-free. That is the app assuming a safety answer the user never gave. One tap buys the difference between a declared answer and a silent assumption, and safety answers are exactly where an assumption is not allowed. It also means "nej" is a real, recorded answer: two taps to the first suggestion, still the fast path.
+
+**How to apply:** any surface that collects a safety-critical answer states the question and waits for it — no preselected safe-sounding default, no inferring an answer from silence. Preference-shaped data may default; allergy-shaped data may not. Answering "nej" after picking allergies clears them, because what is shown and what is stored must be the same thing.
+
+---
+
 ## 2026-08-16 — `PUT /api/households` is full replacement with no version check
 
 `PUT /api/households` overwrites the whole household profile with no `updated_at`/version precondition, so a client writing from a stale copy can silently drop an allergy that was added elsewhere in the meantime — the fail-open direction. Nothing in code prevents this yet; it's held off by a rule instead: every editing surface must fetch the household fresh immediately before editing and must never edit from cached data.
@@ -112,6 +124,8 @@ The analytics event fired at this moment is renamed from `meal_cooked` to `meal_
 ---
 
 ## 2026-08-10 — Allergy handling is done after two more small changes; onboarding stops asking up front
+
+> **Superseded on the onboarding point by the 2026-08-16 entry (#168):** onboarding does ask, as one mandatory yes/no question with no preselected answer. The rest of this entry — the warn-and-swap posture for a chosen dish, and the "no further allergy machinery" rule — stands.
 
 **Decision:** Allergy support stays — the verified 206-row mapping is Phase 0's heaviest asset and a household food app that ignores allergies is unserious. But the posture changes, and allergy work stops after two remaining changes: (1) onboarding no longer asks for allergies — a household is people, and allergies/dietary flags become optional attributes added when the user chooses to, not a gate before the first suggestion, per UX_FLOW §1 (prove value before asking for detail); (2) a chosen dish warns and offers a swap rather than being hidden — a nut-allergic diner selected against a dish naming nuts shows a named warning and a role-matched substitution suggestion from the existing substitution groups, no blocking.
 
