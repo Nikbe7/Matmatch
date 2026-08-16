@@ -1048,9 +1048,11 @@ select.input {
 }
 
 /* ---------------------------------------------------------------------------
- * Guided quick-select flow (UX_FLOW §5). Reuses the existing chip, card and
- * button primitives — the only new shapes here are the ingredient grid and the
- * portion stepper, both of which are layout rather than new visual language.
+ * Guided quick-select flow (UX_FLOW §5, redesigned #174 to match Ikväll/the
+ * state screens): each step reads as one question, not a form. Reuses the
+ * shared chip, card, button and `.screen-header` primitives — the only new
+ * shapes here are the ingredient grid, the tappable direction card, the round
+ * icon buttons (back, portion stepper), and the portion count's display type.
  * --------------------------------------------------------------------------- */
 
 .guided-entry {
@@ -1058,22 +1060,62 @@ select.input {
   margin: var(--space-6) 0 var(--space-4);
 }
 
+/* Reuses `.screen-header`'s layout (eyebrow + display title left, action slot
+   right) — this just widens its bottom margin a touch for the extra air the
+   redesign calls for. */
 .guided-header {
+  margin-bottom: var(--space-6);
+}
+
+/* The error screen's own header (#170): no eyebrow/title of its own — that
+   would duplicate `StateScreen`'s own heading — just the back button kept
+   reachable, right-aligned in the same slot it occupies everywhere else. */
+.guided-header--error {
+  display: flex;
+  justify-content: flex-end;
   margin-bottom: var(--space-4);
 }
 
+/* Small round icon button, replacing the old full-width "Tillbaka" — a
+   fullbredd button reads as "this is the task"; the task is answering the
+   question, not going back. 44px hit target even though the visible circle
+   is smaller. */
 .guided-back {
-  min-height: var(--touch-target);
-  margin-bottom: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  cursor: pointer;
+  margin-top: var(--space-1);
 }
 
-.guided-title {
-  margin-bottom: var(--space-1);
+.guided-back svg {
+  width: 18px;
+  height: 18px;
 }
 
 .guided-hint {
-  margin-bottom: 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-size-sm);
+}
+
+/* "Föreslå åt mig" (#174): an escape hatch, not the point of the step — a
+   quiet text button under the grid, same weight as the reference's "Börja
+   om", never competing with the grid above it for attention. */
+.guided-quiet-action {
+  width: 100%;
+  margin-top: var(--space-1);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--color-muted);
+  font-weight: 500;
 }
 
 /* Three columns at 360px keeps every target well above 44px while showing a whole
@@ -1156,8 +1198,8 @@ select.input {
 }
 
 /* Three placeholder direction cards, sized like `.direction-card`'s own
-   content (name, two-line summary, meta, "Välj" button), standing in while
-   `fetchDirections` is in flight. */
+   content (name, two-line summary, meta) — no button-row placeholder, since
+   the card itself is the tap target now (#174). */
 .skeleton-line--direction-name {
   width: 60%;
   height: var(--font-size-lg);
@@ -1179,52 +1221,144 @@ select.input {
 .skeleton-line--direction-meta {
   width: 40%;
   height: var(--font-size-sm);
-  margin: 0 0 var(--space-3);
+  margin: 0;
 }
 
-.skeleton-line--direction-button {
+/* The whole card is the tap target (#174): a `<button>` wearing `.card`,
+   reset to plain block layout with left-aligned text, plus the reference's
+   `active:scale` press feedback so it still reads as tappable without an
+   inner button. */
+/* The flow's one deliberate moment of motion (#174): the three cards rise in
+   staggered by `style.animationDelay`, matching the reference's `mm-rise`. */
+@keyframes guided-direction-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.direction-card {
+  display: block;
   width: 100%;
-  height: var(--touch-target);
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.direction-card:active {
+  transform: scale(0.98);
+}
+
+/* Only the real cards rise in — the skeleton stands still, since it is never
+   the thing arriving. */
+.direction-card--enter {
+  animation: guided-direction-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .direction-card--enter {
+    animation: none;
+  }
 }
 
 .direction-card__name {
-  font-size: var(--font-size-lg);
-  margin-bottom: var(--space-1);
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  font-weight: 500;
+  line-height: var(--line-height-display);
+  margin: 0 0 var(--space-2);
+  color: var(--color-text);
 }
 
 .direction-card__summary {
-  margin-bottom: var(--space-2);
+  margin: 0 0 var(--space-3);
+  color: var(--color-text);
 }
 
 .direction-card__meta {
   color: var(--color-muted);
   font-size: var(--font-size-sm);
-  margin-bottom: var(--space-2);
+  margin: 0;
 }
 
+/* "Du har redan …" (#174): reward, not metadata — sits below the meta line in
+   the accent color rather than muted grey, so it reads as the app noticing
+   something rather than another attribute row. */
 .direction-card__covered {
   font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  font-weight: 500;
+  margin: var(--space-2) 0 0;
+}
+
+.portions-card__dish {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-base);
+  font-weight: 600;
   color: var(--color-muted);
-  margin-bottom: var(--space-3);
+  text-align: center;
 }
 
 .portions-stepper {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  justify-content: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
 }
 
-.portions-stepper .btn {
-  min-width: var(--touch-target);
-  min-height: var(--touch-target);
+/* Quiet round stepper buttons either side of the count (#174) — the count
+   itself is the only thing meant to draw the eye here. */
+.portions-stepper__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
   font-size: var(--font-size-lg);
+  font-family: inherit;
+  cursor: pointer;
 }
 
+.portions-stepper__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Only the count itself is set at display size (#174) — "För"/"portioner"
+   stay small words either side of it, so the number is what the eye lands
+   on, not the whole sentence. */
 .portions-value {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  min-width: 8ch;
+  justify-content: center;
+  flex-wrap: wrap;
+  color: var(--color-text);
+}
+
+.portions-value__word {
+  font-size: var(--font-size-base);
+  color: var(--color-muted);
+}
+
+.portions-value__count {
+  font-family: var(--font-display);
+  font-size: var(--font-size-display);
+  font-weight: 500;
+  line-height: 1;
 }
 
 /* The diner picker (#112), shared by the Tonight card and the guided flow. Visually

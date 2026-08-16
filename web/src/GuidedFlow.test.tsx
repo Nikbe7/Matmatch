@@ -116,10 +116,10 @@ describe("GuidedFlow — the happy path, tap by tap", () => {
     await user.click(screen.getByRole("button", { name: "Visa förslag" }));
 
     await screen.findByRole("heading", { name: "Tre förslag" });
-    expect(screen.getByRole("heading", { name: "Kycklinggryta" })).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Välj" })).toHaveLength(3);
+    expect(screen.getByText("Kycklinggryta")).toBeTruthy();
+    expect(screen.queryAllByRole("button", { name: "Välj" })).toEqual([]);
 
-    await user.click(screen.getAllByRole("button", { name: "Välj" })[0]!);
+    await user.click(screen.getByRole("button", { name: "Kycklinggryta" }));
 
     await screen.findByRole("heading", { name: "Hur många portioner?" });
     expect(screen.getByRole("status").textContent).toBe("För 2 portioner");
@@ -180,6 +180,27 @@ describe("GuidedFlow — the happy path, tap by tap", () => {
     await user.click(screen.getByRole("button", { name: "Visa förslag" }));
 
     expect((await screen.findAllByText(/Du har redan: Ris/))[0]).toBeTruthy();
+  });
+});
+
+describe("GuidedFlow — the direction card itself is the tap target (#174)", () => {
+  it("chooses a direction by activating the card, with no 'Välj' button anywhere", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
+    await screen.findByRole("heading", { name: "Tre förslag" });
+
+    expect(screen.queryAllByRole("button", { name: "Välj" })).toEqual([]);
+    const card = screen.getByRole("button", { name: "Kycklinggryta" });
+    // The card's accessible name is exactly the dish name — not the summary or
+    // meta line it also carries as visible text.
+    expect(card.tagName).toBe("BUTTON");
+
+    await user.click(card);
+
+    await screen.findByRole("heading", { name: "Hur många portioner?" });
   });
 });
 
@@ -435,7 +456,7 @@ describe("GuidedFlow — the no-directions empty state (UX_FLOW §9)", () => {
     body = threeDirections;
     await user.click(screen.getByRole("button", { name: "Visa alla huvudingredienser" }));
 
-    expect(await screen.findByRole("heading", { name: "Kycklinggryta" })).toBeTruthy();
+    expect(await screen.findByText("Kycklinggryta")).toBeTruthy();
   });
 
   it("sends a household whose own constraints leave nothing to its profile, not to the loosen actions", async () => {
@@ -458,7 +479,7 @@ describe("GuidedFlow — portion confirmation", () => {
     renderFlow();
 
     await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
-    await user.click((await screen.findAllByRole("button", { name: "Välj" }))[0]!);
+    await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
 
     await screen.findByRole("heading", { name: "Hur många portioner?" });
     await user.click(screen.getByRole("button", { name: "Fler portioner" }));
@@ -474,7 +495,7 @@ describe("GuidedFlow — portion confirmation", () => {
     renderFlow();
 
     await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
-    await user.click((await screen.findAllByRole("button", { name: "Välj" }))[0]!);
+    await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
     await user.click(await screen.findByRole("button", { name: "Fler portioner" }));
     await user.click(screen.getByRole("button", { name: "Till inköpslistan" }));
 
@@ -517,7 +538,7 @@ describe("pantry input is never persisted (CLAUDE.md non-negotiable)", () => {
     // accepted dish does not itself contain.
     await user.click(await screen.findByRole("button", { name: "gul lök" }));
     await user.click(screen.getByRole("button", { name: "Visa förslag" }));
-    await user.click((await screen.findAllByRole("button", { name: "Välj" }))[0]!);
+    await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
     await user.click(await screen.findByRole("button", { name: "Till inköpslistan" }));
     await screen.findByText("Har hemma (1)");
 
@@ -556,34 +577,44 @@ describe("pantry input is never persisted (CLAUDE.md non-negotiable)", () => {
 
 describe("GuidedFlow — failed requests offer a way forward", () => {
   it("retries the ingredient grids rather than showing 'Hämtar…' forever", async () => {
-    const user = userEvent.setup();
-    let failOptions = true;
+    // A controlled, deferred options response — resolved explicitly below,
+    // rather than an immediately-rejecting mock — so the failure lands only
+    // once the flow is actually on the "main" step, not in a race against the
+    // click that gets it there (the error screen replacing the step's own
+    // content means a failure that lands mid-click would otherwise unmount
+    // the very button `user.click` is about to press).
+    let resolveOptions: ((response: Response) => void) | undefined;
     const fetchMock = vi.fn(async (url: string) => {
       if (url.startsWith("/api/guided/options")) {
-        if (failOptions) {
-          return jsonResponse(500, { error: { code: "internal", message: "gick fel" } });
-        }
-        return jsonResponse(200, options);
+        return new Promise<Response>((resolve) => {
+          resolveOptions = resolve;
+        });
       }
       return jsonResponse(200, threeDirections);
     });
     vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
     renderFlow();
 
     await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
     await screen.findByRole("heading", { name: "Vilken huvudingrediens?" });
 
-    // Not a permanent "Hämtar ingredienser…" over a request that is no longer running.
+    resolveOptions!(jsonResponse(500, { error: { code: "internal", message: "gick fel" } }));
+
+    // The error screen replaces the step's own content rather than stacking
+    // above it (#170) — not a permanent "Hämtar ingredienser…" over a request
+    // that is no longer running, and no "Vilken huvudingrediens?" underneath it.
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toBe("Försök igen om en liten stund.");
+    expect(screen.queryByRole("heading", { name: "Vilken huvudingrediens?" })).toBeNull();
     // The server's raw message never reaches the DOM — the code survives only as
     // the quiet reference line below the action (#170).
     expect(screen.queryByText("gick fel")).toBeNull();
     expect(document.body.textContent).toContain("internal");
     expect(screen.queryByText("Hämtar ingredienser…")).toBeNull();
 
-    failOptions = false;
     await user.click(screen.getByRole("button", { name: "Försök igen" }));
+    resolveOptions!(jsonResponse(200, options));
 
     expect(await screen.findByRole("button", { name: "kycklingfilé" })).toBeTruthy();
   });
@@ -607,7 +638,7 @@ describe("GuidedFlow — failed requests offer a way forward", () => {
     await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
     await user.click(await screen.findByRole("button", { name: "ris" }));
     await user.click(screen.getByRole("button", { name: "Visa förslag" }));
-    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await screen.findByText("Kycklinggryta");
 
     failDirections = true;
     await user.click(screen.getByRole("button", { name: "Tillbaka" }));
@@ -615,8 +646,41 @@ describe("GuidedFlow — failed requests offer a way forward", () => {
     await user.click(screen.getByRole("button", { name: "Visa förslag" }));
 
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
+    expect(screen.queryByText("Kycklinggryta")).toBeNull();
     expect(screen.getByRole("button", { name: "Försök igen" })).toBeTruthy();
+  });
+});
+
+describe("GuidedFlow — the error screen replaces the step's content, never stacks above it (#170, #174)", () => {
+  it("does not render the step's heading or controls while the directions error screen is shown", async () => {
+    let resolveDirections: ((response: Response) => void) | undefined;
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) return jsonResponse(200, options);
+      if (url.startsWith("/api/guided/directions")) {
+        return new Promise<Response>((resolve) => {
+          resolveDirections = resolve;
+        });
+      }
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
+    await user.click(await screen.findByRole("button", { name: "Hoppa över" }));
+    await screen.findByRole("heading", { name: "Tre förslag" });
+
+    resolveDirections!(jsonResponse(500, { error: { code: "internal", message: "gick fel" } }));
+
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    // Never stacked: the directions step's own heading is gone while the error
+    // screen is on screen, not just visually underneath it.
+    expect(screen.queryByRole("heading", { name: "Tre förslag" })).toBeNull();
+    // The back button survives the replacement — it is the one way out of a
+    // broken request that does not depend on the request succeeding.
+    expect(screen.getByRole("button", { name: "Tillbaka" })).toBeTruthy();
   });
 });
 
@@ -670,11 +734,11 @@ describe("GuidedFlow — loading states are placeholders, not spinners on empty 
 
     const skeletonCards = document.querySelectorAll(".direction-list .direction-card");
     expect(skeletonCards).toHaveLength(3);
-    expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
+    expect(screen.queryByText("Kycklinggryta")).toBeNull();
 
     resolveDirections!(jsonResponse(200, threeDirections));
 
-    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await screen.findByText("Kycklinggryta");
   });
 });
 
@@ -769,7 +833,7 @@ describe("GuidedFlow — the diner picker (#112)", () => {
 
     await reachDirections(user);
 
-    expect(screen.getByRole("heading", { name: "Kycklinggryta" })).toBeTruthy();
+    expect(screen.getByText("Kycklinggryta")).toBeTruthy();
     expect(optionsQueries(fetchMock)[0]!.get("diners")).toBeNull();
     expect(directionsQueries(fetchMock)[0]!.get("diners")).toBeNull();
   });
@@ -871,7 +935,7 @@ describe("GuidedFlow — a diner change after choosing keeps or explains (#133)"
     await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
     await user.click(await screen.findByRole("button", { name: "Hoppa över" }));
     await screen.findByRole("heading", { name: "Tre förslag" });
-    await user.click((await screen.findAllByRole("button", { name: "Välj" }))[0]!);
+    await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
     await screen.findByRole("heading", { name: "Hur många portioner?" });
   }
 
