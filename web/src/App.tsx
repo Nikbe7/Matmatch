@@ -23,6 +23,7 @@ import {
   costTierLabel,
   costTierMeter,
   dinerChangeReasonLine,
+  formatPrepMinutes,
   INGREDIENT_ROLE_LABELS,
   PREP_TIME_LABELS,
   suggestionReasonLine,
@@ -514,13 +515,14 @@ function SuggestionCard({
     <div className="suggestion">
       <h3 className="suggestion__name">{result.template.name}</h3>
       <p className="suggestion__meta">
-        {PREP_TIME_LABELS[result.template.prep_time_band]}
+        {formatPrepMinutes(result.template.prep_minutes)}
         {" · "}
         <span role="img" aria-label={costTierLabel(result.template.cost_tier)}>
           <span aria-hidden="true">{costTierMeter(result.template.cost_tier)}</span>
         </span>
       </p>
-      {reasonLine && <p className="suggestion__reason">{reasonLine}</p>}
+      <p className="suggestion__blurb">{result.template.blurb}</p>
+      {reasonLine && <p className="suggestion__reason suggestion__reason--muted">{reasonLine}</p>}
       <div className="suggestion__actions">
         <Button type="button" variant="primary" className="suggestion__choose" onClick={onChoose}>
           Laga ikväll

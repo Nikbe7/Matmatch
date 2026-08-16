@@ -2,10 +2,12 @@
   {
     "id": "kyckling-wok",
     "name": "Kyckling wok",
+    "blurb": "Testmall för kyckling wok.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],

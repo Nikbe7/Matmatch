@@ -65,7 +65,7 @@ const householdNotFound = jsonResponse(404, {
 
 const suggestionBody = {
   result: {
-    template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: "mid", prep_time_band: "20-40min", cuisine: "swedish_nordic" },
+    template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb för kycklinggryta.", cost_tier: "mid", prep_time_band: "20-40min", prep_minutes: 30, cuisine: "swedish_nordic" },
     ingredients: [
       { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
       { role: "aromatic", name: "Rödlök", slotIndex: 1, ingredientId: "rodlok", substituted: true, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
@@ -80,7 +80,7 @@ const suggestionBody = {
 function suggestionBodyForTier(tier: CostTier) {
   return {
     result: {
-      template: { id: "kycklinggryta", name: "Kycklinggryta", cost_tier: tier, prep_time_band: "20-40min", cuisine: "swedish_nordic" },
+      template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb för kycklinggryta.", cost_tier: tier, prep_time_band: "20-40min", prep_minutes: 30, cuisine: "swedish_nordic" },
       ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
       substitutions: [],
       score: 0.5,
@@ -341,7 +341,8 @@ describe("App — Tonight suggestion card", () => {
     const { container } = render(<App />);
 
     await screen.findByRole("heading", { name: "Kycklinggryta" });
-    expect(screen.getByText(/20–40 min/)).toBeTruthy();
+    expect(screen.getByText(/30 min/)).toBeTruthy();
+    expect(screen.getByText("Testblurb för kycklinggryta.")).toBeTruthy();
     expect(screen.getByText("Protein: Kyckling")).toBeTruthy();
     expect(screen.getByText(/Rödlök/)).toBeTruthy();
     expect(screen.getByText(/\(ersättning\)/)).toBeTruthy();
@@ -439,7 +440,7 @@ describe("App — Tonight suggestion card", () => {
 function suggestionBodyFor(id: string, name: string, cuisine = "swedish_nordic") {
   return {
     result: {
-      template: { id, name, cost_tier: "budget", prep_time_band: "<20min", cuisine },
+      template: { id, name, blurb: `Testblurb för ${name.toLowerCase()}.`, cost_tier: "budget", prep_time_band: "<20min", prep_minutes: 15, cuisine },
       ingredients: [{ role: "protein", name: "Torsk", slotIndex: 0, ingredientId: "torsk", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
       substitutions: [],
       score: 0.3,
@@ -1035,8 +1036,10 @@ describe("App — the Tonight card's diner picker (#112)", () => {
         template: {
           id,
           name: id,
+          blurb: `Testblurb för ${id}.`,
           cost_tier: "mid",
           prep_time_band: "20-40min",
+          prep_minutes: 30,
           cuisine: "swedish_nordic",
         },
         ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
@@ -1202,8 +1205,10 @@ describe("App — a diner change keeps the dish when it is still valid (#133)", 
         template: {
           id,
           name: id,
+          blurb: `Testblurb för ${id}.`,
           cost_tier: "mid",
           prep_time_band: "20-40min",
+          prep_minutes: 30,
           cuisine: "swedish_nordic",
         },
         ingredients: [
@@ -1337,8 +1342,10 @@ describe("App — a failed diner change never leaves the card and the picker dis
             template: {
               id: "kycklinggryta",
               name: "kycklinggryta",
+              blurb: "Testblurb för kycklinggryta.",
               cost_tier: "mid",
               prep_time_band: "20-40min",
+              prep_minutes: 30,
               cuisine: "swedish_nordic",
             },
             ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],

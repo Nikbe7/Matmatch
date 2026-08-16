@@ -2,10 +2,12 @@
   {
     "id": "kycklinggryta-med-rotfrukter",
     "name": "Kycklinggryta med rotfrukter",
+    "blurb": "Långsam gryta som passar en helgkväll.",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -87,10 +89,12 @@
   {
     "id": "dillstuvad-kyckling-med-potatis",
     "name": "Dillstuvad kyckling med potatis",
+    "blurb": "Mild stuvning med dillens sommarsmak.",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -152,10 +156,12 @@
   {
     "id": "ugnsbakad-kyckling-med-rotmos",
     "name": "Ugnsbakad kyckling med rotmos",
+    "blurb": "Ugnsbakad söndagsmiddag med mos vid sidan.",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -225,10 +231,12 @@
   {
     "id": "kycklingbullar-i-graddsas",
     "name": "Kycklingbullar i gräddsås",
+    "blurb": "Mjuka bullar i krämig sås, som förr.",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -290,10 +298,12 @@
   {
     "id": "kycklingsoppa-med-rotfrukter",
     "name": "Kycklingsoppa med rotfrukter",
+    "blurb": "Klar soppa som värmer på hösten.",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -366,10 +376,12 @@
   {
     "id": "kycklinglarfile-med-ugnsrostade-rotfrukter",
     "name": "Kycklinglårfilé med ugnsrostade rotfrukter",
+    "blurb": "Ugnsbakad middag med höstens rotfrukter.",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -433,10 +445,12 @@
   {
     "id": "kycklingpaj-med-purjolok",
     "name": "Kycklingpaj med purjolök",
+    "blurb": "Purjolökspaj för en lugn hemmakväll.",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -519,10 +533,12 @@
   {
     "id": "snabbstekt-kycklingfile-med-sockerartor",
     "name": "Snabbstekt kycklingfilé med sockerärtor",
+    "blurb": "Vardagsmat med sommarens sockerärtor på tallriken.",
     "protein_group": "chicken_poultry",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -584,10 +600,12 @@
   {
     "id": "kycklingpasta-med-tomatsas-och-basilika",
     "name": "Kycklingpasta med tomatsås och basilika",
+    "blurb": "Vardagspasta med italiensk doft.",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -659,10 +677,12 @@
   {
     "id": "kycklingfile-med-citron-och-vitlok",
     "name": "Kycklingfilé med citron och vitlök",
+    "blurb": "Fräsch pastamiddag med citronsyra.",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -724,10 +744,12 @@
   {
     "id": "kycklinggratang-med-mozzarella-och-tomat",
     "name": "Kycklinggratäng med mozzarella och tomat",
+    "blurb": "Gratinerad pastarätt med italiensk doft.",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -789,10 +811,12 @@
   {
     "id": "pestokyckling-med-sparris",
     "name": "Pestokyckling med sparris",
+    "blurb": "Grön pesto möter vårens sparris.",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -854,10 +878,12 @@
   {
     "id": "medelhavssallad-med-kyckling-och-fetaost",
     "name": "Medelhavssallad med kyckling och fetaost",
+    "blurb": "Fräsch sallad för en solig sommarkväll.",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -922,10 +948,12 @@
   {
     "id": "citron-och-rosmarinkyckling-i-ugn",
     "name": "Citron- och rosmarinkyckling i ugn",
+    "blurb": "Ugnsbakad middag med doft av medelhavet.",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -997,10 +1025,12 @@
   {
     "id": "kycklinggryta-pa-medelhavsvis-med-aubergine",
     "name": "Kycklinggryta på medelhavsvis med aubergine",
+    "blurb": "Solig gryta med smak av medelhavet.",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1072,10 +1102,12 @@
   {
     "id": "snabbstekt-kycklingfile-med-zucchini-och-parmesan",
     "name": "Snabbstekt kycklingfilé med zucchini och parmesan",
+    "blurb": "Vardagspasta med parmesan och sommargrönsaker.",
     "protein_group": "chicken_poultry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1137,10 +1169,12 @@
   {
     "id": "kycklingwok-med-broccoli-och-cashewnotter",
     "name": "Kycklingwok med broccoli och cashewnötter",
+    "blurb": "Knaprig wok för en vanlig tisdagskväll.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1222,10 +1256,12 @@
   {
     "id": "gron-curry-med-kyckling-och-basmatiris",
     "name": "Grön curry med kyckling och basmatiris",
+    "blurb": "Doftande currygryta med grön hetta.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1307,10 +1343,12 @@
   {
     "id": "teriyakikyckling-med-jasminris",
     "name": "Teriyakikyckling med jasminris",
+    "blurb": "Glaserad wokrätt med japansk influens.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1382,10 +1420,12 @@
   {
     "id": "kycklingnudlar-med-gronsaker",
     "name": "Kycklingnudlar med grönsaker",
+    "blurb": "Vardagsnudlar med asiatisk twist.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1457,10 +1497,12 @@
   {
     "id": "kycklingsoppa-med-glasnudlar-och-ingefara",
     "name": "Kycklingsoppa med glasnudlar och ingefära",
+    "blurb": "Värmande soppa för kyliga kvällar.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1533,10 +1575,12 @@
   {
     "id": "sotsur-kyckling-med-ananas",
     "name": "Sötsur kyckling med ananas",
+    "blurb": "Sötsur favorit med tropisk twist.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1608,10 +1652,12 @@
   {
     "id": "kycklingvingar-med-sesam-och-sweet-chilisas",
     "name": "Kycklingvingar med sesam och sweet chilisås",
+    "blurb": "Klibbiga vingar att äta med fingrarna.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1673,10 +1719,12 @@
   {
     "id": "massamangryta-med-kycklinglarfile",
     "name": "Massamangryta med kycklinglårfilé",
+    "blurb": "Kryddig gryta med influenser från Sydostasien.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1748,10 +1796,12 @@
   {
     "id": "kycklingbowl-med-jasminris-och-sojagroddar",
     "name": "Kycklingbowl med jasminris och sojagroddar",
+    "blurb": "Ljus och fräsch bowl för en lugn kväll.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1824,10 +1874,12 @@
   {
     "id": "kalkonfile-i-wok-med-paprika-och-ingefara",
     "name": "Kalkonfilé i wok med paprika och ingefära",
+    "blurb": "Ingefärsstekt wok med värme i varje tugga.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1899,10 +1951,12 @@
   {
     "id": "kycklingtacos-med-avokado-och-koriander",
     "name": "Kycklingtacos med avokado och koriander",
+    "blurb": "Tacokväll med fräscha toppings.",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -1974,10 +2028,12 @@
   {
     "id": "kycklingfajitas-med-paprika-och-lok",
     "name": "Kycklingfajitas med paprika och lök",
+    "blurb": "Fredagsmys med tacokväll för hela familjen.",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2049,10 +2105,12 @@
   {
     "id": "kycklingquesadilla-med-hushallsost",
     "name": "Kycklingquesadilla med hushållsost",
+    "blurb": "Krispig fylld tortilla för en enkel kväll.",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2115,10 +2173,12 @@
   {
     "id": "kycklingenchiladas-med-svarta-bonor-och-majs",
     "name": "Kycklingenchiladas med svarta bönor och majs",
+    "blurb": "Ugnsbakad tacomiddag med gratinerad ost.",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2190,10 +2250,12 @@
   {
     "id": "kycklingbowl-med-svarta-bonor-majs-och-avokado",
     "name": "Kycklingbowl med svarta bönor, majs och avokado",
+    "blurb": "Färgglad bowl med tacosmaker.",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2266,10 +2328,12 @@
   {
     "id": "kycklingchili-med-svarta-bonor",
     "name": "Kycklingchili med svarta bönor",
+    "blurb": "Het gryta för de som gillar sting.",
     "protein_group": "chicken_poultry",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -2343,10 +2407,12 @@
   {
     "id": "kycklingspett-med-couscous-och-yoghurtsas",
     "name": "Kycklingspett med couscous och yoghurtsås",
+    "blurb": "Kryddad kyckling på spett, doftar av grillkväll.",
     "protein_group": "chicken_poultry",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2418,10 +2484,12 @@
   {
     "id": "kycklinggryta-med-kikartor-och-gurkmeja",
     "name": "Kycklinggryta med kikärtor och gurkmeja",
+    "blurb": "Kryddig gryta med värme från gurkmeja.",
     "protein_group": "chicken_poultry",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2503,10 +2571,12 @@
   {
     "id": "ugnsbakad-kyckling-med-citron-och-paprikapulver",
     "name": "Ugnsbakad kyckling med citron och paprikapulver",
+    "blurb": "Ugnsbakad middag med orientaliska kryddor.",
     "protein_group": "chicken_poultry",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2578,10 +2648,12 @@
   {
     "id": "kycklingbowl-med-bulgur-fetaost-och-mandel",
     "name": "Kycklingbowl med bulgur, fetaost och mandel",
+    "blurb": "Matig bowl med knapriga mandlar.",
     "protein_group": "chicken_poultry",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2654,10 +2726,12 @@
   {
     "id": "fyllt-naanbrod-med-kyckling-och-yoghurtsas",
     "name": "Fyllt naanbröd med kyckling och yoghurtsås",
+    "blurb": "Fyllt bröd att äta direkt ur handen.",
     "protein_group": "chicken_poultry",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2730,10 +2804,12 @@
   {
     "id": "krispig-ugnsbakad-kyckling-med-potatismos",
     "name": "Krispig ugnsbakad kyckling med potatismos",
+    "blurb": "Hemtrevlig tröstmat med krispigt yttre.",
     "protein_group": "chicken_poultry",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2805,10 +2881,12 @@
   {
     "id": "bbq-kyckling-med-majs-och-vitkalssallad",
     "name": "BBQ-kyckling med majs och vitkålssallad",
+    "blurb": "Sommargrillkänsla mitt i veckan.",
     "protein_group": "chicken_poultry",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -2882,10 +2960,12 @@
   {
     "id": "kycklingpaj-med-majs-och-bacon",
     "name": "Kycklingpaj med majs och bacon",
+    "blurb": "En pajkväll som känns som amerikansk hemmalagning.",
     "protein_group": "chicken_poultry",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -2958,10 +3038,12 @@
   {
     "id": "kalops-med-rotfrukter",
     "name": "Kalops med rotfrukter",
+    "blurb": "Långkokt gryta som doftar hela huset.",
     "protein_group": "beef_pork",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3031,10 +3113,12 @@
   {
     "id": "pyttipanna-med-biff-och-stekt-agg",
     "name": "Pyttipanna med biff och stekt ägg",
+    "blurb": "Restmat som blivit en egen rätt.",
     "protein_group": "beef_pork",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3086,10 +3170,12 @@
   {
     "id": "kottbullar-med-graddsas-och-rodbetssallad",
     "name": "Köttbullar med gräddsås och rödbetssallad",
+    "blurb": "En husmanskostklassiker som känns igen direkt.",
     "protein_group": "beef_pork",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3151,10 +3237,12 @@
   {
     "id": "stekt-flaskkarre-med-rotmos",
     "name": "Stekt fläskkarré med rotmos",
+    "blurb": "Höstig husmanskost med rotfrukter i mos.",
     "protein_group": "beef_pork",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3214,10 +3302,12 @@
   {
     "id": "biff-med-lok-och-potatis",
     "name": "Biff med lök och potatis",
+    "blurb": "Husmanskostens raka spår, stekt lök på topp.",
     "protein_group": "beef_pork",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3269,10 +3359,12 @@
   {
     "id": "kaldolmar-med-kottfars",
     "name": "Kåldolmar med köttfärs",
+    "blurb": "Svensk klassiker inlindad i kål.",
     "protein_group": "beef_pork",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3324,10 +3416,12 @@
   {
     "id": "flaskkotlett-med-stekt-potatis-och-graddsas",
     "name": "Fläskkotlett med stekt potatis och gräddsås",
+    "blurb": "Klassisk husmanskost från farmors kokbok.",
     "protein_group": "beef_pork",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3379,10 +3473,12 @@
   {
     "id": "skinkstek-med-potatismos-och-senap",
     "name": "Skinkstek med potatismos och senap",
+    "blurb": "Söndagssteka med senapens kick.",
     "protein_group": "beef_pork",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3434,10 +3530,12 @@
   {
     "id": "pasta-bolognese-med-notfars",
     "name": "Pasta bolognese med nötfärs",
+    "blurb": "Husmanskostens italienska syskon.",
     "protein_group": "beef_pork",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3509,10 +3607,12 @@
   {
     "id": "flaskfile-i-skinklindning-med-timjan",
     "name": "Fläskfilé i skinklindning med timjan",
+    "blurb": "Finare fredagsmiddag utan krångel.",
     "protein_group": "beef_pork",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -3576,10 +3676,12 @@
   {
     "id": "grillad-entrecote-med-rosmarin-och-parmesan",
     "name": "Grillad entrecôte med rosmarin och parmesan",
+    "blurb": "Finare köttmiddag med medelhavskänsla.",
     "protein_group": "beef_pork",
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3641,10 +3743,12 @@
   {
     "id": "pasta-carbonara-med-bacon",
     "name": "Pasta carbonara med bacon",
+    "blurb": "Krämig pastaklassiker rakt från Rom.",
     "protein_group": "beef_pork",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3696,10 +3800,12 @@
   {
     "id": "flaskkotlett-milanese-med-citron",
     "name": "Fläskkotlett milanese med citron",
+    "blurb": "Panerad kotlett med citronens friskhet.",
     "protein_group": "beef_pork",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3751,10 +3857,12 @@
   {
     "id": "toskansk-gryta-med-rotfrukter",
     "name": "Toskansk gryta med rotfrukter",
+    "blurb": "Toskansk gryta som värmer på en regnig kväll.",
     "protein_group": "beef_pork",
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3826,10 +3934,12 @@
   {
     "id": "flaskfarsbollar-i-tomatsas-med-basilika",
     "name": "Fläskfärsbollar i tomatsås med basilika",
+    "blurb": "Köttbullar med italiensk twist i tomatsås.",
     "protein_group": "beef_pork",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3891,10 +4001,12 @@
   {
     "id": "biff-i-oystersas-med-broccoli",
     "name": "Biff i oystersås med broccoli",
+    "blurb": "Wokkänsla direkt hemifrån köket, som på restaurang.",
     "protein_group": "beef_pork",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -3966,10 +4078,12 @@
   {
     "id": "flaskfile-i-wok-med-cashewnotter-och-paprika",
     "name": "Fläskfilé i wok med cashewnötter och paprika",
+    "blurb": "Wokrätt med extra crunch tack vare cashewnötterna.",
     "protein_group": "beef_pork",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4031,10 +4145,12 @@
   {
     "id": "flaskkarre-med-sotsur-sas-och-ananas",
     "name": "Fläskkarré med sötsur sås och ananas",
+    "blurb": "Sötsur klassiker som barnen brukar gilla.",
     "protein_group": "beef_pork",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4096,10 +4212,12 @@
   {
     "id": "notfars-pad-thai-stil-med-risnudlar",
     "name": "Nötfärs pad thai-stil med risnudlar",
+    "blurb": "Gatuköksinspirerad nudelrätt med syrlig kick.",
     "protein_group": "beef_pork",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4172,10 +4290,12 @@
   {
     "id": "currygryta-med-flaskkarre-och-kokosmjolk",
     "name": "Currygryta med fläskkarré och kokosmjölk",
+    "blurb": "Värmande gryta med sydostasiatiska smaker.",
     "protein_group": "beef_pork",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4237,10 +4357,12 @@
   {
     "id": "carne-asada-med-lime-och-koriander",
     "name": "Carne asada med lime och koriander",
+    "blurb": "Gatuköksklassiker från Mexiko med syrlig lime.",
     "protein_group": "beef_pork",
     "cuisine": "mexican_texmex",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4302,10 +4424,12 @@
   {
     "id": "flaskfile-al-pastor-med-ananas",
     "name": "Fläskfilé al pastor med ananas",
+    "blurb": "Mexikansk gatumat med söt ananas.",
     "protein_group": "beef_pork",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4367,10 +4491,12 @@
   {
     "id": "notfarsburrito-med-svarta-bonor-och-ris",
     "name": "Nötfärsburrito med svarta bönor och ris",
+    "blurb": "Rejäl burrito att äta med händerna.",
     "protein_group": "beef_pork",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4442,10 +4568,12 @@
   {
     "id": "texas-chili-med-hogrev",
     "name": "Texas chili med högrev",
+    "blurb": "Het gryta för en kall vinterkväll.",
     "protein_group": "beef_pork",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -4519,10 +4647,12 @@
   {
     "id": "nachos-med-flaskfars-ost-och-guacamole",
     "name": "Nachos med fläskfärs, ost och guacamole",
+    "blurb": "Delad tallrik för en mysig filmkväll.",
     "protein_group": "beef_pork",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4584,10 +4714,12 @@
   {
     "id": "grillade-flaskspjut-med-chimichurri-inspirerad-sas",
     "name": "Grillade fläskspjut med chimichurri-inspirerad sås",
+    "blurb": "Chimichurriinspirerad sås till mört kött på spett.",
     "protein_group": "beef_pork",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4659,10 +4791,12 @@
   {
     "id": "notkottsspett-med-bulgur-och-yoghurtsas",
     "name": "Nötköttsspett med bulgur och yoghurtsås",
+    "blurb": "Mör spettmat med yoghurtens svalka till.",
     "protein_group": "beef_pork",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4724,10 +4858,12 @@
   {
     "id": "kottfarsbiffar-med-bulgur-och-gurkmeja",
     "name": "Köttfärsbiffar med bulgur och gurkmeja",
+    "blurb": "Köttbiffar med smak från Mellanöstern.",
     "protein_group": "beef_pork",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4789,10 +4925,12 @@
   {
     "id": "kryddig-grytstek-med-kanel-och-gurkmeja",
     "name": "Kryddig grytstek med kanel och gurkmeja",
+    "blurb": "Kryddstark gryta med värme från kanel.",
     "protein_group": "beef_pork",
     "cuisine": "middle_eastern",
     "cost_tier": "budget",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4864,10 +5002,12 @@
   {
     "id": "amerikansk-cheeseburgare-med-bacon",
     "name": "Amerikansk cheeseburgare med bacon",
+    "blurb": "En amerikansk diner-favorit för hela familjen.",
     "protein_group": "beef_pork",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -4939,10 +5079,12 @@
   {
     "id": "ugnsbakade-revbensspjall-med-bbq-sas",
     "name": "Ugnsbakade revbensspjäll med BBQ-sås",
+    "blurb": "BBQ-fest för den som gillar att gnaga rejält.",
     "protein_group": "beef_pork",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -5006,10 +5148,12 @@
   {
     "id": "langkokt-pulled-pork-med-coleslaw",
     "name": "Långkokt pulled pork med coleslaw",
+    "blurb": "Långkokt smakresa som hör hemma i helgmyset.",
     "protein_group": "beef_pork",
     "cuisine": "american_comfort",
     "cost_tier": "budget",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5081,10 +5225,12 @@
   {
     "id": "kottfarslimpa-med-potatismos",
     "name": "Köttfärslimpa med potatismos",
+    "blurb": "En tröstmat som känns som söndagsmiddag hos mormor.",
     "protein_group": "beef_pork",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5156,10 +5302,12 @@
   {
     "id": "philly-cheesesteak-med-entrecote",
     "name": "Philly cheesesteak med entrecôte",
+    "blurb": "Amerikansk food truck-känsla på en smörgås.",
     "protein_group": "beef_pork",
     "cuisine": "american_comfort",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5221,10 +5369,12 @@
   {
     "id": "grillad-entrecote-med-stekt-lok-och-bearnaisesas",
     "name": "Grillad entrecôte med stekt lök och bearnaisesås",
+    "blurb": "Bistrokänsla för den som vill grilla lite finare.",
     "protein_group": "beef_pork",
     "cuisine": "american_comfort",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5276,10 +5426,12 @@
   {
     "id": "stekt-torsk-med-aggsas-och-potatis",
     "name": "Stekt torsk med äggsås och potatis",
+    "blurb": "Gammaldags rätt med äggsåsens krämighet till fisken.",
     "protein_group": "fish_seafood",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5341,10 +5493,12 @@
   {
     "id": "laxpudding-med-dill",
     "name": "Laxpudding med dill",
+    "blurb": "Ugnsbakad klassiker från mormors köksbord.",
     "protein_group": "fish_seafood",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5406,10 +5560,12 @@
   {
     "id": "fiskpinnar-med-currysas-och-ris",
     "name": "Fiskpinnar med currysås och ris",
+    "blurb": "Barnvänlig favorit med en kryddig twist.",
     "protein_group": "fish_seafood",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5461,10 +5617,12 @@
   {
     "id": "gravad-lax-med-senapssas-och-ragbrod",
     "name": "Gravad lax med senapssås och rågbröd",
+    "blurb": "Festbordets klassiker, även på en vanlig dag.",
     "protein_group": "fish_seafood",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5516,10 +5674,12 @@
   {
     "id": "raksmorgas-med-agg-och-majonnas",
     "name": "Räksmörgås med ägg och majonnäs",
+    "blurb": "Smörgåsbordets favorit, mitt i veckan.",
     "protein_group": "fish_seafood",
     "cuisine": "swedish_nordic",
     "cost_tier": "premium",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5582,10 +5742,12 @@
   {
     "id": "fiskgratang-med-rakor-och-dill",
     "name": "Fiskgratäng med räkor och dill",
+    "blurb": "Bakad gratäng för en finare vardagskväll.",
     "protein_group": "fish_seafood",
     "cuisine": "swedish_nordic",
     "cost_tier": "premium",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5657,10 +5819,12 @@
   {
     "id": "kokt-torsk-med-loksas",
     "name": "Kokt torsk med löksås",
+    "blurb": "Enkel husmanskost med löksåsens sötma.",
     "protein_group": "fish_seafood",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5712,10 +5876,12 @@
   {
     "id": "musselgryta-med-vitlok-och-purjolok",
     "name": "Musselgryta med vitlök och purjolök",
+    "blurb": "Skaldjursgryta att doppa bröd i.",
     "protein_group": "fish_seafood",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5777,10 +5943,12 @@
   {
     "id": "pasta-med-tonfisk-tomat-och-vitlok",
     "name": "Pasta med tonfisk, tomat och vitlök",
+    "blurb": "Skafferipasta för en enkel vardagskväll.",
     "protein_group": "fish_seafood",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5842,10 +6010,12 @@
   {
     "id": "ugnsbakad-lax-med-citron-och-sparris",
     "name": "Ugnsbakad lax med citron och sparris",
+    "blurb": "Finare fiskmiddag med vårens grönsaker.",
     "protein_group": "fish_seafood",
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5897,10 +6067,12 @@
   {
     "id": "rakpasta-med-vitlok-och-chili",
     "name": "Räkpasta med vitlök och chili",
+    "blurb": "Het pastarätt med räkor från havet.",
     "protein_group": "fish_seafood",
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -5962,10 +6134,12 @@
   {
     "id": "fisksoppa-pa-medelhavsvis-med-torsk-och-tomat",
     "name": "Fisksoppa på medelhavsvis med torsk och tomat",
+    "blurb": "Solig fisksoppa med smak av kusten.",
     "protein_group": "fish_seafood",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -6030,10 +6204,12 @@
   {
     "id": "musslor-i-vitvinssas-med-vitlok-och-persilja",
     "name": "Musslor i vitvinssås med vitlök och persilja",
+    "blurb": "Fransk bistroklassiker med vin i grytan.",
     "protein_group": "fish_seafood",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6095,10 +6271,12 @@
   {
     "id": "tonfisksallad-med-fetaost-och-ruccola",
     "name": "Tonfisksallad med fetaost och ruccola",
+    "blurb": "Medelhavssallad för en solig lunch.",
     "protein_group": "fish_seafood",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -6163,10 +6341,12 @@
   {
     "id": "laxwok-med-broccoli-och-ingefara",
     "name": "Laxwok med broccoli och ingefära",
+    "blurb": "Fräsch fiskwok med ingefärans värme.",
     "protein_group": "fish_seafood",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6228,10 +6408,12 @@
   {
     "id": "rakor-i-currysas-med-kokosmjolk",
     "name": "Räkor i currysås med kokosmjölk",
+    "blurb": "Krämig currysås med räkor från havet.",
     "protein_group": "fish_seafood",
     "cuisine": "asian",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6293,10 +6475,12 @@
   {
     "id": "tonfisk-poke-bowl-med-jasminris-och-avokado",
     "name": "Tonfisk poke bowl med jasminris och avokado",
+    "blurb": "Hawaiiinspirerad bowl med råvaror rakt från havet.",
     "protein_group": "fish_seafood",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6369,10 +6553,12 @@
   {
     "id": "musslor-i-wok-med-chili-och-vitlok",
     "name": "Musslor i wok med chili och vitlök",
+    "blurb": "Het skaldjursrätt att äta med bröd bredvid.",
     "protein_group": "fish_seafood",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6434,10 +6620,12 @@
   {
     "id": "torsk-i-currysas-med-basmatiris",
     "name": "Torsk i currysås med basmatiris",
+    "blurb": "Mild fiskcurry för den som vill ha något nytt.",
     "protein_group": "fish_seafood",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6499,10 +6687,12 @@
   {
     "id": "skaldjursmix-i-wok-med-sojagroddar-och-paprika",
     "name": "Skaldjursmix i wok med sojagroddar och paprika",
+    "blurb": "Skaldjursfest i woken en vardagskväll.",
     "protein_group": "fish_seafood",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6574,10 +6764,12 @@
   {
     "id": "fisktacos-med-torsk-avokado-och-lime",
     "name": "Fisktacos med torsk, avokado och lime",
+    "blurb": "Tacokväll med fisk i centrum och lime på topp.",
     "protein_group": "fish_seafood",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6639,10 +6831,12 @@
   {
     "id": "rakceviche-med-lime-och-koriander",
     "name": "Räkceviche med lime och koriander",
+    "blurb": "Syrlig råvarurätt med räkor och lime.",
     "protein_group": "fish_seafood",
     "cuisine": "mexican_texmex",
     "cost_tier": "premium",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -6716,10 +6910,12 @@
   {
     "id": "ugnsbakad-torsk-med-gurkmeja-och-citron",
     "name": "Ugnsbakad torsk med gurkmeja och citron",
+    "blurb": "Fiskmiddag med orientaliska kryddor.",
     "protein_group": "fish_seafood",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6781,10 +6977,12 @@
   {
     "id": "rakspett-med-couscous-och-yoghurtsas",
     "name": "Räkspett med couscous och yoghurtsås",
+    "blurb": "Havets spett med sval yoghurtsås.",
     "protein_group": "fish_seafood",
     "cuisine": "middle_eastern",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6846,10 +7044,12 @@
   {
     "id": "fish-and-chips-med-torsk-och-remouladsas",
     "name": "Fish and chips med torsk och remouladsås",
+    "blurb": "Brittisk pubkänsla på det svenska middagsbordet.",
     "protein_group": "fish_seafood",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -6921,10 +7121,12 @@
   {
     "id": "linssoppa-med-rotfrukter",
     "name": "Linssoppa med rotfrukter",
+    "blurb": "Enkel soppa för en kall dag.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7000,10 +7202,12 @@
   {
     "id": "svampgryta-med-kantareller-och-graddfil",
     "name": "Svampgryta med kantareller och gräddfil",
+    "blurb": "Höstig gryta med skogens smaker.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "swedish_nordic",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7067,10 +7271,12 @@
   {
     "id": "halloumistekar-med-rostad-rotfrukt",
     "name": "Halloumistekar med rostad rotfrukt",
+    "blurb": "Vegetarisk stekpanna för en höstkväll.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7134,10 +7340,12 @@
   {
     "id": "kikartsbiffar-med-graddfilssas",
     "name": "Kikärtsbiffar med gräddfilssås",
+    "blurb": "Vegetariska biffar med en krämig sås till.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7201,10 +7409,12 @@
   {
     "id": "gronsakspaj-med-fetaost",
     "name": "Grönsakspaj med fetaost",
+    "blurb": "Vegetarisk paj fylld med sommarens grönt.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7289,10 +7499,12 @@
   {
     "id": "pasta-med-kikartor-tomat-och-basilika",
     "name": "Pasta med kikärtor, tomat och basilika",
+    "blurb": "Vegetarisk skafferipasta för en vanlig kväll.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7357,10 +7569,12 @@
   {
     "id": "risotto-med-svamp-och-prastost",
     "name": "Risotto med svamp och prästost",
+    "blurb": "Krämig risotto att röra ihop med omsorg.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7434,10 +7648,12 @@
   {
     "id": "melanzane-alla-parmigiana",
     "name": "Melanzane alla parmigiana",
+    "blurb": "Italiensk klassiker med lager på lager av smak.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian",
       "high_protein_preference"
@@ -7522,10 +7738,12 @@
   {
     "id": "linsgryta-med-tomat-och-timjan",
     "name": "Linsgryta med tomat och timjan",
+    "blurb": "Mustig gryta för en vardagskväll.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7590,10 +7808,12 @@
   {
     "id": "fyllda-paprikor-med-quinoa-och-svarta-bonor",
     "name": "Fyllda paprikor med quinoa och svarta bönor",
+    "blurb": "Ugnsbakad vardagsmiddag med fyllning av bönor.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7658,10 +7878,12 @@
   {
     "id": "caprese-sallad-med-mozzarella-och-basilika",
     "name": "Caprese-sallad med mozzarella och basilika",
+    "blurb": "Sommarklassiker i rött, vitt och grönt.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "high_protein_preference"
@@ -7716,10 +7938,12 @@
   {
     "id": "minestrone-med-kikartor-och-pasta",
     "name": "Minestrone med kikärtor och pasta",
+    "blurb": "Grönsaksrik soppa för en regnig dag.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7795,10 +8019,12 @@
   {
     "id": "bruschetta-med-tofu-tomat-och-basilika",
     "name": "Bruschetta med tofu, tomat och basilika",
+    "blurb": "Italiensk förrätt som blir en hel måltid.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -7863,10 +8089,12 @@
   {
     "id": "zucchinipaj-med-fetaost-och-pinjenotter",
     "name": "Zucchinipaj med fetaost och pinjenötter",
+    "blurb": "Sommarpaj med medelhavssmaker.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "italian_mediterranean",
     "cost_tier": "premium",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -7951,10 +8179,12 @@
   {
     "id": "tofuwok-med-broccoli-och-cashewnotter",
     "name": "Tofuwok med broccoli och cashewnötter",
+    "blurb": "Vegetarisk wok med knapriga nötter.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8029,10 +8259,12 @@
   {
     "id": "kikartscurry-med-kokosmjolk",
     "name": "Kikärtscurry med kokosmjölk",
+    "blurb": "Krämig currygryta med kikärtor i huvudrollen.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8097,10 +8329,12 @@
   {
     "id": "nudelsoppa-med-tofu-sojagroddar-och-ingefara",
     "name": "Nudelsoppa med tofu, sojagroddar och ingefära",
+    "blurb": "Nudelsoppa som doftar av ingefära och soja.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8186,10 +8420,12 @@
   {
     "id": "gronsaksbowl-med-svarta-bonor-jasminris-och-sojagroddar",
     "name": "Grönsaksbowl med svarta bönor, jasminris och sojagroddar",
+    "blurb": "Färgglad bowl fylld med grönt.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8265,10 +8501,12 @@
   {
     "id": "pad-thai-med-tofu-och-jordnotter",
     "name": "Pad thai med tofu och jordnötter",
+    "blurb": "Vegetarisk gatumat med syra och sälta.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8344,10 +8582,12 @@
   {
     "id": "svartbonsgryta-med-majs-och-paprika",
     "name": "Svartbönsgryta med majs och paprika",
+    "blurb": "Mustig böngryta för en helgkväll.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8422,10 +8662,12 @@
   {
     "id": "friterad-tofu-i-sotsur-sas-med-ananas",
     "name": "Friterad tofu i sötsur sås med ananas",
+    "blurb": "Krispig tofu med tropisk sötma.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8500,10 +8742,12 @@
   {
     "id": "asiatisk-nudelsallad-med-kikartor-och-koriander",
     "name": "Asiatisk nudelsallad med kikärtor och koriander",
+    "blurb": "Fräsch nudelsallad att ta med till jobbet.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8589,10 +8833,12 @@
   {
     "id": "friterat-ris-med-halloumi-och-gronsaker",
     "name": "Friterat ris med halloumi och grönsaker",
+    "blurb": "Vegetarisk wokrätt som rensar kylskåpet.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -8667,10 +8913,12 @@
   {
     "id": "svampspett-med-jordnotssas",
     "name": "Svampspett med jordnötssås",
+    "blurb": "Svampspett från grillen med jordnötssås till.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8745,10 +8993,12 @@
   {
     "id": "chili-sin-carne-med-svarta-bonor-och-majs",
     "name": "Chili sin carne med svarta bönor och majs",
+    "blurb": "Vegetarisk gryta med samma sting som originalet.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan",
@@ -8824,10 +9074,12 @@
   {
     "id": "kikartstacos-med-avokado-och-koriander",
     "name": "Kikärtstacos med avokado och koriander",
+    "blurb": "Vegetarisk tacokväll med krämig avokado.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -8892,10 +9144,12 @@
   {
     "id": "quesadilla-med-svarta-bonor-och-ost",
     "name": "Quesadilla med svarta bönor och ost",
+    "blurb": "Krispig fylld tortilla utan kött.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -8960,10 +9214,12 @@
   {
     "id": "burritobowl-med-quinoa-linser-och-majs",
     "name": "Burritobowl med quinoa, linser och majs",
+    "blurb": "Vegetarisk bowl med tacosmaker.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9039,10 +9295,12 @@
   {
     "id": "enchiladas-med-kikartor-och-ost",
     "name": "Enchiladas med kikärtor och ost",
+    "blurb": "Ugnsbakad tacomiddag utan kött.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -9106,10 +9364,12 @@
   {
     "id": "nachos-med-svarta-bonor-guacamole-och-ost",
     "name": "Nachos med svarta bönor, guacamole och ost",
+    "blurb": "Delad vegetarisk tallrik för filmkvällen.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -9173,10 +9433,12 @@
   {
     "id": "falafel-med-couscous-och-citronsas",
     "name": "Falafel med couscous och citronsås",
+    "blurb": "Krispiga bollar med rötter i Mellanöstern.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "middle_eastern",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9252,10 +9514,12 @@
   {
     "id": "linsbowl-med-rostade-gronsaker-och-bulgur",
     "name": "Linsbowl med rostade grönsaker och bulgur",
+    "blurb": "Vegetarisk bowl med rostade smaker.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9331,10 +9595,12 @@
   {
     "id": "kryddig-bongryta-med-kanel-och-gurkmeja",
     "name": "Kryddig böngryta med kanel och gurkmeja",
+    "blurb": "Vegetarisk gryta med värme från kanel.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9409,10 +9675,12 @@
   {
     "id": "fylld-aubergine-med-bulgur-och-pinjenotter",
     "name": "Fylld aubergine med bulgur och pinjenötter",
+    "blurb": "Ugnsbakad aubergine fylld med smak.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "middle_eastern",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9477,10 +9745,12 @@
   {
     "id": "halloumispett-med-couscous-och-oregano",
     "name": "Halloumispett med couscous och oregano",
+    "blurb": "Vegetariskt spett för grillkvällen hemma.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -9544,10 +9814,12 @@
   {
     "id": "tabbouleh-sallad-med-bulgur-persilja-och-linser",
     "name": "Tabbouleh-sallad med bulgur, persilja och linser",
+    "blurb": "Fräsch sallad med rötter i Levanten.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9623,10 +9895,12 @@
   {
     "id": "kryddig-linssoppa-med-citron-och-koriander",
     "name": "Kryddig linssoppa med citron och koriander",
+    "blurb": "Syrlig linssoppa med värmande kryddor.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9702,10 +9976,12 @@
   {
     "id": "veggieburgare-med-svarta-bonor-och-avokado",
     "name": "Veggieburgare med svarta bönor och avokado",
+    "blurb": "Vegetarisk gatuköksfavorit att äta med händerna.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9780,10 +10056,12 @@
   {
     "id": "mac-and-cheese-med-hushallsost",
     "name": "Mac and cheese med hushållsost",
+    "blurb": "Barnens favorit som vuxna också smyglagar.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -9847,10 +10125,12 @@
   {
     "id": "ugnsrostad-potatis-med-tofu-majs-och-avokado",
     "name": "Ugnsrostad potatis med tofu, majs och avokado",
+    "blurb": "Ugnsrostad comfort food utan kött.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -9925,10 +10205,12 @@
   {
     "id": "pannkakor-med-vaniljsocker",
     "name": "Pannkakor med vaniljsocker",
+    "blurb": "Kvällsmat som är sötare än vanligt, med sylt till.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -9993,10 +10275,12 @@
   {
     "id": "aggrora-med-graddfil-pa-ragbrod",
     "name": "Äggröra med gräddfil på rågbröd",
+    "blurb": "Enkel macka för en lugn morgon eller kväll.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10051,10 +10335,12 @@
   {
     "id": "skinksmorgas-med-agg-och-senap",
     "name": "Skinksmörgås med ägg och senap",
+    "blurb": "Enkel smörgås för lunchlådan.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -10107,10 +10393,12 @@
   {
     "id": "raggmunk-med-graddfil",
     "name": "Raggmunk med gräddfil",
+    "blurb": "Norrländsk klassiker med knaperstekta kanter.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10174,10 +10462,12 @@
   {
     "id": "artsoppa-med-senap",
     "name": "Ärtsoppa med senap",
+    "blurb": "Torsdagens tradition, år efter år.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -10232,10 +10522,12 @@
   {
     "id": "ostpaj-med-purjolok",
     "name": "Ostpaj med purjolök",
+    "blurb": "Ostpaj som funkar lika bra kall dagen efter.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "swedish_nordic",
     "cost_tier": "mid",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10310,10 +10602,12 @@
   {
     "id": "korv-stroganoff-med-ris",
     "name": "Korv stroganoff med ris",
+    "blurb": "Barndomsfavorit i krämig tomatsås.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -10375,10 +10669,12 @@
   {
     "id": "makaronipanna-med-falukorv",
     "name": "Makaronipanna med falukorv",
+    "blurb": "Skolmatsklassiker gjord hemma.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -10440,10 +10736,12 @@
   {
     "id": "pasta-aglio-e-olio-med-prastost",
     "name": "Pasta aglio e olio med prästost",
+    "blurb": "En enkel rätt hämtad ur det italienska köket.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10515,10 +10813,12 @@
   {
     "id": "frittata-med-spenat-och-graddfil",
     "name": "Frittata med spenat och gräddfil",
+    "blurb": "Äggrik brunch som funkar även till middag.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "high_protein_preference"
@@ -10574,10 +10874,12 @@
   {
     "id": "panzanella-med-hushallsost-tomat-och-basilika",
     "name": "Panzanella med hushållsost, tomat och basilika",
+    "blurb": "Toskansk brödsallad för soliga dagar.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10651,10 +10953,12 @@
   {
     "id": "kramig-polenta-med-keso-och-spenat",
     "name": "Krämig polenta med keso och spenat",
+    "blurb": "Krämig italiensk gröt med grönt inslag.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10719,10 +11023,12 @@
   {
     "id": "svartbonssallad-med-citron-och-persilja",
     "name": "Svartbönssallad med citron och persilja",
+    "blurb": "Fräsch sallad med syra från citron.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian",
       "vegan",
@@ -10788,10 +11094,12 @@
   {
     "id": "purjolokssoppa-med-creme-fraiche",
     "name": "Purjolökssoppa med crème fraîche",
+    "blurb": "Mild soppa att värma sig på en höstkväll.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "italian_mediterranean",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10853,10 +11161,12 @@
   {
     "id": "friterat-ris-med-prastost-och-gronsaker",
     "name": "Friterat ris med prästost och grönsaker",
+    "blurb": "Stekt ris för att bli av med grönsaksresterna.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -10931,10 +11241,12 @@
   {
     "id": "halloumi-i-wok-med-teriyakisas-och-sesam",
     "name": "Halloumi i wok med teriyakisås och sesam",
+    "blurb": "Vegetarisk wok med krämig halloumi i fokus.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11008,10 +11320,12 @@
   {
     "id": "aggcurry-med-kokosmjolk-och-spenat",
     "name": "Äggcurry med kokosmjölk och spenat",
+    "blurb": "Mild currygryta för en lugn vardagskväll.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11075,10 +11389,12 @@
   {
     "id": "svampsoppa-med-soja-och-vitlok",
     "name": "Svampsoppa med soja och vitlök",
+    "blurb": "Umamirik soppa med asiatisk doft.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "vegan"
@@ -11154,10 +11470,12 @@
   {
     "id": "huevos-rancheros-med-svarta-bonor",
     "name": "Huevos rancheros med svarta bönor",
+    "blurb": "Mexikansk brunch som funkar till middag.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11232,10 +11550,12 @@
   {
     "id": "migas-med-tortilla-och-ost",
     "name": "Migas med tortilla och ost",
+    "blurb": "Rester av tortilla blir en het äggrätt.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11300,10 +11620,12 @@
   {
     "id": "queso-fundido-med-tortilla",
     "name": "Queso fundido med tortilla",
+    "blurb": "Smält ost att doppa tortillabitar i.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "mexican_texmex",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11357,10 +11679,12 @@
   {
     "id": "shakshuka-med-tomatpure-och-gron-paprika",
     "name": "Shakshuka med tomatpuré och grön paprika",
+    "blurb": "Nordafrikansk äggrätt rakt ur pannan till bordet.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "middle_eastern",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian",
       "high_protein_preference"
@@ -11437,10 +11761,12 @@
   {
     "id": "fyllt-naanbrod-med-halloumi-och-yoghurtsas",
     "name": "Fyllt naanbröd med halloumi och yoghurtsås",
+    "blurb": "Vegetarisk gatumat i bröd.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "middle_eastern",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11505,10 +11831,12 @@
   {
     "id": "kall-yoghurtsoppa-med-gurka-och-dill",
     "name": "Kall yoghurtsoppa med gurka och dill",
+    "blurb": "Sval soppa för en varm sommardag.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "middle_eastern",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11572,10 +11900,12 @@
   {
     "id": "amerikansk-grillad-ostmacka-med-tomatsoppa",
     "name": "Amerikansk grillad ostmacka med tomatsoppa",
+    "blurb": "Diner-doft av rostat bröd och het soppa.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11639,10 +11969,12 @@
   {
     "id": "aggmacka-med-majonnas-och-dill",
     "name": "Äggmacka med majonnäs och dill",
+    "blurb": "Enkel smörgås för en lugn kväll hemma.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "american_comfort",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11697,10 +12029,12 @@
   {
     "id": "vafflor-med-apple",
     "name": "Våfflor med äpple",
+    "blurb": "Söndagsfika som blir middag.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "american_comfort",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11765,10 +12099,12 @@
   {
     "id": "potatisgratang-med-vasterbottensost",
     "name": "Potatisgratäng med västerbottensost",
+    "blurb": "Klassiker från det svenska julbordet, året runt.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "american_comfort",
     "cost_tier": "premium",
     "prep_time_band": "40min+",
+    "prep_minutes": 50,
     "dietary_tags": [
       "vegetarian"
     ],
@@ -11830,10 +12166,12 @@
   {
     "id": "korvgryta-med-potatis-och-gron-paprika",
     "name": "Korvgryta med potatis och grön paprika",
+    "blurb": "Enkel grytmat för en vanlig vardagskväll.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "american_comfort",
     "cost_tier": "budget",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "ingredient_slots": [
       {
@@ -11895,10 +12233,12 @@
   {
     "id": "ostsoppa-med-brod-och-vitlok",
     "name": "Ostsoppa med bröd och vitlök",
+    "blurb": "Krämig soppa att doppa nybakat bröd i.",
     "protein_group": "egg_dairy_pantry",
     "cuisine": "american_comfort",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "vegetarian"
     ],

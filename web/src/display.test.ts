@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SuggestionReasonCode } from "./api";
-import { formatQuantity, suggestionReasonLine } from "./display";
+import { formatPrepMinutes, formatQuantity, suggestionReasonLine } from "./display";
 
 // #122: display.ts owns the only phrasing of a SuggestionReasonCode, so this is
 // where "never a number" and "never a list" get checked — the engine (ranking.ts)
@@ -68,5 +68,29 @@ describe("formatQuantity", () => {
 
   it("words the no-quantity marker rather than showing a number", () => {
     expect(formatQuantity({ kind: "to_taste" })).toBe("efter smak");
+  });
+});
+
+// #151: below an hour is plain minutes; the catalog's long-cooked dishes (kalops,
+// revbensspjäll) run to several hours, where "180 min" stops being legible.
+describe("formatPrepMinutes", () => {
+  it("writes minutes plainly under an hour", () => {
+    expect(formatPrepMinutes(15)).toBe("15 min");
+    expect(formatPrepMinutes(30)).toBe("30 min");
+  });
+
+  it("stays in minutes at 59 and switches to hours at exactly 60", () => {
+    expect(formatPrepMinutes(59)).toBe("59 min");
+    expect(formatPrepMinutes(60)).toBe("1 h");
+    expect(formatPrepMinutes(61)).toBe("1 h 1 min");
+  });
+
+  it("writes a remainder alongside the hour", () => {
+    expect(formatPrepMinutes(90)).toBe("1 h 30 min");
+  });
+
+  it("omits a dangling '0 min' on an even number of hours", () => {
+    expect(formatPrepMinutes(120)).toBe("2 h");
+    expect(formatPrepMinutes(180)).toBe("3 h");
   });
 });

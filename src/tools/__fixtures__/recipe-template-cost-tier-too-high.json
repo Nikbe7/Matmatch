@@ -2,10 +2,12 @@
   {
     "id": "budget-aromatic-starch",
     "name": "Budget aromatic starch",
+    "blurb": "Testmall för budget aromatic starch.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "premium",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "meal_types": [
       "dinner"

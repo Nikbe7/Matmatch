@@ -52,6 +52,20 @@ export const PREP_TIME_LABELS: Record<PrepTimeBand, string> = {
   "40min+": "Över 40 min",
 };
 
+/**
+ * #151: the curated `prep_minutes` total, worded for the Tonight metadata row.
+ * Under an hour is "N min" — the catalog's long-cooked dishes (kalops, revbensspjäll)
+ * run to several hours, and "180 min" is illegible on a dinner-time screen, so 60
+ * minutes and up switches to hours: "1 h 30 min", or "2 h" with no dangling "0 min".
+ */
+export function formatPrepMinutes(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder === 0 ? `${hours} h` : `${hours} h ${remainder} min`;
+}
+
 export const INGREDIENT_ROLE_LABELS: Record<IngredientSlotRole, string> = {
   protein: "Protein",
   starch: "Stärkelse",

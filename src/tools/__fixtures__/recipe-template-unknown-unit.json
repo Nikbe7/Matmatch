@@ -2,10 +2,12 @@
   {
     "id": "kyckling-wok-fel-enhet",
     "name": "Kyckling wok fel enhet",
+    "blurb": "Testmall för kyckling wok fel enhet.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [
       "high_protein_preference"
     ],

@@ -1,13 +1,13 @@
 [
   {
-    "id": "kyckling-wok-efter-smak",
-    "name": "Kyckling wok efter smak",
-    "blurb": "Testmall för kyckling wok efter smak.",
+    "id": "kyckling-fel-band",
+    "name": "Kyckling fel band",
+    "blurb": "Testmall för kyckling fel band.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
-    "prep_time_band": "20-40min",
-    "prep_minutes": 30,
+    "prep_time_band": "40min+",
+    "prep_minutes": 25,
     "dietary_tags": [
       "high_protein_preference"
     ],
@@ -30,7 +30,9 @@
         "ingredient_id": "gul-lok",
         "substitutable": true,
         "quantity": {
-          "kind": "to_taste"
+          "kind": "amount",
+          "amount": 400,
+          "unit": "g"
         }
       }
     ],
