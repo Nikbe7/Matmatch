@@ -2,10 +2,12 @@
   {
     "id": "kyckling-med-ris-korrekt",
     "name": "Kyckling med ris korrekt",
+    "blurb": "Testmall för kyckling med ris korrekt.",
     "protein_group": "chicken_poultry",
     "cuisine": "asian",
     "cost_tier": "mid",
     "prep_time_band": "20-40min",
+    "prep_minutes": 30,
     "dietary_tags": [],
     "meal_types": [
       "dinner"

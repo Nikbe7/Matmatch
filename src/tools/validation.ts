@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { IngredientSchema, type CostTier } from "../schema/ingredient.js";
-import { RecipeTemplateSchema } from "../schema/recipeTemplate.js";
+import { RecipeTemplateSchema, type PrepTimeBand } from "../schema/recipeTemplate.js";
 import { IngredientAllergenMappingSchema } from "../schema/ingredientAllergenMapping.js";
 import { SubstitutionGroupSchema } from "../schema/substitution.js";
 
@@ -177,6 +177,7 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
 
   checkReferentialIntegrity(inputs, validByType, errors, notes);
   checkRecipeTemplateDerivedFields(inputs, validByType, errors, warnings);
+  checkPrepTimeBandDerivation(validByType, errors);
   checkAllergenCoverage(inputs, validByType, errors, warnings, notes);
   checkUnverifiedAllergenRows(validByType, warnings);
   checkSubstitutionMembersResolvable(inputs, validByType, warnings);
@@ -350,6 +351,39 @@ function checkRecipeTemplateDerivedFields(
         index: entry.index,
         id: templateId,
         message: `template "${templateId}": dietary_tags is missing "high_protein_preference" (no starch slot)`,
+      });
+    }
+  }
+}
+
+// #151 — prep_time_band is derived from prep_minutes, not independently
+// authored (mirrors the cost_tier discipline above: two sources of truth for
+// the same fact drift apart). Self-contained (no cross-file ingredient
+// lookup needed), so this runs regardless of whether an ingredient file was
+// passed alongside, unlike checkRecipeTemplateDerivedFields above.
+export function derivePrepTimeBand(minutes: number): PrepTimeBand {
+  if (minutes < 20) return "<20min";
+  if (minutes <= 40) return "20-40min";
+  return "40min+";
+}
+
+function checkPrepTimeBandDerivation(
+  validByType: Map<RecordType, ValidRecord[]>,
+  errors: ValidationIssue[],
+): void {
+  for (const entry of validByType.get("recipe-template") ?? []) {
+    const templateId = recordId(entry.record) ?? "(unknown id)";
+    const minutes = entry.record.prep_minutes;
+    const storedBand = entry.record.prep_time_band;
+    if (typeof minutes !== "number") continue;
+
+    const derivedBand = derivePrepTimeBand(minutes);
+    if (storedBand !== derivedBand) {
+      errors.push({
+        file: entry.file,
+        index: entry.index,
+        id: templateId,
+        message: `template "${templateId}": prep_time_band "${String(storedBand)}" should be "${derivedBand}" (derived from prep_minutes=${minutes})`,
       });
     }
   }

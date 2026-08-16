@@ -2,10 +2,12 @@
   {
     "id": "spok-gryta",
     "name": "Spökgryta",
+    "blurb": "Testmall för spökgryta.",
     "protein_group": "vegetarian_vegan",
     "cuisine": "swedish_nordic",
     "cost_tier": "budget",
     "prep_time_band": "<20min",
+    "prep_minutes": 15,
     "dietary_tags": [
       "vegetarian"
     ],

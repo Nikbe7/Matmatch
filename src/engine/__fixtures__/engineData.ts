@@ -41,10 +41,12 @@ export function makeTemplate(id: string, overrides: Partial<RecipeTemplate> = {}
   return {
     id,
     name: id,
+    blurb: `Testmall för ${id}.`,
     protein_group: "vegetarian_vegan",
     cuisine: "swedish_nordic",
     cost_tier: "budget",
     prep_time_band: "<20min",
+    prep_minutes: 15,
     dietary_tags: [],
     meal_types: ["dinner"],
     familiarity: "everyday",

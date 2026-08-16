@@ -660,10 +660,29 @@ select.input {
   font-size: var(--font-size-sm);
 }
 
+/* #151: the curated one-line blurb, under the dish name and meta row. Sized
+   between base and lg to read as the reference's 17px — deliberately more
+   prominent than the reason line below it. */
+.suggestion__blurb {
+  margin: 0 0 var(--space-6);
+  color: var(--color-text);
+  opacity: 0.8;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  max-width: 34ch;
+}
+
 .suggestion__reason {
   margin: 0 0 var(--space-6);
   color: var(--color-muted);
   font-size: var(--font-size-sm);
+}
+
+/* #151: the reason line moved from right under the meta row to under the new
+   blurb — it stays the deterministic "why this dish" explanation, just
+   quieter now that the blurb carries the prominent copy. */
+.suggestion__reason--muted {
+  opacity: 0.75;
 }
 
 .suggestion__actions {
