@@ -75,11 +75,36 @@ export interface MealChoiceHistoryFailedEvent {
   templateId: string;
 }
 
+/**
+ * Where a raw server error code was swallowed before it could reach the
+ * household — the redesigned error states (issue #170) never render a code or
+ * a server message as body text, so this is the only place the code survives
+ * for anyone debugging a spike in a particular failure. `context` names the
+ * screen or request that failed, not the code's meaning — several contexts can
+ * share the same code.
+ */
+export interface AppErrorShownEvent {
+  name: "app_error_shown";
+  context:
+    | "gate"
+    | "onboarding"
+    | "profile_load"
+    | "profile_save"
+    | "tonight_no_result"
+    | "tonight_refinement"
+    | "guided_options"
+    | "guided_directions"
+    | "guided_diner_change"
+    | "instructions";
+  code: string;
+}
+
 export type AnalyticsEvent =
   | ChipTapEvent
   | SessionAbandonedEvent
   | MealChosenEvent
-  | MealChoiceHistoryFailedEvent;
+  | MealChoiceHistoryFailedEvent
+  | AppErrorShownEvent;
 
 export type AnalyticsSink = (event: AnalyticsEvent) => void;
 

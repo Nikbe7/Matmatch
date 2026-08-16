@@ -965,6 +965,21 @@ select.input {
   margin-top: var(--space-3);
 }
 
+.empty-state .btn {
+  margin-top: var(--space-3);
+}
+
+/* The one place a raw error code is allowed to render (StateScreen) — quiet
+   enough that it reads as debugging residue, not as part of the message above
+   it. No heading, no border, well below the action so it is never mistaken for
+   part of the primary sentence. */
+.state-screen__reference {
+  margin: var(--space-4) 0 0;
+  font-size: 0.6875rem;
+  color: var(--color-muted);
+  opacity: 0.7;
+}
+
 /* Loading skeleton: static placeholder bars at roughly the real content's
    proportions (dish name in the display face runs two lines tall, actions are
    now two stacked buttons, ingredients sit below them), standing in for the
@@ -1127,8 +1142,49 @@ select.input {
   font-weight: 600;
 }
 
+/* Placeholder chips at the ingredient grid's own proportions (requirement 5:
+   loading is a placeholder in the coming layout's shape, never a spinner on
+   empty space) — same grid, same cell size, so nothing jumps once the real
+   options land. */
+.skeleton-line--chip {
+  height: var(--touch-target);
+  border-radius: var(--radius-pill);
+}
+
 .direction-list {
   margin-bottom: var(--space-4);
+}
+
+/* Three placeholder direction cards, sized like `.direction-card`'s own
+   content (name, two-line summary, meta, "Välj" button), standing in while
+   `fetchDirections` is in flight. */
+.skeleton-line--direction-name {
+  width: 60%;
+  height: var(--font-size-lg);
+  margin: 0 0 var(--space-2);
+}
+
+.skeleton-line--direction-summary {
+  width: 90%;
+  height: var(--font-size-sm);
+  margin: 0 0 var(--space-1);
+}
+
+.skeleton-line--direction-summary-2 {
+  width: 70%;
+  height: var(--font-size-sm);
+  margin: 0 0 var(--space-2);
+}
+
+.skeleton-line--direction-meta {
+  width: 40%;
+  height: var(--font-size-sm);
+  margin: 0 0 var(--space-3);
+}
+
+.skeleton-line--direction-button {
+  width: 100%;
+  height: var(--touch-target);
 }
 
 .direction-card__name {
