@@ -82,6 +82,12 @@ export function memberLabels(members: readonly HouseholdMember[]): string[] {
   return members.map((member) => {
     const ordinal = (seenByType.get(member.type) ?? 0) + 1;
     seenByType.set(member.type, ordinal);
-    return member.name ?? `${TYPE_LABELS[member.type]} ${ordinal}`;
+    // A blank name falls back exactly like a missing one. A stored household never
+    // holds `""` (the client strips it before sending), but a form being edited does
+    // — and an empty label is worst where several members are stacked with an
+    // allergy block each (#168): the block whose owner has no visible name is
+    // exactly where an allergy gets attached to the wrong person.
+    const name = member.name?.trim();
+    return name ? name : `${TYPE_LABELS[member.type]} ${ordinal}`;
   });
 }

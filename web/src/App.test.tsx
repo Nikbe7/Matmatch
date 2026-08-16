@@ -20,12 +20,24 @@ const fakeSession = {
 
 const sessionHolder: { current: Session | null } = { current: null };
 
+const signInWithPassword = vi.fn(async (_credentials: { email: string; password: string }) => ({
+  data: { session: fakeSession },
+  error: null as { code?: string; message: string } | null,
+}));
+const signUp = vi.fn(async (_credentials: { email: string; password: string }) => ({
+  data: { session: fakeSession as Session | null },
+  error: null as { code?: string; message: string } | null,
+}));
+
 vi.mock("./supabaseClient", () => ({
   supabase: {
     auth: {
       getSession: () => Promise.resolve({ data: { session: sessionHolder.current } }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       signOut: () => Promise.resolve({ error: null }),
+      signInWithPassword: (credentials: { email: string; password: string }) =>
+        signInWithPassword(credentials),
+      signUp: (credentials: { email: string; password: string }) => signUp(credentials),
     },
   },
 }));
@@ -100,6 +112,10 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/");
   createHttpAnalyticsSinkSpy.mockClear();
   analyticsSinkHandle.stop.mockClear();
+  signInWithPassword.mockClear();
+  signInWithPassword.mockResolvedValue({ data: { session: fakeSession }, error: null });
+  signUp.mockClear();
+  signUp.mockResolvedValue({ data: { session: fakeSession }, error: null });
 });
 
 afterEach(() => {
@@ -107,62 +123,407 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("App — signed out", () => {
-  it("renders the login form and never reaches the network", async () => {
+// #168: the first screen anyone sees. One form with a mode switch, one primary
+// action, Swedish throughout — including the auth errors, which used to render
+// Supabase's English text verbatim.
+describe("App — the sign-in screen (#168)", () => {
+  async function renderSignedOut() {
     render(<App />);
-    await screen.findByText("Sign in");
-    expect(screen.getByRole("textbox", { name: "Email" })).toBeTruthy();
+    await screen.findByRole("heading", { name: "Vad ska ni äta ikväll?" });
+  }
+
+  it("renders in Swedish, never reaches the network, and offers exactly one primary action", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await renderSignedOut();
+
+    expect(screen.getByRole("textbox", { name: "E-post" })).toBeTruthy();
+    expect(screen.getByLabelText("Lösenord")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Logga in" })).toBeTruthy();
+
+    // The requirement, asserted structurally rather than by counting labels: the
+    // old screen's two equal buttons made the household decide whether they were
+    // new before they were allowed to do anything.
+    expect(document.querySelectorAll(".btn-primary")).toHaveLength(1);
+    expect(document.querySelectorAll(".btn-secondary")).toHaveLength(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("signs in with the entered credentials", async () => {
+    const user = userEvent.setup();
+    await renderSignedOut();
+
+    await user.type(screen.getByRole("textbox", { name: "E-post" }), "chef@example.com");
+    await user.type(screen.getByLabelText("Lösenord"), "hemligt1");
+    await user.click(screen.getByRole("button", { name: "Logga in" }));
+
+    expect(signInWithPassword).toHaveBeenCalledWith({
+      email: "chef@example.com",
+      password: "hemligt1",
+    });
+    expect(signUp).not.toHaveBeenCalled();
+  });
+
+  it("switches the same form to sign-up, changing the primary action rather than adding one", async () => {
+    const user = userEvent.setup();
+    await renderSignedOut();
+
+    await user.click(screen.getByRole("button", { name: "Ny här? Skapa konto" }));
+
+    expect(screen.getByRole("button", { name: "Skapa konto" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Logga in" })).toBeNull();
+    expect(document.querySelectorAll(".btn-primary")).toHaveLength(1);
+
+    await user.type(screen.getByRole("textbox", { name: "E-post" }), "ny@example.com");
+    await user.type(screen.getByLabelText("Lösenord"), "hemligt1");
+    await user.click(screen.getByRole("button", { name: "Skapa konto" }));
+
+    expect(signUp).toHaveBeenCalledWith({ email: "ny@example.com", password: "hemligt1" });
+    expect(signInWithPassword).not.toHaveBeenCalled();
+
+    // And back again, on the same form.
+    await user.click(screen.getByRole("button", { name: "Har du redan ett konto? Logga in" }));
+    expect(screen.getByRole("button", { name: "Logga in" })).toBeTruthy();
+  });
+
+  it("translates a failed sign-in instead of leaking Supabase's English", async () => {
+    const user = userEvent.setup();
+    signInWithPassword.mockResolvedValue({
+      data: { session: null as unknown as Session },
+      error: { code: "invalid_credentials", message: "Invalid login credentials" },
+    });
+    await renderSignedOut();
+
+    await user.type(screen.getByRole("textbox", { name: "E-post" }), "chef@example.com");
+    await user.type(screen.getByLabelText("Lösenord"), "fellosen");
+    await user.click(screen.getByRole("button", { name: "Logga in" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("Fel e-postadress eller lösenord.");
+    expect(alert.textContent).not.toContain("Invalid");
+  });
+
+  it("says something visible when sign-up succeeds without a session", async () => {
+    // Email confirmation is on: no session arrives, `onAuthStateChange` never
+    // fires, and without this line the primary action would visibly do nothing.
+    const user = userEvent.setup();
+    signUp.mockResolvedValue({ data: { session: null }, error: null });
+    await renderSignedOut();
+
+    await user.click(screen.getByRole("button", { name: "Ny här? Skapa konto" }));
+    await user.type(screen.getByRole("textbox", { name: "E-post" }), "ny@example.com");
+    await user.type(screen.getByLabelText("Lösenord"), "hemligt1");
+    await user.click(screen.getByRole("button", { name: "Skapa konto" }));
+
+    const notice = await screen.findByRole("status");
+    expect(notice.textContent).toContain("Kontot är skapat");
+  });
+
+  it("clears a message from the mode that produced it when the mode changes", async () => {
+    const user = userEvent.setup();
+    signInWithPassword.mockResolvedValue({
+      data: { session: null as unknown as Session },
+      error: { code: "invalid_credentials", message: "Invalid login credentials" },
+    });
+    await renderSignedOut();
+
+    await user.type(screen.getByRole("textbox", { name: "E-post" }), "chef@example.com");
+    await user.type(screen.getByLabelText("Lösenord"), "fellosen");
+    await user.click(screen.getByRole("button", { name: "Logga in" }));
+    await screen.findByRole("alert");
+
+    await user.click(screen.getByRole("button", { name: "Ny här? Skapa konto" }));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("leaves no English anywhere on the screen, in either mode", async () => {
+    const user = userEvent.setup();
+    await renderSignedOut();
+
+    const card = document.querySelector(".auth-card") as HTMLElement;
+    const forbidden = ["Sign in", "Sign up", "Email", "Password", "Loading"];
+    for (const word of forbidden) expect(card.textContent).not.toContain(word);
+
+    await user.click(screen.getByRole("button", { name: "Ny här? Skapa konto" }));
+    for (const word of forbidden) expect(card.textContent).not.toContain(word);
   });
 });
 
+// #168: onboarding asks who lives here, then one mandatory allergy question.
+// Dietary preferences are gone from this screen entirely — they are ranking
+// influence, not safety, and are edited on the profile.
 describe("App — household gate", () => {
+  async function renderOnboarding() {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Vilka bor här?" });
+  }
+
+  /** Answers the allergy question, which is what unlocks the primary action. */
+  async function answerAllergies(user: ReturnType<typeof userEvent.setup>, answer: "Ja" | "Nej") {
+    await user.click(screen.getByRole("radio", { name: answer }));
+  }
+
+  const submit = () => screen.getByRole("button", { name: "Visa kvällens middag" });
+
   it("renders onboarding when signed in with no household", async () => {
     sessionHolder.current = fakeSession;
     const fetchMock = vi.fn().mockResolvedValue(householdNotFound);
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<App />);
-
-    await screen.findByRole("heading", { name: "Skapa hushåll" });
+    await renderOnboarding();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks for who lives here and nothing else — no preference chips, no allergy chips yet", async () => {
+    sessionHolder.current = fakeSession;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
+
+    await renderOnboarding();
+
+    const card = memberCard("Vuxen 1");
+    expect(within(card).getByLabelText("Namn")).toBeTruthy();
+    expect(within(card).getByLabelText("Typ")).toBeTruthy();
+    expect(within(card).getByLabelText("Portionsstorlek")).toBeTruthy();
+    // Dietary preferences left onboarding entirely, and the allergy chips are
+    // behind the question below — the member row carries neither.
+    expect(card.querySelector("fieldset")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Vegetariskt" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Jordnötter" })).toBeNull();
+  });
+
+  it("keeps the primary action disabled until the allergy question is answered, either way", async () => {
+    // The reason the question has no preselected answer (DECISION_LOG 2026-08-16):
+    // a checked "Nej" would make a household that answered no indistinguishable
+    // from one that never saw the question, and the app treats both as
+    // allergy-free. Both answers unlock; neither is assumed.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
+
+    await renderOnboarding();
+
+    expect(screen.getByRole("radio", { name: "Nej" }).hasAttribute("checked")).toBe(false);
+    expect((screen.getByRole("radio", { name: "Nej" }) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByRole("radio", { name: "Ja" }) as HTMLInputElement).checked).toBe(false);
+    expect((submit() as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Svara på frågan om allergier först.")).toBeTruthy();
+
+    await answerAllergies(user, "Nej");
+    expect((submit() as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.queryByText("Svara på frågan om allergier först.")).toBeNull();
+
+    // "Ja" unlocks too, once it names an allergy — see the half-answer test below.
+    await answerAllergies(user, "Ja");
+    await user.click(screen.getByRole("button", { name: "Jordnötter" }));
+    expect((submit() as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("does not accept a half-answered yes — a declared allergy must name itself", async () => {
+    // "Ja" with nothing picked produces a payload identical to "Nej": the household
+    // would be stored as allergy-free and its first suggestion filtered against
+    // nothing. Same rule as the question itself — no assuming a safety answer.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
+
+    await renderOnboarding();
+    await answerAllergies(user, "Ja");
+
+    expect((submit() as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Välj vilken allergi det gäller, eller svara Nej.")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Jordnötter" }));
+    expect((submit() as HTMLButtonElement).disabled).toBe(false);
+
+    // Deselecting the only allergy puts the block back — the household is once
+    // again claiming an allergy it has not named.
+    await user.click(screen.getByRole("button", { name: "Jordnötter" }));
+    expect((submit() as HTMLButtonElement).disabled).toBe(true);
+
+    // And "Nej" is always a way out of it.
+    await answerAllergies(user, "Nej");
+    expect((submit() as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("falls back to the derived label when a name is cleared, rather than showing a nameless allergy block", async () => {
+    // An empty label is worst exactly here: several members stacked, an allergy
+    // block each, and the block whose owner has no visible name is where an
+    // allergy gets attached to the wrong person.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
+
+    await renderOnboarding();
+    const nameField = within(memberCard("Vuxen 1")).getByLabelText("Namn");
+    await user.type(nameField, "Ella");
+    await user.clear(nameField);
+
+    expect(screen.getByRole("heading", { name: "Vuxen 1" })).toBeTruthy();
+
+    await answerAllergies(user, "Ja");
+    const legend = document.querySelector("fieldset.allergy-group legend")!;
+    expect(legend.textContent).toContain("Vuxen 1");
+  });
+
+  it("creates a valid household with empty allergy lists when the answer is no", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(householdNotFound)
+      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
+      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await renderOnboarding();
+    await answerAllergies(user, "Nej");
+    await user.click(submit());
+
+    await screen.findByRole("heading", { name: "Ikväll" });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/households");
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: "POST" });
+
+    // Explicitly empty, never omitted: an unset safety value must not be
+    // mistakable for a declared-empty one (HouseholdMemberSchema).
+    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(body.members).toHaveLength(1);
+    expect(body.members[0].allergies).toEqual([]);
+    expect(body.members[0].dietary_flags).toEqual([]);
+    expect("allergies" in body.members[0]).toBe(true);
+    expect("dietary_flags" in body.members[0]).toBe(true);
+  });
+
+  it("reveals the allergy picker per person on yes, and saves exactly the picked ones to the right person", async () => {
+    // The behaviour #115 exists for: after this, "whose allergy is it" survives the
+    // round trip, which is what #112 needs to narrow constraints to tonight's diners.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(householdNotFound)
+      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
+      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await renderOnboarding();
+    await user.click(screen.getByRole("button", { name: "+ Lägg till medlem" }));
+    await answerAllergies(user, "Ja");
+
+    // One block per person, each naming whose allergies it holds.
+    const blocks = Array.from(document.querySelectorAll("fieldset.allergy-group"));
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]!.querySelector("legend")!.textContent).toContain("Vuxen 1");
+    expect(blocks[1]!.querySelector("legend")!.textContent).toContain("Vuxen 2");
+
+    await user.click(within(blocks[0] as HTMLElement).getByRole("button", { name: "Jordnötter" }));
+    await user.click(within(blocks[0] as HTMLElement).getByRole("button", { name: "Fisk" }));
+    await user.click(submit());
+    await screen.findByRole("heading", { name: "Ikväll" });
+
+    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(body.members).toHaveLength(2);
+    expect(body.members[0]).toMatchObject({ allergies: ["peanuts", "fish"], dietary_flags: [] });
+    expect(body.members[1]).toMatchObject({ allergies: [], dietary_flags: [] });
+    // The household itself no longer carries either field.
+    expect(body.allergies).toBeUndefined();
+    expect(body.dietary_flags).toBeUndefined();
+  });
+
+  it("saves the household only after the allergy answer, never before it", async () => {
+    // The failure mode this change could introduce: a first suggestion shown for a
+    // household whose declared allergy had not been recorded yet. Asserted on the
+    // call order — the Tonight request that produces that suggestion must come
+    // after the POST that carries the allergy.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(householdNotFound)
+      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await renderOnboarding();
+    await answerAllergies(user, "Ja");
+    await user.click(
+      within(document.querySelector("fieldset.allergy-group") as HTMLElement).getByRole("button", {
+        name: "Jordnötter",
+      }),
+    );
+
+    // Nothing has been written yet, and no suggestion has been requested.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(submit());
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const [gateCall, postCall, tonightCall] = fetchMock.mock.calls;
+    expect(gateCall[0]).toBe("/api/tonight");
+    expect(postCall[0]).toBe("/api/households");
+    expect(JSON.parse(postCall[1].body).members[0].allergies).toEqual(["peanuts"]);
+    expect(tonightCall[0]).toBe("/api/tonight");
+  });
+
+  it("clears picked allergies when the answer changes back to no", async () => {
+    // What is shown and what is stored have to be the same thing: a hidden
+    // allergy that is nonetheless saved is the worse failure mode of the two.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(householdNotFound)
+      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
+      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await renderOnboarding();
+    await answerAllergies(user, "Ja");
+    await user.click(screen.getByRole("button", { name: "Jordnötter" }));
+    await answerAllergies(user, "Nej");
+
+    expect(document.querySelector("fieldset.allergy-group")).toBeNull();
+
+    await user.click(submit());
+    await screen.findByRole("heading", { name: "Ikväll" });
+
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).members[0].allergies).toEqual([]);
   });
 
   it("renders exactly the locked allergy vocabulary as chips, per member", async () => {
     sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
 
-    render(<App />);
-    await screen.findByRole("heading", { name: "Skapa hushåll" });
+    await renderOnboarding();
+    await answerAllergies(user, "Ja");
 
-    const fieldset = memberCard("Vuxen 1").querySelector("fieldset.allergy-group")!;
-    const chipLabels = Array.from(fieldset.querySelectorAll("button")).map(
+    const block = document.querySelector("fieldset.allergy-group")!;
+    const chipLabels = Array.from(block.querySelectorAll("button")).map(
       (button) => button.textContent,
     );
 
     expect(chipLabels).toEqual(ALLERGIES.map((allergy) => ALLERGY_LABELS[allergy]));
   });
 
-  it("submitting a valid household calls the API and switches to Tonight", async () => {
+  it("marks the allergy block as a safety constraint by more than colour", async () => {
+    // #101/UX_FLOW §6, carried over to the "ja" branch: the block keeps the border,
+    // the "⚠" glyph and its own legend text, all in the markup rather than only in
+    // the stylesheet, so it is tellable from a preference group without colour.
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(householdNotFound)
-      .mockResolvedValueOnce(
-        jsonResponse(201, { id: "h1", members: [], allergies: [], dietary_flags: [] }),
-      )
-      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
 
-    render(<App />);
-    await screen.findByRole("heading", { name: "Skapa hushåll" });
+    await renderOnboarding();
+    await answerAllergies(user, "Ja");
 
-    await user.click(screen.getByRole("button", { name: "Spara hushåll" }));
-
-    await screen.findByRole("heading", { name: "Ikväll" });
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[1][0]).toBe("/api/households");
-    expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: "POST" });
+    const block = document.querySelector("fieldset.allergy-group") as HTMLFieldSetElement;
+    expect(block.tagName).toBe("FIELDSET");
+    expect(block.className).toContain("allergy-group");
+    const legend = block.querySelector("legend")!;
+    expect(legend.textContent).toContain("Allergier");
+    expect(legend.textContent).toContain("⚠");
   });
 
   it("keeps the form filled and shows a readable message on API error", async () => {
@@ -178,50 +539,18 @@ describe("App — household gate", () => {
       );
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<App />);
-    await screen.findByRole("heading", { name: "Skapa hushåll" });
+    await renderOnboarding();
 
-    await user.click(screen.getByRole("button", { name: "Lägg till medlem" }));
+    await user.click(screen.getByRole("button", { name: "+ Lägg till medlem" }));
     expect(screen.getAllByText("Typ")).toHaveLength(2);
 
-    await user.click(screen.getByRole("button", { name: "Spara hushåll" }));
+    await answerAllergies(user, "Nej");
+    await user.click(submit());
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toBe("members must contain at least 1 element(s)");
     expect(alert.textContent).not.toContain("{");
     expect(screen.getAllByText("Typ")).toHaveLength(2);
-  });
-
-  it("sends each member's own allergies and dietary flags, not one household-wide set", async () => {
-    // The behaviour #115 exists for: after this, "whose allergy is it" survives the
-    // round trip, which is what #112 needs to narrow constraints to tonight's diners.
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(householdNotFound)
-      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
-      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<App />);
-    await screen.findByRole("heading", { name: "Skapa hushåll" });
-
-    // Member 1 is peanut-allergic; member 2 is vegetarian and allergic to nothing.
-    await user.click(within(memberCard("Vuxen 1")).getByRole("button", { name: "Jordnötter" }));
-    await user.click(screen.getByRole("button", { name: "Lägg till medlem" }));
-    await user.click(within(memberCard("Vuxen 2")).getByRole("button", { name: "Vegetariskt" }));
-
-    await user.click(screen.getByRole("button", { name: "Spara hushåll" }));
-    await screen.findByRole("heading", { name: "Ikväll" });
-
-    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(body.members).toHaveLength(2);
-    expect(body.members[0]).toMatchObject({ allergies: ["peanuts"], dietary_flags: [] });
-    expect(body.members[1]).toMatchObject({ allergies: [], dietary_flags: ["vegetarian"] });
-    // The household itself no longer carries either field.
-    expect(body.allergies).toBeUndefined();
-    expect(body.dietary_flags).toBeUndefined();
   });
 
   it("omits a blank name rather than sending an empty string", async () => {
@@ -234,9 +563,9 @@ describe("App — household gate", () => {
       .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<App />);
-    await screen.findByRole("heading", { name: "Skapa hushåll" });
-    await user.click(screen.getByRole("button", { name: "Spara hushåll" }));
+    await renderOnboarding();
+    await answerAllergies(user, "Nej");
+    await user.click(submit());
     await screen.findByRole("heading", { name: "Ikväll" });
 
     const body = JSON.parse(fetchMock.mock.calls[1][1].body);
@@ -248,12 +577,11 @@ describe("App — household gate", () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
 
-    render(<App />);
-    await screen.findByRole("heading", { name: "Skapa hushåll" });
+    await renderOnboarding();
 
     expect(screen.getByRole("heading", { name: "Vuxen 1" })).toBeTruthy();
 
-    await user.click(screen.getByRole("button", { name: "Lägg till medlem" }));
+    await user.click(screen.getByRole("button", { name: "+ Lägg till medlem" }));
     expect(screen.getByRole("heading", { name: "Vuxen 2" })).toBeTruthy();
 
     // Switching a member to "Barn" renumbers within the new type, not across the list.
@@ -270,38 +598,6 @@ describe("App — household gate", () => {
     expect(within(memberCard("Ella")).getByText(/Lämna tomt/).textContent).toContain("Barn 1");
   });
 
-  it("keeps allergies in their own labelled group, distinguishable from preferences by more than colour", async () => {
-    // #101/UX_FLOW §6, re-asserted at the per-member scale: moving constraints into
-    // member rows is exactly where the two chip groups would get flattened into one.
-    sessionHolder.current = fakeSession;
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
-
-    render(<App />);
-    await screen.findByRole("heading", { name: "Skapa hushåll" });
-
-    const card = memberCard("Vuxen 1");
-    const groups = Array.from(card.querySelectorAll("fieldset"));
-    expect(groups).toHaveLength(2);
-
-    const [preferences, allergies] = groups as [HTMLFieldSetElement, HTMLFieldSetElement];
-    expect(preferences.querySelector("legend")!.textContent).toBe("Kostpreferenser");
-    // Distinct legend text plus a warning glyph — both non-colour signals, present in
-    // the markup rather than only in the stylesheet.
-    expect(allergies.querySelector("legend")!.textContent).toContain("Allergier");
-    expect(allergies.querySelector("legend")!.textContent).toContain("⚠");
-    expect(allergies.className).toContain("allergy-group");
-
-    // And the two groups genuinely hold different chips, in the locked order.
-    expect(Array.from(preferences.querySelectorAll("button")).map((b) => b.textContent)).toEqual([
-      "Vegetariskt",
-      "Veganskt",
-      "Proteinrikt",
-    ]);
-    expect(Array.from(allergies.querySelectorAll("button")).map((b) => b.textContent)).toEqual(
-      ALLERGIES.map((allergy) => ALLERGY_LABELS[allergy]),
-    );
-  });
-
   it("keeps a household with no safe result in the Tonight no-result state, not onboarding", async () => {
     sessionHolder.current = fakeSession;
     const fetchMock = vi
@@ -313,7 +609,7 @@ describe("App — household gate", () => {
 
     await screen.findByRole("heading", { name: "Ikväll" });
     expect(screen.getByText(/no result: no_safe_templates/)).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Skapa hushåll" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Vilka bor här?" })).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
@@ -1420,7 +1716,7 @@ describe("App — bottom navigation (#137)", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
 
     render(<App />);
-    await screen.findByRole("heading", { name: "Skapa hushåll" });
+    await screen.findByRole("heading", { name: "Vilka bor här?" });
 
     expect(screen.queryByRole("navigation", { name: "Huvudnavigation" })).toBeNull();
   });
@@ -1492,6 +1788,47 @@ describe("App — the profile screen (#166)", () => {
 
     await screen.findByText("1 vuxen + 1 barn", { exact: false });
     expect(fetchMock).toHaveBeenCalledWith("/api/households", expect.anything());
+  });
+
+  it("keeps preferences and allergies as two separate, differently-labelled groups", async () => {
+    // #101/UX_FLOW §6. This invariant used to be asserted on onboarding, which no
+    // longer carries preference chips at all (#168) — the profile is now the one
+    // screen where the two groups stand together, so it is where flattening them
+    // into a single chip row has to fail.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      routedFetch({
+        "GET /api/tonight": [jsonResponse(200, suggestionBody)],
+        "GET /api/households": [jsonResponse(200, storedHousehold([ella]))],
+      }),
+    );
+
+    render(<App />);
+    await openProfil(user);
+    await user.click(await screen.findByRole("button", { name: /Ella/ }));
+
+    const groups = Array.from(document.querySelectorAll(".profile-member-detail fieldset"));
+    expect(groups).toHaveLength(2);
+
+    const [preferences, allergies] = groups as [HTMLFieldSetElement, HTMLFieldSetElement];
+    expect(preferences.querySelector("legend")!.textContent).toBe("Kostpreferenser");
+    // Distinct legend text plus a warning glyph — both non-colour signals, present
+    // in the markup rather than only in the stylesheet.
+    expect(allergies.querySelector("legend")!.textContent).toContain("Allergier");
+    expect(allergies.querySelector("legend")!.textContent).toContain("⚠");
+    expect(allergies.className).toContain("allergy-group");
+
+    // And the two groups genuinely hold different chips, in the locked order.
+    expect(Array.from(preferences.querySelectorAll("button")).map((b) => b.textContent)).toEqual([
+      "Vegetariskt",
+      "Veganskt",
+      "Proteinrikt",
+    ]);
+    expect(Array.from(allergies.querySelectorAll("button")).map((b) => b.textContent)).toEqual(
+      ALLERGIES.map((allergy) => ALLERGY_LABELS[allergy]),
+    );
   });
 
   it("adding an allergy shows it in the collapsed row, by name — not a count", async () => {

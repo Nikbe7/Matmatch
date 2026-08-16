@@ -628,6 +628,99 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
   });
 });
 
+// #168: onboarding now asks one mandatory allergy question instead of rendering
+// the whole chip set per member. What that change could break is the very first
+// suggestion — the one moment a household has declared an allergy and has not yet
+// seen anything the app chose. The client-side ordering (the household is created
+// before Tonight is ever requested) is asserted in web/src/App.test.tsx; this is
+// the other half, over real HTTP: given exactly the body onboarding sends, the
+// first response cannot carry the declared allergen.
+describe.skipIf(!stackAvailable)("the first suggestion after onboarding (#168)", () => {
+  /** Byte for byte what `toHouseholdPayload` sends after "Ja" → Jordnötter on member 2. */
+  const onboardingBodyWithPeanutAllergy = {
+    members: [
+      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
+      { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+    ],
+  };
+
+  /** One peanut dish and one safe dish, so a null result cannot be mistaken for safety. */
+  async function twoDishApp(): Promise<Express> {
+    const { makeEngineData, makeIngredient, makeTemplate } = await import(
+      "../engine/__fixtures__/engineData.js"
+    );
+
+    return createApp({
+      sql: sql!,
+      engineData: makeEngineData({
+        ingredients: [makeIngredient("jordnotter"), makeIngredient("morot")],
+        allergenMappings: [
+          { ingredient_id: "jordnotter", allergens: ["peanuts"], verification_status: "verified" },
+          { ingredient_id: "morot", allergens: [], verification_status: "verified" },
+        ],
+        templates: [
+          makeTemplate("satay", {
+            ingredient_slots: [
+              makeSlot({ role: "protein", ingredient_id: "jordnotter", substitutable: false }),
+            ],
+          }),
+          makeTemplate("morotssoppa", {
+            ingredient_slots: [
+              makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false }),
+            ],
+          }),
+        ],
+      }),
+      verifyToken: verifyToken!,
+    });
+  }
+
+  it("never carries the declared allergen", async () => {
+    const user = await createTestUser();
+    const twoDishes = await twoDishApp();
+
+    const created = await request(twoDishes)
+      .post("/api/households")
+      .set(authHeader(user.accessToken))
+      .send(onboardingBodyWithPeanutAllergy);
+    expect(created.status).toBe(201);
+
+    // The very first Tonight request of the household's life — no diner set, no
+    // exclusions, nothing but the profile onboarding just wrote.
+    const response = await request(twoDishes).get("/api/tonight").set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    // A dish *was* suggested — the assertion below would pass vacuously otherwise.
+    expect(response.body.result).not.toBeNull();
+    expect(response.body.result.template.id).toBe("morotssoppa");
+    for (const ingredient of response.body.result.ingredients) {
+      expect(ingredient.allergens ?? []).not.toContain("peanuts");
+    }
+    expect(JSON.stringify(response.body.result)).not.toContain("jordnotter");
+  });
+
+  it("shows the peanut dish to a household that answered no, from the same catalog", async () => {
+    // The control: the withholding above is the household's declared allergy doing
+    // its work, not the fixture being unable to produce that dish at all.
+    const user = await createTestUser();
+    const twoDishes = await twoDishApp();
+
+    await request(twoDishes)
+      .post("/api/households")
+      .set(authHeader(user.accessToken))
+      .send({
+        members: [{ type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] }],
+      });
+
+    const response = await request(twoDishes)
+      .get("/api/tonight")
+      .query({ exclude: "morotssoppa" })
+      .set(authHeader(user.accessToken));
+
+    expect(response.body.result?.template.id).toBe("satay");
+  });
+});
+
 describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set change (#133)", () => {
   // Selection/exclusion behaviour over `keep` is covered exhaustively in
   // src/engine/candidates.test.ts and src/api/dinerChangeReason.test.ts; what these

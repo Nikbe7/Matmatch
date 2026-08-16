@@ -578,6 +578,108 @@ select.input {
   border-bottom: none;
 }
 
+/* ---------------------------------------------------------------------------
+ * The first run (#168) — the sign-in screen and onboarding. Both render inside
+ * `.page`, outside the routed shell; these classes are the only chrome they add
+ * on top of the shared `.card`/`.field`/`.member-card` primitives.
+ * --------------------------------------------------------------------------- */
+
+.auth-card,
+.onboarding-card {
+  margin-top: var(--space-6);
+}
+
+/* The screen leads with what the product does, so this line is set at display
+   scale rather than as a form heading. */
+.auth-title {
+  margin-bottom: var(--space-2);
+}
+
+.auth-lede,
+.onboarding-lede {
+  margin-bottom: var(--space-5);
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+
+.auth-submit,
+.onboarding-submit {
+  width: 100%;
+}
+
+/* The mode switch is deliberately quiet: one primary action per screen, and this
+   is not it. Still a full-width 44px target — quiet in weight, not in reach. */
+.auth-switch {
+  display: block;
+  width: 100%;
+  min-height: var(--touch-target);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-notice {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.onboarding-title {
+  margin-bottom: var(--space-2);
+}
+
+/* The one question onboarding asks. Set apart from the member list above it and
+   from the primary action below it, because it is neither — it decides whether the
+   allergy blocks appear at all. */
+.allergy-question {
+  margin: var(--space-5) 0 var(--space-4);
+}
+
+.choice-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.choice {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.choice:has(input:checked) {
+  border-color: var(--color-text);
+  font-weight: 600;
+}
+
+.choice input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--color-text);
+}
+
+.allergy-picker {
+  margin-bottom: var(--space-4);
+}
+
+.onboarding-submit-hint {
+  margin-top: var(--space-2);
+  text-align: center;
+}
+
 /* Allergies are a safety constraint, not a preference, and must read as a different
    kind of thing from the dietary chips above them (#101, UX_FLOW §6). Carried by the
    border, the tinted ground, the "⚠" glyph and the legend text together — colour is
