@@ -289,6 +289,110 @@ select.input {
   margin-bottom: 0;
 }
 
+/* ---------------------------------------------------------------------------
+ * `/profil` (#166) — editing the household. Reuses `.member-card` as the
+ * bordered container for each row; these classes are only the collapse/expand
+ * chrome around it and the account area at the bottom of the screen.
+ * --------------------------------------------------------------------------- */
+
+.profile-intro {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-5);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* The collapsed row's own tap target — full width, ≥44px, and the summary text
+   is capped to one line (`.profile-member-row__summary`) so a member with two
+   named allergies never wraps at 360px. */
+.profile-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-1) 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-member-row__summary {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.profile-member-row__name {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.profile-member-row__meta {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.profile-member-row__action {
+  flex: 0 0 auto;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.profile-member-detail {
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.member-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--touch-target);
+  margin-bottom: var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.profile-save {
+  width: 100%;
+  margin-top: var(--space-5);
+}
+
+/* The account surface (email, sign out, install) — muted and set apart at the
+   bottom of the screen, since it is not why anyone opens this screen. */
+.profile-account {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.profile-member-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.profile-member-skeleton .skeleton-line--row {
+  width: 70%;
+  height: 1.25rem;
+}
+
 /* #124: the online shopping list's checkbox now sits in its own label, wrapping
    nothing else — the ingredient text moved into `.ingredient-tap` below so it can be
    its own tap target. Sized to its content, not `flex: 1`, so the row's growable
