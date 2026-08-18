@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ALLERGIES } from "../../src/schema/vocabulary";
 import type { CostTier } from "../../src/schema/ingredient";
 import { setAnalyticsSink, type AnalyticsEvent } from "./analytics";
+import { saveShoppingList, SHOPPING_LIST_VERSION } from "./shoppingListStorage";
+import { saveCookRecord, substitutionKey } from "./instructionsStorage";
 
 // Covers the signed-out state (login form, never reaches the network) and the
 // household gate: no-household → onboarding, submit → Tonight, API error →
@@ -1194,6 +1196,134 @@ describe("App — Laga ikväll", () => {
 // App.tsx's toGateState() must route to "offline", not the generic "error"
 // state (issue #93, UX_FLOW §7).
 const offlineFetch = () => vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+
+describe("App — the cook screen (#154)", () => {
+  const STEPS = [
+    "Skär kycklingen i bitar.",
+    "Hacka rödlöken.",
+    "Hetta upp en stekpanna.",
+    "Bryn kycklingen.",
+    "Tillsätt rödlöken.",
+    "Låt allt sjuda klart.",
+  ];
+
+  /** Tonight, then the cooked write, then whatever /api/instructions should answer. */
+  function fetchThrough(instructions: Response) {
+    return vi.fn((url: string) => {
+      if (typeof url === "string" && url.startsWith("/api/instructions")) {
+        return Promise.resolve(instructions);
+      }
+      if (typeof url === "string" && url.startsWith("/api/cooked")) {
+        return Promise.resolve(
+          jsonResponse(200, {
+            cooked: { templateId: "kycklinggryta", cookedAt: "2026-08-18T18:00:00.000Z" },
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse(200, suggestionBody));
+    });
+  }
+
+  it("goes Tonight → list → cook, carrying the curated dish data across", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", fetchThrough(jsonResponse(200, { instructions: STEPS })));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+    await screen.findByRole("heading", { name: "Behöver handlas (2)" });
+
+    await user.click(screen.getByRole("button", { name: "Börja laga" }));
+
+    expect(await screen.findByText(STEPS[0]!)).toBeTruthy();
+    // Curated data made the trip: the amount is the engine's, the time is the
+    // template's band — neither is re-derived on this screen.
+    expect(screen.getAllByText("400 g").length).toBeGreaterThan(0);
+    expect(screen.getByText(/20–40 min/)).toBeTruthy();
+  });
+
+  it("resumes a cold open of /laga/:id from what is stored on the device", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", fetchThrough(jsonResponse(200, { instructions: STEPS })));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+    await screen.findByRole("heading", { name: "Behöver handlas (2)" });
+    await user.click(screen.getByRole("button", { name: "Börja laga" }));
+    await screen.findByText(STEPS[0]!);
+    cleanup();
+
+    // A reload lands on the route with no navigation state at all — the shape a
+    // bookmark, a refresh mid-cook, or an offline start all take.
+    window.history.replaceState(null, "", "/laga/kycklinggryta");
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("Failed to fetch"))));
+    render(<App />);
+
+    expect(await screen.findByText(STEPS[0]!)).toBeTruthy();
+    expect(screen.getByText("Kycklinggryta")).toBeTruthy();
+  });
+
+  it("cooks the plan currently in hand, not an older cook record's amounts", async () => {
+    sessionHolder.current = fakeSession;
+    // The device has both: a cook record from an earlier, smaller evening, and a
+    // shopping list for the same dish planned since. A cold open of /laga/:id must
+    // take the amounts from the list — the plan in hand — or the household cooks
+    // last week's portions.
+    saveCookRecord({
+      version: 1,
+      templateId: "kycklinggryta",
+      substitutionKey: substitutionKey([]),
+      substitutions: [],
+      name: "Kycklinggryta",
+      prepTimeBand: "20-40min",
+      portions: 2,
+      ingredients: [{ name: "Kyckling", quantity: { kind: "amount", amount: 400, unit: "g" } }],
+      steps: STEPS,
+    });
+    saveShoppingList({
+      version: SHOPPING_LIST_VERSION,
+      templateId: "kycklinggryta",
+      templateName: "Kycklinggryta",
+      substitutions: [],
+      items: [
+        {
+          name: "Kyckling",
+          section: "to_buy",
+          bought: false,
+          allergens: [],
+          quantity: { kind: "amount", amount: 900, unit: "g" },
+          slotIndex: 0,
+          ingredientId: "kyckling",
+        },
+      ],
+    });
+
+    window.history.replaceState(null, "", "/laga/kycklinggryta");
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(jsonResponse(200, suggestionBody))));
+
+    render(<App />);
+
+    expect(await screen.findByText(STEPS[0]!)).toBeTruthy();
+    expect(screen.getByText("900 g")).toBeTruthy();
+    expect(screen.queryByText("400 g")).toBeNull();
+    // The curated band still comes from the record — the shopping list never stored
+    // one, and the substitution sets match, so it is the same dish.
+    expect(screen.getByText(/20–40 min/)).toBeTruthy();
+  });
+
+  it("shows a way out when the route names a dish the device knows nothing about", async () => {
+    sessionHolder.current = fakeSession;
+    window.history.replaceState(null, "", "/laga/en-okand-ratt");
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(jsonResponse(200, suggestionBody))));
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Ingen middag att laga" })).toBeTruthy();
+  });
+});
 
 describe("App — entering the guided flow", () => {
   it("opens the guided flow from the Tonight card and comes back", async () => {

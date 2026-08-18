@@ -6,7 +6,16 @@ import type { TokenVerifier } from "../../auth/verifyToken.js";
 import type { Sql } from "../../db/client.js";
 import { buildSubstitutionKey, getCachedInstructions, insertCachedInstructions } from "../../db/recipeInstructions.js";
 import type { EngineData } from "../../engine/data.js";
-import { buildEffectiveIngredients, validateSubstitutionRefs } from "../instructionsIngredients.js";
+import {
+  buildEffectiveIngredients,
+  effectiveIngredientIds,
+  validateSubstitutionRefs,
+} from "../instructionsIngredients.js";
+import {
+  buildIngredientLexicon,
+  validateGeneratedInstructions,
+  type IngredientLexicon,
+} from "../../ai/instructionsValidation.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../httpError.js";
 
@@ -40,6 +49,20 @@ export function instructionsRouter(
 ): Router {
   const router = Router();
 
+  // Built once, on the first request that needs it — not at construction. The
+  // catalog is fixed for the process's lifetime so one build is enough, but
+  // `createApp` is also used to mount a health check with no engine data at all
+  // (app.test.ts), and a router that reads the catalog just to be constructed would
+  // make /health depend on it.
+  let lexicon: IngredientLexicon | undefined;
+  function ingredientLexicon(): IngredientLexicon {
+    lexicon ??= buildIngredientLexicon(
+      engineData.ingredientsById.values(),
+      engineData.allergenMappingByIngredientId,
+    );
+    return lexicon;
+  }
+
   router.post("/api/instructions", requireAuth(verifyToken), async (req, res, next) => {
     try {
       const body = InstructionsRequestSchema.parse(req.body);
@@ -53,10 +76,28 @@ export function instructionsRouter(
 
       const substitutionKey = buildSubstitutionKey(body.substitutions);
 
+      const allowedIngredientIds = effectiveIngredientIds(template, body.substitutions);
+
+      // Cache hits are validated too, not trusted (#154). The table predates this
+      // validator (migration 20260805000000) and its key carries no validator
+      // version, so rows written before #154 — or by a future code path that forgets
+      // the gate — would otherwise be served unscanned forever. A rejected row falls
+      // through to regeneration and is overwritten below.
       const cached = await getCachedInstructions(sql, template.id, substitutionKey);
       if (cached) {
-        res.status(200).json({ instructions: cached } satisfies InstructionsResponseBody);
-        return;
+        const cachedValidation = validateGeneratedInstructions(
+          ingredientLexicon(),
+          cached,
+          allowedIngredientIds,
+        );
+        if (cachedValidation.ok) {
+          res.status(200).json({ instructions: cached } satisfies InstructionsResponseBody);
+          return;
+        }
+        console.warn(
+          `[instructions] discarding cached generation for template "${template.id}": ` +
+            `${cachedValidation.rejection.kind} — ${cachedValidation.rejection.mentions.join(", ")}`,
+        );
       }
 
       if (!anthropicClient) {
@@ -68,24 +109,61 @@ export function instructionsRouter(
       }
 
       const ingredients = buildEffectiveIngredients(engineData, template, body.substitutions);
-      const generated = await generateInstructions(anthropicClient, {
+      const promptInput = {
         dishName: template.name,
         cuisine: template.cuisine,
         prepTimeBand: template.prep_time_band,
         ingredients,
-      });
+      };
 
-      if (!generated.ok) {
-        res.status(200).json({ instructions: null, reason: generated.reason } satisfies InstructionsResponseBody);
+      // One regeneration on a rejected result, then give up (#154). Not a loop: a
+      // model that broke the ingredient rule twice on the same minimal prompt is not
+      // going to be talked round by a third identical attempt, and the household is
+      // waiting. Rejected content is never repaired and never cached — see
+      // instructionsValidation.ts.
+      let steps: string[] | undefined;
+      let lastFailure: string | undefined;
+
+      for (let attempt = 0; attempt < 2 && steps === undefined; attempt++) {
+        const generated = await generateInstructions(anthropicClient, promptInput);
+        if (!generated.ok) {
+          lastFailure = generated.reason;
+          // A transport failure is not something a retry with identical input fixes
+          // inside the household's patience budget — the retry exists for rejected
+          // *content*, so stop here and let the screen offer "Försök igen".
+          break;
+        }
+
+        const validation = validateGeneratedInstructions(
+          ingredientLexicon(),
+          generated.steps,
+          allowedIngredientIds,
+        );
+        if (validation.ok) {
+          steps = generated.steps;
+          break;
+        }
+
+        lastFailure = "validation_failed";
+        console.warn(
+          `[instructions] rejected generation for template "${template.id}" (attempt ${attempt + 1}): ` +
+            `${validation.rejection.kind} — ${validation.rejection.mentions.join(", ")}`,
+        );
+      }
+
+      if (steps === undefined) {
+        res.status(200).json({ instructions: null, reason: lastFailure } satisfies InstructionsResponseBody);
         return;
       }
 
       // Cache before responding: the next identical request (this or another
-      // household) should hit the cache, not regenerate. A write race is handled by
-      // the table's own `on conflict do nothing` (recipeInstructions.ts), not here.
-      await insertCachedInstructions(sql, template.id, substitutionKey, generated.steps);
+      // household) should hit the cache, not regenerate. Reached only for a result
+      // that passed validation, so the cache never holds content that would be
+      // rejected if it were generated again — and the write replaces any row the
+      // check above discarded.
+      await insertCachedInstructions(sql, template.id, substitutionKey, steps);
 
-      res.status(200).json({ instructions: generated.steps } satisfies InstructionsResponseBody);
+      res.status(200).json({ instructions: steps } satisfies InstructionsResponseBody);
     } catch (error) {
       next(error);
     }

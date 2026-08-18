@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  ApiError,
-  fetchInstructions,
-  type IngredientAlternative,
-  type TonightIngredient,
-  type TonightResult,
-} from "./api";
+import type { IngredientAlternative, TonightIngredient, TonightResult } from "./api";
 import {
   clearShoppingList,
   freshShoppingList,
@@ -94,79 +88,6 @@ function AllergenMarks({ allergens }: { allergens: ShoppingListItem["allergens"]
   );
 }
 
-// Rendered below the shopping list, fetched once when the shopping list screen
-// opens — not on the Tonight card, and independent of the shopping list's own
-// (localStorage-backed) state, so a slow or failed generation never blocks checking
-// items off the list.
-type InstructionsState =
-  | { status: "loading" }
-  | { status: "ready"; steps: string[] }
-  | { status: "failed"; reason?: string };
-
-function Instructions({
-  accessToken,
-  templateId,
-  substitutions,
-}: {
-  accessToken: string;
-  templateId: string;
-  substitutions: TonightResult["substitutions"];
-}) {
-  const [state, setState] = useState<InstructionsState>({ status: "loading" });
-  // Bumped by the retry button to re-run the effect below without duplicating its
-  // fetch/cancellation logic in a second callback.
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    setState({ status: "loading" });
-
-    fetchInstructions(accessToken, templateId, substitutions)
-      .then((response) => {
-        if (cancelled) return;
-        if (response.instructions) {
-          setState({ status: "ready", steps: response.instructions });
-        } else {
-          setState({ status: "failed", reason: response.reason });
-        }
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setState({ status: "failed", reason: err instanceof ApiError ? err.message : String(err) });
-      });
-
-    // Guards against setting state after the shopping list screen has already been
-    // left (e.g. "Ny förslag" tapped mid-generation) — a slow response must not
-    // resurrect a component that's gone.
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken, templateId, attempt]);
-
-  return (
-    <section className="card">
-      <h3>Så här gör du</h3>
-      {state.status === "loading" && <p className="muted">Skapar instruktioner…</p>}
-      {state.status === "ready" && (
-        <ol>
-          {state.steps.map((step, index) => (
-            <li key={index}>{step}</li>
-          ))}
-        </ol>
-      )}
-      {state.status === "failed" && (
-        <div>
-          <p>Det gick inte att skapa instruktioner just nu.</p>
-          <Button type="button" variant="secondary" onClick={() => setAttempt((n) => n + 1)}>
-            Försök igen
-          </Button>
-        </div>
-      )}
-    </section>
-  );
-}
-
 /**
  * What the shopping list needs from a chosen meal, which is less than a full
  * `TonightResult`: a name to head the list, ingredients to check off, and the
@@ -187,6 +108,7 @@ export function ShoppingList({
   accessToken,
   onNewSuggestion,
   newSuggestionLabel = "Ny förslag",
+  onCook,
 }: {
   result: ShoppingListMeal;
   /**
@@ -208,6 +130,12 @@ export function ShoppingList({
   accessToken: string;
   onNewSuggestion: () => void;
   newSuggestionLabel?: string;
+  /**
+   * Opens the cook screen for this dish (#154). Omitted on a list resumed from
+   * storage with no ingredients to cook from, in which case the button is left off
+   * rather than leading to an empty screen.
+   */
+  onCook?: () => void;
 }) {
   const [items, setItems] = useState<ShoppingListItem[]>(() => {
     const stored = loadShoppingList(result.template.id);
@@ -369,9 +297,20 @@ export function ShoppingList({
         </ul>
       </section>
 
-      <Instructions accessToken={accessToken} templateId={result.template.id} substitutions={result.substitutions} />
+      {/* Cooking is what the list is *for*, so it takes the primary slot and
+          "Ny förslag" steps down to secondary (#154). The instructions themselves
+          no longer live on this screen at all — one surface owns them. */}
+      {onCook && (
+        <Button type="button" variant="primary" onClick={onCook}>
+          Börja laga
+        </Button>
+      )}
 
-      <Button type="button" variant="primary" onClick={handleNewSuggestion}>
+      <Button
+        type="button"
+        variant={onCook ? "secondary" : "primary"}
+        onClick={handleNewSuggestion}
+      >
         {newSuggestionLabel}
       </Button>
 
@@ -395,9 +334,8 @@ export function ShoppingList({
  * Rendered when the app opens with no connection and `fetchTonight` never
  * reached the server at all (App.tsx's Gate) — the offline case UX_FLOW §7
  * asks for. Deliberately not `ShoppingList` above: there is no fetched
- * `TonightResult` to read a dish name, cost tier or instructions from when
- * offline, only what `shoppingListStorage.ts` persisted — a name and
- * instructions fetch, so this renders just the checklist itself.
+ * `TonightResult` to read a dish name or cost tier from when offline, only what
+ * `shoppingListStorage.ts` persisted, so this renders just the checklist itself.
  */
 export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
   const [items, setItems] = useState<ShoppingListItem[]>(list.items);

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { BrowserRouter, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { BrowserRouter, Outlet, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 import {
@@ -33,6 +33,8 @@ import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { GuidedFlow } from "./GuidedFlow";
 import { OfflineShoppingList, ShoppingList, type ShoppingListMeal } from "./ShoppingList";
 import { loadAnyShoppingList, type StoredShoppingList } from "./shoppingListStorage";
+import { CookScreen, CookScreenEmpty, type CookMeal } from "./CookScreen";
+import { loadLatestCookRecord, substitutionKey } from "./instructionsStorage";
 import { authErrorMessage, GENERIC_AUTH_ERROR } from "./authErrors";
 import { setAnalyticsSink, track } from "./analytics";
 import { createHttpAnalyticsSink } from "./analyticsSink";
@@ -1292,6 +1294,11 @@ function ListaRoute({ accessToken }: { accessToken: string }) {
         diners={accepted.diners}
         accessToken={accessToken}
         onNewSuggestion={() => navigate("/")}
+        onCook={() =>
+          navigate(`/laga/${accepted.result.template.id}`, {
+            state: cookMealFromResult(accepted),
+          })
+        }
       />
     );
   }
@@ -1302,6 +1309,7 @@ function ListaRoute({ accessToken }: { accessToken: string }) {
         result={resumedShoppingListMeal(stored)}
         accessToken={accessToken}
         onNewSuggestion={() => navigate("/")}
+        onCook={() => navigate(`/laga/${stored.templateId}`)}
       />
     );
   }
@@ -1313,6 +1321,156 @@ function ListaRoute({ accessToken }: { accessToken: string }) {
       title="Ingen middag vald ännu"
       body="Välj kvällens middag så delar vi upp listan i vad du redan har hemma och vad du behöver handla."
       action={{ label: "Se förslag för ikväll", onClick: () => navigate("/") }}
+    />
+  );
+}
+
+/**
+ * The cook screen's view of an accepted suggestion (#154). Every field is curated
+ * or engine-computed — `prep_time_band` straight off the template, amounts already
+ * scaled server-side — so nothing the model writes can reach the metadata row.
+ */
+function cookMealFromResult(accepted: AcceptedListingState): CookMeal {
+  return {
+    templateId: accepted.result.template.id,
+    name: accepted.result.template.name,
+    prepTimeBand: accepted.result.template.prep_time_band,
+    portions: accepted.portions,
+    ingredients: accepted.result.ingredients.map((ingredient) => ({
+      name: ingredient.name,
+      quantity: ingredient.quantity,
+    })),
+    substitutions: accepted.result.substitutions,
+  };
+}
+
+/**
+ * Rebuilds the dish for a `/laga/:id` opened without navigation state — a reload, a
+ * bookmark, or an app started with no connection at all.
+ *
+ * The cook record is tried first because it is the only source that survives with no
+ * shopping list on the device, and it carries the curated prep-time band. A stored
+ * shopping list is the fallback; it has no band, and the metadata row omits the time
+ * rather than estimating one from anywhere else.
+ */
+function resumeCookMeal(templateId: string): CookMeal | null {
+  const record = loadLatestCookRecord(templateId);
+  const stored = loadAnyShoppingList();
+
+  // The shopping list wins whenever it is about this dish: it is the plan currently
+  // in hand, with the amounts and swaps the household most recently asked for. A
+  // cook record can be older — cook a dish for two, plan the same dish for five a
+  // week later, and the record still holds the two-portion amounts.
+  if (stored && stored.templateId === templateId) {
+    const substitutions = stored.substitutions ?? [];
+    // The band is the one thing the shopping list never stored, so it is borrowed
+    // from the record — but only when the record describes this same substitution
+    // set, since a different swap is a different dish.
+    const sameDish = record?.substitutionKey === substitutionKey(substitutions);
+    return {
+      templateId,
+      name: stored.templateName ?? record?.name ?? "Middagen",
+      prepTimeBand: sameDish ? record?.prepTimeBand : undefined,
+      portions: sameDish ? record?.portions : undefined,
+      ingredients: stored.items.map((item) => ({ name: item.name, quantity: item.quantity })),
+      substitutions,
+    };
+  }
+
+  if (record) {
+    return {
+      templateId: record.templateId,
+      name: record.name,
+      prepTimeBand: record.prepTimeBand,
+      portions: record.portions,
+      ingredients: record.ingredients,
+      substitutions: record.substitutions,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * What the app shows when `fetchTonight` never reached the server at all.
+ *
+ * Route-aware, because "offline" is not one screen: a household that opened
+ * `/laga/:id` is standing in a kitchen with the hob on, and bouncing them to the
+ * shopping list because the network is down would be the app losing their place at
+ * the worst possible moment (#154). The cook screen is rendered whenever the route
+ * asks for it and the device can still describe the dish — with instructions from
+ * `instructionsStorage` if they were fetched once before, and an honest "no
+ * connection" under the ingredients if they were not.
+ *
+ * Every other route keeps #93/#137's behaviour unchanged: the saved shopping list if
+ * there is one, otherwise the offline state screen.
+ */
+function OfflineFallback({
+  list,
+  accessToken,
+  onRetry,
+}: {
+  list: StoredShoppingList | null;
+  accessToken: string;
+  onRetry: () => void;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const cookMatch = /^\/laga\/(.+)$/.exec(location.pathname);
+  // Derived from the current path, not frozen at mount: while offline this component
+  // stands in for the whole router, so "Till inköpslistan" and "← Ikväll" change the
+  // pathname and nothing else — a memoised-at-mount meal would leave the cook screen
+  // on display after the household asked to leave it.
+  const meal = useMemo(
+    () => (cookMatch ? resumeCookMeal(cookMatch[1]!) : null),
+    [cookMatch?.[1]],
+  );
+
+  if (meal) {
+    return (
+      <CookScreen
+        meal={meal}
+        accessToken={accessToken}
+        onBack={() => navigate("/")}
+        onShoppingList={() => navigate("/lista")}
+      />
+    );
+  }
+
+  if (list) return <OfflineShoppingList list={list} />;
+
+  return (
+    <StateScreen
+      variant="solid"
+      role="status"
+      title="Ingen anslutning"
+      body="Anslut till internet för att komma igång."
+      action={{ label: "Försök igen", onClick: onRetry }}
+    />
+  );
+}
+
+/** `/laga/:id` (#154) — the cook screen. */
+function LagaRoute({ accessToken }: { accessToken: string }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const passed = location.state as CookMeal | null;
+
+  // Resolved once, on mount: re-resolving on every render would re-read storage
+  // mid-cook and could swap the dish out from under an active step.
+  const [meal] = useState(() => (passed ?? (id ? resumeCookMeal(id) : null)));
+
+  if (!meal || meal.templateId !== id) {
+    return <CookScreenEmpty onBack={() => navigate("/")} />;
+  }
+
+  return (
+    <CookScreen
+      meal={meal}
+      accessToken={accessToken}
+      onBack={() => navigate("/")}
+      onShoppingList={() => navigate("/lista")}
     />
   );
 }
@@ -1648,6 +1806,11 @@ function toGateState(error: unknown): GateState {
 function Gate({ session }: { session: Session }) {
   const [state, setState] = useState<GateState>({ status: "checking" });
   const navigate = useNavigate();
+  // Read through a ref inside the fetch callback: the redirect decision belongs to
+  // the route the app was opened on, and adding `location` to the effect's
+  // dependencies would re-run the whole Tonight fetch on every navigation.
+  const location = useLocation();
+  const pathnameRef = useRef(location.pathname);
 
   // Installs the real transport (issue #91) — analytics.ts's default sink just logs
   // in dev otherwise. Owned by Gate rather than by TonightView because switching to
@@ -1684,7 +1847,12 @@ function Gate({ session }: { session: Session }) {
         // the guided flow the way this used to work for a non-matching list
         // (#137, DECISION_LOG 2026-08-15). `replace` so this redirect doesn't leave
         // a phantom "/" the household never actually saw in the back-button history.
-        if (loadAnyShoppingList()) {
+        //
+        // Only from "/", which is the route this replaces. Any other path was asked
+        // for explicitly — a reload on `/laga/:id` mid-cook, a bookmark, the back
+        // button — and redirecting away from it would take the household somewhere
+        // they did not ask to go, in the middle of cooking (#154).
+        if (pathnameRef.current === "/" && loadAnyShoppingList()) {
           navigate("/lista", { replace: true });
         }
         setState({ status: "ready", data });
@@ -1767,14 +1935,11 @@ function Gate({ session }: { session: Session }) {
             reference={state.code}
           />
         )}
-        {state.status === "offline" && state.list && <OfflineShoppingList list={state.list} />}
-        {state.status === "offline" && !state.list && (
-          <StateScreen
-            variant="solid"
-            role="status"
-            title="Ingen anslutning"
-            body="Anslut till internet för att komma igång."
-            action={{ label: "Försök igen", onClick: () => setRetryCount((n) => n + 1) }}
+        {state.status === "offline" && (
+          <OfflineFallback
+            list={state.list}
+            accessToken={session.access_token}
+            onRetry={() => setRetryCount((n) => n + 1)}
           />
         )}
         {state.status === "no_household" && (
@@ -1792,6 +1957,7 @@ function Gate({ session }: { session: Session }) {
         <Route path="/" element={<TonightView data={state.data} accessToken={accessToken} />} />
         <Route path="/bygg" element={<BuildRoute accessToken={accessToken} />} />
         <Route path="/lista" element={<ListaRoute accessToken={accessToken} />} />
+        <Route path="/laga/:id" element={<LagaRoute accessToken={accessToken} />} />
         <Route
           path="/profil"
           element={

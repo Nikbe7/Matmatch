@@ -14,6 +14,7 @@ import {
 import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "../../engine/__fixtures__/engineData.js";
 import type { EngineData } from "../../engine/data.js";
 import { createApp } from "../app.js";
+import { buildSubstitutionKey, insertCachedInstructions } from "../../db/recipeInstructions.js";
 
 // Integration tests against the real local Supabase stack, mirroring app.test.ts's
 // pattern — real DB, real auth, but a mocked Anthropic client so the suite never
@@ -71,6 +72,19 @@ function buildFixture(): { engineData: EngineData; templateId: string } {
 }
 
 const validSteps = ["Steg 1.", "Steg 2.", "Steg 3.", "Steg 4.", "Steg 5.", "Steg 6."];
+
+// The fixture template holds kyckling + morot; tofu is in the catalog but not in the
+// template, which makes it exactly the "ingredient the model invented" case (#154).
+const cleanSteps = [
+  "Skär kycklingen i bitar.",
+  "Skala och tärna moroten.",
+  "Hetta upp en stekpanna.",
+  "Bryn kycklingen på hög värme.",
+  "Tillsätt moroten och fräs kort.",
+  "Låt allt sjuda tills kycklingen är genomstekt.",
+];
+const foreignSteps = [...cleanSteps.slice(0, 5), "Rör ner tofu och låt det bli varmt."];
+const quantitySteps = [...cleanSteps.slice(0, 5), "Tillsätt 300 g morot och rör om."];
 
 function textResponse(steps: string[]) {
   return { content: [{ type: "text", text: JSON.stringify({ steps }) }] } as never;
@@ -189,6 +203,28 @@ describe.skipIf(!stackAvailable)("POST /api/instructions", () => {
       expect(create).toHaveBeenCalledTimes(1);
     });
 
+    it("does not cache — and so regenerates — a result that failed validation", async () => {
+      const { engineData, templateId } = buildFixture();
+      const create = vi
+        .fn()
+        .mockResolvedValueOnce(textResponse(foreignSteps))
+        .mockResolvedValueOnce(textResponse(foreignSteps))
+        .mockResolvedValue(textResponse(cleanSteps));
+      const app = buildApp(engineData, { messages: { create } });
+      const user = await createTestUser();
+      const body = { templateId, substitutions: [] };
+
+      const rejected = await request(app).post("/api/instructions").set(authHeader(user.accessToken)).send(body);
+      expect(rejected.body.instructions).toBeNull();
+      expect(create).toHaveBeenCalledTimes(2);
+
+      // Nothing was written, so the next request is still a miss and reaches the AI
+      // again — the cache must never hold content the validator rejected.
+      const retried = await request(app).post("/api/instructions").set(authHeader(user.accessToken)).send(body);
+      expect(retried.body.instructions).toEqual(cleanSteps);
+      expect(create).toHaveBeenCalledTimes(3);
+    });
+
     it("makes a fresh AI call for a different substitution set on the same template", async () => {
       const { engineData, templateId } = buildFixture();
       const create = vi.fn().mockResolvedValue(textResponse(validSteps));
@@ -212,6 +248,122 @@ describe.skipIf(!stackAvailable)("POST /api/instructions", () => {
       expect(swapped.status).toBe(200);
       // Different substitution set → different cache key → a second real call.
       expect(create).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // The deterministic gate between the model and the household (#154). The unit
+  // coverage for *what* counts as a violation lives in ai/instructionsValidation.test.ts;
+  // what these prove is the route's contract around it — one retry, no caching of
+  // rejected content, and a 200 with a null result rather than a 5xx.
+  describe("validation", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it("regenerates once when the first result names an ingredient outside the template", async () => {
+      const { engineData, templateId } = buildFixture();
+      const create = vi
+        .fn()
+        .mockResolvedValueOnce(textResponse(foreignSteps))
+        .mockResolvedValueOnce(textResponse(cleanSteps));
+      const app = buildApp(engineData, { messages: { create } });
+      const user = await createTestUser();
+
+      const response = await request(app)
+        .post("/api/instructions")
+        .set(authHeader(user.accessToken))
+        .send({ templateId, substitutions: [] });
+
+      expect(response.status).toBe(200);
+      expect(response.body.instructions).toEqual(cleanSteps);
+      expect(create).toHaveBeenCalledTimes(2);
+    });
+
+    it("gives up after the second rejection rather than retrying forever", async () => {
+      const { engineData, templateId } = buildFixture();
+      const create = vi.fn().mockResolvedValue(textResponse(foreignSteps));
+      const app = buildApp(engineData, { messages: { create } });
+      const user = await createTestUser();
+
+      const response = await request(app)
+        .post("/api/instructions")
+        .set(authHeader(user.accessToken))
+        .send({ templateId, substitutions: [] });
+
+      expect(response.status).toBe(200);
+      expect(response.body.instructions).toBeNull();
+      expect(response.body.reason).toBe("validation_failed");
+      expect(create).toHaveBeenCalledTimes(2);
+    });
+
+    it("rejects a model-written amount the same way — no number reaches the screen", async () => {
+      const { engineData, templateId } = buildFixture();
+      const create = vi.fn().mockResolvedValue(textResponse(quantitySteps));
+      const app = buildApp(engineData, { messages: { create } });
+      const user = await createTestUser();
+
+      const response = await request(app)
+        .post("/api/instructions")
+        .set(authHeader(user.accessToken))
+        .send({ templateId, substitutions: [] });
+
+      expect(response.body.instructions).toBeNull();
+      expect(response.body.reason).toBe("validation_failed");
+    });
+
+    it("does not serve a cached row that fails validation — it regenerates and replaces it", async () => {
+      const { engineData, templateId } = buildFixture();
+      const create = vi.fn().mockResolvedValue(textResponse(cleanSteps));
+      const app = buildApp(engineData, { messages: { create } });
+      const user = await createTestUser();
+
+      // A row as it could have been written before this validator existed: the cache
+      // table predates #154 and its key carries no validator version, so a hit is
+      // scanned like anything else rather than trusted.
+      await insertCachedInstructions(sql!, templateId, buildSubstitutionKey([]), foreignSteps);
+
+      const response = await request(app)
+        .post("/api/instructions")
+        .set(authHeader(user.accessToken))
+        .send({ templateId, substitutions: [] });
+
+      expect(response.body.instructions).toEqual(cleanSteps);
+      expect(create).toHaveBeenCalledTimes(1);
+
+      // Replaced, not merely bypassed — otherwise every later request would discard
+      // and regenerate the same bad row forever.
+      const second = await request(app)
+        .post("/api/instructions")
+        .set(authHeader(user.accessToken))
+        .send({ templateId, substitutions: [] });
+      expect(second.body.instructions).toEqual(cleanSteps);
+      expect(create).toHaveBeenCalledTimes(1);
+    });
+
+    it("accepts an ingredient the request substituted in, not just the template's own", async () => {
+      const { engineData, templateId } = buildFixture();
+      // Slot 0 swapped kyckling → tofu, so a step naming tofu is now correct and a
+      // step naming kyckling is the foreign one. The allow-list has to follow the
+      // substitution, or every swapped dish would fail to generate.
+      const tofuSteps = [
+        "Skala och tärna moroten.",
+        "Skär tofun i tärningar.",
+        "Hetta upp en stekpanna.",
+        "Stek tofun tills den fått färg.",
+        "Tillsätt moroten och fräs kort.",
+        "Låt allt sjuda några minuter.",
+      ];
+      const create = vi.fn().mockResolvedValue(textResponse(tofuSteps));
+      const app = buildApp(engineData, { messages: { create } });
+      const user = await createTestUser();
+
+      const response = await request(app)
+        .post("/api/instructions")
+        .set(authHeader(user.accessToken))
+        .send({ templateId, substitutions: [{ slot_index: 0, substitute_ingredient_id: "tofu" }] });
+
+      expect(response.body.instructions).toEqual(tofuSteps);
+      expect(create).toHaveBeenCalledTimes(1);
     });
   });
 });
