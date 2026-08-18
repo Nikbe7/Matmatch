@@ -1471,3 +1471,156 @@ select.input {
   color: var(--color-accent);
   font-weight: 600;
 }
+
+/* ---------------------------------------------------------------------------
+   Cook screen (#154)
+
+   Sized for one hand in a kitchen, at arm's length, with something on the stove.
+   The active step is the only thing on the screen competing for attention: it
+   gets the surface, the full text colour and a larger size, while every other
+   step recedes to muted text on the page background. No imagery, no timeline, no
+   decoration — the reference's restraint is the design, not a placeholder for it.
+   --------------------------------------------------------------------------- */
+
+.cook__back {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.cook__title {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-display);
+}
+
+.cook__meta {
+  margin: var(--space-3) 0 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+
+.cook__meta-separator {
+  color: var(--color-border);
+}
+
+.cook__ingredients {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+/* The list is present without competing: one tap folds it away, and the summary
+   itself is a full-height touch target rather than a 16px triangle. */
+.cook__ingredients-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--touch-target);
+  cursor: pointer;
+  list-style: none;
+}
+
+.cook__ingredients-summary::-webkit-details-marker {
+  display: none;
+}
+
+.cook__ingredients-count {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.cook__ingredient-list {
+  margin: var(--space-2) 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.cook__ingredient-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+}
+
+.cook__ingredient-name {
+  overflow-wrap: anywhere;
+}
+
+.cook__section {
+  margin-top: var(--space-6);
+}
+
+.cook__steps {
+  margin: var(--space-4) 0 var(--space-5);
+  padding: 0;
+  list-style: none;
+}
+
+.cook__step + .cook__step {
+  margin-top: var(--space-2);
+}
+
+.cook__step-button {
+  display: flex;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Generous leading and a step up in size, because this is the line being read
+   from across a counter. */
+.cook__step--active .cook__step-button {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+  line-height: 1.5;
+}
+
+.cook__step--done .cook__step-text {
+  text-decoration: line-through;
+}
+
+.cook__step-number {
+  flex: 0 0 auto;
+  width: 1.5rem;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.cook__step-text {
+  overflow-wrap: anywhere;
+}
+
+.cook__error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}

@@ -4,6 +4,11 @@ import type { Cuisine, IngredientSlotRole, PrepTimeBand } from "../schema/recipe
 // place (CLAUDE.md, "keep the prompt in one module as a template string"). Nothing
 // else in src/ai/ builds prompt text.
 //
+// The two rules that carry real consequence — only these ingredients, and no
+// amounts — are also enforced deterministically after generation
+// (instructionsValidation.ts, #154). Asking for them here is what makes the
+// enforcement rarely fire; it is not what makes it safe.
+//
 // Deliberately excluded from the input, per issue #78 and ARCHITECTURE.md §4.2's
 // "minimal context per call": the ingredient catalog (only the resolved Swedish
 // names + roles for *this* dish), household data (allergies, dietary flags,
@@ -47,7 +52,8 @@ Skriv 6–10 korta steg som beskriver hur rätten lagas till, i ordning.
 
 Regler:
 - Svenska, korta meningar, ett steg per handling.
-- Inga mängder eller vikter (ingredienslistan har inga mängder — hitta inte på några).
+- Använd enbart ingredienserna ovan. Nämn aldrig en ingrediens som inte står i listan — inte heller grädde, ost, nötter, buljong eller något annat du tycker skulle passa.
+- Inga mängder eller vikter (ingredienslistan har inga mängder — hitta inte på några). Skriv "tillsätt grädden", aldrig "tillsätt 2 dl grädde".
 - Inga prisuppgifter eller kronbelopp.
 - Tider och temperaturer är tillåtna när tillagningstiden ovan stöder det (t.ex. "stek tills den fått färg" eller "grädda i ugnen på 200 grader" är bägge okej).
 - Räkna inte upp ingredienserna på nytt, ge inga serveringsförslag, ingen näringsinformation och inga extra tips.

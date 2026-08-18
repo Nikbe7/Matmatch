@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OfflineShoppingList, ShoppingList } from "./ShoppingList";
@@ -461,55 +461,59 @@ describe("ShoppingList", () => {
     });
   });
 
-  describe("instructions", () => {
-    it("renders instructions when the fetch returns them, without blocking the shopping list", async () => {
-      const fetchMock = mockFetch();
-      let resolveFetch!: (response: Response) => void;
-      fetchMock.mockImplementation(
-        () => new Promise<Response>((resolve) => { resolveFetch = resolve; }),
+  describe("cooking", () => {
+    it("makes 'Börja laga' the primary action and steps 'Ny förslag' down", () => {
+      const onCook = vi.fn();
+      render(
+        <ShoppingList
+          result={result()}
+          portions={2}
+          accessToken="tok"
+          onNewSuggestion={vi.fn()}
+          onCook={onCook}
+        />,
       );
-      const user = userEvent.setup();
-      render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
-      // Loading state, and the list itself is fully interactive while it's showing.
-      expect(screen.getByText("Skapar instruktioner…")).toBeTruthy();
-      const row = screen.getByText("Kyckling").closest("li")!;
-      await user.click(within(row).getByRole("button", { name: "Har hemma" }));
-      expect(screen.getByRole("heading", { name: "Har hemma (1)" })).toBeTruthy();
-
-      await act(async () => {
-        resolveFetch(jsonResponse({ instructions: ["Skär kycklingen.", "Stek i panna.", "Servera."] }));
-      });
-
-      await waitFor(() => expect(screen.queryByText("Skapar instruktioner…")).toBeNull());
-      expect(screen.getByText("Skär kycklingen.")).toBeTruthy();
-      expect(screen.getByText("Stek i panna.")).toBeTruthy();
-      expect(screen.getByText("Servera.")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Börja laga" }).className).toContain("btn-primary");
+      expect(screen.getByRole("button", { name: "Ny förslag" }).className).toContain("btn-secondary");
     });
 
-    it("renders the failure message and a retry control when instructions can't be generated", async () => {
-      const fetchMock = mockFetch();
-      fetchMock.mockResolvedValue(jsonResponse({ instructions: null, reason: "timeout" }));
-      render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
-
-      await waitFor(() =>
-        expect(screen.getByText("Det gick inte att skapa instruktioner just nu.")).toBeTruthy(),
+    it("opens the cook screen", async () => {
+      const onCook = vi.fn();
+      render(
+        <ShoppingList
+          result={result()}
+          portions={2}
+          accessToken="tok"
+          onNewSuggestion={vi.fn()}
+          onCook={onCook}
+        />,
       );
-      const retryButton = screen.getByRole("button", { name: "Försök igen" });
-      expect(retryButton).toBeTruthy();
 
-      // The shopping list stays interactive throughout the failure state too.
-      const user = userEvent.setup();
-      const checkbox = screen
-        .getByText("Kyckling")
-        .closest("li")!
-        .querySelector('input[type="checkbox"]') as HTMLInputElement;
-      await user.click(checkbox);
-      expect(checkbox.checked).toBe(true);
+      await userEvent.click(screen.getByRole("button", { name: "Börja laga" }));
+      expect(onCook).toHaveBeenCalled();
+    });
 
-      fetchMock.mockClear();
-      await user.click(retryButton);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+    it("omits the button, and keeps 'Ny förslag' primary, when there is nothing to cook", () => {
+      render(
+        <ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />,
+      );
+
+      expect(screen.queryByRole("button", { name: "Börja laga" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Ny förslag" }).className).toContain("btn-primary");
+    });
+
+    // The instructions moved to /laga/:id (#154) — one surface owns them, and this
+    // screen must not quietly grow a second copy back.
+    it("does not render instructions itself", () => {
+      const fetchMock = mockFetch();
+      render(
+        <ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />,
+      );
+
+      expect(screen.queryByText("Skapar instruktioner…")).toBeNull();
+      expect(screen.queryByText("Så här gör du")).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 

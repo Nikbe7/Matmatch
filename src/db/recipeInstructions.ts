@@ -41,10 +41,14 @@ export async function getCachedInstructions(
 }
 
 /**
- * Writes a freshly generated result to the cache. `on conflict ... do nothing`
- * because two concurrent requests for the same never-before-cached key can both miss
- * and both generate — the second write should be a silent no-op, not an error, since
- * the first writer's row is just as valid a cache entry.
+ * Writes a freshly generated result to the cache.
+ *
+ * An upsert rather than `on conflict do nothing`: two concurrent requests for the
+ * same never-before-cached key can both miss and both generate, and either result is
+ * an equally valid entry, so a collision must never be an error. It became a
+ * *replace* with #154, because the route now also regenerates when a cached row
+ * fails validation — under `do nothing` that row would be rewritten as itself and
+ * every later request would discard and regenerate it again, forever.
  */
 export async function insertCachedInstructions(
   sql: Sql,
@@ -55,6 +59,6 @@ export async function insertCachedInstructions(
   await sql`
     insert into recipe_instructions (template_id, substitution_key, steps)
     values (${templateId}, ${[...substitutionKey]}::text[], ${sql.json([...steps])})
-    on conflict (template_id, substitution_key) do nothing
+    on conflict (template_id, substitution_key) do update set steps = excluded.steps
   `;
 }

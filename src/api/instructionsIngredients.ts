@@ -67,3 +67,27 @@ export function buildEffectiveIngredients(
     return { role: slot.role, name: ingredient.name };
   });
 }
+
+/**
+ * The ingredient ids a template actually resolves to under `substitutions` — the
+ * allow-list the generated steps are validated against (#154).
+ *
+ * Derived from the same slot walk as `buildEffectiveIngredients`, deliberately: if
+ * the two ever disagreed, the model would be shown one ingredient set and judged
+ * against another, and every generation would fail. Call only after
+ * `validateSubstitutionRefs` has passed, for the same reason.
+ */
+export function effectiveIngredientIds(
+  template: RecipeTemplate,
+  substitutions: readonly SubstitutionRef[],
+): Set<string> {
+  const substituteBySlotIndex = new Map(
+    substitutions.map((substitution) => [substitution.slot_index, substitution.substitute_ingredient_id]),
+  );
+
+  return new Set(
+    template.ingredient_slots.map(
+      (slot, index) => substituteBySlotIndex.get(index) ?? slot.ingredient_id,
+    ),
+  );
+}
