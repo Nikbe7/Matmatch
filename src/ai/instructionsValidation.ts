@@ -10,12 +10,18 @@ import { QuantityUnitSchema } from "../schema/recipeTemplate.js";
 //   2. No step may state an amount — amounts are curated data rendered by the
 //      Meal Engine into the ingredient card, never model output.
 //
-// This is the allergy protection on this surface, and per CLAUDE.md it is not the
-// model's responsibility: the prompt asks for the same two things, but a prompt is
-// a request and this is the guarantee. On a violation the route regenerates once
-// and then fails — it never "cleans up" a step, because a step that had to be
-// repaired is a step whose remaining words were not written under the constraint
-// either.
+// Per CLAUDE.md neither check is the model's responsibility: the prompt asks for the
+// same two things, but a prompt is a request and this is the guarantee. On a
+// violation the route regenerates once and then fails — it never "cleans up" a step,
+// because a step that had to be repaired is a step whose remaining words were not
+// written under the constraint either.
+//
+// What this is NOT: the allergy protection. Allergens are kept out of a dish by the
+// deterministic filter at template selection, ahead of the AI layer entirely
+// (ARCHITECTURE.md §4.3) — a dish that reaches this file has already been cleared.
+// This is a second layer over the *text*, and for generic words outside
+// ALLERGEN_HEAD_NOUNS it is fail-open by design (see that constant). Never treat a
+// pass here as evidence that a meal is safe for a household.
 //
 // What this deliberately does NOT do is decompose Swedish compounds. "Såsen" and
 // "grädden" are head nouns, not catalog entries, and treating every shared word
