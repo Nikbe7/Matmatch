@@ -13,32 +13,48 @@ import type { SessionWeights, TonightResponse } from "./api";
 // filling a gap.
 
 /**
- * The weight a "Billigare"/"Snabbare" chip carries at each of its levels — level 0
- * is off. Two active levels, not five: `cost_tier` and `prep_time_band` each have
- * three values, so the only ranking-relevant weight thresholds are "beats one
- * familiarity step" and "beats the largest possible familiarity gap (two steps)".
+ * Where a "Billigare"/"Snabbare" chip puts its axis at each of its levels — level 0 is
+ * off.
  *
- * Level 1 = 1: the smallest expressed preference, calibrated to lose to a single
- * `FAMILIARITY_STEP_WEIGHT` step (`src/engine/ranking.ts`, currently 1.5) — a
- * household that taps once is nudging the order, not overriding it.
+ * Expressed in SLIDER NOTCHES (0–100, step 5) since #157, not in raw engine weights.
+ * That is the whole point of the change: the chip and the household's persistent Pris
+ * slider now move the same axis in the same units, and the server combines the two
+ * (`combinePreferenceWeights`) instead of holding two ideas of what "cheaper" means.
+ * A tap is a delta on top of the baseline, so a household that has already dragged Pris
+ * up gets the chip's nudge *added* to what it already asked for, which is what "chips
+ * stay the fast path, sliders are the baseline" means in arithmetic.
  *
- * Level 2 = 3, i.e. `FAMILIARITY_STEP_WEIGHT * 2`: enough to beat even the largest
- * familiarity gap (adventurous vs. everyday, two steps), so the expressed
- * preference dominates. Not imported from `src/engine/ranking.ts` — that module's
- * type-only imports pull in `src/engine/data.ts`'s `node:fs`/`node:url` usage
- * through `tsc -b`'s type graph, which `web/`'s browser tsconfig (no `node` types)
- * cannot resolve. If `FAMILIARITY_STEP_WEIGHT` is ever re-derived, re-derive this
- * literal (`FAMILIARITY_STEP_WEIGHT * 2`) alongside it — do not let it drift stale.
+ * Two active levels, not five: `cost_tier` and `prep_time_band` each have three values,
+ * so the only ranking-relevant thresholds are "beats one familiarity step" and "beats
+ * the largest possible familiarity gap (two steps)".
  *
- * Levels 4 and 5 of the old five-level scale produced no observable change in
- * ranking order — see DECISION_LOG 2026-08-05 — so this is the full range now.
+ * Level 1 = 35 notches → engine weight 1.05 (35/100 * MAX_AXIS_RANKING_WEIGHT, which is
+ * 3 in `src/engine/ranking.ts`). The smallest expressed preference, still calibrated to
+ * lose to a single `NEUTRAL_FAMILIARITY_STEP_WEIGHT` step (1.5) — a household that taps
+ * once is nudging the order, not overriding it. It was exactly 1.0 before #157; 35 is
+ * the nearest notch on the step-5 grid, and `src/engine/preferenceWeights.test.ts`
+ * asserts the 1.00 → 1.05 shift produces an identical ranking over the entire template
+ * library, so this is a change of units and not of behaviour.
+ *
+ * Level 2 = 100 notches → engine weight 3, unchanged and exactly
+ * `NEUTRAL_FAMILIARITY_STEP_WEIGHT * 2`: enough to beat even the largest familiarity gap
+ * (adventurous vs. everyday, two steps), so the expressed preference dominates.
+ *
+ * Not imported from `src/engine/ranking.ts` — that module's type-only imports pull in
+ * `src/engine/data.ts`'s `node:fs`/`node:url` usage through `tsc -b`'s type graph, which
+ * `web/`'s browser tsconfig (no `node` types) cannot resolve. If
+ * `NEUTRAL_FAMILIARITY_STEP_WEIGHT` or `MAX_AXIS_RANKING_WEIGHT` is ever re-derived,
+ * re-derive these literals alongside them — do not let them drift stale.
+ *
+ * Levels 4 and 5 of the old five-level scale produced no observable change in ranking
+ * order — see DECISION_LOG 2026-08-05 — so this is the full range now.
  */
-export const WEIGHT_LEVELS = [0, 1, 3] as const;
+export const WEIGHT_LEVELS = [0, 35, 100] as const;
 
 /** The highest level a chip can cycle to (index into `WEIGHT_LEVELS`). */
 export const MAX_WEIGHT_LEVEL = WEIGHT_LEVELS.length - 1;
 
-export type WeightAxis = "cost" | "time";
+export type WeightAxis = "price" | "time";
 
 /** Chip identity as it appears in analytics — stable, never the Swedish label. */
 export type ChipId = "cheaper" | "faster" | "other_cuisine" | "something_else" | "reset";
@@ -60,7 +76,7 @@ export interface RefinementState {
 }
 
 export const INITIAL_REFINEMENT: RefinementState = {
-  weights: { cost: 0, time: 0 },
+  weights: { price: 0, time: 0 },
   excludedTemplateIds: [],
   rerollDepth: 0,
 };

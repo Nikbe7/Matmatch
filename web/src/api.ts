@@ -20,12 +20,18 @@ import type {
  * Node types on purpose (a browser bundle should not be able to reach a filesystem
  * API), and pulling the engine's type in would mean relaxing that.
  *
- * Two numeric axes that the 2026-07-31 decision fixes in place is about as stable
- * as a shape gets, and drift is caught immediately: an axis this file knows about
- * and the server does not comes back as a 400 from the first request that sends it.
+ * Values are SLIDER NOTCHES (0–100, step 5) since #157, and what is sent is a session
+ * *delta* on the household's persistent baseline — never an absolute weight vector. The
+ * server owns the baseline and the combination; this file only ever says "and on top of
+ * that, tonight, a bit more of this".
+ *
+ * Two axes here, four on the server: "variation" and "simplicity" exist as axes but have
+ * no chip yet (#153), so nothing in `web/` can currently produce a delta on them. Drift
+ * is caught immediately — an axis this file knows about and the server does not comes
+ * back as a 400 from the first request that sends it.
  */
 export interface SessionWeights {
-  cost: number;
+  price: number;
   time: number;
 }
 
@@ -228,7 +234,7 @@ export interface FetchTonightOptions {
   previous?: string;
   // The session weight vector the adjustment chips mutate (DECISION_LOG
   // 2026-07-31). Omitted entirely at the defaults so an untouched session sends no
-  // weight parameters at all, matching the server's `{cost: 0, time: 0}` default
+  // weight parameters at all, matching the server's `{price: 0, time: 0}` default
   // rather than restating it here.
   weights?: SessionWeights;
   /**
@@ -255,7 +261,7 @@ export async function fetchTonight(
   const params = new URLSearchParams();
   if (options.exclude && options.exclude.length > 0) params.set("exclude", options.exclude.join(","));
   if (options.previous) params.set("previous", options.previous);
-  if (options.weights?.cost) params.set("cost", String(options.weights.cost));
+  if (options.weights?.price) params.set("price", String(options.weights.price));
   if (options.weights?.time) params.set("time", String(options.weights.time));
   if (options.diners) params.set("diners", options.diners);
   if (options.keep) params.set("keep", options.keep);

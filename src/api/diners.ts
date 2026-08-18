@@ -6,7 +6,7 @@ import type { DinerSelection } from "../engine/constraints.js";
 // here touches the household profile, and deselecting someone for one evening must
 // never look like editing who lives there.
 //
-// Unlike parseWeightsFromQuery and parseExcludeFromQuery, this module has no error
+// Unlike parseWeightsDeltaFromQuery and parseExcludeFromQuery, this module has no error
 // path at all — no 400, no thrown HttpError, for any input. Every way of being
 // malformed (an array-typed parameter from `?diners=0&diners=1`, a non-numeric token,
 // a fractional or negative index, an index past the end of the roster, an empty

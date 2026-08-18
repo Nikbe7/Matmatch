@@ -8,6 +8,18 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-19 — One axis space for sliders and chips: the adjustment chips moved into slider units (#157)
+
+The four preference axes get one definition (`src/schema/preferenceWeights.ts`, 0–100 in steps of 5) and the adjustment chips were converted to speak it. `WEIGHT_LEVELS` went from `[0, 1, 3]` in raw engine weights to `[0, 35, 100]` in slider notches, and `?cost=` became `?price=` carrying a *delta* the server adds to the household's stored baseline. `toRankingWeights` is the sole bridge into engine units.
+
+The alternative — leaving the chips on the engine scale and giving only the sliders the new one — was cheaper and touched nothing that already worked. It was rejected because it leaves the baseline in one space and the delta in another: two weight concepts for one user-facing idea, which is how "Billigare" and the Pris slider end up disagreeing about what the household asked for, and which #153 would then have had to untangle at a higher price. Known cost, accepted: chip level 1 moves from engine weight 1.00 to 1.05 (35/100 × 3). That was gated on a blocking test asserting an identical ranking at 1.00 and 1.05 across the whole template library, all twelve months and four constraint profiles — it passes; had it found a single reordering, the level would have been re-picked rather than the test relaxed.
+
+Every axis's zero is *defined* as its pre-#157 engine constant (price 0, time 0, familiarity 1.5), so the migration's all-zero defaults are backward compatible by construction rather than by measurement — no existing household's ordering changes. Two consequences worth writing down. The baseline lives on `StoredHousehold`, deliberately **not** inside `HouseholdSchema`: `PUT /api/households` is a full replacement with no version check (2026-08-16), so an axis reachable through the profile PUT would be silently wiped by any client that saved a member edit without resending its weights. And `OMNIVORE_PREFERENCE_WEIGHT`, previously written as `= FAMILIARITY_STEP_WEIGHT`, is now pinned to a literal 1.5 — letting that alias survive would have made the Variation slider quietly rewrite how strongly an omnivore household prefers meat, two unrelated preferences moving on one control.
+
+`simplicity` is stored but inert and **must not be rendered**: #151 has not yet produced a curated effort signal, so the slider would change nothing a household could observe — the exact objection that got sliders rejected in the first place (2026-07-31). The block ships with three sliders until #151 lands.
+
+---
+
 ## 2026-08-18 — Cooking steps are prose without amounts, guarded by a catalog scan rather than a token contract (#154)
 
 **Decision:** Three calls, taken together, about the first real Tier 1 surface — the cook screen at `/laga/:id`.

@@ -1,13 +1,14 @@
 import { z } from "zod";
-import type { RankingWeights } from "../engine/ranking.js";
+import type { PreferenceWeightsDelta } from "../schema/preferenceWeights.js";
 import { HttpError } from "./httpError.js";
 
 // The guided flow's intent chips (UX_FLOW §5 step 1) and what each one actually
 // does to the engine.
 //
 // The governing rule for this file: an intent may only pull a lever the engine
-// already has. Every chip below resolves to a `RankingWeights` vector the existing
-// `rankCandidates` understands plus, at most, a selection preference `directions.ts`
+// already has. Every chip below resolves to a `PreferenceWeightsDelta` on the four
+// axes `src/schema/preferenceWeights.ts` defines — the same axes the household's
+// persistent sliders move — plus, at most, a selection preference `directions.ts`
 // applies on top of the ranked order. No chip introduces a ranking dimension, a new
 // template field or a new filter — a chip with nothing real behind it is not shipped
 // at all, which is why UX_FLOW's sixth chip ("Matlådor") is absent: it needs a
@@ -24,25 +25,32 @@ export const GuidedIntentSchema = z.enum([
 export type GuidedIntent = z.infer<typeof GuidedIntentSchema>;
 
 export interface IntentParameters {
-  weights: RankingWeights;
+  /**
+   * A session delta on the shared axes, combined with the household's stored baseline
+   * by the route — never a standalone weight vector. An intent chip is a statement
+   * about tonight, not an edit to what the household generally wants.
+   */
+  weights: PreferenceWeightsDelta;
   preferHighProtein: boolean;
 }
 
-// The weight a maxed adjustment chip carries — `WEIGHT_LEVELS[2]` in
-// web/src/refinement.ts, calibrated in src/engine/ranking.ts to beat the largest
-// possible familiarity gap. "Billigt" is an explicit, unambiguous statement about
-// cost, so it starts where the Tonight card's "Billigare" chip *ends* rather than at
-// a timid level 1. Re-derive alongside WEIGHT_LEVELS if that scale ever changes.
-const MAX_CHIP_WEIGHT = 3;
+// The delta a maxed adjustment chip carries — `WEIGHT_LEVELS[2]` in
+// web/src/refinement.ts, i.e. the top of the slider. "Billigt" is an explicit,
+// unambiguous statement about price, so it starts where the Tonight card's "Billigare"
+// chip *ends* rather than at a timid level 1. Expressed in slider notches since #157;
+// it was 3 (raw engine units) before, which is what 100 notches now translates to.
+const MAX_CHIP_PREFERENCE = 100;
 
-const NEUTRAL: RankingWeights = { cost: 0, time: 0 };
+// Every axis absent: an intent that expresses no preference must not quietly restate
+// one. Combining `{}` with a baseline yields the baseline untouched.
+const NEUTRAL: PreferenceWeightsDelta = {};
 
 /**
  * What an intent chip means to the engine.
  *
  *  * `dinner_idea` — the honest default: no expressed preference, so ordering falls
  *    to familiarity and seasonality exactly as it does for an untouched Tonight card.
- *  * `cheap` — the one chip with a direct numeric lever.
+ *  * `cheap` — the one chip with a direct numeric lever, the Pris axis at its top.
  *  * `use_what_i_have` — deliberately neutral here. Its entire lever is the pantry
  *    step, applied as coverage bucketing in `pickDirections`; adding a weight on top
  *    would be inventing a second meaning for the chip.
@@ -57,7 +65,7 @@ const NEUTRAL: RankingWeights = { cost: 0, time: 0 };
 export function intentParameters(intent: GuidedIntent): IntentParameters {
   switch (intent) {
     case "cheap":
-      return { weights: { cost: MAX_CHIP_WEIGHT, time: 0 }, preferHighProtein: false };
+      return { weights: { price: MAX_CHIP_PREFERENCE }, preferHighProtein: false };
     case "high_protein":
       return { weights: NEUTRAL, preferHighProtein: true };
     case "dinner_idea":

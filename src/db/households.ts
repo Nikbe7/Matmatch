@@ -1,4 +1,8 @@
 import { HouseholdSchema, type Household } from "../schema/household.js";
+import {
+  PreferenceWeightsSchema,
+  type PreferenceWeights,
+} from "../schema/preferenceWeights.js";
 import type { Sql, SqlExecutor } from "./client.js";
 import { withUserContext } from "./context.js";
 
@@ -25,6 +29,18 @@ export interface StoredHousehold {
   created_at: Date;
   updated_at: Date;
   household: Household;
+  /**
+   * The persistent preference baseline (#157).
+   *
+   * Deliberately a sibling of `household`, not a field inside it. `PUT /api/households`
+   * is a full replacement with no version check (DECISION_LOG 2026-08-16), so an axis
+   * living on `Household` would be silently reset to neutral by every profile save that
+   * did not happen to send it — a household's sliders wiped by editing a member's name.
+   * Keeping the baseline off the profile type makes that class of loss impossible:
+   * `updateHousehold` cannot touch it, and `updateHouseholdPreferenceWeights` is the
+   * only way it changes.
+   */
+  preference_weights: PreferenceWeights;
 }
 
 interface HouseholdRow {
@@ -32,7 +48,30 @@ interface HouseholdRow {
   owner_user_id: string;
   created_at: Date;
   updated_at: Date;
+  preference_price: number;
+  preference_time: number;
+  preference_variation: number;
+  preference_simplicity: number;
 }
+
+/**
+ * The column list every read of `households` uses, so no query can forget an axis and
+ * silently hand back a partially-neutral baseline.
+ *
+ * `integer` round-trips through postgres.js as a JS number without a cast; the
+ * `preference_weight` domain does not need the `::text[]` treatment the array domains
+ * get, because the driver resolves int4 by OID already.
+ */
+const HOUSEHOLD_COLUMNS = [
+  "id",
+  "owner_user_id",
+  "created_at",
+  "updated_at",
+  "preference_price",
+  "preference_time",
+  "preference_variation",
+  "preference_simplicity",
+] as const;
 
 interface MemberRow {
   household_id: string;
@@ -75,6 +114,16 @@ function toStoredHousehold(row: HouseholdRow, memberRows: readonly MemberRow[]):
     created_at: row.created_at,
     updated_at: row.updated_at,
     household,
+    // Validated on the way out for the same reason the profile is: the `preference_weight`
+    // domain guards the range, but a hand-run UPDATE that predates the domain, or a future
+    // migration bug, would otherwise flow straight into the score arithmetic. A weight the
+    // schema rejects is a weight the engine must never see.
+    preference_weights: PreferenceWeightsSchema.parse({
+      price: row.preference_price,
+      time: row.preference_time,
+      variation: row.preference_variation,
+      simplicity: row.preference_simplicity,
+    }),
   };
 }
 
@@ -129,7 +178,7 @@ export async function createHousehold(
     const [row] = await tx<HouseholdRow[]>`
       insert into households (owner_user_id)
       values (${userId})
-      returning id, owner_user_id, created_at, updated_at
+      returning ${tx([...HOUSEHOLD_COLUMNS])}
     `;
 
     if (!row) throw new Error("insert into households returned no row");
@@ -154,7 +203,7 @@ export async function getHousehold(
 ): Promise<StoredHousehold | undefined> {
   return withUserContext(sql, userId, async (tx) => {
     const [row] = await tx<HouseholdRow[]>`
-      select id, owner_user_id, created_at, updated_at
+      select ${tx([...HOUSEHOLD_COLUMNS])}
       from households
       where id = ${id}
     `;
@@ -195,7 +244,7 @@ export async function getHouseholdForOwner(
 ): Promise<StoredHousehold | undefined> {
   return withUserContext(sql, userId, async (tx) => {
     const [row] = await tx<HouseholdRow[]>`
-      select id, owner_user_id, created_at, updated_at
+      select ${tx([...HOUSEHOLD_COLUMNS])}
       from households
     `;
 
@@ -253,13 +302,75 @@ export async function updateHousehold(
       update households
       set owner_user_id = owner_user_id
       where id = ${id}
-      returning id, owner_user_id, created_at, updated_at
+      returning ${tx([...HOUSEHOLD_COLUMNS])}
     `;
 
     if (!row) return undefined;
 
     await tx`delete from household_members where household_id = ${id}`;
     const memberRows = await insertMembers(tx, id, household);
+
+    return toStoredHousehold(row, memberRows);
+  });
+}
+
+/**
+ * Replaces the household's preference baseline, returning undefined when no such row is
+ * visible to this user.
+ *
+ * A separate entry point from `updateHousehold` rather than another field on it, for the
+ * reason spelled out on `StoredHousehold.preference_weights`: the profile PUT is a full
+ * replacement with no version check, so anything reachable through it is silently reset
+ * by a client that does not send it. Sliders and member edits are also genuinely
+ * different actions — one is a drag on Tonight, the other a form save on the profile —
+ * and giving them one write path would mean either could clobber the other.
+ *
+ * Full replacement of all four axes, not a patch: the sliders are edited as a block, and
+ * a partial write would make "what did this household ask for" depend on the order the
+ * requests happened to arrive in.
+ *
+ * The UPDATE runs under the households_owner_update policy's `using` and `with check`
+ * clauses, so a household id belonging to someone else matches no row and returns
+ * undefined — indistinguishable from "does not exist", exactly as `getHousehold` is.
+ */
+export async function updateHouseholdPreferenceWeights(
+  sql: Sql,
+  userId: string,
+  id: string,
+  input: PreferenceWeights,
+): Promise<StoredHousehold | undefined> {
+  // Parsed before the statement, not only by the domain: a caller handing over 37 or
+  // -10 gets a schema error naming the axis, rather than a raw Postgres domain violation
+  // from three layers down. The domain still runs, and is what protects the table from
+  // anything that bypasses this function.
+  const weights = PreferenceWeightsSchema.parse(input);
+
+  return withUserContext(sql, userId, async (tx) => {
+    const [row] = await tx<HouseholdRow[]>`
+      update households
+      set preference_price = ${weights.price},
+          preference_time = ${weights.time},
+          preference_variation = ${weights.variation},
+          preference_simplicity = ${weights.simplicity}
+      where id = ${id}
+      returning ${tx([...HOUSEHOLD_COLUMNS])}
+    `;
+
+    if (!row) return undefined;
+
+    const memberRows = await tx<MemberRow[]>`
+      select
+        household_id,
+        type,
+        name,
+        portion_factor,
+        position,
+        allergies::text[] as allergies,
+        dietary_flags::text[] as dietary_flags
+      from household_members
+      where household_id = ${id}
+      order by position
+    `;
 
     return toStoredHousehold(row, memberRows);
   });

@@ -7,6 +7,7 @@ import type { CostTier } from "../../src/schema/ingredient";
 import { setAnalyticsSink, type AnalyticsEvent } from "./analytics";
 import { saveShoppingList, SHOPPING_LIST_VERSION } from "./shoppingListStorage";
 import { saveCookRecord, substitutionKey } from "./instructionsStorage";
+import { WEIGHT_LEVELS } from "./refinement";
 
 // Covers the signed-out state (login form, never reaches the network) and the
 // household gate: no-household → onboarding, submit → Tonight, API error →
@@ -864,7 +865,7 @@ describe("App — adjustment chips", () => {
     expect(thirdUrl).toContain("previous=fisksoppa");
   });
 
-  it("raises the cost weight, keeps the chip pressed, and announces its level", async () => {
+  it("raises the price weight, keeps the chip pressed, and announces its level", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = vi
@@ -881,7 +882,7 @@ describe("App — adjustment chips", () => {
 
     await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
-    expect((fetchMock.mock.calls[1]![0] as string)).toContain("cost=1");
+    expect((fetchMock.mock.calls[1]![0] as string)).toContain(`price=${WEIGHT_LEVELS[1]}`);
 
     // Still pressed and still showing its level a reroll later — the whole point
     // of chip state being session-persistent rather than per-request.
@@ -891,7 +892,7 @@ describe("App — adjustment chips", () => {
     await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByRole("heading", { name: "Ärtsoppa" });
     expect(screen.getByRole("button", { name: "Billigare, nivå 1 av 2" })).toBeTruthy();
-    expect((fetchMock.mock.calls[2]![0] as string)).toContain("cost=1");
+    expect((fetchMock.mock.calls[2]![0] as string)).toContain(`price=${WEIGHT_LEVELS[1]}`);
   });
 
   it("cycles through both levels and wraps back to 0 in one more tap, each tap requesting a new suggestion", async () => {
@@ -971,7 +972,7 @@ describe("App — adjustment chips", () => {
     // Reset re-requests with no exclusions and no weights at all.
     const resetUrl = fetchMock.mock.calls[2]![0] as string;
     expect(resetUrl).not.toContain("exclude=");
-    expect(resetUrl).not.toContain("cost=");
+    expect(resetUrl).not.toContain("price=");
   });
 
   it("Återställ clears a raised weight back to level 0", async () => {
@@ -1028,14 +1029,14 @@ describe("App — refinement instrumentation", () => {
       {
         name: "refinement_chip_tap",
         chip: "cheaper",
-        weights: { cost: 1, time: 0 },
+        weights: { price: WEIGHT_LEVELS[1], time: 0 },
         level: 1,
         rerollDepth: 1,
       },
       {
         name: "refinement_chip_tap",
         chip: "something_else",
-        weights: { cost: 1, time: 0 },
+        weights: { price: WEIGHT_LEVELS[1], time: 0 },
         level: undefined,
         rerollDepth: 2,
       },

@@ -57,7 +57,7 @@ describe.skipIf(!stackAvailable)("analytics_events repository (local Supabase)",
     await recordAnalyticsEvents(sql!, userId, householdId, [
       {
         name: "refinement_chip_tap",
-        payload: { chip: "cheaper", weights: { cost: 1, time: 0 }, rerollDepth: 0 },
+        payload: { chip: "cheaper", weights: { price: 1, time: 0 }, rerollDepth: 0 },
         clientTimestamp,
       },
       {
@@ -81,7 +81,7 @@ describe.skipIf(!stackAvailable)("analytics_events repository (local Supabase)",
     const byName = new Map(rows.map((row) => [row.event_name, row]));
     expect(byName.get("refinement_chip_tap")!.payload).toEqual({
       chip: "cheaper",
-      weights: { cost: 1, time: 0 },
+      weights: { price: 1, time: 0 },
       rerollDepth: 0,
     });
     expect(byName.get("refinement_chip_tap")!.client_timestamp.toISOString()).toBe(

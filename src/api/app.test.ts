@@ -14,6 +14,8 @@ import {
 import { createApp } from "./app.js";
 import { makeHousehold } from "../engine/__fixtures__/household.js";
 import { makeSlot } from "../engine/__fixtures__/engineData.js";
+import { getHouseholdForOwner, updateHouseholdPreferenceWeights } from "../db/households.js";
+import { NEUTRAL_PREFERENCE_WEIGHTS } from "../schema/preferenceWeights.js";
 
 // Integration tests against the real local Supabase stack — unmocked DB, unmocked
 // auth. These are the tests proving the wiring, not the logic underneath it: engine
@@ -300,7 +302,7 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
 
     const cheap = await request(app!)
       .get("/api/tonight")
-      .query({ cost: "10", time: "0" })
+      .query({ price: "10", time: "0" })
       .set(authHeader(user.accessToken));
 
     expect(cheap.status).toBe(200);
@@ -313,31 +315,125 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
 
     const fast = await request(app!)
       .get("/api/tonight")
-      .query({ cost: "0", time: "10" })
+      .query({ price: "0", time: "10" })
       .set(authHeader(user.accessToken));
 
     expect(fast.status).toBe(200);
     expect(fast.body.result.template.prep_time_band).toBe("<20min");
   });
 
-  it("defaults to {cost: 0, time: 0} when no weights are supplied", async () => {
+  it("defaults to {price: 0, time: 0} when no weights are supplied", async () => {
     const user = await createTestUser();
     await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
 
     const withoutParams = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
     const withExplicitDefaults = await request(app!)
       .get("/api/tonight")
-      .query({ cost: "0", time: "0" })
+      .query({ price: "0", time: "0" })
       .set(authHeader(user.accessToken));
 
     expect(withoutParams.body.result.template.id).toBe(withExplicitDefaults.body.result.template.id);
   });
 
+  // The household's persistent baseline (#157) reaching the ranking, and reaching it
+  // through the same axis definition the chips use.
+  it("ranks by the household's stored baseline when no weights are supplied", async () => {
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+    const stored = await getHouseholdForOwner(sql!, user.userId);
+    await updateHouseholdPreferenceWeights(sql!, user.userId, stored!.id, {
+      ...NEUTRAL_PREFERENCE_WEIGHTS,
+      time: 100,
+    });
+
+    const fromBaseline = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+
+    expect(fromBaseline.status).toBe(200);
+    expect(fromBaseline.body.result.template.prep_time_band).toBe("<20min");
+  });
+
+  it("gives the same dish whether a preference arrived as the baseline or as a session delta", async () => {
+    // The property that makes baseline and delta one mechanic rather than two: a
+    // household with the slider at 100 and a household at neutral sending `time=100`
+    // are making the same statement, and must be answered identically.
+    const viaBaseline = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(viaBaseline.accessToken)).send(noRestrictionsBody);
+    const stored = await getHouseholdForOwner(sql!, viaBaseline.userId);
+    await updateHouseholdPreferenceWeights(sql!, viaBaseline.userId, stored!.id, {
+      ...NEUTRAL_PREFERENCE_WEIGHTS,
+      time: 100,
+    });
+
+    const viaDelta = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(viaDelta.accessToken)).send(noRestrictionsBody);
+
+    const baselineResponse = await request(app!).get("/api/tonight").set(authHeader(viaBaseline.accessToken));
+    const deltaResponse = await request(app!)
+      .get("/api/tonight")
+      .query({ time: "100" })
+      .set(authHeader(viaDelta.accessToken));
+
+    expect(baselineResponse.body.result.template.id).toBe(deltaResponse.body.result.template.id);
+    expect(baselineResponse.body.result.score).toBe(deltaResponse.body.result.score);
+  });
+
+  it("adds the session delta on top of the baseline rather than replacing it", async () => {
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+    const stored = await getHouseholdForOwner(sql!, user.userId);
+    await updateHouseholdPreferenceWeights(sql!, user.userId, stored!.id, {
+      ...NEUTRAL_PREFERENCE_WEIGHTS,
+      time: 60,
+    });
+
+    const combined = await request(app!)
+      .get("/api/tonight")
+      .query({ time: "40" })
+      .set(authHeader(user.accessToken));
+
+    const equivalent = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(equivalent.accessToken)).send(noRestrictionsBody);
+    const asOneDelta = await request(app!)
+      .get("/api/tonight")
+      .query({ time: "100" })
+      .set(authHeader(equivalent.accessToken));
+
+    expect(combined.body.result.score).toBe(asOneDelta.body.result.score);
+  });
+
+  it("does not let a profile save reset the stored baseline", async () => {
+    // `PUT /api/households` is a full replacement with no version check (DECISION_LOG
+    // 2026-08-16). The baseline lives outside the profile type precisely so a client
+    // that does not know about weights cannot wipe them by editing a member.
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+    const stored = await getHouseholdForOwner(sql!, user.userId);
+    const weights = { price: 45, time: 60, variation: 25, simplicity: 15 };
+    await updateHouseholdPreferenceWeights(sql!, user.userId, stored!.id, weights);
+
+    const saved = await request(app!)
+      .put("/api/households")
+      .set(authHeader(user.accessToken))
+      .send(noRestrictionsBody);
+    expect(saved.status).toBe(200);
+
+    expect((await getHouseholdForOwner(sql!, user.userId))!.preference_weights).toEqual(weights);
+  });
+
+  // Slider notches, not raw engine weights (#157): the range and the step-5 grid are
+  // rejected here as well as by zod and by the `preference_weight` domain. 101 and 37
+  // are the cases the old raw-number parser would have accepted — they are the reason
+  // the validation moved from "finite and >= 0" to the axis definition's own rule.
   it.each([
-    ["cost", "not-a-number"],
+    ["price", "not-a-number"],
     ["time", "-1"],
-    ["cost", "Infinity"],
+    ["price", "Infinity"],
     ["time", "NaN"],
+    ["price", "101"],
+    ["time", "37"],
+    ["variation", "2.5"],
+    ["simplicity", "-5"],
   ])("rejects an invalid %s weight (%s) with 400", async (param, value) => {
     const user = await createTestUser();
     await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
@@ -882,14 +978,14 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set cha
     // its id by the time any diner change can happen.
     const first = await request(costTieredApp)
       .get("/api/tonight")
-      .query({ cost: "10" })
+      .query({ price: "10" })
       .set(authHeader(user.accessToken));
     expect(first.body.result.template.id).toBe("morotssoppa");
     expect(first.body.result.reasonCodes).toContain("cost_preference");
 
     const afterDinerChange = await request(costTieredApp)
       .get("/api/tonight")
-      .query({ cost: "10", exclude: "morotssoppa", keep: "morotssoppa" })
+      .query({ price: "10", exclude: "morotssoppa", keep: "morotssoppa" })
       .set(authHeader(user.accessToken));
 
     expect(afterDinerChange.body.result.template.id).toBe("morotssoppa");

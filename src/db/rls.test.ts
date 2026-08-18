@@ -2,7 +2,12 @@ import { afterAll, describe, expect, it } from "vitest";
 import { HouseholdSchema } from "../schema/household.js";
 import type { Sql } from "./client.js";
 import { MissingUserContextError, withUserContext } from "./context.js";
-import { createHousehold, getHousehold } from "./households.js";
+import {
+  createHousehold,
+  getHousehold,
+  getHouseholdForOwner,
+  updateHouseholdPreferenceWeights,
+} from "./households.js";
 import {
   appClient,
   bypassClient,
@@ -109,6 +114,84 @@ describe.skipIf(!stackAvailable)("row level security — application role", () =
       from household_members where household_id = ${bobHousehold.id}
     `;
     expect(row!.allergies).toEqual(["gluten"]);
+  });
+
+  // Preference weights (#157) — the same owner-scoped policies, asserted for the new
+  // columns rather than assumed. They carry no allergy data, so the danger is different
+  // from the member-constraint case above: one household silently steering another's
+  // suggestions, and one household reading what another has asked for.
+  it("cannot read another user's preference weights through an unfiltered query", async () => {
+    const alice = await createTestUser();
+    const bob = await createTestUser();
+    const bobHousehold = await createHousehold(sql!, bob.userId, profile);
+    await updateHouseholdPreferenceWeights(sql!, bob.userId, bobHousehold.id, {
+      price: 100,
+      time: 55,
+      variation: 20,
+      simplicity: 5,
+    });
+
+    // No WHERE clause at all: everything narrowing this is RLS.
+    const visible = await withUserContext(
+      sql!,
+      alice.userId,
+      (tx) => tx<{ id: string; preference_price: number }[]>`
+        select id, preference_price from households
+      `,
+    );
+
+    expect(visible.map((row) => row.id)).not.toContain(bobHousehold.id);
+    // ...and Bob still sees his own, so this is scoping rather than a broken read path.
+    expect(
+      (await getHouseholdForOwner(sql!, bob.userId))!.preference_weights.price,
+    ).toBe(100);
+  });
+
+  it("cannot read another user's preference weights through the repository", async () => {
+    const alice = await createTestUser();
+    const bob = await createTestUser();
+    const bobHousehold = await createHousehold(sql!, bob.userId, profile);
+
+    expect(await getHousehold(sql!, alice.userId, bobHousehold.id)).toBeUndefined();
+  });
+
+  it("cannot write another user's preference weights, even with a matching household id", async () => {
+    const alice = await createTestUser();
+    const bob = await createTestUser();
+    const bobHousehold = await createHousehold(sql!, bob.userId, profile);
+    await updateHouseholdPreferenceWeights(sql!, bob.userId, bobHousehold.id, {
+      price: 100,
+      time: 0,
+      variation: 0,
+      simplicity: 0,
+    });
+
+    // Through the repository...
+    expect(
+      await updateHouseholdPreferenceWeights(sql!, alice.userId, bobHousehold.id, {
+        price: 0,
+        time: 0,
+        variation: 0,
+        simplicity: 0,
+      }),
+    ).toBeUndefined();
+
+    // ...and through raw SQL that skips it entirely.
+    const updated = await withUserContext(
+      sql!,
+      alice.userId,
+      (tx) => tx<{ id: string }[]>`
+        update households set preference_price = 0 where id = ${bobHousehold.id} returning id
+      `,
+    );
+    expect(updated).toEqual([]);
+
+    // Asserted on the value, not just the row count: the failure that matters is Bob's
+    // stated preference being silently rewritten by someone else.
+    const [row] = await admin!<{ preference_price: number }[]>`
+      select preference_price from households where id = ${bobHousehold.id}
+    `;
+    expect(row!.preference_price).toBe(100);
   });
 
   it("cannot delete another user's household", async () => {
@@ -333,10 +416,18 @@ describe.skipIf(!stackAvailable)("per-member constraint columns are reachable an
       where table_schema = 'public' and table_name = 'households'
     `;
 
+    // An exact list rather than a "does not contain allergies" assertion, so a future
+    // migration that reintroduces a household-level safety column fails here. The four
+    // preference_* columns arrived with #157 and are ranking-only — they are listed
+    // because this assertion is exhaustive, not because they are constraint data.
     expect(columns.map((column) => column.column_name).sort()).toEqual([
       "created_at",
       "id",
       "owner_user_id",
+      "preference_price",
+      "preference_simplicity",
+      "preference_time",
+      "preference_variation",
       "updated_at",
     ]);
   });
