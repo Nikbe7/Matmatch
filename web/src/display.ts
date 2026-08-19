@@ -1,5 +1,5 @@
 import type { CostTier } from "../../src/schema/ingredient";
-import type { IngredientSlotRole, PrepTimeBand, QuantityUnit } from "../../src/schema/recipeTemplate";
+import type { PrepTimeBand, QuantityUnit } from "../../src/schema/recipeTemplate";
 import type { ScaledQuantity, SuggestionReasonCode } from "./api";
 
 // Display mappings for curated engine enums, shared by every screen that renders a
@@ -50,14 +50,6 @@ export const PREP_TIME_LABELS: Record<PrepTimeBand, string> = {
   "<20min": "Under 20 min",
   "20-40min": "20–40 min",
   "40min+": "Över 40 min",
-};
-
-export const INGREDIENT_ROLE_LABELS: Record<IngredientSlotRole, string> = {
-  protein: "Protein",
-  starch: "Stärkelse",
-  vegetable: "Grönsak",
-  aromatic: "Arom",
-  dairy: "Mejeri",
 };
 
 // #122: the Tonight card's one-line "why this dish". Each phrase is written to

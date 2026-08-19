@@ -412,6 +412,36 @@ describe("ShoppingList", () => {
       expect(row.textContent).not.toMatch(/\d/);
     });
 
+    it("names the substitute, not the ingredient the template originally called for", () => {
+      // Moved here from the Tonight card (#183), which used to be where a household
+      // could see that a swap had happened. Tonight no longer lists ingredients at
+      // all — this screen is where the claim now has to hold, and it is the screen
+      // where it actually matters, because this is the list you shop from.
+      mockFetch();
+      render(
+        <ShoppingList
+          result={result({
+            ingredients: [
+              {
+                role: "dairy",
+                name: "Havregrädde",
+                slotIndex: 0,
+                ingredientId: "havregradde",
+                substituted: true,
+                allergens: [],
+                quantity: { kind: "amount", amount: 2, unit: "dl" },
+              },
+            ],
+          })}
+          portions={4}
+          accessToken="tok"
+          onNewSuggestion={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText("Havregrädde")).toBeTruthy();
+    });
+
     it("shows the amount for a substituted slot — the slot's, carried by the server", () => {
       mockFetch();
       render(
