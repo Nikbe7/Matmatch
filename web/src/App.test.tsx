@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ALLERGIES } from "../../src/schema/vocabulary";
@@ -1029,14 +1029,14 @@ describe("App — refinement instrumentation", () => {
       {
         name: "refinement_chip_tap",
         chip: "cheaper",
-        weights: { price: WEIGHT_LEVELS[1], time: 0 },
+        weights: { price: WEIGHT_LEVELS[1], time: 0, variation: 0 },
         level: 1,
         rerollDepth: 1,
       },
       {
         name: "refinement_chip_tap",
         chip: "something_else",
-        weights: { price: WEIGHT_LEVELS[1], time: 0 },
+        weights: { price: WEIGHT_LEVELS[1], time: 0, variation: 0 },
         level: undefined,
         rerollDepth: 2,
       },
@@ -2206,5 +2206,414 @@ describe("App — the profile screen (#166)", () => {
     expect(await screen.findByRole("heading", { name: "Ingen anslutning" })).toBeTruthy();
     expect(screen.getByRole("status").textContent).toBe("Anslut till internet för att komma igång.");
     expect(householdCalls).toBe(1);
+  });
+});
+
+// #152 / #158 / #159: Tonight's lower half — the pantry row, "Testa nytt", and the
+// collapsed preference block. The ordering rule and the copy rules are unit-tested
+// elsewhere (src/engine/pantryOrdering.test.ts, preferenceHints.test.ts); these cover
+// what only a rendered screen can show: what reaches the network, what survives a
+// reload, what stays on screen mid-request, and what is deliberately not drawn.
+
+const NEUTRAL_BASELINE = { price: 0, time: 0, variation: 0, simplicity: 0 };
+
+const PANTRY_OPTIONS = [
+  { id: "spagetti", name: "spagetti" },
+  { id: "ris", name: "ris" },
+  { id: "potatis", name: "potatis" },
+  { id: "gul-lok", name: "gul lök" },
+  { id: "matlagningsgradde", name: "matlagningsgrädde" },
+  { id: "vitlok", name: "vitlök" },
+  { id: "morot", name: "morot" },
+  { id: "purjolok", name: "purjolök" },
+];
+
+function tonightBody(
+  overrides: {
+    pantryIngredients?: { id: string; name: string }[];
+    preferenceWeights?: typeof NEUTRAL_BASELINE;
+  } = {},
+) {
+  return {
+    ...suggestionBody,
+    pantryIngredients: overrides.pantryIngredients ?? PANTRY_OPTIONS,
+    preferenceWeights: overrides.preferenceWeights ?? NEUTRAL_BASELINE,
+  };
+}
+
+describe("App — Tonight's pantry row (#152)", () => {
+  it("shows a handful of likely staples, not the whole catalog, and a way to the rest", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const row = screen.getByRole("group", { name: "Varor hemma" });
+    // Six chips plus "Fler" — a full picker here would be a screen-sized interruption
+    // on the one screen that exists to avoid input.
+    expect(within(row).getAllByRole("button")).toHaveLength(7);
+    expect(within(row).getByRole("button", { name: "Fler" })).toBeTruthy();
+    expect(within(row).queryByRole("button", { name: "purjolök" })).toBeNull();
+  });
+
+  it("sends the tapped ingredients as pantry, and keeps the dish on screen while it re-ranks", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, tonightBody()))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { ...suggestionBodyFor("fisksoppa", "Fisksoppa"), pantryIngredients: PANTRY_OPTIONS, preferenceWeights: NEUTRAL_BASELINE }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "spagetti" }));
+
+    await screen.findByRole("heading", { name: "Fisksoppa" });
+    expect(fetchMock.mock.calls[1]![0] as string).toContain("pantry=spagetti");
+  });
+
+  it("keeps the previous suggestion in the DOM for the whole re-ranking request", async () => {
+    // The screen must never pass through an empty state: the household would lose
+    // what they were reading, for a request that usually takes a moment.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+
+    let release: (value: Response) => void = () => {};
+    const pending = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, tonightBody()))
+      .mockReturnValueOnce(pending);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "ris" }));
+
+    // Mid-request: still there, and visibly dimmed rather than replaced.
+    expect(screen.getByRole("heading", { name: "Kycklinggryta" })).toBeTruthy();
+    expect(document.querySelector(".tonight-suggestion.is-reranking")).toBeTruthy();
+
+    release(
+      jsonResponse(200, { ...suggestionBodyFor("fisksoppa", "Fisksoppa"), pantryIngredients: PANTRY_OPTIONS, preferenceWeights: NEUTRAL_BASELINE }),
+    );
+    await screen.findByRole("heading", { name: "Fisksoppa" });
+    expect(document.querySelector(".tonight-suggestion.is-reranking")).toBeNull();
+  });
+
+  it("opens the guided flow's full grid in a layer, without leaving the suggestion", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Fler" }));
+
+    const sheet = screen.getByRole("dialog", { name: "Vad har du hemma?" });
+    expect(within(sheet).getByRole("button", { name: "purjolök" })).toBeTruthy();
+    // The dish is still behind it — the layer is not a navigation.
+    expect(screen.getByRole("heading", { name: "Kycklinggryta" })).toBeTruthy();
+
+    await user.click(within(sheet).getByRole("button", { name: "Klar" }));
+    expect(screen.queryByRole("dialog", { name: "Vad har du hemma?" })).toBeNull();
+  });
+
+  it("writes nothing anywhere — a reload starts with an empty pantry", async () => {
+    // CLAUDE.md's non-negotiable: session-scoped and ephemeral. No localStorage, no
+    // household write, and the fresh mount sends no pantry at all.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "spagetti" }));
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(1));
+
+    expect(localStorage.length).toBe(0);
+    for (const call of fetchMock.mock.calls) {
+      expect(call[1]?.method ?? "GET").toBe("GET");
+    }
+
+    // The reload.
+    first.unmount();
+    fetchMock.mockClear();
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    expect(fetchMock.mock.calls[0]![0] as string).not.toContain("pantry=");
+    const row = screen.getByRole("group", { name: "Varor hemma" });
+    for (const chip of within(row).getAllByRole("button")) {
+      expect(chip.getAttribute("aria-pressed")).not.toBe("true");
+    }
+  });
+
+  it("explains the pick with the ingredient names the server sent", async () => {
+    sessionHolder.current = fakeSession;
+    const body = tonightBody();
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        ...body,
+        result: { ...body.result, reasonCodes: ["pantry_match"], pantryMatch: ["spagetti", "gul lök"] },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    expect(screen.getByText("Valt för att du har spagetti och gul lök hemma.")).toBeTruthy();
+  });
+});
+
+describe("App — Testa nytt (#153)", () => {
+  it("moves the variation axis in the same notches the other chips use", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, tonightBody()))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { ...suggestionBodyFor("fisksoppa", "Fisksoppa"), pantryIngredients: PANTRY_OPTIONS, preferenceWeights: NEUTRAL_BASELINE }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: /^Testa nytt/ }));
+
+    await screen.findByRole("heading", { name: "Fisksoppa" });
+    expect(fetchMock.mock.calls[1]![0] as string).toContain(`variation=${WEIGHT_LEVELS[1]}`);
+  });
+
+  it("expresses itself on the same axis the Variation slider does — same value, either way in", async () => {
+    // The property that keeps the chip and the slider one mechanic: a chip tap to
+    // level 1 and a baseline dragged to the same notch produce the same number on the
+    // same axis. If these ever diverged there would be two ideas of "new".
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, tonightBody()))
+      .mockResolvedValue(
+        jsonResponse(200, { ...suggestionBodyFor("fisksoppa", "Fisksoppa"), pantryIngredients: PANTRY_OPTIONS, preferenceWeights: NEUTRAL_BASELINE }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: /^Testa nytt/ }));
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBe(2));
+    const viaChip = new URL(fetchMock.mock.calls[1]![0] as string, "http://x").searchParams.get(
+      "variation",
+    );
+
+    // The same notch, arrived at through the slider instead.
+    await user.click(screen.getByRole("button", { name: "Vad är viktigt för er?" }));
+    const slider = screen.getByRole("slider", { name: /^Variation/ });
+    expect(slider.getAttribute("max")).toBe("100");
+    expect(slider.getAttribute("step")).toBe("5");
+    expect(Number(viaChip)).toBe(WEIGHT_LEVELS[1]);
+  });
+
+  it("does not offer Enklare — the axis exists but has nothing behind it yet", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    expect(screen.queryByRole("button", { name: /Enklare/ })).toBeNull();
+  });
+});
+
+describe("App — the preference block (#158, #159)", () => {
+  async function openBlock() {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    // Awaited rather than queried: the baseline arrives on the Tonight response and is
+    // seeded in an effect, so the block lands one tick after the dish.
+    await user.click(await screen.findByRole("button", { name: "Vad är viktigt för er?" }));
+    return user;
+  }
+
+  it("is collapsed on Tonight, showing nothing but its heading", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const toggle = await screen.findByRole("button", { name: "Vad är viktigt för er?" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    // Not merely hidden: three focusable controls behind a closed heading would be a
+    // tab-order trap for anyone not using a pointer.
+    expect(screen.queryAllByRole("slider")).toHaveLength(0);
+  });
+
+  it("renders exactly three sliders — never the enkelhet one", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await openBlock();
+
+    expect(screen.getAllByRole("slider")).toHaveLength(3);
+    expect(screen.getByRole("slider", { name: /^Pris/ })).toBeTruthy();
+    expect(screen.getByRole("slider", { name: /^Tid/ })).toBeTruthy();
+    expect(screen.getByRole("slider", { name: /^Variation/ })).toBeTruthy();
+    expect(screen.queryByRole("slider", { name: /^Enkel/ })).toBeNull();
+  });
+
+  it("shows the household's stored baseline, not a neutral guess", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, tonightBody({ preferenceWeights: { price: 60, time: 0, variation: 100, simplicity: 40 } })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await openBlock();
+
+    expect((screen.getByRole("slider", { name: /^Pris/ }) as HTMLInputElement).value).toBe("60");
+    expect((screen.getByRole("slider", { name: /^Tid/ }) as HTMLInputElement).value).toBe("0");
+    expect((screen.getByRole("slider", { name: /^Variation/ }) as HTMLInputElement).value).toBe("100");
+  });
+
+  it("stays off the screen entirely when the response carried no baseline", async () => {
+    // A block rendered at zeros would read as the household's own settings and invite
+    // a "correction" that writes zeros over whatever is really stored.
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    expect(screen.queryByRole("button", { name: "Vad är viktigt för er?" })).toBeNull();
+  });
+
+  it("saves once when the drag settles — never on every notch", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await openBlock();
+    const slider = screen.getByRole("slider", { name: /^Pris/ });
+
+    // Four notches dragged past in quick succession — and still one write.
+    for (const value of ["5", "10", "15", "20"]) {
+      fireEvent.change(slider, { target: { value } });
+    }
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some((call) => call[1]?.method === "PUT")).toBe(true),
+    );
+    const writes = fetchMock.mock.calls.filter((call) => call[1]?.method === "PUT");
+    expect(writes).toHaveLength(1);
+    expect(writes[0]![0]).toBe("/api/households/preferences");
+    expect(JSON.parse(writes[0]![1].body)).toEqual({ price: 20, time: 0, variation: 0, simplicity: 0 });
+  });
+
+  it("writes through its own route, never the profile PUT that would wipe it", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await openBlock();
+    fireEvent.change(screen.getByRole("slider", { name: /^Tid/ }), { target: { value: "25" } });
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some((call) => call[1]?.method === "PUT")).toBe(true),
+    );
+    for (const call of fetchMock.mock.calls.filter((c) => c[1]?.method === "PUT")) {
+      expect(call[0]).not.toBe("/api/households");
+    }
+  });
+
+  it("re-ranks once the drag settles, keeping the dish on screen throughout", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, tonightBody()))
+      .mockResolvedValue(
+        jsonResponse(200, { ...suggestionBodyFor("fisksoppa", "Fisksoppa"), pantryIngredients: PANTRY_OPTIONS, preferenceWeights: NEUTRAL_BASELINE }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await openBlock();
+    fireEvent.change(screen.getByRole("slider", { name: /^Pris/ }), { target: { value: "50" } });
+
+    // The dish is still there while the write and the re-rank go out.
+    expect(screen.getByRole("heading", { name: "Kycklinggryta" })).toBeTruthy();
+    await screen.findByRole("heading", { name: "Fisksoppa" });
+  });
+
+  it("changes its hint at a behavioural threshold, not on every notch", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await openBlock();
+    const slider = screen.getByRole("slider", { name: /^Pris/ });
+
+    expect(screen.getByText("Vi tittar inte på priset när vi väljer.")).toBeTruthy();
+
+    fireEvent.change(slider, { target: { value: "5" } });
+    const expressed = "Vi lutar åt billigare middagar, men säsong och omväxling kan väga över.";
+    expect(await screen.findByText(expressed)).toBeTruthy();
+
+    // Another notch is a real change in value and no change in claim — which is the
+    // whole rule: below one familiarity step, a single notch can be invisible in the
+    // ranking, so the copy must not imply otherwise.
+    fireEvent.change(slider, { target: { value: "10" } });
+    expect(screen.getByText(expressed)).toBeTruthy();
+
+    // 50 is where the axis starts matching a full familiarity step, and that is where
+    // the claim is allowed to change.
+    fireEvent.change(slider, { target: { value: "50" } });
+    expect(
+      await screen.findByText("Vi väljer hellre en billigare middag än något ni sällan lagar."),
+    ).toBeTruthy();
+  });
+
+  it("is the same block, expanded, on the profile — one value on two surfaces", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url === "/api/households") {
+        return jsonResponse(200, { household: { members: [{ type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] }] } });
+      }
+      return jsonResponse(200, tonightBody({ preferenceWeights: { price: 60, time: 0, variation: 0, simplicity: 0 } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("link", { name: "Profil" }));
+
+    // Expanded there, with no toggle to open — the household came to adjust things.
+    const slider = await screen.findByRole("slider", { name: /^Pris/ });
+    expect((slider as HTMLInputElement).value).toBe("60");
+    expect(screen.queryByRole("button", { name: "Vad är viktigt för er?" })).toBeNull();
+    expect(screen.getAllByRole("slider")).toHaveLength(3);
   });
 });

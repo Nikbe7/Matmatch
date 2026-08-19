@@ -64,6 +64,11 @@ export const INGREDIENT_ROLE_LABELS: Record<IngredientSlotRole, string> = {
 // read as the tail of a sentence ("Valt för att den är …"), never as a standalone
 // label — see `suggestionReasonLine` below, the only place these are joined.
 const SUGGESTION_REASON_PHRASES: Record<SuggestionReasonCode, string> = {
+  // Never read: `pantry_match` is the one reason phrased from data rather than from a
+  // fixed string, because the whole point of it is naming what the household told us
+  // they had. Present so the record stays exhaustive over the code union — a new code
+  // added without a phrase should be a type error, not a blank in a sentence.
+  pantry_match: "",
   in_season: "den är i säsong",
   not_recently_cooked: "ni inte lagat den på ett tag",
   cost_preference: "den är billigare, som du bad om",
@@ -77,10 +82,29 @@ const SUGGESTION_REASON_PHRASES: Record<SuggestionReasonCode, string> = {
  * length. At most two reason codes ever reach here (`explainSuggestion`,
  * src/engine/ranking.ts), so this never has to decide how to truncate a longer list.
  */
-export function suggestionReasonLine(codes: readonly SuggestionReasonCode[]): string | null {
-  if (codes.length === 0) return null;
-  const phrases = codes.map((code) => SUGGESTION_REASON_PHRASES[code]);
+export function suggestionReasonLine(
+  codes: readonly SuggestionReasonCode[],
+  /**
+   * The ingredient names behind a `pantry_match` code (#152), at most two, already
+   * capped server-side. Without them the code cannot be phrased at all — a pantry
+   * reason that could not name what it matched would be the app claiming credit for
+   * something the household cannot check.
+   */
+  pantryMatch: readonly string[] = [],
+): string | null {
+  const phrases = codes.flatMap((code) => {
+    if (code !== "pantry_match") return [SUGGESTION_REASON_PHRASES[code]];
+    return pantryMatch.length > 0 ? [`du har ${joinWithAnd(pantryMatch)} hemma`] : [];
+  });
+
+  if (phrases.length === 0) return null;
   return `Valt för att ${phrases.join(" och ")}.`;
+}
+
+/** "pasta", "pasta och gul lök" — the Swedish list this line ever needs. */
+function joinWithAnd(items: readonly string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} och ${items[items.length - 1]}`;
 }
 
 /**

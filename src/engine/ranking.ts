@@ -356,6 +356,26 @@ export function recencyPenalty(templateId: string, recency: RecencyContext): num
  * definition, so a swapped slot can never count as in-season here and as the
  * original ingredient there.
  */
+/**
+ * Which of the household's on-hand ingredients this dish actually uses — resolved
+ * through substitutions, so it is the ingredient the household would really put in the
+ * pan and not the one the template happens to name.
+ *
+ * The one definition of "pantry coverage" in the product. `orderByPantryCoverage`
+ * (src/engine/directions.ts) orders by its length and `explainSuggestion` names its
+ * members, so the dish that gets promoted for having pasta at home is the same dish
+ * that says so on the card — there is no second rule that could disagree.
+ *
+ * Deduplicated: a dish with two slots of the same pantry ingredient covers one pantry
+ * item, not two, and must not out-rank a dish using two different things.
+ */
+export function coveredPantryIngredientIds(
+  candidate: CandidateTemplate,
+  pantry: ReadonlySet<string>,
+): string[] {
+  return [...new Set(effectiveIngredientIds(candidate).filter((id) => pantry.has(id)))];
+}
+
 export function effectiveIngredientIds(candidate: CandidateTemplate): string[] {
   const substituteBySlotIndex = new Map(
     candidate.substitutions.map((substitution) => [
@@ -603,6 +623,7 @@ export function pickTonight(
 // lookup — this module only ever hands back codes plus which candidates they were
 // derived from, never a sentence.
 export type SuggestionReasonCode =
+  | "pantry_match"
   | "in_season"
   | "not_recently_cooked"
   | "cost_preference"
@@ -688,14 +709,43 @@ export function explainSuggestion(
   month: number,
   householdDietaryFlags: readonly DietaryFlag[] = [],
   recency?: RecencyContext,
+  /**
+   * The household's on-hand ingredients for this request, when Tonight's pantry row
+   * was used (#152). `ranked` is then expected to be the pantry-ordered list
+   * `orderByPantryCoverage` produced — the same list the caller passed to
+   * `pickNextSuggestion` — which is what makes `pantryDecidedThisPick` below decidable
+   * from the list alone.
+   */
+  pantryIngredientIds: readonly string[] = [],
 ): readonly SuggestionReasonCode[] {
   const reasons: SuggestionReasonCode[] = [];
 
-  const variety = varietyReason(picked, previousTemplate);
-  if (variety) reasons.push(variety);
-
   const remaining = ranked.filter((candidate) => !excludedTemplateIds.has(candidate.template.id));
   const topScored = remaining[0];
+
+  // Pantry coverage first, before variety and before any score term: when it fired it
+  // is *the* thing that moved this dish to the front, and it is the only reason the
+  // household can check against something they told the app one tap ago. A card that
+  // silently reorders after a pantry tap teaches that the chips do nothing.
+  //
+  // "Fired" is exact rather than heuristic. The list is ordered by coverage first and
+  // score second, so if `picked` heads it while some other candidate scores higher,
+  // the only thing that can have demoted that candidate is a lower coverage bucket.
+  // No coverage, or nothing outscoring the pick, means coverage changed no decision
+  // and saying otherwise would credit a tap that did nothing.
+  const covered =
+    pantryIngredientIds.length > 0
+      ? coveredPantryIngredientIds(picked, new Set(pantryIngredientIds))
+      : [];
+  const pantryDecidedThisPick =
+    covered.length > 0 &&
+    topScored?.template.id === picked.template.id &&
+    remaining.some((candidate) => candidate.score > picked.score);
+
+  if (pantryDecidedThisPick) reasons.push("pantry_match");
+
+  const variety = varietyReason(picked, previousTemplate);
+  if (variety && reasons.length < MAX_SUGGESTION_REASONS) reasons.push(variety);
 
   // `pickNextSuggestion`'s protein/cuisine diversity rule can hand back a candidate
   // that is *not* the best-scoring one remaining — that is the whole point of the
@@ -705,7 +755,13 @@ export function explainSuggestion(
   // about the two dishes in isolation but false about what drove the decision —
   // exactly what requirement 5 forbids. Score-term reasons only make sense to compute
   // at all when `picked` *is* the plain score winner among what remains.
-  const scoreDecidedThisPick = topScored !== undefined && topScored.template.id === picked.template.id;
+  //
+  // Pantry coverage disqualifies score terms for the same reason variety does: when
+  // the pick was promoted out of a bucket, `runnerUp` sits in a *lower* coverage
+  // bucket, so any cost or time gap between the two is a fact about the pair and not
+  // what drove the decision. The card says the one true thing and stops.
+  const scoreDecidedThisPick =
+    !pantryDecidedThisPick && topScored !== undefined && topScored.template.id === picked.template.id;
 
   if (scoreDecidedThisPick && reasons.length < MAX_SUGGESTION_REASONS) {
     const runnerUp = remaining.find((candidate) => candidate.template.id !== picked.template.id);

@@ -33,6 +33,15 @@ import type {
 export interface SessionWeights {
   price: number;
   time: number;
+  /**
+   * "Testa nytt" (#153). The same axis the Variation slider moves, in the same notches
+   * — the chip is a session delta on top of whatever the household set as its baseline,
+   * never a parallel notion of "new".
+   *
+   * `simplicity` is still absent: it exists as an axis server-side but has no curated
+   * signal behind it, so nothing in `web/` may produce a delta on it (#151).
+   */
+  variation: number;
 }
 
 /**
@@ -43,6 +52,7 @@ export interface SessionWeights {
  * closed set of values it can receive.
  */
 export type SuggestionReasonCode =
+  | "pantry_match"
   | "in_season"
   | "not_recently_cooked"
   | "cost_preference"
@@ -184,6 +194,15 @@ export interface TonightResult {
   // omission — an empty array is the engine's considered "nothing dominated" answer,
   // not a field that happened to be left off.
   reasonCodes: SuggestionReasonCode[];
+  /**
+   * The ingredient names behind a `pantry_match` code (#152), at most two, in the
+   * household's own language — the card says "du har spagetti och gul lök hemma".
+   *
+   * Present only alongside the code that earns it: the server omits it whenever the
+   * pantry did not decide the pick, so the client never has to decide whether a name
+   * list it was handed is a claim or leftovers.
+   */
+  pantryMatch?: string[];
   // Whether this household already marked *this* dish as cooked today (#88), so the
   // "Lagad ✓" state survives a reload. Deliberately one boolean about the dish on
   // screen rather than a recent-history list — there is no history screen, and the
@@ -207,7 +226,24 @@ export interface TonightResult {
 export type TonightResponse = (
   | { result: TonightResult }
   | { result: null; reason: string }
-) & { portions: number; diners: DinerLabel[]; replacedFor?: string };
+) & {
+  portions: number;
+  diners: DinerLabel[];
+  /**
+   * The staples this household is most likely to have, for Tonight's own pantry row
+   * (#152) — the same list the guided flow's step-3 grid is built from, sent on every
+   * response (empty states included) so the row survives a reroll without a second
+   * request.
+   */
+  pantryIngredients?: IngredientOption[];
+  /**
+   * The household's stored slider baseline (#159), riding along with the suggestion it
+   * ranked rather than fetched separately — the block on screen then cannot describe
+   * different settings than the ones that produced the dish above it.
+   */
+  preferenceWeights?: PreferenceWeights;
+  replacedFor?: string;
+};
 
 interface ApiErrorEnvelope {
   error: { code: string; message: string };
@@ -252,6 +288,12 @@ export interface FetchTonightOptions {
    * too.
    */
   keep?: string;
+  /**
+   * The ingredient ids the household tapped on Tonight's pantry row (#152). Session-
+   * scoped and ephemeral by decision, exactly like `exclude`: held in React state,
+   * never in localStorage, the URL or the household profile, so a reload starts empty.
+   */
+  pantry?: readonly string[];
 }
 
 export async function fetchTonight(
@@ -263,6 +305,8 @@ export async function fetchTonight(
   if (options.previous) params.set("previous", options.previous);
   if (options.weights?.price) params.set("price", String(options.weights.price));
   if (options.weights?.time) params.set("time", String(options.weights.time));
+  if (options.weights?.variation) params.set("variation", String(options.weights.variation));
+  if (options.pantry && options.pantry.length > 0) params.set("pantry", options.pantry.join(","));
   if (options.diners) params.set("diners", options.diners);
   if (options.keep) params.set("keep", options.keep);
   const query = params.toString();
@@ -426,6 +470,60 @@ export async function createHousehold(accessToken: string, household: Household)
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(household),
+  });
+
+  if (!response.ok) {
+    const body: unknown = await response.json();
+    const { error } = body as ApiErrorEnvelope;
+    throw new ApiError(response.status, error.code, error.message);
+  }
+}
+
+/**
+ * The household's persistent preference baseline (#157/#159), as the two slider
+ * surfaces read and write it.
+ *
+ * Structurally identical to `PreferenceWeights` in `src/schema/preferenceWeights.ts`,
+ * declared here for the same reason `SessionWeights` is — that module is fine to
+ * import, but keeping the client's own contract in one file is why every other server
+ * type on this boundary is restated rather than reached for.
+ *
+ * `simplicity` is carried but never rendered: #151 has not produced a curated effort
+ * signal, so a fourth slider would change nothing the household could observe. It is
+ * sent back unchanged so a write never silently zeroes an axis it does not show.
+ */
+export interface PreferenceWeights {
+  price: number;
+  time: number;
+  variation: number;
+  simplicity: number;
+}
+
+export const NEUTRAL_PREFERENCE_WEIGHTS: PreferenceWeights = {
+  price: 0,
+  time: 0,
+  variation: 0,
+  simplicity: 0,
+};
+
+/**
+ * Writes the baseline through its own route — never `PUT /api/households`.
+ *
+ * That route is a full replacement with no version check (DECISION_LOG 2026-08-16), so
+ * routing a slider through it would mean the next profile save silently zeroed the
+ * weights. The separation is the safeguard; do not "simplify" it into one call.
+ */
+export async function updatePreferenceWeights(
+  accessToken: string,
+  weights: PreferenceWeights,
+): Promise<void> {
+  const response = await fetch("/api/households/preferences", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(weights),
   });
 
   if (!response.ok) {
