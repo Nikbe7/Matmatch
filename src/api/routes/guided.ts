@@ -17,9 +17,11 @@ import {
 import {
   buildCookingHistory,
   rankCandidates,
+  toRankingWeights,
   RECENCY_HISTORY_WINDOW_DAYS,
   type RecencyContext,
 } from "../../engine/ranking.js";
+import { combinePreferenceWeights } from "../../schema/preferenceWeights.js";
 import {
   buildDirectionSummary,
   buildExcludedMainIngredients,
@@ -110,7 +112,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
       // #133: the dish already chosen, sent only by a diner-set change on the
       // "directions" step — same contract as tonight.ts's `keep`.
       const keepTemplateId = parseKeepFromQuery(query.keep);
-      const { weights, preferHighProtein } = intentParameters(intent);
+      const { weights: intentDelta, preferHighProtein } = intentParameters(intent);
 
       const stored = await getHouseholdForOwner(sql, req.userId!);
       if (!stored) {
@@ -133,6 +135,14 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
         RECENCY_HISTORY_WINDOW_DAYS,
       );
       const recency: RecencyContext = { history: buildCookingHistory(history), now };
+
+      // The household's persistent baseline with this request's intent delta on top
+      // (#157), translated into engine units once. Same combination rule as Tonight,
+      // from the same two halves — an intent chip and a slider are the same axes,
+      // differing only in how long they last.
+      const weights = toRankingWeights(
+        combinePreferenceWeights(stored.preference_weights, intentDelta),
+      );
 
       // The shared pipeline, unchanged and in the same order Tonight runs it. Only
       // the selection step below is specific to this flow.

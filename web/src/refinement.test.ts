@@ -44,58 +44,58 @@ function stateWith(patch: Partial<RefinementState> = {}): RefinementState {
 }
 
 describe("refinementReducer — Billigare / Snabbare", () => {
-  it("increments cost from 0 to 1 on the first tap, and counts the reroll", () => {
-    const next = refinementReducer(INITIAL_REFINEMENT, { type: "increment", axis: "cost" });
+  it("increments price from off to level 1 on the first tap, and counts the reroll", () => {
+    const next = refinementReducer(INITIAL_REFINEMENT, { type: "increment", axis: "price" });
 
-    expect(next.weights).toEqual({ cost: 1, time: 0 });
+    expect(next.weights).toEqual({ price: WEIGHT_LEVELS[1], time: 0 });
     expect(next.rerollDepth).toBe(1);
   });
 
-  it("increments time independently of cost", () => {
-    const afterCost = refinementReducer(INITIAL_REFINEMENT, { type: "increment", axis: "cost" });
+  it("increments time independently of price", () => {
+    const afterCost = refinementReducer(INITIAL_REFINEMENT, { type: "increment", axis: "price" });
     const afterTime = refinementReducer(afterCost, { type: "increment", axis: "time" });
 
-    expect(afterTime.weights).toEqual({ cost: 1, time: 1 });
+    expect(afterTime.weights).toEqual({ price: WEIGHT_LEVELS[1], time: WEIGHT_LEVELS[1] });
     expect(afterTime.rerollDepth).toBe(2);
   });
 
   it("cycles through both levels and wraps back to 0", () => {
     let state = INITIAL_REFINEMENT;
 
-    state = refinementReducer(state, { type: "increment", axis: "cost" });
-    expect(weightLevel(state, "cost")).toBe(1);
-    expect(state.weights.cost).toBe(WEIGHT_LEVELS[1]);
+    state = refinementReducer(state, { type: "increment", axis: "price" });
+    expect(weightLevel(state, "price")).toBe(1);
+    expect(state.weights.price).toBe(WEIGHT_LEVELS[1]);
 
-    state = refinementReducer(state, { type: "increment", axis: "cost" });
-    expect(weightLevel(state, "cost")).toBe(MAX_WEIGHT_LEVEL);
-    expect(state.weights.cost).toBe(WEIGHT_LEVELS[MAX_WEIGHT_LEVEL]);
+    state = refinementReducer(state, { type: "increment", axis: "price" });
+    expect(weightLevel(state, "price")).toBe(MAX_WEIGHT_LEVEL);
+    expect(state.weights.price).toBe(WEIGHT_LEVELS[MAX_WEIGHT_LEVEL]);
 
-    state = refinementReducer(state, { type: "increment", axis: "cost" });
-    expect(weightLevel(state, "cost")).toBe(0);
-    expect(state.weights.cost).toBe(0);
+    state = refinementReducer(state, { type: "increment", axis: "price" });
+    expect(weightLevel(state, "price")).toBe(0);
+    expect(state.weights.price).toBe(0);
   });
 
   it("every tap changes the state — a chip resets itself in one tap at the top level", () => {
     const atMax = stateWith({
-      weights: { cost: WEIGHT_LEVELS[MAX_WEIGHT_LEVEL], time: 0 },
+      weights: { price: WEIGHT_LEVELS[MAX_WEIGHT_LEVEL], time: 0 },
       rerollDepth: 5,
     });
 
-    const next = refinementReducer(atMax, { type: "increment", axis: "cost" });
+    const next = refinementReducer(atMax, { type: "increment", axis: "price" });
 
     expect(next).not.toBe(atMax);
-    expect(next.weights.cost).toBe(0);
+    expect(next.weights.price).toBe(0);
     expect(next.rerollDepth).toBe(6);
   });
 });
 
 describe("refinementReducer — reroll, exclusion and reset", () => {
   it("counts a plain reroll without touching the weights", () => {
-    const weighted = stateWith({ weights: { cost: 2, time: 1 }, excludedTemplateIds: ["a"] });
+    const weighted = stateWith({ weights: { price: 2, time: 1 }, excludedTemplateIds: ["a"] });
 
     const next = refinementReducer(weighted, { type: "reroll", chip: "something_else" });
 
-    expect(next.weights).toEqual({ cost: 2, time: 1 });
+    expect(next.weights).toEqual({ price: 2, time: 1 });
     expect(next.excludedTemplateIds).toEqual(["a"]);
     expect(next.rerollDepth).toBe(1);
   });
@@ -126,14 +126,14 @@ describe("refinementReducer — reroll, exclusion and reset", () => {
 
   it("resets weights and exclusions to defaults, keeping the session's reroll depth", () => {
     const deep = stateWith({
-      weights: { cost: 3, time: 2 },
+      weights: { price: 3, time: 2 },
       excludedTemplateIds: ["a", "b", "c"],
       rerollDepth: 6,
     });
 
     const next = refinementReducer(deep, { type: "reset" });
 
-    expect(next.weights).toEqual({ cost: 0, time: 0 });
+    expect(next.weights).toEqual({ price: 0, time: 0 });
     expect(next.excludedTemplateIds).toEqual([]);
     // Reset restores the suggestion, not the household's patience.
     expect(next.rerollDepth).toBe(7);

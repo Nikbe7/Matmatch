@@ -29,7 +29,7 @@ import { HttpError } from "../httpError.js";
 const ChipIdSchema = z.enum(["cheaper", "faster", "other_cuisine", "something_else", "reset"]);
 
 const SessionWeightsSchema = z.object({
-  cost: z.number(),
+  price: z.number(),
   time: z.number(),
 });
 

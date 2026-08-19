@@ -718,8 +718,8 @@ function AdjustmentChips({
     <div role="group" aria-label="Justera förslaget" className="chip-row">
       <LevelChip
         label="Billigare"
-        level={weightLevel(refinement, "cost")}
-        onTap={() => onIncrement("cost")}
+        level={weightLevel(refinement, "price")}
+        onTap={() => onIncrement("price")}
         disabled={busy}
       />
       <LevelChip
@@ -1118,7 +1118,7 @@ function TonightView({
 
   function handleIncrement(axis: WeightAxis) {
     const next = apply({ type: "increment", axis });
-    const chip: ChipId = axis === "cost" ? "cheaper" : "faster";
+    const chip: ChipId = axis === "price" ? "cheaper" : "faster";
 
     reportChipTap(chip, next, weightLevel(next, axis));
     void requestSuggestion(next, current.result?.template.id);

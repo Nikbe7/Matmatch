@@ -9,7 +9,12 @@ import {
   suggestMainIngredientId,
   type MainIngredientChoice,
 } from "./directions.js";
-import { effectiveIngredientIds, rankCandidates, type RankedCandidate } from "./ranking.js";
+import {
+  effectiveIngredientIds,
+  rankCandidates,
+  NEUTRAL_RANKING_WEIGHTS,
+  type RankedCandidate,
+} from "./ranking.js";
 import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "./__fixtures__/engineData.js";
 import { makeConstraints as household } from "./__fixtures__/household.js";
 import type { MealConstraints } from "./constraints.js";
@@ -24,7 +29,7 @@ const data = await loadEngineData();
 
 /** The real pipeline, exactly as the route runs it: filter, then rank, then select. */
 function realRanked(h: MealConstraints, month = 6): RankedCandidate[] {
-  return rankCandidates(data, selectCandidateTemplates(data, h), { cost: 0, time: 0 }, month, h.dietary_flags);
+  return rankCandidates(data, selectCandidateTemplates(data, h), { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 }, month, h.dietary_flags);
 }
 
 const ANY: MainIngredientChoice = { kind: "any" };
@@ -451,10 +456,10 @@ describe("pickDirections — the Billigt intent rides the existing weight vector
     const h = household();
     const candidates = selectCandidateTemplates(data, h);
 
-    const neutral = pickDirections(rankCandidates(data, candidates, { cost: 0, time: 0 }, 6), {
+    const neutral = pickDirections(rankCandidates(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 }, 6), {
       main: ANY,
     });
-    const cheap = pickDirections(rankCandidates(data, candidates, { cost: 3, time: 0 }, 6), {
+    const cheap = pickDirections(rankCandidates(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 3, time: 0 }, 6), {
       main: ANY,
     });
 
@@ -484,7 +489,7 @@ describe("pickDirections — synthetic data sanity", () => {
     const list = rankCandidates(
       engineData,
       selectCandidateTemplates(engineData, household()),
-      { cost: 0, time: 0 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 },
       6,
     );
 

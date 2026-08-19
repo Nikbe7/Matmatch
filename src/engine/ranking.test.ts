@@ -16,6 +16,8 @@ import {
   rankCandidates,
   recencyPenalty,
   scoreCandidate,
+  NEUTRAL_RANKING_WEIGHTS,
+  toRankingWeights,
   type RankingWeights,
   type RecencyContext,
 } from "./ranking.js";
@@ -120,13 +122,13 @@ describe("scoreCandidate", () => {
     const premium = neutralCandidate("t", { cost_tier: "premium", prep_time_band: "<20min" });
 
     // 2 tiers * 1.5 weight, minus the full seasonality bonus of 0.25.
-    expect(scoreCandidate(seasonalityData, premium, { cost: 1.5, time: 0 }, 1)).toBeCloseTo(2.75);
+    expect(scoreCandidate(seasonalityData, premium, { ...NEUTRAL_RANKING_WEIGHTS, price: 1.5, time: 0 }, 1)).toBeCloseTo(2.75);
   });
 
   it("adds one prep-band step per unit of time weight", () => {
     const slow = neutralCandidate("t", { cost_tier: "budget", prep_time_band: "40min+" });
 
-    expect(scoreCandidate(seasonalityData, slow, { cost: 0, time: 2 }, 1)).toBeCloseTo(3.75);
+    expect(scoreCandidate(seasonalityData, slow, { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 2 }, 1)).toBeCloseTo(3.75);
   });
 
   it("subtracts at most 0.25 for seasonality, less than a single enum step at weight 1", () => {
@@ -134,7 +136,7 @@ describe("scoreCandidate", () => {
     const outOfSeason = candidate("t", {
       ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true })],
     });
-    const weights = { cost: 1, time: 1 };
+    const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 };
 
     const spread =
       scoreCandidate(seasonalityData, outOfSeason, weights, 1) -
@@ -148,7 +150,7 @@ describe("scoreCandidate", () => {
     const everyday = neutralCandidate("t", { familiarity: "everyday" });
     const occasional = neutralCandidate("t", { familiarity: "occasional" });
     const adventurous = neutralCandidate("t", { familiarity: "adventurous" });
-    const weights = { cost: 0, time: 0 };
+    const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 };
 
     // neutralCandidate's slot is always in season, so each score also carries the
     // full -0.25 seasonality bonus.
@@ -159,7 +161,7 @@ describe("scoreCandidate", () => {
 });
 
 describe("scoreCandidate — omnivore preference", () => {
-  const weights = { cost: 0, time: 0 };
+  const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 };
 
   it("adds one familiarity step's worth of penalty to a vegetarian template for a household with no dietary flags", () => {
     const meat = neutralCandidate("t", { dietary_tags: [] });
@@ -220,24 +222,24 @@ describe("rankCandidates — weight response", () => {
   const candidates = [cheapSlow, pricyFast];
 
   it("puts the cheaper template first as cost weight rises, time held fixed", () => {
-    expect(ids(rankCandidates(seasonalityData, candidates, { cost: 0, time: 1 }, 1))).toEqual([
+    expect(ids(rankCandidates(seasonalityData, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 1 }, 1))).toEqual([
       "pricy-fast",
       "cheap-slow",
     ]);
 
-    expect(ids(rankCandidates(seasonalityData, candidates, { cost: 3, time: 1 }, 1))).toEqual([
+    expect(ids(rankCandidates(seasonalityData, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 3, time: 1 }, 1))).toEqual([
       "cheap-slow",
       "pricy-fast",
     ]);
   });
 
   it("puts the faster template first as time weight rises, cost held fixed", () => {
-    expect(ids(rankCandidates(seasonalityData, candidates, { cost: 1, time: 0 }, 1))).toEqual([
+    expect(ids(rankCandidates(seasonalityData, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 0 }, 1))).toEqual([
       "cheap-slow",
       "pricy-fast",
     ]);
 
-    expect(ids(rankCandidates(seasonalityData, candidates, { cost: 1, time: 3 }, 1))).toEqual([
+    expect(ids(rankCandidates(seasonalityData, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 3 }, 1))).toEqual([
       "pricy-fast",
       "cheap-slow",
     ]);
@@ -247,7 +249,7 @@ describe("rankCandidates — weight response", () => {
     const input = [pricyFast, cheapSlow];
     const snapshot = structuredClone(input);
 
-    rankCandidates(seasonalityData, input, { cost: 2, time: 1 }, 1);
+    rankCandidates(seasonalityData, input, { ...NEUTRAL_RANKING_WEIGHTS, price: 2, time: 1 }, 1);
 
     expect(input).toEqual(snapshot);
     expect(input[0]).toBe(pricyFast);
@@ -262,7 +264,7 @@ describe("rankCandidates — tie-break", () => {
       neutralCandidate("agggratang"),
       neutralCandidate("morotssoppa"),
     ];
-    const weights = { cost: 1, time: 1 };
+    const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 };
 
     const first = ids(rankCandidates(seasonalityData, candidates, weights, 1));
 
@@ -276,11 +278,11 @@ describe("rankCandidates — tie-break", () => {
     const a = neutralCandidate("a-ratt");
     const b = neutralCandidate("b-ratt");
 
-    expect(ids(rankCandidates(seasonalityData, [a, b], { cost: 1, time: 1 }, 1))).toEqual([
+    expect(ids(rankCandidates(seasonalityData, [a, b], { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 1))).toEqual([
       "a-ratt",
       "b-ratt",
     ]);
-    expect(ids(rankCandidates(seasonalityData, [b, a], { cost: 1, time: 1 }, 1))).toEqual([
+    expect(ids(rankCandidates(seasonalityData, [b, a], { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 1))).toEqual([
       "a-ratt",
       "b-ratt",
     ]);
@@ -292,7 +294,7 @@ describe("rankCandidates — familiarity", () => {
     const everyday = neutralCandidate("everyday-dish", { familiarity: "everyday" });
     const adventurous = neutralCandidate("adventurous-dish", { familiarity: "adventurous" });
 
-    expect(ids(rankCandidates(seasonalityData, [adventurous, everyday], { cost: 1, time: 1 }, 1))).toEqual([
+    expect(ids(rankCandidates(seasonalityData, [adventurous, everyday], { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 1))).toEqual([
       "everyday-dish",
       "adventurous-dish",
     ]);
@@ -311,7 +313,7 @@ describe("rankCandidates — familiarity", () => {
     });
 
     expect(
-      ids(rankCandidates(seasonalityData, [occasionalInSeason, everydayOutOfSeason], { cost: 0, time: 0 }, 1)),
+      ids(rankCandidates(seasonalityData, [occasionalInSeason, everydayOutOfSeason], { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 }, 1)),
     ).toEqual(["everyday-out-of-season", "occasional-in-season"]);
   });
 
@@ -324,7 +326,7 @@ describe("rankCandidates — familiarity", () => {
       familiarity: "adventurous",
       cost_tier: "budget",
     });
-    const weights = { cost: 3, time: 0 };
+    const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 3, time: 0 };
 
     // 2 cost-tier steps * weight 3 = 6, which beats the 3.0 two-step familiarity gap.
     expect(ids(rankCandidates(seasonalityData, [everydayExpensive, adventurousCheap], weights, 1))).toEqual([
@@ -345,7 +347,7 @@ describe("rankCandidates — familiarity", () => {
       familiarity: "adventurous",
       cost_tier: "budget",
     });
-    const defaultWeights = { cost: 1, time: 1 };
+    const defaultWeights = { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 };
 
     expect(
       ids(rankCandidates(seasonalityData, [adventurousBudget, everydayPremium], defaultWeights, 1)),
@@ -355,7 +357,7 @@ describe("rankCandidates — familiarity", () => {
   it("still returns an adventurous template when it is the only candidate", () => {
     const onlyOption = neutralCandidate("only-adventurous", { familiarity: "adventurous" });
 
-    const tonight = pickTonight(seasonalityData, [onlyOption], { cost: 1, time: 1 }, 1);
+    const tonight = pickTonight(seasonalityData, [onlyOption], { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 1);
 
     expect(tonight?.template.id).toBe("only-adventurous");
   });
@@ -385,7 +387,7 @@ describe("rankCandidates — substitution seasonality", () => {
       ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "sommar", substitutable: true })],
     });
 
-    const ranked = rankCandidates(seasonalityData, [baseline, rescued], { cost: 0, time: 0 }, 1);
+    const ranked = rankCandidates(seasonalityData, [baseline, rescued], { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 }, 1);
 
     expect(ids(ranked)).toEqual(["b-rescued", "a-baseline"]);
     expect(ranked[0]!.score).toBeCloseTo(-0.25);
@@ -440,7 +442,7 @@ describe("rankCandidates — zero weights", () => {
     const ranked = rankCandidates(
       seasonalityData,
       [noneInSeason, halfInSeason, allInSeason],
-      { cost: 0, time: 0 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 },
       1,
     );
 
@@ -455,13 +457,13 @@ describe("rankCandidates — zero weights", () => {
 
 describe("pickTonight", () => {
   it("returns undefined for an empty candidate set rather than throwing", () => {
-    expect(pickTonight(seasonalityData, [], { cost: 1, time: 1 }, 1)).toBeUndefined();
+    expect(pickTonight(seasonalityData, [], { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 1)).toBeUndefined();
   });
 
   it("returns the single candidate when there is only one", () => {
     const only = neutralCandidate("enda-ratten");
 
-    expect(pickTonight(seasonalityData, [only], { cost: 1, time: 1 }, 1)?.template.id).toBe(
+    expect(pickTonight(seasonalityData, [only], { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 1)?.template.id).toBe(
       "enda-ratten",
     );
   });
@@ -483,13 +485,13 @@ describe("pickTonight", () => {
     ];
 
     const weightCombos: RankingWeights[] = [
-      { cost: 0, time: 0 },
-      { cost: 1, time: 0 },
-      { cost: 0, time: 1 },
-      { cost: 1, time: 1 },
-      { cost: 3, time: 0.5 },
-      { cost: 0.5, time: 3 },
-      { cost: 0.1, time: 0.1 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 0 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 1 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 3, time: 0.5 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 0.5, time: 3 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 0.1, time: 0.1 },
     ];
 
     for (const weights of weightCombos) {
@@ -503,7 +505,7 @@ describe("pickTonight", () => {
 });
 
 describe("pickNextSuggestion", () => {
-  const weights = { cost: 1, time: 1 };
+  const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 };
 
   it("never returns an excluded template id", () => {
     const candidates = [neutralCandidate("a"), neutralCandidate("b"), neutralCandidate("c")];
@@ -617,7 +619,7 @@ describe("rankCandidates — over the real candidate set", () => {
   const candidates = selectCandidateTemplates(data, noRestrictions);
 
   it("ranks every candidate exactly once, in non-decreasing score order", () => {
-    const ranked = rankCandidates(data, candidates, { cost: 1, time: 1 }, 8);
+    const ranked = rankCandidates(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 8);
 
     // 148, not 170: the meal_types hard filter (#68) now excludes the 22
     // templates without "dinner" in meal_types (14 breakfast/lunch-only, plus
@@ -632,23 +634,23 @@ describe("rankCandidates — over the real candidate set", () => {
   });
 
   it("gives Tonight a budget, fast meal when the household asks for cheap and quick", () => {
-    const tonight = pickTonight(data, candidates, { cost: 3, time: 3 }, 8);
+    const tonight = pickTonight(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 3, time: 3 }, 8);
 
     expect(tonight?.template.cost_tier).toBe("budget");
     expect(tonight?.template.prep_time_band).toBe("<20min");
   });
 
   it("picks the same Tonight across repeated runs for the same inputs", () => {
-    const first = pickTonight(data, candidates, { cost: 1, time: 1 }, 8)?.template.id;
+    const first = pickTonight(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 8)?.template.id;
 
     for (let run = 0; run < 3; run += 1) {
-      expect(pickTonight(data, candidates, { cost: 1, time: 1 }, 8)?.template.id).toBe(first);
+      expect(pickTonight(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 8)?.template.id).toBe(first);
     }
   });
 
   it("responds to the month — some template's score changes between January and July", () => {
-    const january = rankCandidates(data, candidates, { cost: 1, time: 1 }, 1);
-    const july = rankCandidates(data, candidates, { cost: 1, time: 1 }, 7);
+    const january = rankCandidates(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 1);
+    const july = rankCandidates(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 1 }, 7);
 
     const scoreById = new Map(january.map((r) => [r.template.id, r.score]));
     const changed = july.filter((r) => scoreById.get(r.template.id) !== r.score);
@@ -674,13 +676,13 @@ describe("rankCandidates — real catalog seasonality (#50)", () => {
       ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "pumpa", substitutable: true })],
     });
 
-    const may = rankCandidates(data, [pumpaCandidate, sparrisCandidate], { cost: 0, time: 0 }, 5);
+    const may = rankCandidates(data, [pumpaCandidate, sparrisCandidate], { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 }, 5);
     expect(ids(may)).toEqual(["uses-sparris", "uses-pumpa"]);
 
     const september = rankCandidates(
       data,
       [pumpaCandidate, sparrisCandidate],
-      { cost: 0, time: 0 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 },
       9,
     );
     expect(ids(september)).toEqual(["uses-pumpa", "uses-sparris"]);
@@ -757,7 +759,7 @@ describe("recencyPenalty", () => {
 });
 
 describe("rankCandidates — repeat avoidance", () => {
-  const zero = { cost: 0, time: 0 };
+  const zero = { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 };
 
   it("ranks a recently cooked template below an otherwise identical uncooked one", () => {
     const cooked = neutralCandidate("a-cooked");
@@ -838,7 +840,7 @@ describe("rankCandidates — repeat avoidance", () => {
     const ranked = rankCandidates(
       seasonalityData,
       [cookedBudget, freshPremium],
-      { cost: 3, time: 0 },
+      { ...NEUTRAL_RANKING_WEIGHTS, price: 3, time: 0 },
       1,
       [],
       recency({ "cooked-budget": daysAgo(0) }),
@@ -875,7 +877,7 @@ describe("rankCandidates — repeat avoidance", () => {
 });
 
 describe("rankCandidates — recency tie-break", () => {
-  const zero = { cost: 0, time: 0 };
+  const zero = { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 };
 
   it("prefers the least recently cooked of two dishes cooked on the same day", () => {
     // Same day means an identical (day-quantised) penalty, so scores tie and the
@@ -933,7 +935,7 @@ describe("rankCandidates — recency tie-break", () => {
 });
 
 describe("pickTonight — repeat avoidance", () => {
-  const zero = { cost: 0, time: 0 };
+  const zero = { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 };
 
   it("suggests a different dish the evening after one was cooked", () => {
     const candidates = [neutralCandidate("a-kottbullar"), neutralCandidate("b-fisksoppa")];
@@ -993,7 +995,7 @@ describe("pickTonight — repeat avoidance", () => {
 // that term actually being what separates the winner from the runner-up — never
 // from a coincidence in the fixture defaults.
 describe("explainSuggestion", () => {
-  const zero = { cost: 0, time: 0 };
+  const zero = { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 };
 
   it("credits seasonality when it is the only thing separating the winner from the runner-up", () => {
     const winner = candidate("in-season", {
@@ -1027,7 +1029,7 @@ describe("explainSuggestion", () => {
   it("credits the cost preference only when a cost weight is actually in play", () => {
     const winner = neutralCandidate("budget-pick", { cost_tier: "budget" });
     const runnerUp = neutralCandidate("mid-pick", { cost_tier: "mid" });
-    const weights = { cost: 1, time: 0 };
+    const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 0 };
 
     const ranked = rankCandidates(seasonalityData, [winner, runnerUp], weights, 1);
     const picked = ranked.find((c) => c.template.id === "budget-pick")!;
@@ -1040,7 +1042,7 @@ describe("explainSuggestion", () => {
   it("credits the time preference only when a time weight is actually in play", () => {
     const winner = neutralCandidate("fast-pick", { prep_time_band: "<20min" });
     const runnerUp = neutralCandidate("slow-pick", { prep_time_band: "40min+" });
-    const weights = { cost: 0, time: 1 };
+    const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 1 };
 
     const ranked = rankCandidates(seasonalityData, [winner, runnerUp], weights, 1);
     const picked = ranked.find((c) => c.template.id === "fast-pick")!;
@@ -1094,7 +1096,7 @@ describe("explainSuggestion", () => {
       prep_time_band: "40min+",
       ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "vinter", substitutable: true })],
     });
-    const weights = { cost: 1.5, time: 2 };
+    const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 1.5, time: 2 };
 
     const ranked = rankCandidates(seasonalityData, [winner, runnerUp], weights, 7);
     const picked = ranked.find((c) => c.template.id === "winner")!;
@@ -1163,7 +1165,7 @@ describe("explainSuggestion", () => {
       familiarity: "adventurous",
       cost_tier: "budget",
     });
-    const weights = { cost: 1, time: 0 };
+    const weights = { ...NEUTRAL_RANKING_WEIGHTS, price: 1, time: 0 };
 
     const ranked = rankCandidates(seasonalityData, [scoreWinner, pickedForVariety], weights, 1);
     // Confirm the fixture actually exercises the override: the score prefers

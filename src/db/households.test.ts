@@ -1,7 +1,18 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { HouseholdSchema, type Household } from "../schema/household.js";
 import type { Sql } from "./client.js";
-import { createHousehold, getHousehold, updateHousehold } from "./households.js";
+import {
+  createHousehold,
+  getHousehold,
+  getHouseholdForOwner,
+  updateHousehold,
+  updateHouseholdPreferenceWeights,
+} from "./households.js";
+import {
+  NEUTRAL_PREFERENCE_WEIGHTS,
+  PREFERENCE_WEIGHT_MAX,
+  PREFERENCE_WEIGHT_STEP,
+} from "../schema/preferenceWeights.js";
 import {
   appClient,
   bypassClient,
@@ -241,5 +252,116 @@ describe.skipIf(!stackAvailable)("households schema constraints (raw SQL)", () =
     await expect(
       admin!`insert into households (owner_user_id) values (${crypto.randomUUID()})`,
     ).rejects.toThrow(/owner_user_id_fkey/i);
+  });
+
+  // Preference weights (#157) ------------------------------------------------
+
+  it("gives a newly created household the neutral baseline", async () => {
+    const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
+
+    // The column defaults, read back through the repository. This is what makes the
+    // migration behaviour-preserving for every existing row: neutral maps onto the
+    // pre-#157 engine constants exactly (src/engine/preferenceWeights.test.ts).
+    expect(created.preference_weights).toEqual(NEUTRAL_PREFERENCE_WEIGHTS);
+    expect((await getHousehold(sql!, owner.userId, created.id))!.preference_weights).toEqual(
+      NEUTRAL_PREFERENCE_WEIGHTS,
+    );
+  });
+
+  it("round-trips a baseline on all four axes, including the inert one", async () => {
+    const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
+    const weights = { price: 35, time: 100, variation: 5, simplicity: 55 };
+
+    const updated = await updateHouseholdPreferenceWeights(sql!, owner.userId, created.id, weights);
+
+    expect(updated!.preference_weights).toEqual(weights);
+    // Read back through a different entry point, so this proves storage rather than the
+    // update statement handing its own argument straight back.
+    expect((await getHouseholdForOwner(sql!, owner.userId))!.preference_weights).toEqual(weights);
+  });
+
+  it("keeps the profile intact when only the weights change, and vice versa", async () => {
+    // The reason weights are a sibling of `household` rather than a field inside it:
+    // `PUT /api/households` is a full replacement with no version check (DECISION_LOG
+    // 2026-08-16), so an axis reachable through it would be wiped by any profile save
+    // that did not resend it. These two writes must not be able to clobber each other.
+    const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
+    const weights = { price: 50, time: 0, variation: 25, simplicity: 0 };
+
+    await updateHouseholdPreferenceWeights(sql!, owner.userId, created.id, weights);
+
+    const afterProfileSave = await updateHousehold(sql!, owner.userId, created.id, profile);
+    expect(afterProfileSave!.preference_weights).toEqual(weights);
+
+    const afterWeightSave = await updateHouseholdPreferenceWeights(sql!, owner.userId, created.id, {
+      ...weights,
+      price: 100,
+    });
+    expect(afterWeightSave!.household).toEqual(profile);
+  });
+
+  it("returns undefined rather than creating anything for an unknown household id", async () => {
+    const owner = await createTestUser();
+
+    expect(
+      await updateHouseholdPreferenceWeights(
+        sql!,
+        owner.userId,
+        crypto.randomUUID(),
+        NEUTRAL_PREFERENCE_WEIGHTS,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("rejects an out-of-range weight before it reaches the database", async () => {
+    const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
+
+    for (const bad of [101, -5, 37, 2.5]) {
+      await expect(
+        updateHouseholdPreferenceWeights(sql!, owner.userId, created.id, {
+          ...NEUTRAL_PREFERENCE_WEIGHTS,
+          price: bad,
+        }),
+      ).rejects.toThrow();
+    }
+
+    // Nothing partial landed on the way to failing.
+    expect((await getHousehold(sql!, owner.userId, created.id))!.preference_weights).toEqual(
+      NEUTRAL_PREFERENCE_WEIGHTS,
+    );
+  });
+
+  it("rejects an out-of-range weight at the database too, not only in zod", async () => {
+    // The acceptance criterion is that the SCHEMA rejects it. Written with the
+    // RLS-bypassing admin connection deliberately: the domain has to be reached without
+    // a policy or an application-layer parse stopping the write first, or it would never
+    // be exercised and could silently not exist in a hosted project.
+    const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
+
+    for (const bad of [101, -5, 37]) {
+      await expect(
+        admin!`update households set preference_price = ${bad} where id = ${created.id}`,
+      ).rejects.toThrow(/preference_weight/i);
+    }
+  });
+
+  it("accepts every value on the step grid at the database level", async () => {
+    const owner = await createTestUser();
+    const created = await createHousehold(sql!, owner.userId, profile);
+
+    for (let notch = 0; notch <= PREFERENCE_WEIGHT_MAX; notch += PREFERENCE_WEIGHT_STEP) {
+      const updated = await updateHouseholdPreferenceWeights(sql!, owner.userId, created.id, {
+        price: notch,
+        time: notch,
+        variation: notch,
+        simplicity: notch,
+      });
+      expect(updated!.preference_weights.price).toBe(notch);
+    }
   });
 });

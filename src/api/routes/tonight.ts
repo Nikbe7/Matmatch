@@ -11,13 +11,15 @@ import {
   explainSuggestion,
   pickNextSuggestion,
   rankCandidates,
+  toRankingWeights,
   RECENCY_HISTORY_WINDOW_DAYS,
   type RecencyContext,
 } from "../../engine/ranking.js";
 import type { RecipeTemplate } from "../../schema/recipeTemplate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../httpError.js";
-import { parseWeightsFromQuery } from "../weights.js";
+import { parseWeightsDeltaFromQuery } from "../weights.js";
+import { combinePreferenceWeights } from "../../schema/preferenceWeights.js";
 import {
   parseExcludeFromQuery,
   parseKeepFromQuery,
@@ -33,7 +35,11 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
 
   router.get("/api/tonight", requireAuth(verifyToken), async (req, res, next) => {
     try {
-      const weights = parseWeightsFromQuery(req.query as Record<string, unknown>);
+      // A session-scoped *delta* on the shared axes (#157), not a weight vector: the
+      // household's persistent baseline comes from the database below, and the two are
+      // combined once. Chips and sliders move the same four axes; only their lifetimes
+      // differ.
+      const weightsDelta = parseWeightsDeltaFromQuery(req.query as Record<string, unknown>);
       const excludedTemplateIds = parseExcludeFromQuery((req.query as Record<string, unknown>).exclude);
       const previousTemplateId = parsePreviousFromQuery((req.query as Record<string, unknown>).previous);
       // #133: the dish already on screen, sent only by a diner-set change — see
@@ -66,6 +72,14 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         RECENCY_HISTORY_WINDOW_DAYS,
       );
       const recency: RecencyContext = { history: buildCookingHistory(history), now };
+
+      // Baseline + delta → engine units, once, before anything ranks or explains. Every
+      // use of `weights` below (ranking and both `explainSuggestion` calls) reads this
+      // one value, so the card can never be ordered by one vector and explained by
+      // another.
+      const weights = toRankingWeights(
+        combinePreferenceWeights(stored.preference_weights, weightsDelta),
+      );
 
       // Derived once and used for filtering, ranking *and* portions, so none of the
       // three can be handed a different answer about who this meal is for. An

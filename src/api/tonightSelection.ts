@@ -6,7 +6,7 @@ import { HttpError } from "./httpError.js";
 //
 // - A *wrong-typed* parameter (`?exclude=a&exclude=b`, which Express hands over as
 //   an array, or a bracketed object) is a client bug. It is rejected with a 400 and
-//   a structured code, the same way parseWeightsFromQuery rejects a malformed
+//   a structured code, the same way parseWeightsDeltaFromQuery rejects a malformed
 //   weight — silently coercing it would hide the bug and quietly show the household
 //   a dish it has already rejected.
 // - An *unknown or stale* template id is not a bug: a household whose constraints

@@ -1,4 +1,9 @@
 import type { DietaryFlag } from "../schema/allergyDietary.js";
+import {
+  NEUTRAL_PREFERENCE_WEIGHTS,
+  PREFERENCE_WEIGHT_MAX,
+  type PreferenceWeights,
+} from "../schema/preferenceWeights.js";
 import type { CostTier } from "../schema/ingredient.js";
 import type { Familiarity, PrepTimeBand, RecipeTemplate } from "../schema/recipeTemplate.js";
 import type { CandidateTemplate } from "./candidates.js";
@@ -10,22 +15,52 @@ import type { EngineData } from "./data.js";
 // flow's ordered list (§5), so the two can never disagree about ordering.
 
 /**
- * The session-scoped weight vector from DECISION_LOG 2026-07-31 ("Rejected
- * user-facing priority sliders"). Mutated only by adjustment-chip taps elsewhere,
- * never persisted to the household profile and never surfaced as a settings screen.
+ * The engine-domain weight vector: score points per enum step, calibrated against the
+ * constants below. Never constructed by hand outside tests — it is *derived* from the
+ * household's `PreferenceWeights` by `toRankingWeights`, which is the only bridge
+ * between the two spaces (#157).
  *
- * Deliberately has no health/nutrition field: that decision excludes nutrition
- * priorities from the weight vector entirely, not just from the UI. Do not add one
- * for symmetry.
+ * That derivation is what keeps there from being two weight concepts. Everything a
+ * household can express — the persistent slider baseline and the session-scoped chip
+ * delta alike — is a `PreferenceWeights` value; this type is what the score arithmetic
+ * needs after that single translation. If you find yourself adding a field here that
+ * has no axis behind it, or an axis with no field here, one of the two is wrong.
  *
- * Values are expected to be finite and non-negative. This module does not validate
- * or clamp them — chip semantics (how far a "cheaper" tap moves `cost`) belong to
- * the caller, not here.
+ * Deliberately has no health/nutrition field: DECISION_LOG 2026-07-31 excludes
+ * nutrition priorities from the weight vector entirely, not just from the UI, and the
+ * 2026-08-16 slider entry left that half standing. Do not add one for symmetry.
+ *
+ * Values are expected to be finite and non-negative. This module does not validate or
+ * clamp them; `toRankingWeights` produces only in-range values from a validated
+ * `PreferenceWeights`, and the range guarantee lives there and in the schema.
  */
 export interface RankingWeights {
-  cost: number;
+  /** Score points per cost-tier step (budget → mid → premium). */
+  price: number;
+  /** Score points per prep-time-band step (<20min → 20-40min → 40min+). */
   time: number;
+  /**
+   * Score points per familiarity step (everyday → occasional → adventurous).
+   *
+   * A weight since #157, a hardcoded constant before it. `NEUTRAL_FAMILIARITY_STEP_WEIGHT`
+   * is the value it had, and the value it still takes at `variation: 0` — which is why
+   * a household that has never touched the Variation slider ranks exactly as it did
+   * before this field existed.
+   */
+  familiarity: number;
 }
+
+/**
+ * The engine weight a maxed-out axis carries, i.e. what `100` on a slider buys.
+ *
+ * 3, because that is what the top adjustment-chip level has always been worth
+ * (`WEIGHT_LEVELS[2]` in web/src/refinement.ts): enough to beat the largest possible
+ * familiarity gap (two steps at `NEUTRAL_FAMILIARITY_STEP_WEIGHT`), so a household that
+ * pushes an axis all the way genuinely dominates the order. Keeping the ceiling at the
+ * old chip maximum is also what lets a chip be re-expressed as a slider delta without
+ * changing what the strongest expressible preference does.
+ */
+const MAX_AXIS_RANKING_WEIGHT = 3;
 
 export interface RankedCandidate extends CandidateTemplate {
   score: number;
@@ -69,60 +104,123 @@ export function familiarityIndex(familiarity: Familiarity): number {
 }
 
 // Maximum score improvement a fully in-season template can earn. Not user-adjustable
-// — there is no seasonality chip, and unlike cost and time it is not something the
+// — there is no seasonality axis, and unlike price and time it is not something the
 // household expressed a preference about, so it must not compete with one.
 //
-// Chosen at 0.25 because the smallest possible *expressed* preference gap is one
-// enum step, worth `weights.cost` (or `weights.time`) exactly. At any weight above
-// 0.25 — and chip taps are expected to move weights on the order of 1 — a full
-// seasonality swing (0% to 100% of slots in season) cannot outrank a single
-// cost-tier or prep-band step. So seasonality orders templates *within* a
-// cost/time band and never overrides a real preference. When the household has
-// expressed nothing at all (weights at or near 0), it becomes the sole ordering
-// signal, which is exactly the zero-input Tonight behavior UX_FLOW §9 describes for
-// a new user with no history: "season + popularity + declared preferences only."
+// Chosen at 0.25 against the *pre-#157* weight scale, where the smallest expressed
+// preference was a whole chip level (weight 1) and one enum step was therefore worth
+// at least 1.0. Re-derived for the slider scale, the claim it used to make is now
+// only true above a threshold, and it is worth being exact about where:
+//
+//  * One enum step is worth `weights.price` (or `weights.time`), and one slider notch
+//    of 5 is worth 5/100 * MAX_AXIS_RANKING_WEIGHT = 0.15. So at notches 5 and 10
+//    (weights 0.15 and 0.30) a full seasonality swing is comparable to, and at notch 5
+//    larger than, a single cost-tier step.
+//  * That is the intended reading, not a regression: those notches sit squarely in the
+//    control's own "Spelar liten roll" band. A household saying price barely matters
+//    should not have a one-tier price difference override what is actually in season.
+//  * From notch 10 upward (weight >= 0.30) the original property holds again — a
+//    single expressed enum step outranks the entire seasonality range — and from the
+//    old level-1 chip equivalent (notch 35, weight 1.05) it is not close.
+//
+// So seasonality orders templates *within* a price/time band for any household that
+// has meaningfully expressed something, and becomes the dominant ordering signal only
+// when the household has expressed nothing at all — exactly the zero-input Tonight
+// behaviour UX_FLOW §9 describes for a new user with no history: "season + popularity
+// + declared preferences only."
 const SEASONALITY_WEIGHT = 0.25;
 
-// Penalty per familiarity step (everyday -> occasional -> adventurous), added to
-// the score so unusual dishes rank below ordinary ones by default. Unlike
-// seasonality, this is deliberately calibrated to sit *above* a single expressed
-// cost/time preference step, not below it — the ranking gap it corrects
-// (musselgryta beating köttbullar on a household that only asked for "cheaper")
-// is a familiarity problem, not a seasonality-sized one.
+// Penalty per familiarity step (everyday -> occasional -> adventurous) at
+// `variation: 0`, added to the score so unusual dishes rank below ordinary ones for a
+// household that has asked to stick to what it knows. Unlike seasonality, this is
+// deliberately calibrated to sit *above* a single expressed price/time step at the old
+// level-1 chip strength, not below it — the ranking gap it corrects (musselgryta
+// beating köttbullar on a household that only asked for "cheaper") is a familiarity
+// problem, not a seasonality-sized one.
 //
-// Chosen at 1.5, calibrated against a chip-raised weight of 1 rather than
-// `DEFAULT_WEIGHTS` (src/api/weights.ts) — the default is now `{ cost: 0, time: 0 }`
-// precisely so a household that has tapped nothing gets no cost/time penalty at
-// all, which would make "calibrated against the default" meaningless. The first
-// "cheaper" or "faster" chip tap is expected to move a weight to 1 (see
-// src/api/weights.ts and the RankingWeights doc comment); at that weight, one
-// familiarity step (1.5) already beats one cost-tier or prep-band step (1 * 1),
-// and a full two-step gap (adventurous vs. everyday, 3.0) beats two. At 0.5 a
-// two-step gap would only tie a single cost-tier step, letting a budget
-// adventurous dish still outrank a mid everyday one — the exact failure this
-// constant exists to fix. It is still not unbeatable: a chip that pushes cost or
-// time weight to 3 or more makes that expressed preference dominate a
-// familiarity gap again, same as the seasonality constant is designed to yield to
-// a real preference. If the chip-tap increment ever changes, re-derive this
-// constant against the new increment rather than leaving it calibrated to a
-// stale value.
+// Chosen at 1.5, calibrated against a chip-raised weight of 1 rather than against the
+// neutral default — the default is `NEUTRAL_PREFERENCE_WEIGHTS` (all zeros) precisely so
+// a household that has expressed nothing gets no price/time penalty at all, which would
+// make "calibrated against the default" meaningless. The first "Billigare" or "Snabbare"
+// tap moves an axis to notch 35 (weight 1.05, see web/src/refinement.ts); at that weight
+// one familiarity step (1.5) still beats one cost-tier or prep-band step (1.05), and a
+// full two-step gap (adventurous vs. everyday, 3.0) still beats two (2.10). It is not
+// unbeatable: an axis pushed to 100 (weight 3) makes that expressed preference dominate a
+// familiarity gap again, the same yield-to-a-real-preference property SEASONALITY_WEIGHT
+// has.
 //
-// `WEIGHT_LEVELS` in web/src/refinement.ts hardcodes its two active chip levels as
-// `[0, 1, 3]`, calibrated against this constant (1 = "loses to one familiarity
-// step", 3 = `FAMILIARITY_STEP_WEIGHT * 2` = "beats the largest possible
-// familiarity gap") — not imported, because that module's type-only imports pull
-// in this file's Node-only dependencies through tsc -b's type graph, which web/'s
-// browser tsconfig cannot resolve. Re-derive that literal by hand if this value
-// changes.
-const FAMILIARITY_STEP_WEIGHT = 1.5;
+// Since #157 this is a *floor value*, not the value used: `toRankingWeights` scales it
+// down to 0 as the Variation slider rises, so "Vi lyfter fram rätter ni inte lagat förut"
+// means the novelty penalty is genuinely removed rather than merely reduced. At
+// variation 100 the familiarity term drops out entirely and repeat-avoidance becomes the
+// novelty signal, which is the honest reading of that hint text.
+//
+// `WEIGHT_LEVELS` in web/src/refinement.ts hardcodes its two active chip levels in
+// *slider* units as `[0, 35, 100]`, calibrated against this constant (35 → weight 1.05,
+// "loses to one familiarity step"; 100 → weight 3, "beats the largest possible
+// familiarity gap") — not imported, because that module's type-only imports pull in this
+// file's Node-only dependencies through tsc -b's type graph, which web/'s browser tsconfig
+// cannot resolve. Re-derive those literals by hand if this value or
+// MAX_AXIS_RANKING_WEIGHT changes.
+const NEUTRAL_FAMILIARITY_STEP_WEIGHT = 1.5;
 
 // Penalty applied to a template tagged `vegetarian` or `vegan` when the household
-// has declared neither flag. One familiarity step (not a filter, and not the full
-// seasonality-beating weight of two steps): an omnivore household eats meat most
-// days but not every day, so a vegetarian dish should have to be otherwise better
-// — cheaper, more in season, more familiar — to win, not be excluded outright. A
-// household that has declared `vegetarian` or `vegan` gets no penalty at all.
-const OMNIVORE_PREFERENCE_WEIGHT = FAMILIARITY_STEP_WEIGHT;
+// has declared neither flag. One familiarity step at neutral (not a filter, and not the
+// full seasonality-beating weight of two steps): an omnivore household eats meat most
+// days but not every day, so a vegetarian dish should have to be otherwise better —
+// cheaper, more in season, more familiar — to win, not be excluded outright. A household
+// that has declared `vegetarian` or `vegan` gets no penalty at all.
+//
+// Pinned to the neutral constant rather than tracking `weights.familiarity`, which since
+// #157 is variable. It used to be written as `= FAMILIARITY_STEP_WEIGHT`, and letting that
+// alias survive the change would have made the Variation slider quietly rewrite how much
+// an omnivore household prefers meat — two unrelated preferences moving on one control.
+// "How adventurous a dish is" and "how often we eat vegetarian" are different questions;
+// only the first one has a slider.
+const OMNIVORE_PREFERENCE_WEIGHT = 1.5;
+
+/**
+ * The one and only translation from what a household expressed (slider notches, 0–100)
+ * into what the score arithmetic uses (points per enum step). #157.
+ *
+ * Every axis's zero is defined to be its pre-#157 constant, which is what makes the
+ * migration's defaults backward compatible by construction rather than by luck:
+ *
+ *  * `price: 0` → 0, the old `DEFAULT_WEIGHTS.cost`
+ *  * `time: 0` → 0, the old `DEFAULT_WEIGHTS.time`
+ *  * `variation: 0` → 1.5, the old `FAMILIARITY_STEP_WEIGHT`
+ *
+ * so `toRankingWeights(NEUTRAL_PREFERENCE_WEIGHTS)` produces exactly the constants this
+ * module scored with before any of this existed. A household that never touches a
+ * slider gets the same order over the whole template library, byte for byte.
+ *
+ * Price and time rise linearly to `MAX_AXIS_RANKING_WEIGHT`; variation *falls*
+ * linearly to zero, because a high Variation preference means less novelty penalty,
+ * not more. That inversion is the reason this lives in one function: it is the kind of
+ * sign error that would be invisible at a second call site.
+ *
+ * `simplicity` is read and deliberately discarded — see its field comment in
+ * src/schema/preferenceWeights.ts. It produces no term here until #151 supplies a
+ * curated effort signal, which is exactly why its slider must not be rendered.
+ */
+export function toRankingWeights(preference: PreferenceWeights): RankingWeights {
+  const scale = MAX_AXIS_RANKING_WEIGHT / PREFERENCE_WEIGHT_MAX;
+
+  return {
+    price: preference.price * scale,
+    time: preference.time * scale,
+    familiarity:
+      NEUTRAL_FAMILIARITY_STEP_WEIGHT * (1 - preference.variation / PREFERENCE_WEIGHT_MAX),
+  };
+}
+
+/**
+ * The engine weights for a household that has expressed nothing — the pre-#157
+ * constants, reachable without restating them at a call site.
+ */
+export const NEUTRAL_RANKING_WEIGHTS: RankingWeights = toRankingWeights(
+  NEUTRAL_PREFERENCE_WEIGHTS,
+);
 
 // Repeat-avoidance (issue #88, UX_FLOW §4 "avoiding repeats"). Penalty for a template
 // this household cooked recently, decaying linearly to nothing over the window below.
@@ -135,25 +233,31 @@ const OMNIVORE_PREFERENCE_WEIGHT = FAMILIARITY_STEP_WEIGHT;
 //
 // Chosen at 5.0, bounded on both sides by the constants above:
 //
-//  * Above 4.75 — the entire score spread available at `DEFAULT_WEIGHTS`
-//    (src/api/weights.ts, `{cost: 0, time: 0}`), which is two familiarity steps
+//  * Above 4.75 — the entire score spread available at `NEUTRAL_PREFERENCE_WEIGHTS`
+//    (src/schema/preferenceWeights.ts, all axes at 0), which is two familiarity steps
 //    (2 * 1.5 = 3.0) plus the omnivore preference (1.5) plus a full seasonality swing
 //    (0.25). Anything above that total guarantees a dish cooked *tonight* ranks below
-//    EVERY uncooked candidate for a household that has tapped no chips — which is the
+//    EVERY uncooked candidate for a household that has expressed nothing — which is the
 //    bug this exists to fix (open the app three evenings running, get the same dish
 //    three times). Below 4.75 it would merely be a nudge, and an adventurous
 //    vegetarian dish could still lose to the meal cooked yesterday.
-//  * Below 6.0 — one maxed adjustment chip (`WEIGHT_LEVELS` level 2 = weight 3, see
-//    web/src/refinement.ts) across a two-step cost-tier or prep-band gap. Staying
+//
+//    Re-checked for #157: the neutral spread is unchanged, because `variation: 0` maps
+//    to exactly NEUTRAL_FAMILIARITY_STEP_WEIGHT. Raising Variation only *shrinks* this
+//    spread (at variation 100 the familiarity term is 0 and the total is 1.75), so the
+//    bound gets slacker as the slider rises, never tighter. This one does not need
+//    re-picking per slider position.
+//  * Below 6.0 — a single axis pushed all the way to 100 (weight
+//    MAX_AXIS_RANKING_WEIGHT = 3) across a two-step cost-tier or prep-band gap. Staying
 //    under it keeps repeat-avoidance beatable by the strongest preference a household
 //    can actually express, the same yield-to-a-real-preference property
-//    SEASONALITY_WEIGHT and FAMILIARITY_STEP_WEIGHT are both calibrated for: a
-//    household that taps "Billigare" to max and means it can still be shown last
-//    night's cheap dish over an expensive new one.
+//    SEASONALITY_WEIGHT and NEUTRAL_FAMILIARITY_STEP_WEIGHT are both calibrated for: a
+//    household that drags Pris to the top and means it can still be shown last night's
+//    cheap dish over an expensive new one.
 //
-// If FAMILIARITY_STEP_WEIGHT, OMNIVORE_PREFERENCE_WEIGHT, SEASONALITY_WEIGHT or the
-// chip levels change, re-derive both bounds and re-pick this value inside the new band
-// rather than leaving it calibrated to stale numbers.
+// If NEUTRAL_FAMILIARITY_STEP_WEIGHT, OMNIVORE_PREFERENCE_WEIGHT, SEASONALITY_WEIGHT or
+// MAX_AXIS_RANKING_WEIGHT change, re-derive both bounds and re-pick this value inside the
+// new band rather than leaving it calibrated to stale numbers.
 const RECENCY_PENALTY_WEIGHT = 5.0;
 
 // How long a cooked meal keeps depressing its own score. Fourteen days for two
@@ -329,11 +433,11 @@ function scoreBreakdown(
   householdDietaryFlags: readonly DietaryFlag[],
   recency?: RecencyContext,
 ): ScoreBreakdown {
-  const costPenalty = costTierIndex(candidate.template.cost_tier) * weights.cost;
+  const costPenalty = costTierIndex(candidate.template.cost_tier) * weights.price;
   const timePenalty = prepTimeIndex(candidate.template.prep_time_band) * weights.time;
   const seasonalityBonus = inSeasonFraction(data, candidate, month) * SEASONALITY_WEIGHT;
   const familiarityPenalty =
-    familiarityIndex(candidate.template.familiarity) * FAMILIARITY_STEP_WEIGHT;
+    familiarityIndex(candidate.template.familiarity) * weights.familiarity;
 
   const householdIsVegetarianOrVegan =
     householdDietaryFlags.includes("vegetarian") || householdDietaryFlags.includes("vegan");

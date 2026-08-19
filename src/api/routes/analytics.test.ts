@@ -176,7 +176,7 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
             event: {
               name: "refinement_chip_tap",
               chip: "cheaper",
-              weights: { cost: 1, time: 0 },
+              weights: { price: 1, time: 0 },
               level: 1,
               rerollDepth: 0,
             },
