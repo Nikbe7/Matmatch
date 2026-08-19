@@ -29,7 +29,6 @@ import {
   costTierLabel,
   costTierMeter,
   dinerChangeReasonLine,
-  INGREDIENT_ROLE_LABELS,
   PREP_TIME_LABELS,
   suggestionReasonLine,
 } from "./display";
@@ -87,7 +86,7 @@ export const DIETARY_FLAG_LABELS: Record<DietaryFlag, string> = {
 // Re-exported so existing consumers (and tests) keep importing these from App,
 // while the guided flow can import them without the two modules importing each
 // other. The definitions live in display.ts.
-export { costTierLabel, costTierMeter, INGREDIENT_ROLE_LABELS, PREP_TIME_LABELS };
+export { costTierLabel, costTierMeter, PREP_TIME_LABELS };
 
 type AuthMode = "sign_in" | "sign_up";
 
@@ -862,6 +861,21 @@ function levelMeter(level: number): string {
   return "●".repeat(level) + "○".repeat(MAX_WEIGHT_LEVEL - level);
 }
 
+/**
+ * Whether any adjustment chip is currently expressing something (#183).
+ *
+ * Only the level chips can be "on" — "Annat kök" and "Byt förslag" are momentary
+ * actions that leave no state behind. This is what "Återställ" is offered against:
+ * a permanent reset chip beside three chips at zero is a control for undoing
+ * nothing, taking a slot in the one row that is supposed to hold only things that
+ * do something right now.
+ */
+function hasActiveAdjustment(refinement: RefinementState): boolean {
+  return (["price", "time", "variation"] as const).some(
+    (axis) => weightLevel(refinement, axis) > 0,
+  );
+}
+
 function LevelChip({
   label,
   level,
@@ -881,7 +895,10 @@ function LevelChip({
       onClick={onTap}
       disabled={disabled}
     >
-      {label} <span aria-hidden="true">{levelMeter(level)}</span>
+      {label}
+      <span aria-hidden="true" className="chip__meter">
+        {levelMeter(level)}
+      </span>
     </Chip>
   );
 }
@@ -937,9 +954,12 @@ function AdjustmentChips({
       <Chip onClick={onOtherCuisine} disabled={busy}>
         Annat kök
       </Chip>
-      <Chip onClick={onReset} disabled={busy}>
-        Återställ
-      </Chip>
+      {/* #183: only when something is actually on. See `hasActiveAdjustment`. */}
+      {hasActiveAdjustment(refinement) && (
+        <Chip onClick={onReset} disabled={busy}>
+          Återställ
+        </Chip>
+      )}
     </div>
   );
 }
@@ -952,6 +972,13 @@ function AdjustmentChips({
  * cooked (#88) and takes the household straight to the shopping list — there is no
  * separate accept step and no separate confirmation state (DECISION_LOG 2026-08-16).
  * "Byt förslag" takes over exactly what the "Något annat" chip used to do.
+ *
+ * No ingredient list (#183). Six rows of role-prefixed taxonomy between the blurb and
+ * the chips answered a question nobody asks at this moment — what is *in* it matters
+ * when you shop and when you cook, and both of those screens list it properly, with
+ * amounts and allergen markings this one never had. What belongs here instead is the
+ * one quiet line saying why this dish: "Vald för att du har gul lök och potatis
+ * hemma" buys more trust than an inventory, and it is what the reference shows.
  */
 function SuggestionCard({
   result,
@@ -993,14 +1020,6 @@ function SuggestionCard({
           Byt förslag
         </Button>
       </div>
-      <ul className="suggestion__ingredients">
-        {result.ingredients.map((ingredient, index) => (
-          <li key={index}>
-            {INGREDIENT_ROLE_LABELS[ingredient.role]}: {ingredient.name}
-            {ingredient.substituted ? " (ersättning)" : ""}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -1021,10 +1040,6 @@ function SuggestionCardSkeleton() {
       <div className="skeleton-card__actions">
         <div className="skeleton-line skeleton-line--button" />
         <div className="skeleton-line skeleton-line--button-secondary" />
-      </div>
-      <div className="skeleton-card__rows">
-        <div className="skeleton-line skeleton-line--row" />
-        <div className="skeleton-line skeleton-line--row" />
       </div>
     </div>
   );
@@ -1509,20 +1524,6 @@ function TonightView({
         // states too — "the child is eating at a grandparent's" is often the way out
         // of one.
         <DinerPicker state={diners} busy={fetchingNext} />
-      }
-      {
-        // The way into the guided quick-select flow (UX_FLOW §5): the path for a
-        // household that wants control without typing. Deliberately secondary to the
-        // card above — Tonight is the zero-input default, and §4 is explicit that
-        // this must not become a menu of options in front of it.
-        <Button
-          type="button"
-          variant="secondary"
-          className="guided-entry"
-          onClick={() => navigate("/bygg")}
-        >
-          Bygg en middag
-        </Button>
       }
       {/* Collapsed by default and last on the screen — it shows nothing but its own
           heading until somebody actually wants to steer (#159). Hidden entirely until
@@ -2131,7 +2132,7 @@ function Gate({ session }: { session: Session }) {
   // in dev otherwise. Owned by Gate rather than by TonightView because switching to
   // the guided flow unmounts TonightView, and `handle.stop()` deliberately does not
   // flush: an owner that comes and goes with the view would drop up to one flush
-  // interval of buffered events every time the household taps "Bygg en middag".
+  // interval of buffered events every time the household taps Bygg in the nav.
   //
   // Registered before TonightView mounts, so TonightView's own pagehide listener
   // (the abandoned-session event) registers second and therefore *runs* second —

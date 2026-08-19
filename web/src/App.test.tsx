@@ -696,7 +696,7 @@ describe("costTierMeter / costTierLabel", () => {
 });
 
 describe("App — Tonight suggestion card", () => {
-  it("renders the dish name, cost tier meter, prep time, and the substituted ingredient's name", async () => {
+  it("renders the dish name, cost tier meter and prep time — and no ingredient list", async () => {
     sessionHolder.current = fakeSession;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
 
@@ -705,9 +705,16 @@ describe("App — Tonight suggestion card", () => {
     await screen.findByRole("heading", { name: "Kycklinggryta" });
     expect(screen.getByText(/20–40 min/)).toBeTruthy();
     expect(screen.getByText("Testblurb för kycklinggryta.")).toBeTruthy();
-    expect(screen.getByText("Protein: Kyckling")).toBeTruthy();
-    expect(screen.getByText(/Rödlök/)).toBeTruthy();
-    expect(screen.getByText(/\(ersättning\)/)).toBeTruthy();
+
+    // #183: what is *in* the dish is the shopping list's and the cook screen's job,
+    // where it comes with amounts and allergen markings this screen never had. The
+    // role taxonomy in particular must not appear — it was app vocabulary leaking
+    // into the one screen that is supposed to read like an answer, not a record.
+    for (const prefix of ["Protein:", "Mejeri:", "Stärkelse:", "Grönsak:", "Arom:"]) {
+      expect(container.textContent).not.toContain(prefix);
+    }
+    expect(container.textContent).not.toContain("(ersättning)");
+    expect(container.querySelector(".suggestion__ingredients")).toBeNull();
 
     // The raw "mid" enum value must never leak into rendered text — only the dot
     // meter and its Swedish accessible name should appear.
@@ -754,10 +761,13 @@ describe("App — Tonight suggestion card", () => {
       ),
     );
 
-    render(<App />);
+    const { container } = render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
     expect(screen.queryByText(/^Valt för att/)).toBeNull();
+    // #183: absent, not empty. An element left standing with no text would hold its
+    // margin open and leave a gap where the household is told nothing.
+    expect(container.querySelector(".suggestion__reason")).toBeNull();
   });
 
   it("Laga ikväll moves to the shopping list, and a page reload restores it directly", async () => {
@@ -996,6 +1006,55 @@ describe("App — adjustment chips", () => {
 
     const restored = screen.getByRole("button", { name: "Billigare, nivå 0 av 2" });
     expect(restored.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("offers Återställ only while something is actually raised", async () => {
+    // #183: the adjust row holds controls that do something right now. A permanent
+    // reset chip beside three chips at zero is a control for undoing nothing, and it
+    // takes a slot in the row that a real choice could have had.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    expect(screen.queryByRole("button", { name: "Återställ" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Snabbare, nivå 0 av 2" }));
+    await screen.findByRole("button", { name: "Snabbare, nivå 1 av 2" });
+    expect(screen.getByRole("button", { name: "Återställ" })).toBeTruthy();
+
+    // And gone again once the session is back to neutral, rather than lingering as
+    // the one chip that never turns off.
+    await user.click(screen.getByRole("button", { name: "Återställ" }));
+    await screen.findByRole("button", { name: "Snabbare, nivå 0 av 2" });
+    expect(screen.queryByRole("button", { name: "Återställ" })).toBeNull();
+  });
+
+  it("counts Återställ as active for any of the three axes, not just price", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+        .mockResolvedValue(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa"))),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Testa nytt, nivå 0 av 2" }));
+    await screen.findByRole("button", { name: "Testa nytt, nivå 1 av 2" });
+
+    expect(screen.getByRole("button", { name: "Återställ" })).toBeTruthy();
   });
 });
 
@@ -1327,7 +1386,7 @@ describe("App — the cook screen (#154)", () => {
 });
 
 describe("App — entering the guided flow", () => {
-  it("opens the guided flow from the Tonight card and comes back", async () => {
+  it("opens the guided flow from the bottom nav and comes back", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (url: string) => {
@@ -1341,7 +1400,10 @@ describe("App — entering the guided flow", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Ikväll" });
 
-    await user.click(screen.getByRole("button", { name: "Bygg en middag" }));
+    // #183: Tonight no longer carries its own entrance — the nav's Bygg tab is the
+    // only one, so the button that used to duplicate it cannot compete with "Laga
+    // ikväll" any more.
+    await user.click(screen.getByRole("link", { name: "Bygg" }));
     await screen.findByRole("heading", { name: "Vad är du sugen på?" });
 
     await user.click(screen.getByRole("button", { name: "Till ikväll" }));

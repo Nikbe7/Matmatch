@@ -770,6 +770,21 @@ select.input {
   cursor: not-allowed;
 }
 
+/* The level meter reads as a quiet annotation on the label, never as part of it
+   (#183). At 360px "Billigare ○○" set solid at label weight and size made the
+   circles compete with the word — and the word is what the household is reading.
+   Kept rather than deleted: `pressed` alone is binary, so removing the dots would
+   make level 1 and level 2 look identical, which is the "the controls do nothing"
+   impression the whole chip mechanic exists to avoid. The level is also in the
+   chip's accessible name, so this is never the only carrier. */
+.chip__meter {
+  margin-left: var(--space-1);
+  font-size: 0.75em;
+  letter-spacing: 0.08em;
+  opacity: 0.55;
+  font-weight: 400;
+}
+
 .chip-pressed {
   background: var(--color-accent);
   color: var(--color-accent-contrast);
@@ -933,24 +948,6 @@ select.input {
   color: var(--color-text);
 }
 
-/* The ingredient list is its own quieter block *under* the actions (issue
-   #138 requirement 8) — a lighter block than the name/meta/reason group
-   above it, grouped only by a top hairline rather than a card. */
-.suggestion__ingredients {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: var(--space-6) 0 0;
-  padding: var(--space-4) 0 0;
-  border-top: 1px solid var(--color-border);
-}
-
-.suggestion__ingredients li {
-  font-size: var(--font-size-sm);
-  color: var(--color-muted);
-}
-
 /* A state sized and padded like the real suggestion card (empty/error/offline
    states), so nothing jumps once a real result replaces it. Kept as a `Card`
    deliberately (#142) — these are the one Tonight state still allowed to be a
@@ -1034,19 +1031,6 @@ select.input {
   align-self: center;
 }
 
-.skeleton-card__rows {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4) 0 0;
-  border-top: 1px solid var(--color-border);
-}
-
-.skeleton-line--row {
-  width: 90%;
-  height: var(--font-size-sm);
-}
-
 /* ---------------------------------------------------------------------------
  * Guided quick-select flow (UX_FLOW §5, redesigned #174 to match Ikväll/the
  * state screens): each step reads as one question, not a form. Reuses the
@@ -1054,11 +1038,6 @@ select.input {
  * shapes here are the ingredient grid, the tappable direction card, the round
  * icon buttons (back, portion stepper), and the portion count's display type.
  * --------------------------------------------------------------------------- */
-
-.guided-entry {
-  width: 100%;
-  margin: var(--space-6) 0 var(--space-4);
-}
 
 /* Reuses `.screen-header`'s layout (eyebrow + display title left, action slot
    right) — this just widens its bottom margin a touch for the extra air the
