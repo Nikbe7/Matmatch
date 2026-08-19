@@ -732,7 +732,7 @@ describe("App — Tonight suggestion card", () => {
     expect(dots!.textContent).toBe("●●○");
   });
 
-  it("shows the one-line reason when the server sends codes, phrased as a sentence with no numbers", async () => {
+  it("shows one reason only, phrased as a sentence with no numbers, even when the server sends two", async () => {
     sessionHolder.current = fakeSession;
     vi.stubGlobal(
       "fetch",
@@ -747,8 +747,12 @@ describe("App — Tonight suggestion card", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
+    // #185: the engine sent two codes; the card renders the strongest and stops. A
+    // second "och" clause wrapped the line onto a second row, which is what set it
+    // apart from the reference's single quiet sentence.
     const reason = screen.getByText(/^Valt för att/);
-    expect(reason.textContent).toContain(" och ");
+    expect(reason.textContent).toBe("Valt för att den är i säsong.");
+    expect(reason.textContent).not.toContain(" och ");
     expect(reason.textContent).not.toMatch(/\d/);
   });
 
@@ -1034,6 +1038,33 @@ describe("App — adjustment chips", () => {
     // the one chip that never turns off.
     await user.click(screen.getByRole("button", { name: "Återställ" }));
     await screen.findByRole("button", { name: "Snabbare, nivå 0 av 2" });
+    expect(screen.queryByRole("button", { name: "Återställ" })).toBeNull();
+  });
+
+  it("keeps Återställ away after rerolls — a reroll is not a setting (#185)", async () => {
+    // "Byt förslag" is its own undo: the next tap replaces what the last one showed.
+    // Letting Återställ appear for it would make the chip mean two different things —
+    // "put the adjustments back" and "forget the dishes you turned down" — and the
+    // household would have no way to tell which one they were about to get.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+        .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")))
+        .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("fisksoppa", "Fisksoppa"))),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
+    await screen.findByRole("heading", { name: "Linssoppa" });
+    await user.click(screen.getByRole("button", { name: "Byt förslag" }));
+    await screen.findByRole("heading", { name: "Fisksoppa" });
+
     expect(screen.queryByRole("button", { name: "Återställ" })).toBeNull();
   });
 
@@ -2438,6 +2469,33 @@ describe("App — Tonight's pantry row (#152)", () => {
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
     expect(screen.getByText("Valt för att du har spagetti och gul lök hemma.")).toBeTruthy();
+  });
+
+  it("lets the pantry reason take the line even when the engine ranked another first", async () => {
+    // #185: it is the only reason naming something the household told us one tap ago,
+    // so it is the one they can actually check.
+    sessionHolder.current = fakeSession;
+    const body = tonightBody();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          ...body,
+          result: {
+            ...body.result,
+            reasonCodes: ["in_season", "pantry_match"],
+            pantryMatch: ["potatis"],
+          },
+        }),
+      ),
+    );
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const reason = screen.getByText(/^Valt för att/);
+    expect(reason.textContent).toBe("Valt för att du har potatis hemma.");
+    expect(reason.textContent).not.toContain("säsong");
   });
 });
 

@@ -23,10 +23,65 @@ describe("suggestionReasonLine", () => {
     expect(suggestionReasonLine(["in_season"])).toBe("Valt för att den är i säsong.");
   });
 
-  it("joins exactly two reasons with 'och', never a list", () => {
+  it("shows only the strongest reason when the engine sends more than one (#185)", () => {
+    // The engine still derives up to two (`MAX_SUGGESTION_REASONS`, unchanged) — the
+    // card is a heading over the choice, not an account of the ranking, so it takes
+    // the first and stops. Two clauses joined with "och" wrapped onto a second line,
+    // which is what set our line apart from the reference's.
     const line = suggestionReasonLine(["in_season", "not_recently_cooked"]);
-    expect(line).toContain(" och ");
-    expect(line?.split(" och ")).toHaveLength(2);
+    expect(line).toBe("Valt för att den är i säsong.");
+    expect(line).not.toContain(" och ");
+  });
+
+  it("keeps the engine's order — the first code is the one shown", () => {
+    expect(suggestionReasonLine(["not_recently_cooked", "in_season"])).toBe(
+      "Valt för att ni inte lagat den på ett tag.",
+    );
+  });
+
+  it("never renders more than one clause, for any pair of codes", () => {
+    for (const first of ALL_CODES) {
+      for (const second of ALL_CODES) {
+        if (first === second) continue;
+        // Every phrase in the map is a single clause with no "och" of its own, so
+        // the connector's absence is a faithful proxy for "one reason".
+        expect(suggestionReasonLine([first, second])).not.toContain(" och ");
+      }
+    }
+  });
+
+  describe("pantry_match wins whenever it fired (#185)", () => {
+    it("takes the line even when the engine ranked another reason first", () => {
+      expect(suggestionReasonLine(["in_season", "pantry_match"], ["potatis"])).toBe(
+        "Valt för att du har potatis hemma.",
+      );
+    });
+
+    it("names up to two ingredients in one clause, which is the one place 'och' belongs", () => {
+      expect(suggestionReasonLine(["pantry_match"], ["potatis", "gul lök"])).toBe(
+        "Valt för att du har potatis och gul lök hemma.",
+      );
+    });
+
+    it("falls through to the next reason when no names came with it", () => {
+      // A pantry reason that cannot name what it matched would be the app claiming
+      // credit for something the household cannot check.
+      expect(suggestionReasonLine(["pantry_match", "in_season"], [])).toBe(
+        "Valt för att den är i säsong.",
+      );
+    });
+
+    it("is silent when it fired alone with no names", () => {
+      expect(suggestionReasonLine(["pantry_match"], [])).toBeNull();
+    });
+  });
+
+  it("is grammatical Swedish in every phrase (#185)", () => {
+    // "annorlunda än ikväll ni lagade senast" shipped in #122 and read as broken
+    // Swedish on the one line the card now leads with.
+    expect(suggestionReasonLine(["different_from_last_time"])).toBe(
+      "Valt för att den är annorlunda än det ni lagade senast.",
+    );
   });
 
   it("never contains a digit, for any code or pair of codes", () => {

@@ -54,25 +54,29 @@ export const PREP_TIME_LABELS: Record<PrepTimeBand, string> = {
 
 // #122: the Tonight card's one-line "why this dish". Each phrase is written to
 // read as the tail of a sentence ("Valt för att den är …"), never as a standalone
-// label — see `suggestionReasonLine` below, the only place these are joined.
+// label — see `suggestionReasonLine` below, the only place these are rendered.
 const SUGGESTION_REASON_PHRASES: Record<SuggestionReasonCode, string> = {
   // Never read: `pantry_match` is the one reason phrased from data rather than from a
   // fixed string, because the whole point of it is naming what the household told us
-  // they had. Present so the record stays exhaustive over the code union — a new code
-  // added without a phrase should be a type error, not a blank in a sentence.
+  // they had (see `suggestionReasonLine`, which handles that code before it ever
+  // reaches this map). Present so the record stays exhaustive over the code union — a
+  // new code added without a phrase should be a type error, not a blank in a sentence.
   pantry_match: "",
   in_season: "den är i säsong",
   not_recently_cooked: "ni inte lagat den på ett tag",
   cost_preference: "den är billigare, som du bad om",
   time_preference: "den är snabbare, som du bad om",
-  different_from_last_time: "den är annorlunda än ikväll ni lagade senast",
+  different_from_last_time: "den är annorlunda än det ni lagade senast",
 };
 
 /**
  * The Tonight card's explanation line, or `null` for silence (#122 requirement 2) —
  * never an empty string, so a caller can `&&` on the result without also checking
- * length. At most two reason codes ever reach here (`explainSuggestion`,
- * src/engine/ranking.ts), so this never has to decide how to truncate a longer list.
+ * length.
+ *
+ * Exactly one reason, or none (#185). The engine may hand over several — that is its
+ * business and `MAX_SUGGESTION_REASONS` is unchanged — but the card shows the
+ * strongest one and stops.
  */
 export function suggestionReasonLine(
   codes: readonly SuggestionReasonCode[],
@@ -84,13 +88,34 @@ export function suggestionReasonLine(
    */
   pantryMatch: readonly string[] = [],
 ): string | null {
-  const phrases = codes.flatMap((code) => {
-    if (code !== "pantry_match") return [SUGGESTION_REASON_PHRASES[code]];
-    return pantryMatch.length > 0 ? [`du har ${joinWithAnd(pantryMatch)} hemma`] : [];
-  });
+  // One reason, never two (#185). The engine still derives up to
+  // `MAX_SUGGESTION_REASONS` of them and that policy is untouched — this is a
+  // presentation choice about what the line is *for*. It is a heading over the
+  // choice, not an account of how the ranking came out, and two "och" clauses
+  // wrapping onto a second line is exactly what separated our line from the
+  // reference's.
+  //
+  // Pantry first whenever it fired: it is the only reason that names something the
+  // household told us one tap ago, so it is the one they can check. Otherwise the
+  // engine's own order stands — `explainSuggestion` already returns the codes
+  // strongest-first (largest score gap), so "the highest ranked reason" is simply
+  // the first one that can be phrased. Hoisting pantry here rather than relying on
+  // the engine having put it first keeps this readable on its own terms.
+  const ordered = codes.includes("pantry_match")
+    ? (["pantry_match", ...codes.filter((code) => code !== "pantry_match")] as const)
+    : codes;
 
-  if (phrases.length === 0) return null;
-  return `Valt för att ${phrases.join(" och ")}.`;
+  for (const code of ordered) {
+    if (code === "pantry_match") {
+      // A pantry code with no names behind it cannot be phrased — fall through to
+      // the next reason rather than rendering a sentence with a hole in it.
+      if (pantryMatch.length > 0) return `Valt för att du har ${joinWithAnd(pantryMatch)} hemma.`;
+      continue;
+    }
+    return `Valt för att ${SUGGESTION_REASON_PHRASES[code]}.`;
+  }
+
+  return null;
 }
 
 /** "pasta", "pasta och gul lök" — the Swedish list this line ever needs. */
