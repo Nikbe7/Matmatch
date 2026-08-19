@@ -1,5 +1,9 @@
 import type { Cuisine } from "../schema/recipeTemplate.js";
-import { effectiveIngredientIds, type RankedCandidate } from "./ranking.js";
+import {
+  coveredPantryIngredientIds,
+  effectiveIngredientIds,
+  type RankedCandidate,
+} from "./ranking.js";
 
 // Third slice of the Meal Engine: pick the three direction cards the guided
 // quick-select flow shows (UX_FLOW §5 step 4). Deterministic, pure, no I/O, no AI.
@@ -102,12 +106,9 @@ export function eligibleDirections(
 
   return ranked.filter((candidate) => matchesMain(candidate, selection.main)).map((candidate) => ({
     ...candidate,
-    coveredPantryIngredientIds: [
-      // Deduplicated: a dish with two slots of the same pantry ingredient covers one
-      // pantry item, not two, and must not out-rank a dish that uses two different
-      // things the household has.
-      ...new Set(effectiveIngredientIds(candidate).filter((id) => pantry.has(id))),
-    ],
+    // The shared definition (src/engine/ranking.ts), not a local one: the card that
+    // says "du har pasta hemma" must be the card coverage actually promoted.
+    coveredPantryIngredientIds: coveredPantryIngredientIds(candidate, pantry),
   }));
 }
 
@@ -119,9 +120,34 @@ function bucketKey(direction: Direction, preferHighProtein: boolean): BucketKey 
   };
 }
 
-function compareKeys(a: BucketKey, b: BucketKey): number {
-  if (a.intentRank !== b.intentRank) return a.intentRank - b.intentRank;
-  return a.coverage - b.coverage;
+/**
+ * The ranked list re-ordered so dishes covering more of the household's pantry come
+ * first, and nothing else changes: within one coverage bucket the candidates keep the
+ * exact order `rankCandidates` gave them.
+ *
+ * Extracted from `pickDirections` (which now calls it) so Tonight's pantry row (#152)
+ * and the guided flow's pantry step order dishes through the *same* code rather than
+ * two implementations that agree today. A second implementation would be a second
+ * answer to "does the household get credit for having pasta", and the two would
+ * diverge the first time either was touched.
+ *
+ * Returns `Direction`s, not bare candidates: the caller needs
+ * `coveredPantryIngredientIds` to explain the pick (`pantry_match`, #152), and
+ * re-deriving coverage downstream would be the same duplication one layer down.
+ *
+ * An empty pantry is the identity function — the household skipped the step, so
+ * coverage is 0 everywhere and the stable sort leaves the ranked order untouched.
+ */
+export function orderByPantryCoverage(
+  ranked: readonly RankedCandidate[],
+  pantryIngredientIds: readonly string[],
+): Direction[] {
+  const eligible = eligibleDirections(ranked, { main: { kind: "any" }, pantryIngredientIds });
+
+  // Stable by specification (ES2019+): equal coverage must preserve the ranked order.
+  return [...eligible].sort(
+    (a, b) => b.coveredPantryIngredientIds.length - a.coveredPantryIngredientIds.length,
+  );
 }
 
 /**
@@ -147,14 +173,25 @@ export function pickDirections(
   const count = selection.count ?? DIRECTION_COUNT;
   const preferHighProtein = selection.preferHighProtein ?? false;
 
-  const scored: Scored[] = eligibleDirections(ranked, selection).map((direction) => ({
+  // Coverage first, through the shared ordering (#152), then the intent key on top.
+  // Two stable passes rather than one composite comparator: sorting stably by the
+  // inner key and then by the outer one gives exactly the (intentRank, coverage)
+  // order the `BucketKey` describes, and it keeps pantry coverage computed in one
+  // place for both this flow and Tonight.
+  const byCoverage = orderByPantryCoverage(
+    eligibleDirections(ranked, selection),
+    selection.pantryIngredientIds ?? [],
+  );
+
+  const scored: Scored[] = byCoverage.map((direction) => ({
     direction,
     key: bucketKey(direction, preferHighProtein),
   }));
 
   // Stable by specification (ES2019+), which is the point: equal keys must preserve
-  // the ranked order rather than be reshuffled by the sort's internals.
-  const remaining = [...scored].sort((a, b) => compareKeys(a.key, b.key));
+  // the order the pass above left them in rather than be reshuffled by the sort's
+  // internals.
+  const remaining = [...scored].sort((a, b) => a.key.intentRank - b.key.intentRank);
 
   const picked: Direction[] = [];
   const usedCuisines = new Set<Cuisine>();

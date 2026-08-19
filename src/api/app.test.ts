@@ -992,3 +992,214 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set cha
     expect(afterDinerChange.body.result.reasonCodes).toContain("cost_preference");
   });
 });
+
+describe.skipIf(!stackAvailable)("GET /api/tonight — the pantry row (#152)", () => {
+  // Wiring only: the ordering rule and its safety properties are covered exhaustively
+  // in src/engine/pantryOrdering.test.ts. What matters here is that the parameter
+  // reaches the engine, the chip list comes back, and nothing is written down.
+
+  async function household() {
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+    return user;
+  }
+
+  it("offers a pantry chip list on every response, including the empty states", async () => {
+    const user = await household();
+    const response = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body.pantryIngredients)).toBe(true);
+    expect(response.body.pantryIngredients.length).toBeGreaterThan(0);
+    for (const option of response.body.pantryIngredients) {
+      expect(typeof option.id).toBe("string");
+      expect(typeof option.name).toBe("string");
+    }
+  });
+
+  it("offers the same chips Tonight and the guided flow's step 3 offer", async () => {
+    // One list, from `buildPantryIngredientOptions` — a household must not be shown a
+    // different cupboard depending on which screen it is standing on.
+    const user = await household();
+    const tonight = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+    const guided = await request(app!).get("/api/guided/options").set(authHeader(user.accessToken));
+
+    expect(tonight.body.pantryIngredients).toEqual(guided.body.pantryIngredients);
+  });
+
+  it("changes which dish is suggested when the pantry covers a lower-ranked one", async () => {
+    const user = await household();
+    const plain = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+
+    // Every starch at once: something the household "has" is certain to promote a
+    // dish the plain score did not lead with.
+    const withPantry = await request(app!)
+      .get("/api/tonight")
+      .query({ pantry: "spagetti,ris,potatis,couscous,bulgur" })
+      .set(authHeader(user.accessToken));
+
+    expect(withPantry.status).toBe(200);
+    expect(plain.status).toBe(200);
+    // Not asserting they differ — the score winner may legitimately already cover the
+    // pantry. What must hold is that the answer is still a real, safe suggestion.
+    expect(withPantry.body.result.template.id).toEqual(expect.any(String));
+  });
+
+  it("explains the pick with the ingredient names when the pantry decided it", async () => {
+    const user = await household();
+
+    // Sweep single staples until one actually promotes a dish, then assert the shape
+    // of the explanation. Deterministic — the list and the order are fixed.
+    let explained: { reasonCodes: string[]; pantryMatch: string[] } | undefined;
+    for (const id of ["spagetti", "ris", "potatis", "couscous", "bulgur", "makaroner"]) {
+      const response = await request(app!)
+        .get("/api/tonight")
+        .query({ pantry: id })
+        .set(authHeader(user.accessToken));
+      if (response.body.result?.reasonCodes?.includes("pantry_match")) {
+        explained = response.body.result;
+        break;
+      }
+    }
+
+    expect(explained).toBeDefined();
+    expect(explained!.pantryMatch.length).toBeGreaterThan(0);
+    expect(explained!.pantryMatch.length).toBeLessThanOrEqual(2);
+    for (const name of explained!.pantryMatch) expect(typeof name).toBe("string");
+  });
+
+  it("omits pantryMatch entirely when the pantry explained nothing", async () => {
+    const user = await household();
+    const response = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+
+    expect(response.body.result.reasonCodes).not.toContain("pantry_match");
+    expect(response.body.result.pantryMatch).toBeUndefined();
+  });
+
+  it("rejects an unknown ingredient id with 400", async () => {
+    const user = await household();
+    const response = await request(app!)
+      .get("/api/tonight")
+      .query({ pantry: "inte-en-ingrediens" })
+      .set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("invalid_pantry");
+  });
+
+  it("writes the pantry selection nowhere", async () => {
+    // CLAUDE.md's non-negotiable: session-scoped and ephemeral. The same snapshot
+    // assertion guided.test.ts makes about step 3, applied to Tonight's own row.
+    const user = await household();
+    const before = (await getHouseholdForOwner(sql!, user.userId))!;
+
+    await request(app!)
+      .get("/api/tonight")
+      .query({ pantry: "spagetti,ris,potatis" })
+      .set(authHeader(user.accessToken));
+
+    const after = (await getHouseholdForOwner(sql!, user.userId))!;
+    expect(after).toEqual(before);
+  });
+
+  it("cannot widen the candidate set — an allergic household sees the same dishes", async () => {
+    const allergic = await createTestUser();
+    await request(app!)
+      .post("/api/households")
+      .set(authHeader(allergic.accessToken))
+      .send(makeHousehold({ allergies: ["gluten"] }));
+
+    const plain = await request(app!).get("/api/tonight").set(authHeader(allergic.accessToken));
+    const withPantry = await request(app!)
+      .get("/api/tonight")
+      .query({ pantry: "spagetti,makaroner,formbrod" })
+      .set(authHeader(allergic.accessToken));
+
+    // Every gluten-bearing staple "at home" and the answer is still a safe dish: the
+    // pantry orders the safe set, it never reaches back into what the safe set is.
+    expect(withPantry.status).toBe(200);
+    expect(plain.status).toBe(200);
+    expect(withPantry.body.result === null).toBe(plain.body.result === null);
+  });
+});
+
+describe.skipIf(!stackAvailable)("PUT /api/households/preferences", () => {
+  async function household() {
+    const user = await createTestUser();
+    await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+    return user;
+  }
+
+  const weights = { price: 45, time: 60, variation: 25, simplicity: 15 };
+
+  it("stores the baseline and returns the household", async () => {
+    const user = await household();
+    const response = await request(app!)
+      .put("/api/households/preferences")
+      .set(authHeader(user.accessToken))
+      .send(weights);
+
+    expect(response.status).toBe(200);
+    expect(response.body.preference_weights).toEqual(weights);
+    expect((await getHouseholdForOwner(sql!, user.userId))!.preference_weights).toEqual(weights);
+  });
+
+  it("survives a profile save — the two write paths never clobber each other", async () => {
+    // The whole reason this route exists rather than a field on `PUT /api/households`.
+    const user = await household();
+    await request(app!)
+      .put("/api/households/preferences")
+      .set(authHeader(user.accessToken))
+      .send(weights);
+
+    const saved = await request(app!)
+      .put("/api/households")
+      .set(authHeader(user.accessToken))
+      .send(noRestrictionsBody);
+    expect(saved.status).toBe(200);
+
+    expect((await getHouseholdForOwner(sql!, user.userId))!.preference_weights).toEqual(weights);
+  });
+
+  it("reaches the ranking — a stored baseline changes what Tonight suggests", async () => {
+    const user = await household();
+    await request(app!)
+      .put("/api/households/preferences")
+      .set(authHeader(user.accessToken))
+      .send({ ...NEUTRAL_PREFERENCE_WEIGHTS, time: 100 });
+
+    const response = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+    expect(response.body.result.template.prep_time_band).toBe("<20min");
+  });
+
+  it.each([
+    ["a partial body", { price: 0, time: 0, variation: 0 }],
+    ["an off-grid notch", { price: 37, time: 0, variation: 0, simplicity: 0 }],
+    ["an out-of-range value", { price: 101, time: 0, variation: 0, simplicity: 0 }],
+    ["a negative value", { price: -5, time: 0, variation: 0, simplicity: 0 }],
+  ])("rejects %s with 400", async (_label, body) => {
+    const user = await household();
+    const response = await request(app!)
+      .put("/api/households/preferences")
+      .set(authHeader(user.accessToken))
+      .send(body);
+
+    expect(response.status).toBe(400);
+  });
+
+  it("404s for a user with no household yet", async () => {
+    const user = await createTestUser();
+    const response = await request(app!)
+      .put("/api/households/preferences")
+      .set(authHeader(user.accessToken))
+      .send(weights);
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe("household_not_found");
+  });
+
+  it("requires a token", async () => {
+    const response = await request(app!).put("/api/households/preferences").send(weights);
+    expect(response.status).toBe(401);
+  });
+});

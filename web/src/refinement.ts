@@ -54,10 +54,26 @@ export const WEIGHT_LEVELS = [0, 35, 100] as const;
 /** The highest level a chip can cycle to (index into `WEIGHT_LEVELS`). */
 export const MAX_WEIGHT_LEVEL = WEIGHT_LEVELS.length - 1;
 
-export type WeightAxis = "price" | "time";
+/**
+ * The axes a chip can nudge. `variation` joins price/time with "Testa nytt" (#153) —
+ * the same axis the Variation slider moves, in the same notches, so the chip is a
+ * session delta on the household's baseline rather than a second idea of "new".
+ *
+ * `simplicity` is deliberately absent: the axis exists server-side but has no curated
+ * effort signal behind it (#151), so "Enklare" is not built and nothing here can
+ * produce a delta on it.
+ */
+export type WeightAxis = "price" | "time" | "variation";
 
 /** Chip identity as it appears in analytics — stable, never the Swedish label. */
-export type ChipId = "cheaper" | "faster" | "other_cuisine" | "something_else" | "reset";
+export type ChipId =
+  | "cheaper"
+  | "faster"
+  | "try_new"
+  | "other_cuisine"
+  | "something_else"
+  | "reset"
+  | "pantry";
 
 export interface RefinementState {
   weights: SessionWeights;
@@ -73,12 +89,24 @@ export interface RefinementState {
    * already went through is exactly the signal Phase 2 needs, so it is not zeroed.
    */
   rerollDepth: number;
+  /**
+   * What the household tapped on Tonight's pantry row (#152) — ordering input, never a
+   * rejection and never an inventory.
+   *
+   * Lives in this reducer rather than beside it because a pantry tap and a chip tap
+   * both produce the same next request, and two pieces of state feeding one request is
+   * how they drift. Session-scoped exactly like the rest of this file: React state
+   * only, nothing to localStorage, the URL or the household profile, so a reload starts
+   * empty.
+   */
+  pantryIngredientIds: readonly string[];
 }
 
 export const INITIAL_REFINEMENT: RefinementState = {
-  weights: { price: 0, time: 0 },
+  weights: { price: 0, time: 0, variation: 0 },
   excludedTemplateIds: [],
   rerollDepth: 0,
+  pantryIngredientIds: [],
 };
 
 export type RefinementAction =
@@ -90,6 +118,8 @@ export type RefinementAction =
   | { type: "suggestion_shown"; templateId: string }
   /** Templates ruled out while searching for a different cuisine. */
   | { type: "exclude_templates"; templateIds: readonly string[] }
+  /** A pantry chip on Tonight, on or off (#152). */
+  | { type: "toggle_pantry"; ingredientId: string }
   | { type: "reset" };
 
 function withExcluded(
@@ -131,9 +161,30 @@ export function refinementReducer(
     case "exclude_templates":
       return withExcluded(state, action.templateIds);
 
+    case "toggle_pantry": {
+      const selected = state.pantryIngredientIds.includes(action.ingredientId);
+      return {
+        ...state,
+        pantryIngredientIds: selected
+          ? state.pantryIngredientIds.filter((id) => id !== action.ingredientId)
+          : [...state.pantryIngredientIds, action.ingredientId],
+        rerollDepth: state.rerollDepth + 1,
+      };
+    }
+
     case "reset":
       // Weights and exclusions to defaults; reroll depth deliberately survives.
-      return { ...INITIAL_REFINEMENT, rerollDepth: state.rerollDepth + 1 };
+      //
+      // So does the pantry. "Återställ" undoes what the household *asked for* — the
+      // weights it nudged and the dishes it turned down. What is in the cupboard is not
+      // a request, it is a fact they told us one tap ago, and silently forgetting it
+      // would make the button destroy information the household never offered to give
+      // back.
+      return {
+        ...INITIAL_REFINEMENT,
+        rerollDepth: state.rerollDepth + 1,
+        pantryIngredientIds: state.pantryIngredientIds,
+      };
 
     default: {
       const exhaustive: never = action;

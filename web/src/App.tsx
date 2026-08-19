@@ -9,7 +9,11 @@ import {
   fetchTonight,
   markCooked,
   updateHousehold,
+  updatePreferenceWeights,
+  NEUTRAL_PREFERENCE_WEIGHTS,
   type DinerLabel,
+  type IngredientOption,
+  type PreferenceWeights,
   type TonightResponse,
   type TonightResult,
 } from "./api";
@@ -41,6 +45,7 @@ import { createHttpAnalyticsSink } from "./analyticsSink";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Chip } from "./components/Chip";
+import { PreferenceBlock } from "./components/PreferenceBlock";
 import { RefreshIcon } from "./components/RefreshIcon";
 import { Screen } from "./components/Screen";
 import { StateScreen } from "./components/StateScreen";
@@ -649,6 +654,196 @@ const WEEKDAYS = ["Söndag", "Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag",
 
 // The Tonight eyebrow's weekday (#138) — read from the local clock, since the
 // server response carries no day of its own to trust or mistrust.
+/**
+ * How long a slider has to sit still before the app acts on it (#159).
+ *
+ * One drag must produce one write and one re-rank, not twenty. Long enough that a
+ * thumb sweeping the whole track never fires mid-way, short enough that letting go
+ * feels like it did something.
+ */
+const PREFERENCE_SETTLE_MS = 400;
+
+export interface PreferenceBaseline {
+  /** Updates on every notch — what the sliders render, so dragging stays responsive. */
+  weights: PreferenceWeights;
+  /**
+   * The value after the drag stopped. Persisting and re-ranking both key off this, so
+   * neither happens mid-drag and the two can never act on different values.
+   */
+  settled: PreferenceWeights;
+  onChange: (weights: PreferenceWeights) => void;
+  /** Until the first load lands there is nothing honest to show — the block waits. */
+  ready: boolean;
+}
+
+/**
+ * The household's persistent preference baseline (#157/#159), owned once at the top so
+ * Tonight's collapsed block and the profile's section are two views of one value rather
+ * than two copies that drift.
+ *
+ * Written through `PUT /api/households/preferences`, never through the profile PUT —
+ * that route is a full replacement with no version check, so a member edit would
+ * silently zero whatever the sliders had set (DECISION_LOG 2026-08-16).
+ *
+ * A failed write is deliberately not surfaced. The household is dragging a preference,
+ * not saving a form; an error banner over the suggestion for a control whose entire
+ * feedback is the dish changing underneath it would be louder than what it reports, and
+ * the next drag retries anyway.
+ */
+function usePreferenceBaseline(
+  accessToken: string,
+  /**
+   * The stored baseline as it arrived on the Tonight response. `undefined` until the
+   * first response lands — and once seeded, later values are ignored: the household may
+   * have dragged a slider since, and a background refetch carrying the pre-drag value
+   * must not yank the control back under their thumb.
+   */
+  stored: PreferenceWeights | undefined,
+): PreferenceBaseline {
+  const [weights, setWeights] = useState<PreferenceWeights | null>(null);
+  const [settled, setSettled] = useState<PreferenceWeights | null>(null);
+
+  useEffect(() => {
+    if (stored === undefined) return;
+    setWeights((current) => current ?? stored);
+    setSettled((current) => current ?? stored);
+  }, [stored]);
+
+  // One timer, restarted on every notch, driving both consequences — so a write and a
+  // re-rank can never be triggered by different positions of the same drag.
+  const settleRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(settleRef.current), []);
+
+  function onChange(next: PreferenceWeights) {
+    setWeights(next);
+    clearTimeout(settleRef.current);
+    settleRef.current = setTimeout(() => {
+      setSettled(next);
+      void updatePreferenceWeights(accessToken, next).catch(() => {});
+    }, PREFERENCE_SETTLE_MS);
+  }
+
+  return {
+    weights: weights ?? NEUTRAL_PREFERENCE_WEIGHTS,
+    settled: settled ?? NEUTRAL_PREFERENCE_WEIGHTS,
+    onChange,
+    ready: weights !== null,
+  };
+}
+
+/**
+ * Tonight's "Vad har du hemma?" row (#152).
+ *
+ * A few likely staples, not the catalog: this is the zero-input screen, and a full
+ * picker here would be a screen-sized interruption on the one surface that exists to
+ * avoid input. The visible set is the head of the same frequency-ordered list the
+ * guided flow's step-3 grid is built from, plus anything already selected — a chip the
+ * household turned on must never disappear because a diner change reshuffled the list
+ * under it — and then "Fler", which opens the full grid in a layer.
+ */
+const PANTRY_ROW_SIZE = 6;
+
+function visiblePantryOptions(
+  options: readonly IngredientOption[],
+  selected: readonly string[],
+): IngredientOption[] {
+  const head = options.slice(0, PANTRY_ROW_SIZE);
+  const shown = new Set(head.map((option) => option.id));
+  const alsoSelected = options.filter(
+    (option) => selected.includes(option.id) && !shown.has(option.id),
+  );
+  return [...head, ...alsoSelected];
+}
+
+function PantryRow({
+  options,
+  selected,
+  busy,
+  onToggle,
+  onOpenAll,
+}: {
+  options: readonly IngredientOption[];
+  selected: readonly string[];
+  busy: boolean;
+  onToggle: (ingredientId: string) => void;
+  onOpenAll: () => void;
+}) {
+  if (options.length === 0) return null;
+  const visible = visiblePantryOptions(options, selected);
+
+  return (
+    <section className="tonight-pantry">
+      <p className="text-eyebrow">Vad har du hemma?</p>
+      <div role="group" aria-label="Varor hemma" className="chip-row">
+        {visible.map((option) => (
+          <Chip
+            key={option.id}
+            pressed={selected.includes(option.id)}
+            disabled={busy}
+            onClick={() => onToggle(option.id)}
+          >
+            {option.name}
+          </Chip>
+        ))}
+        {options.length > visible.length && (
+          <Chip disabled={busy} onClick={onOpenAll}>
+            Fler
+          </Chip>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The full pantry grid, in a layer over Tonight rather than a route (#152).
+ *
+ * The guided flow's own grid, unchanged — same options, same multi-select, same chip
+ * behaviour — because "what do you have at home" must not be two different questions
+ * depending on which screen asked it. A layer rather than navigation so the suggestion
+ * is still there when it closes: leaving the screen to answer a side question is how a
+ * zero-input surface turns into a form.
+ */
+function PantrySheet({
+  options,
+  selected,
+  onToggle,
+  onClose,
+}: {
+  options: readonly IngredientOption[];
+  selected: readonly string[];
+  onToggle: (ingredientId: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="pantry-sheet" role="dialog" aria-modal="true" aria-label="Vad har du hemma?">
+      <div className="pantry-sheet__panel">
+        <div className="pantry-sheet__head">
+          <h2 className="pantry-sheet__title">Vad har du hemma?</h2>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Klar
+          </Button>
+        </div>
+        <p className="muted pantry-sheet__hint">
+          Valfritt — vi använder det bara för att välja förslag, och sparar det inte.
+        </p>
+        <div role="group" aria-label="Alla varor hemma" className="ingredient-grid">
+          {options.map((option) => (
+            <Chip
+              key={option.id}
+              className="ingredient-grid__item"
+              pressed={selected.includes(option.id)}
+              onClick={() => onToggle(option.id)}
+            >
+              {option.name}
+            </Chip>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function weekdayLabel(): string {
   return WEEKDAYS[new Date().getDay()]!;
 }
@@ -728,6 +923,17 @@ function AdjustmentChips({
         onTap={() => onIncrement("time")}
         disabled={busy}
       />
+      {/* #153: the variation axis, same mechanic and same notches as the two above —
+          a session delta on the household's own Variation baseline, never a parallel
+          weight. "Enklare" is deliberately absent: `simplicity` has no curated signal
+          behind it yet (#151), and a chip that changes no ranking teaches that the
+          controls are decorative. */}
+      <LevelChip
+        label="Testa nytt"
+        level={weightLevel(refinement, "variation")}
+        onTap={() => onIncrement("variation")}
+        disabled={busy}
+      />
       <Chip onClick={onOtherCuisine} disabled={busy}>
         Annat kök
       </Chip>
@@ -758,7 +964,7 @@ function SuggestionCard({
   onChoose: () => void;
   onSwap: () => void;
 }) {
-  const reasonLine = suggestionReasonLine(result.reasonCodes ?? []);
+  const reasonLine = suggestionReasonLine(result.reasonCodes ?? [], result.pantryMatch ?? []);
 
   return (
     <div className="suggestion">
@@ -913,9 +1119,12 @@ function TonightUnknownReasonState({
 function TonightView({
   data,
   accessToken,
+  baseline,
 }: {
   data: TonightResponse;
   accessToken: string;
+  /** The shared household baseline (#159) — the same value the profile edits. */
+  baseline: PreferenceBaseline;
 }) {
   const navigate = useNavigate();
   const initialResult = data.result;
@@ -949,6 +1158,9 @@ function TonightView({
   // clears a lingering notice from an earlier diner change rather than leaving it
   // stranded on a dish it no longer describes.
   const [dinerReplacedFor, setDinerReplacedFor] = useState<string | undefined>(undefined);
+  // The "Fler" layer (#152). Plain view state — it holds no selection of its own, it
+  // just shows the same list the row does at full length.
+  const [pantrySheetOpen, setPantrySheetOpen] = useState(false);
 
   function apply(action: RefinementAction): RefinementState {
     const next = refinementReducer(refinementRef.current, action);
@@ -1045,6 +1257,7 @@ function TonightView({
           previous,
           keep,
           weights: next.weights,
+          pantry: next.pantryIngredientIds,
           diners: diners.parameter,
         }),
       );
@@ -1095,6 +1308,37 @@ function TonightView({
     // changes and at no other time.
   }, [diners.parameter]);
 
+  /**
+   * A slider that has stopped moving re-ranks in place (#159).
+   *
+   * Keyed on `baseline.settled`, not on the live value, so one drag is one request:
+   * `usePreferenceBaseline` debounces both the write and this. The dish on screen is
+   * passed as `previous` exactly as a chip tap does, and `showResponse` swaps it only
+   * once the new one has arrived — the screen never goes through an empty state, which
+   * is where a household loses what they were just reading.
+   *
+   * The first settled value is the one that came back from the server on load, so the
+   * ref starts there and this fires only on a real change.
+   */
+  const settledRef = useRef<PreferenceWeights | null>(null);
+  useEffect(() => {
+    if (!baseline.ready) return;
+    // The first settled value is whatever the server already ranked this suggestion
+    // with, so it is recorded and never acted on — re-requesting here would fire an
+    // identical query on every mount and, worse, reroll the dish the household just
+    // opened the app to see.
+    if (settledRef.current === null) {
+      settledRef.current = baseline.settled;
+      return;
+    }
+    if (settledRef.current === baseline.settled) return;
+    settledRef.current = baseline.settled;
+
+    void requestSuggestion(refinementRef.current, current.result?.template.id);
+    // Deliberately keyed on the settled baseline alone: this must fire when the
+    // household's stored preference changes and at no other time.
+  }, [baseline.settled, baseline.ready]);
+
   /** Resolves to whether the request succeeded — the diner effect above needs to know. */
   async function runRefinement(request: () => Promise<void>): Promise<boolean> {
     setFetchingNext(true);
@@ -1116,11 +1360,27 @@ function TonightView({
     }
   }
 
+  const CHIP_BY_AXIS: Record<WeightAxis, ChipId> = {
+    price: "cheaper",
+    time: "faster",
+    variation: "try_new",
+  };
+
   function handleIncrement(axis: WeightAxis) {
     const next = apply({ type: "increment", axis });
-    const chip: ChipId = axis === "price" ? "cheaper" : "faster";
 
-    reportChipTap(chip, next, weightLevel(next, axis));
+    reportChipTap(CHIP_BY_AXIS[axis], next, weightLevel(next, axis));
+    void requestSuggestion(next, current.result?.template.id);
+  }
+
+  /**
+   * A pantry chip (#152). Re-ranks in place with the dish on screen kept as `previous`,
+   * exactly like a chip tap — the household stated a fact about their cupboard, and the
+   * answer is a re-ordered suggestion, never an empty screen while it loads.
+   */
+  function handleTogglePantry(ingredientId: string) {
+    const next = apply({ type: "toggle_pantry", ingredientId });
+    reportChipTap("pantry", next);
     void requestSuggestion(next, current.result?.template.id);
   }
 
@@ -1145,6 +1405,7 @@ function TonightView({
             exclude,
             previous,
             weights: next.weights,
+            pantry: next.pantryIngredientIds,
             diners: diners.parameter,
           }),
         next,
@@ -1196,12 +1457,18 @@ function TonightView({
       )}
       {result !== null && (
         <>
-          <SuggestionCard
-            result={result}
-            swapBusy={fetchingNext}
-            onChoose={() => void handleChooseTonight()}
-            onSwap={handleSomethingElse}
-          />
+          {/* Dimmed, never removed, while the next suggestion is on its way: the dish
+              the household is reading stays on screen until the new one lands. An
+              empty state here would cost them what they were mid-sentence on, for a
+              request that usually takes a moment. */}
+          <div className={fetchingNext ? "tonight-suggestion is-reranking" : "tonight-suggestion"}>
+            <SuggestionCard
+              result={result}
+              swapBusy={fetchingNext}
+              onChoose={() => void handleChooseTonight()}
+              onSwap={handleSomethingElse}
+            />
+          </div>
           <section className="tonight-adjust">
             <p className="text-eyebrow">Justera</p>
             <AdjustmentChips
@@ -1214,6 +1481,26 @@ function TonightView({
           </section>
           {fetchingNext && <p className="muted tonight-fetching">Hämtar…</p>}
         </>
+      )}
+      {/* Everything below gets quieter as it goes down the screen, and all of it sits
+          under "Laga ikväll" (#152, #159): the adjustment chips, then the pantry row,
+          then the collapsed preference block. A household that never scrolls past the
+          button should not be able to tell any of it is here — Tonight exists to avoid
+          input, not to offer a control panel. */}
+      <PantryRow
+        options={current.pantryIngredients ?? []}
+        selected={refinement.pantryIngredientIds}
+        busy={fetchingNext}
+        onToggle={handleTogglePantry}
+        onOpenAll={() => setPantrySheetOpen(true)}
+      />
+      {pantrySheetOpen && (
+        <PantrySheet
+          options={current.pantryIngredients ?? []}
+          selected={refinement.pantryIngredientIds}
+          onToggle={handleTogglePantry}
+          onClose={() => setPantrySheetOpen(false)}
+        />
       )}
       {
         // Under the card and the chips, never in front of them: Tonight is zero-input
@@ -1237,6 +1524,18 @@ function TonightView({
           Bygg en middag
         </Button>
       }
+      {/* Collapsed by default and last on the screen — it shows nothing but its own
+          heading until somebody actually wants to steer (#159). Hidden entirely until
+          the baseline has loaded: three sliders at zero would read as the household's
+          own settings and invite a "correction" that overwrites what is really stored. */}
+      {baseline.ready && (
+        <PreferenceBlock
+          weights={baseline.weights}
+          onChange={baseline.onChange}
+          collapsible
+          disabled={fetchingNext}
+        />
+      )}
     </div>
   );
 }
@@ -1592,10 +1891,17 @@ function ProfilRoute({
   session,
   accessToken,
   onHouseholdUpdated,
+  baseline,
 }: {
   session: Session;
   accessToken: string;
   onHouseholdUpdated: () => Promise<void>;
+  /**
+   * The same baseline Tonight's collapsed block edits (#159) — one value, two views.
+   * Expanded here, because the household came to this screen specifically to adjust
+   * things, and written through its own route so a member save cannot wipe it.
+   */
+  baseline: PreferenceBaseline;
 }) {
   const [loadState, setLoadState] = useState<ProfileLoadState>({ status: "loading" });
   const [members, setMembers] = useState<HouseholdMember[] | null>(null);
@@ -1743,6 +2049,15 @@ function ProfilRoute({
         </form>
       )}
 
+      {/* Outside the form on purpose (#159): the sliders write themselves through their
+          own route the moment they settle, and putting them inside would make them look
+          like they were waiting for "Spara" — which saves members, and must never be
+          the thing that carries the weights. Expanded here, unlike Tonight's collapsed
+          copy of the same block. */}
+      {baseline.ready && (
+        <PreferenceBlock weights={baseline.weights} onChange={baseline.onChange} />
+      )}
+
       <ProfileAccount session={session} />
     </div>
   );
@@ -1833,6 +2148,14 @@ function Gate({ session }: { session: Session }) {
   // Bumped by the offline screen's "Försök igen" button to re-run the fetch
   // below without duplicating its request/cancellation logic in a second effect.
   const [retryCount, setRetryCount] = useState(0);
+
+  // Owned here rather than in either screen, so Tonight's collapsed block and the
+  // profile's section are two views of one value (#159). Both surfaces get the same
+  // object; a change on either is a change to the household.
+  const baseline = usePreferenceBaseline(
+    session.access_token,
+    state.status === "ready" ? state.data.preferenceWeights : undefined,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -1954,7 +2277,10 @@ function Gate({ session }: { session: Session }) {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route path="/" element={<TonightView data={state.data} accessToken={accessToken} />} />
+        <Route
+          path="/"
+          element={<TonightView data={state.data} accessToken={accessToken} baseline={baseline} />}
+        />
         <Route path="/bygg" element={<BuildRoute accessToken={accessToken} />} />
         <Route path="/lista" element={<ListaRoute accessToken={accessToken} />} />
         <Route path="/laga/:id" element={<LagaRoute accessToken={accessToken} />} />
@@ -1965,6 +2291,7 @@ function Gate({ session }: { session: Session }) {
               session={session}
               accessToken={accessToken}
               onHouseholdUpdated={handleHouseholdUpdated}
+              baseline={baseline}
             />
           }
         />
