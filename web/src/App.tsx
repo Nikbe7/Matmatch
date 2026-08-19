@@ -977,7 +977,7 @@ function AdjustmentChips({
  * the chips answered a question nobody asks at this moment — what is *in* it matters
  * when you shop and when you cook, and both of those screens list it properly, with
  * amounts and allergen markings this one never had. What belongs here instead is the
- * one quiet line saying why this dish: "Vald för att du har gul lök och potatis
+ * one quiet line saying why this dish: "Valt för att ni har gul lök och potatis
  * hemma" buys more trust than an inventory, and it is what the reference shows.
  */
 function SuggestionCard({

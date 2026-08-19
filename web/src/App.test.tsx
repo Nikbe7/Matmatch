@@ -2468,7 +2468,7 @@ describe("App — Tonight's pantry row (#152)", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    expect(screen.getByText("Valt för att du har spagetti och gul lök hemma.")).toBeTruthy();
+    expect(screen.getByText("Valt för att ni har spagetti och gul lök hemma.")).toBeTruthy();
   });
 
   it("lets the pantry reason take the line even when the engine ranked another first", async () => {
@@ -2494,7 +2494,7 @@ describe("App — Tonight's pantry row (#152)", () => {
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
     const reason = screen.getByText(/^Valt för att/);
-    expect(reason.textContent).toBe("Valt för att du har potatis hemma.");
+    expect(reason.textContent).toBe("Valt för att ni har potatis hemma.");
     expect(reason.textContent).not.toContain("säsong");
   });
 });

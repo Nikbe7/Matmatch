@@ -53,13 +53,13 @@ describe("suggestionReasonLine", () => {
   describe("pantry_match wins whenever it fired (#185)", () => {
     it("takes the line even when the engine ranked another reason first", () => {
       expect(suggestionReasonLine(["in_season", "pantry_match"], ["potatis"])).toBe(
-        "Valt för att du har potatis hemma.",
+        "Valt för att ni har potatis hemma.",
       );
     });
 
     it("names up to two ingredients in one clause, which is the one place 'och' belongs", () => {
       expect(suggestionReasonLine(["pantry_match"], ["potatis", "gul lök"])).toBe(
-        "Valt för att du har potatis och gul lök hemma.",
+        "Valt för att ni har potatis och gul lök hemma.",
       );
     });
 
@@ -74,6 +74,20 @@ describe("suggestionReasonLine", () => {
     it("is silent when it fired alone with no names", () => {
       expect(suggestionReasonLine(["pantry_match"], [])).toBeNull();
     });
+  });
+
+  it("addresses the household as 'ni', never 'du', in every phrase", () => {
+    // Matmatch decides a dinner for a household, not for a person — the profile asks
+    // "Vad är viktigt för er?" and portions are computed for everyone at the table.
+    // Asserted over every code rather than spot-checked, so a phrase added later
+    // cannot quietly reintroduce the singular on the one line that explains the choice.
+    for (const code of ALL_CODES) {
+      const line = suggestionReasonLine([code])!;
+      expect(line).not.toMatch(/\b(du|dig|din|ditt|dina)\b/i);
+    }
+    expect(suggestionReasonLine(["pantry_match"], ["potatis"])).not.toMatch(
+      /\b(du|dig|din|ditt|dina)\b/i,
+    );
   });
 
   it("is grammatical Swedish in every phrase (#185)", () => {

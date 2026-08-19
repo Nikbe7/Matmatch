@@ -55,6 +55,13 @@ export const PREP_TIME_LABELS: Record<PrepTimeBand, string> = {
 // #122: the Tonight card's one-line "why this dish". Each phrase is written to
 // read as the tail of a sentence ("Valt för att den är …"), never as a standalone
 // label — see `suggestionReasonLine` below, the only place these are rendered.
+//
+// Second person PLURAL throughout — "ni", never "du". Matmatch decides a dinner for a
+// household, not for a person: the profile asks "Vad är viktigt för er?", the engine
+// ranks against a roster, and portions are computed for everyone at the table. A line
+// that says "som du bad om" answers a different, smaller question than the one the
+// product is built around, and it does it on the one line that is supposed to explain
+// the whole choice. Any phrase added here follows the same rule.
 const SUGGESTION_REASON_PHRASES: Record<SuggestionReasonCode, string> = {
   // Never read: `pantry_match` is the one reason phrased from data rather than from a
   // fixed string, because the whole point of it is naming what the household told us
@@ -64,8 +71,8 @@ const SUGGESTION_REASON_PHRASES: Record<SuggestionReasonCode, string> = {
   pantry_match: "",
   in_season: "den är i säsong",
   not_recently_cooked: "ni inte lagat den på ett tag",
-  cost_preference: "den är billigare, som du bad om",
-  time_preference: "den är snabbare, som du bad om",
+  cost_preference: "den är billigare, som ni bad om",
+  time_preference: "den är snabbare, som ni bad om",
   different_from_last_time: "den är annorlunda än det ni lagade senast",
 };
 
@@ -109,7 +116,7 @@ export function suggestionReasonLine(
     if (code === "pantry_match") {
       // A pantry code with no names behind it cannot be phrased — fall through to
       // the next reason rather than rendering a sentence with a hole in it.
-      if (pantryMatch.length > 0) return `Valt för att du har ${joinWithAnd(pantryMatch)} hemma.`;
+      if (pantryMatch.length > 0) return `Valt för att ni har ${joinWithAnd(pantryMatch)} hemma.`;
       continue;
     }
     return `Valt för att ${SUGGESTION_REASON_PHRASES[code]}.`;

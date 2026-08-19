@@ -196,7 +196,7 @@ export interface TonightResult {
   reasonCodes: SuggestionReasonCode[];
   /**
    * The ingredient names behind a `pantry_match` code (#152), at most two, in the
-   * household's own language — the card says "du har spagetti och gul lök hemma".
+   * household's own language — the card says "ni har spagetti och gul lök hemma".
    *
    * Present only alongside the code that earns it: the server omits it whenever the
    * pantry did not decide the pick, so the client never has to decide whether a name
