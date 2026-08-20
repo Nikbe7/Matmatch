@@ -83,7 +83,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "dillstuvad-kyckling-med-potatis",
@@ -149,7 +150,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "ugnsbakad-kyckling-med-rotmos",
@@ -223,7 +225,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingbullar-i-graddsas",
@@ -289,7 +292,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "kycklingsoppa-med-rotfrukter",
@@ -366,7 +370,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "kycklinglarfile-med-ugnsrostade-rotfrukter",
@@ -434,7 +439,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "kycklingpaj-med-purjolok",
@@ -521,7 +527,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "snabbstekt-kycklingfile-med-sockerartor",
@@ -587,7 +594,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingpasta-med-tomatsas-och-basilika",
@@ -663,7 +671,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingfile-med-citron-och-vitlok",
@@ -729,7 +738,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklinggratang-med-mozzarella-och-tomat",
@@ -795,7 +805,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "pestokyckling-med-sparris",
@@ -861,7 +872,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "medelhavssallad-med-kyckling-och-fetaost",
@@ -930,7 +942,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "citron-och-rosmarinkyckling-i-ugn",
@@ -1006,7 +1019,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "kycklinggryta-pa-medelhavsvis-med-aubergine",
@@ -1082,7 +1096,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "snabbstekt-kycklingfile-med-zucchini-och-parmesan",
@@ -1148,7 +1163,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingwok-med-broccoli-och-cashewnotter",
@@ -1234,7 +1250,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "gron-curry-med-kyckling-och-basmatiris",
@@ -1320,7 +1337,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "teriyakikyckling-med-jasminris",
@@ -1396,7 +1414,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingnudlar-med-gronsaker",
@@ -1472,7 +1491,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingsoppa-med-glasnudlar-och-ingefara",
@@ -1549,7 +1569,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "sotsur-kyckling-med-ananas",
@@ -1625,7 +1646,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingvingar-med-sesam-och-sweet-chilisas",
@@ -1691,7 +1713,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "massamangryta-med-kycklinglarfile",
@@ -1767,7 +1790,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "kycklingbowl-med-jasminris-och-sojagroddar",
@@ -1844,7 +1868,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "kalkonfile-i-wok-med-paprika-och-ingefara",
@@ -1920,7 +1945,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingtacos-med-avokado-och-koriander",
@@ -1996,7 +2022,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingfajitas-med-paprika-och-lok",
@@ -2072,7 +2099,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingquesadilla-med-hushallsost",
@@ -2139,7 +2167,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingenchiladas-med-svarta-bonor-och-majs",
@@ -2215,7 +2244,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "kycklingbowl-med-svarta-bonor-majs-och-avokado",
@@ -2292,7 +2322,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingchili-med-svarta-bonor",
@@ -2370,7 +2401,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "kycklingspett-med-couscous-och-yoghurtsas",
@@ -2446,7 +2478,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "kycklinggryta-med-kikartor-och-gurkmeja",
@@ -2532,7 +2565,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "ugnsbakad-kyckling-med-citron-och-paprikapulver",
@@ -2608,7 +2642,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingbowl-med-bulgur-fetaost-och-mandel",
@@ -2685,7 +2720,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "fyllt-naanbrod-med-kyckling-och-yoghurtsas",
@@ -2762,7 +2798,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "krispig-ugnsbakad-kyckling-med-potatismos",
@@ -2838,7 +2875,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "bbq-kyckling-med-majs-och-vitkalssallad",
@@ -2916,7 +2954,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kycklingpaj-med-majs-och-bacon",
@@ -2993,7 +3032,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "kalops-med-rotfrukter",
@@ -3067,7 +3107,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "pyttipanna-med-biff-och-stekt-agg",
@@ -3123,7 +3164,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kottbullar-med-graddsas-och-rodbetssallad",
@@ -3189,7 +3231,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "stekt-flaskkarre-med-rotmos",
@@ -3253,7 +3296,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "biff-med-lok-och-potatis",
@@ -3309,7 +3353,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "kaldolmar-med-kottfars",
@@ -3365,7 +3410,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "flaskkotlett-med-stekt-potatis-och-graddsas",
@@ -3421,7 +3467,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "skinkstek-med-potatismos-och-senap",
@@ -3477,7 +3524,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "pasta-bolognese-med-notfars",
@@ -3553,7 +3601,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "flaskfile-i-skinklindning-med-timjan",
@@ -3621,7 +3670,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "grillad-entrecote-med-rosmarin-och-parmesan",
@@ -3687,7 +3737,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "pasta-carbonara-med-bacon",
@@ -3743,7 +3794,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "flaskkotlett-milanese-med-citron",
@@ -3799,7 +3851,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "toskansk-gryta-med-rotfrukter",
@@ -3875,7 +3928,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "flaskfarsbollar-i-tomatsas-med-basilika",
@@ -3941,7 +3995,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "biff-i-oystersas-med-broccoli",
@@ -4017,7 +4072,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "flaskfile-i-wok-med-cashewnotter-och-paprika",
@@ -4083,7 +4139,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "flaskkarre-med-sotsur-sas-och-ananas",
@@ -4149,7 +4206,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "notfars-pad-thai-stil-med-risnudlar",
@@ -4226,7 +4284,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "currygryta-med-flaskkarre-och-kokosmjolk",
@@ -4292,7 +4351,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "carne-asada-med-lime-och-koriander",
@@ -4358,7 +4418,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "flaskfile-al-pastor-med-ananas",
@@ -4424,7 +4485,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "notfarsburrito-med-svarta-bonor-och-ris",
@@ -4500,7 +4562,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "texas-chili-med-hogrev",
@@ -4578,7 +4641,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "nachos-med-flaskfars-ost-och-guacamole",
@@ -4644,7 +4708,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "grillade-flaskspjut-med-chimichurri-inspirerad-sas",
@@ -4720,7 +4785,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "notkottsspett-med-bulgur-och-yoghurtsas",
@@ -4786,7 +4852,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "kottfarsbiffar-med-bulgur-och-gurkmeja",
@@ -4852,7 +4919,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "kryddig-grytstek-med-kanel-och-gurkmeja",
@@ -4928,7 +4996,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "amerikansk-cheeseburgare-med-bacon",
@@ -5004,7 +5073,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "ugnsbakade-revbensspjall-med-bbq-sas",
@@ -5072,7 +5142,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "langkokt-pulled-pork-med-coleslaw",
@@ -5148,7 +5219,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "kottfarslimpa-med-potatismos",
@@ -5224,7 +5296,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "philly-cheesesteak-med-entrecote",
@@ -5290,7 +5363,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "moderate"
   },
   {
     "id": "grillad-entrecote-med-stekt-lok-och-bearnaisesas",
@@ -5346,7 +5420,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "stekt-torsk-med-aggsas-och-potatis",
@@ -5412,7 +5487,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "laxpudding-med-dill",
@@ -5478,7 +5554,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "fiskpinnar-med-currysas-och-ris",
@@ -5534,7 +5611,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "gravad-lax-med-senapssas-och-ragbrod",
@@ -5590,7 +5668,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "raksmorgas-med-agg-och-majonnas",
@@ -5657,7 +5736,8 @@
       "breakfast",
       "lunch"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "fiskgratang-med-rakor-och-dill",
@@ -5733,7 +5813,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "kokt-torsk-med-loksas",
@@ -5789,7 +5870,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "musselgryta-med-vitlok-och-purjolok",
@@ -5855,7 +5937,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "pasta-med-tonfisk-tomat-och-vitlok",
@@ -5921,7 +6004,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "ugnsbakad-lax-med-citron-och-sparris",
@@ -5977,7 +6061,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "rakpasta-med-vitlok-och-chili",
@@ -6043,7 +6128,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "fisksoppa-pa-medelhavsvis-med-torsk-och-tomat",
@@ -6112,7 +6198,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "musslor-i-vitvinssas-med-vitlok-och-persilja",
@@ -6178,7 +6265,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "tonfisksallad-med-fetaost-och-ruccola",
@@ -6247,7 +6335,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "laxwok-med-broccoli-och-ingefara",
@@ -6313,7 +6402,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "rakor-i-currysas-med-kokosmjolk",
@@ -6379,7 +6469,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "tonfisk-poke-bowl-med-jasminris-och-avokado",
@@ -6456,7 +6547,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "musslor-i-wok-med-chili-och-vitlok",
@@ -6522,7 +6614,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "moderate"
   },
   {
     "id": "torsk-i-currysas-med-basmatiris",
@@ -6588,7 +6681,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "skaldjursmix-i-wok-med-sojagroddar-och-paprika",
@@ -6664,7 +6758,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "moderate"
   },
   {
     "id": "fisktacos-med-torsk-avokado-och-lime",
@@ -6730,7 +6825,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "rakceviche-med-lime-och-koriander",
@@ -6808,7 +6904,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "ugnsbakad-torsk-med-gurkmeja-och-citron",
@@ -6874,7 +6971,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "rakspett-med-couscous-och-yoghurtsas",
@@ -6940,7 +7038,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "fish-and-chips-med-torsk-och-remouladsas",
@@ -7016,7 +7115,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "linssoppa-med-rotfrukter",
@@ -7096,7 +7196,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "svampgryta-med-kantareller-och-graddfil",
@@ -7164,7 +7265,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "halloumistekar-med-rostad-rotfrukt",
@@ -7232,7 +7334,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "kikartsbiffar-med-graddfilssas",
@@ -7300,7 +7403,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "gronsakspaj-med-fetaost",
@@ -7389,7 +7493,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "pasta-med-kikartor-tomat-och-basilika",
@@ -7458,7 +7563,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "risotto-med-svamp-och-prastost",
@@ -7536,7 +7642,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "melanzane-alla-parmigiana",
@@ -7625,7 +7732,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "project"
   },
   {
     "id": "linsgryta-med-tomat-och-timjan",
@@ -7694,7 +7802,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "fyllda-paprikor-med-quinoa-och-svarta-bonor",
@@ -7763,7 +7872,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "caprese-sallad-med-mozzarella-och-basilika",
@@ -7822,7 +7932,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "minestrone-med-kikartor-och-pasta",
@@ -7902,7 +8013,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "bruschetta-med-tofu-tomat-och-basilika",
@@ -7971,7 +8083,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "zucchinipaj-med-fetaost-och-pinjenotter",
@@ -8060,7 +8173,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "tofuwok-med-broccoli-och-cashewnotter",
@@ -8139,7 +8253,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "kikartscurry-med-kokosmjolk",
@@ -8208,7 +8323,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "nudelsoppa-med-tofu-sojagroddar-och-ingefara",
@@ -8298,7 +8414,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "gronsaksbowl-med-svarta-bonor-jasminris-och-sojagroddar",
@@ -8378,7 +8495,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "pad-thai-med-tofu-och-jordnotter",
@@ -8458,7 +8576,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "svartbonsgryta-med-majs-och-paprika",
@@ -8537,7 +8656,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "friterad-tofu-i-sotsur-sas-med-ananas",
@@ -8616,7 +8736,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "asiatisk-nudelsallad-med-kikartor-och-koriander",
@@ -8706,7 +8827,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "friterat-ris-med-halloumi-och-gronsaker",
@@ -8785,7 +8907,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "svampspett-med-jordnotssas",
@@ -8864,7 +8987,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "project"
   },
   {
     "id": "chili-sin-carne-med-svarta-bonor-och-majs",
@@ -8944,7 +9068,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "kikartstacos-med-avokado-och-koriander",
@@ -9013,7 +9138,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "quesadilla-med-svarta-bonor-och-ost",
@@ -9082,7 +9208,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "burritobowl-med-quinoa-linser-och-majs",
@@ -9162,7 +9289,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "enchiladas-med-kikartor-och-ost",
@@ -9230,7 +9358,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "nachos-med-svarta-bonor-guacamole-och-ost",
@@ -9298,7 +9427,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "falafel-med-couscous-och-citronsas",
@@ -9378,7 +9508,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "linsbowl-med-rostade-gronsaker-och-bulgur",
@@ -9458,7 +9589,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "kryddig-bongryta-med-kanel-och-gurkmeja",
@@ -9537,7 +9669,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "fylld-aubergine-med-bulgur-och-pinjenotter",
@@ -9606,7 +9739,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "project"
   },
   {
     "id": "halloumispett-med-couscous-och-oregano",
@@ -9674,7 +9808,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "tabbouleh-sallad-med-bulgur-persilja-och-linser",
@@ -9754,7 +9889,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "kryddig-linssoppa-med-citron-och-koriander",
@@ -9834,7 +9970,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "veggieburgare-med-svarta-bonor-och-avokado",
@@ -9913,7 +10050,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "mac-and-cheese-med-hushallsost",
@@ -9981,7 +10119,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "ugnsrostad-potatis-med-tofu-majs-och-avokado",
@@ -10060,7 +10199,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "pannkakor-med-vaniljsocker",
@@ -10129,7 +10269,8 @@
       "breakfast",
       "lunch"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "aggrora-med-graddfil-pa-ragbrod",
@@ -10188,7 +10329,8 @@
       "breakfast",
       "lunch"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "skinksmorgas-med-agg-och-senap",
@@ -10245,7 +10387,8 @@
       "breakfast",
       "lunch"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "raggmunk-med-graddfil",
@@ -10313,7 +10456,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "artsoppa-med-senap",
@@ -10372,7 +10516,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "ostpaj-med-purjolok",
@@ -10451,7 +10596,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "korv-stroganoff-med-ris",
@@ -10517,7 +10663,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "makaronipanna-med-falukorv",
@@ -10583,7 +10730,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "project"
   },
   {
     "id": "pasta-aglio-e-olio-med-prastost",
@@ -10659,7 +10807,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "frittata-med-spenat-och-graddfil",
@@ -10719,7 +10868,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "panzanella-med-hushallsost-tomat-och-basilika",
@@ -10797,7 +10947,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "kramig-polenta-med-keso-och-spenat",
@@ -10866,7 +11017,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "svartbonssallad-med-citron-och-persilja",
@@ -10936,7 +11088,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "purjolokssoppa-med-creme-fraiche",
@@ -11002,7 +11155,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "friterat-ris-med-prastost-och-gronsaker",
@@ -11081,7 +11235,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "moderate"
   },
   {
     "id": "halloumi-i-wok-med-teriyakisas-och-sesam",
@@ -11159,7 +11314,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "aggcurry-med-kokosmjolk-och-spenat",
@@ -11227,7 +11383,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "moderate"
   },
   {
     "id": "svampsoppa-med-soja-och-vitlok",
@@ -11307,7 +11464,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "huevos-rancheros-med-svarta-bonor",
@@ -11386,7 +11544,8 @@
       "breakfast",
       "lunch"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "migas-med-tortilla-och-ost",
@@ -11455,7 +11614,8 @@
       "breakfast",
       "lunch"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "queso-fundido-med-tortilla",
@@ -11513,7 +11673,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "shakshuka-med-tomatpure-och-gron-paprika",
@@ -11594,7 +11755,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   },
   {
     "id": "fyllt-naanbrod-med-halloumi-och-yoghurtsas",
@@ -11663,7 +11825,8 @@
       "lunch",
       "dinner"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "moderate"
   },
   {
     "id": "kall-yoghurtsoppa-med-gurka-och-dill",
@@ -11731,7 +11894,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "adventurous"
+    "familiarity": "adventurous",
+    "effort_level": "simple"
   },
   {
     "id": "amerikansk-grillad-ostmacka-med-tomatsoppa",
@@ -11799,7 +11963,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "aggmacka-med-majonnas-och-dill",
@@ -11858,7 +12023,8 @@
       "breakfast",
       "lunch"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "vafflor-med-apple",
@@ -11927,7 +12093,8 @@
       "breakfast",
       "lunch"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "moderate"
   },
   {
     "id": "potatisgratang-med-vasterbottensost",
@@ -11993,7 +12160,8 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "project"
   },
   {
     "id": "korvgryta-med-potatis-och-gron-paprika",
@@ -12059,7 +12227,8 @@
     "meal_types": [
       "dinner"
     ],
-    "familiarity": "everyday"
+    "familiarity": "everyday",
+    "effort_level": "simple"
   },
   {
     "id": "ostsoppa-med-brod-och-vitlok",
@@ -12125,6 +12294,7 @@
     "meal_types": [
       "lunch"
     ],
-    "familiarity": "occasional"
+    "familiarity": "occasional",
+    "effort_level": "simple"
   }
 ]

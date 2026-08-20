@@ -41,6 +41,35 @@ export type MealType = z.infer<typeof MealTypeSchema>;
 export const FamiliaritySchema = z.enum(["everyday", "occasional", "adventurous"]);
 export type Familiarity = z.infer<typeof FamiliaritySchema>;
 
+/**
+ * How much kitchen effort a dish takes — the curated signal behind the "Enkelt"
+ * preference axis (#157, #151). Effort here means what is observable and countable
+ * about *making* the dish: how many moments it takes, how many pots/pans/dishes it
+ * uses, and how much washing-up it leaves. It is explicitly NOT technical difficulty
+ * and NOT a judgment of the cook — a low `effort_level` is a household's active
+ * choice ("det får gärna kräva lite pyssel i köket"), not a deficiency, exactly the
+ * same way a high one is a choice ("få moment, en panna, minimal disk") and not a
+ * mark of ambition. See DECISION_LOG for the curation method and the cross-check
+ * against `prep_time_band` — the two axes are deliberately independent: a slow stew
+ * that mostly simmers unattended is `simple`, and a fast plate with three
+ * separately-cooked components is not.
+ *
+ * `simple` — one vessel, effectively one moment. A salad, a sandwich, a soup, a
+ * stew (even a long one — the vessel and the moment count don't grow with time).
+ * `moderate` — two vessels or two components genuinely prepared in parallel: a
+ * protein plated with a separately-cooked starch, a pasta with its own sauce, a wok
+ * served over rice.
+ * `project` — three or more vessels, or a dish that must be assembled in stages
+ * that cannot run in parallel: a pie or gratin baked after its filling is made, a
+ * stuffed vegetable, formed meatballs finished in their own sauce.
+ *
+ * Curated blind against a written rubric, independently of `src/tools/
+ * effortLevelHeuristic.ts`'s structural cross-check — see DECISION_LOG for the
+ * method and the two graders' agreement rate.
+ */
+export const EffortLevelSchema = z.enum(["simple", "moderate", "project"]);
+export type EffortLevel = z.infer<typeof EffortLevelSchema>;
+
 // Slot role is its own vocabulary, distinct from Ingredient.category — "aromatic"
 // here maps conceptually to the "spice_aromatic" ingredient category, but the two
 // strings are never interchangeable in code. Translating between them (e.g. when
@@ -129,6 +158,11 @@ export const RecipeTemplateSchema = z.object({
   // Required, no default: a ranking weight this consequential must not silently
   // default to "everyday" for an unclassified row (see DECISION_LOG).
   familiarity: FamiliaritySchema,
+  // Required, no default, same discipline as familiarity above (#151): the
+  // "Enkelt" slider becomes a control with a real consequence the moment this
+  // exists, so a template with no opinion here must fail validation rather than
+  // silently rank as if effort were neutral.
+  effort_level: EffortLevelSchema,
   ingredient_slots: z.array(IngredientSlotSchema).min(1),
 });
 export type RecipeTemplate = z.infer<typeof RecipeTemplateSchema>;
