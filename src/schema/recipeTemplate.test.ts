@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CuisineSchema,
+  EffortLevelSchema,
   FamiliaritySchema,
   IngredientSlotRoleSchema,
   IngredientSlotSchema,
@@ -24,6 +25,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: [],
       meal_types: ["dinner"],
       familiarity: "everyday",
+      effort_level: "moderate",
       ingredient_slots: [
         { role: "protein", ingredient_id: "ing_010", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
         { role: "starch", ingredient_id: "ing_020", substitutable: false, quantity: { kind: "amount", amount: 400, unit: "g" } },
@@ -46,6 +48,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: ["vegetarian", "vegan"],
       meal_types: ["lunch", "dinner"],
       familiarity: "everyday",
+      effort_level: "moderate",
       ingredient_slots: [
         { role: "protein", ingredient_id: "ing_040", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
       ],
@@ -66,6 +69,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: [],
       meal_types: ["dinner"],
       familiarity: "everyday",
+      effort_level: "moderate",
       ingredient_slots: [],
     };
 
@@ -84,6 +88,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: [],
       meal_types: ["dinner"],
       familiarity: "everyday",
+      effort_level: "moderate",
       ingredient_slots: [
         { role: "protein", ingredient_id: "ing_010", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
       ],
@@ -103,6 +108,7 @@ describe("RecipeTemplateSchema", () => {
       prep_time_band: "<20min",
       dietary_tags: [],
       familiarity: "everyday",
+      effort_level: "moderate",
       ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
@@ -121,6 +127,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: [],
       meal_types: ["dinner", "dinner"],
       familiarity: "everyday",
+      effort_level: "moderate",
       ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
@@ -140,6 +147,7 @@ describe("RecipeTemplateSchema", () => {
       prep_time_band: "<20min",
       dietary_tags: [],
       meal_types: ["dinner"],
+      effort_level: "moderate",
       ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
@@ -160,6 +168,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: [],
       meal_types: ["dinner"],
       familiarity: "exotic",
+      effort_level: "moderate",
       ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
@@ -178,6 +187,7 @@ describe("RecipeTemplateSchema", () => {
       dietary_tags: [],
       meal_types: ["dinner"],
       familiarity,
+      effort_level: "moderate",
       ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
     };
 
@@ -286,5 +296,65 @@ describe("QuantityUnitSchema", () => {
       "klyfta",
       "kruka",
     ]);
+  });
+});
+
+describe("EffortLevelSchema (#151)", () => {
+  it("rejects a template missing effort_level entirely, rather than defaulting to neutral", () => {
+    const fixture = {
+      id: "recept-utan-effort-level",
+      name: "Recept utan effort_level",
+      blurb: "Testblurb för recept utan effort_level.",
+      protein_group: "egg_dairy_pantry",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+      prep_time_band: "<20min",
+      dietary_tags: [],
+      meal_types: ["dinner"],
+      familiarity: "everyday",
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
+    };
+
+    const result = RecipeTemplateSchema.safeParse(fixture);
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]!.path).toEqual(["effort_level"]);
+  });
+
+  it("rejects an effort_level value outside the locked enum", () => {
+    const fixture = {
+      id: "recept-med-ogiltig-effort-level",
+      name: "Recept med ogiltig effort_level",
+      blurb: "Testblurb för recept med ogiltig effort_level.",
+      protein_group: "egg_dairy_pantry",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+      prep_time_band: "<20min",
+      dietary_tags: [],
+      meal_types: ["dinner"],
+      familiarity: "everyday",
+      effort_level: "avancerad",
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
+    };
+
+    expect(RecipeTemplateSchema.safeParse(fixture).success).toBe(false);
+  });
+
+  it.each(EffortLevelSchema.options)("accepts effort_level value %s", (effort_level) => {
+    const fixture = {
+      id: "recept-med-effort-level",
+      name: "Recept med effort_level",
+      blurb: "Testblurb för recept med effort_level.",
+      protein_group: "egg_dairy_pantry",
+      cuisine: "swedish_nordic",
+      cost_tier: "budget",
+      prep_time_band: "<20min",
+      dietary_tags: [],
+      meal_types: ["dinner"],
+      familiarity: "everyday",
+      effort_level,
+      ingredient_slots: [{ role: "protein", ingredient_id: "ing_050", substitutable: true, quantity: { kind: "amount", amount: 400, unit: "g" } }],
+    };
+
+    expect(RecipeTemplateSchema.safeParse(fixture).success).toBe(true);
   });
 });

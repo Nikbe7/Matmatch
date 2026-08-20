@@ -49,6 +49,9 @@ export function makeTemplate(id: string, overrides: Partial<RecipeTemplate> = {}
     dietary_tags: [],
     meal_types: ["dinner"],
     familiarity: "everyday",
+    // #151: arbitrary but valid, same discipline as the rest of this default —
+    // tests that care about effort_level pass their own via `overrides`.
+    effort_level: "moderate",
     ingredient_slots: [],
     ...overrides,
   };
