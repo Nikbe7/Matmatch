@@ -80,7 +80,7 @@ const householdNotFound = jsonResponse(404, {
 
 const suggestionBody = {
   result: {
-    template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb för kycklinggryta.", cost_tier: "mid", prep_time_band: "20-40min", cuisine: "swedish_nordic" },
+    template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb för kycklinggryta.", cost_tier: "mid", prep_time_band: "20-40min", effort_level: "simple", cuisine: "swedish_nordic" },
     ingredients: [
       { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
       { role: "aromatic", name: "Rödlök", slotIndex: 1, ingredientId: "rodlok", substituted: true, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
@@ -95,7 +95,7 @@ const suggestionBody = {
 function suggestionBodyForTier(tier: CostTier) {
   return {
     result: {
-      template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb för kycklinggryta.", cost_tier: tier, prep_time_band: "20-40min", cuisine: "swedish_nordic" },
+      template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb för kycklinggryta.", cost_tier: tier, prep_time_band: "20-40min", effort_level: "moderate", cuisine: "swedish_nordic" },
       ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
       substitutions: [],
       score: 0.5,
@@ -730,6 +730,14 @@ describe("App — Tonight suggestion card", () => {
     const dots = meter.querySelector('[aria-hidden="true"]');
     expect(dots).not.toBeNull();
     expect(dots!.textContent).toBe("●●○");
+
+    // #151/#161: effort_level renders as a Swedish word beside the cost meter, not
+    // as a raw enum value and not as a second dot meter — the row means exactly one
+    // thing per meter, and there is exactly one meter.
+    expect(container.textContent).not.toMatch(/\bsimple\b/);
+    const metaRow = container.querySelector(".suggestion__meta")!;
+    expect(metaRow.textContent).toContain("Enkelt");
+    expect(within(metaRow as HTMLElement).queryAllByRole("img")).toHaveLength(1);
   });
 
   it("shows one reason only, phrased as a sentence with no numbers, even when the server sends two", async () => {
@@ -816,7 +824,7 @@ describe("App — Tonight suggestion card", () => {
 function suggestionBodyFor(id: string, name: string, cuisine = "swedish_nordic") {
   return {
     result: {
-      template: { id, name, blurb: `Testblurb för ${name.toLowerCase()}.`, cost_tier: "budget", prep_time_band: "<20min", cuisine },
+      template: { id, name, blurb: `Testblurb för ${name.toLowerCase()}.`, cost_tier: "budget", prep_time_band: "<20min", effort_level: "moderate", cuisine },
       ingredients: [{ role: "protein", name: "Torsk", slotIndex: 0, ingredientId: "torsk", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
       substitutions: [],
       score: 0.3,
@@ -1119,14 +1127,14 @@ describe("App — refinement instrumentation", () => {
       {
         name: "refinement_chip_tap",
         chip: "cheaper",
-        weights: { price: WEIGHT_LEVELS[1], time: 0, variation: 0 },
+        weights: { price: WEIGHT_LEVELS[1], time: 0, variation: 0, simplicity: 0 },
         level: 1,
         rerollDepth: 1,
       },
       {
         name: "refinement_chip_tap",
         chip: "something_else",
-        weights: { price: WEIGHT_LEVELS[1], time: 0, variation: 0 },
+        weights: { price: WEIGHT_LEVELS[1], time: 0, variation: 0, simplicity: 0 },
         level: undefined,
         rerollDepth: 2,
       },
@@ -1623,6 +1631,7 @@ describe("App — the Tonight card's diner picker (#112)", () => {
           blurb: `Testblurb för ${id}.`,
           cost_tier: "mid",
           prep_time_band: "20-40min",
+          effort_level: "moderate",
           cuisine: "swedish_nordic",
         },
         ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
@@ -1791,6 +1800,7 @@ describe("App — a diner change keeps the dish when it is still valid (#133)", 
           blurb: `Testblurb för ${id}.`,
           cost_tier: "mid",
           prep_time_band: "20-40min",
+          effort_level: "moderate",
           cuisine: "swedish_nordic",
         },
         ingredients: [
@@ -1927,6 +1937,7 @@ describe("App — a failed diner change never leaves the card and the picker dis
               blurb: "Testblurb för kycklinggryta.",
               cost_tier: "mid",
               prep_time_band: "20-40min",
+              effort_level: "moderate",
               cuisine: "swedish_nordic",
             },
             ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
@@ -2551,15 +2562,54 @@ describe("App — Testa nytt (#153)", () => {
     expect(Number(viaChip)).toBe(WEIGHT_LEVELS[1]);
   });
 
-  it("does not offer Enklare — the axis exists but has nothing behind it yet", async () => {
+});
+
+describe("App — Enklare (#153, #151)", () => {
+  it("moves the simplicity axis in the same notches the other chips use", async () => {
     sessionHolder.current = fakeSession;
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, tonightBody()))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { ...suggestionBodyFor("fisksoppa", "Fisksoppa"), pantryIngredients: PANTRY_OPTIONS, preferenceWeights: NEUTRAL_BASELINE }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    expect(screen.queryByRole("button", { name: /Enklare/ })).toBeNull();
+    await user.click(screen.getByRole("button", { name: /^Enklare/ }));
+
+    await screen.findByRole("heading", { name: "Fisksoppa" });
+    expect(fetchMock.mock.calls[1]![0] as string).toContain(`simplicity=${WEIGHT_LEVELS[1]}`);
+  });
+
+  it("expresses itself on the same axis the Enkelhet slider does — same value, either way in", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, tonightBody()))
+      .mockResolvedValue(
+        jsonResponse(200, { ...suggestionBodyFor("fisksoppa", "Fisksoppa"), pantryIngredients: PANTRY_OPTIONS, preferenceWeights: NEUTRAL_BASELINE }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: /^Enklare/ }));
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBe(2));
+    const viaChip = new URL(fetchMock.mock.calls[1]![0] as string, "http://x").searchParams.get(
+      "simplicity",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Vad är viktigt för er?" }));
+    const slider = screen.getByRole("slider", { name: /^Enkelhet/ });
+    expect(slider.getAttribute("max")).toBe("100");
+    expect(slider.getAttribute("step")).toBe("5");
+    expect(Number(viaChip)).toBe(WEIGHT_LEVELS[1]);
   });
 });
 
@@ -2589,18 +2639,18 @@ describe("App — the preference block (#158, #159)", () => {
     expect(screen.queryAllByRole("slider")).toHaveLength(0);
   });
 
-  it("renders exactly three sliders — never the enkelhet one", async () => {
+  it("renders exactly four sliders, enkelhet included, in the same register as the rest", async () => {
     sessionHolder.current = fakeSession;
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
     vi.stubGlobal("fetch", fetchMock);
 
     await openBlock();
 
-    expect(screen.getAllByRole("slider")).toHaveLength(3);
+    expect(screen.getAllByRole("slider")).toHaveLength(4);
     expect(screen.getByRole("slider", { name: /^Pris/ })).toBeTruthy();
     expect(screen.getByRole("slider", { name: /^Tid/ })).toBeTruthy();
     expect(screen.getByRole("slider", { name: /^Variation/ })).toBeTruthy();
-    expect(screen.queryByRole("slider", { name: /^Enkel/ })).toBeNull();
+    expect(screen.getByRole("slider", { name: /^Enkelhet/ })).toBeTruthy();
   });
 
   it("shows the household's stored baseline, not a neutral guess", async () => {
@@ -2734,6 +2784,6 @@ describe("App — the preference block (#158, #159)", () => {
     const slider = await screen.findByRole("slider", { name: /^Pris/ });
     expect((slider as HTMLInputElement).value).toBe("60");
     expect(screen.queryByRole("button", { name: "Vad är viktigt för er?" })).toBeNull();
-    expect(screen.getAllByRole("slider")).toHaveLength(3);
+    expect(screen.getAllByRole("slider")).toHaveLength(4);
   });
 });

@@ -14,11 +14,13 @@ import { loadEngineData } from "./data.js";
 import {
   effectiveIngredientIds,
   rankCandidates,
+  scoreCandidate,
   toRankingWeights,
   NEUTRAL_RANKING_WEIGHTS,
   type RankingWeights,
 } from "./ranking.js";
 import { makeConstraints as household } from "./__fixtures__/household.js";
+import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "./__fixtures__/engineData.js";
 
 // The four preference axes (#157): the persistent household baseline, the session
 // delta, and the single bridge between slider notches and engine weights.
@@ -46,7 +48,7 @@ const rowsByIngredientId = data.allergenMappingByIngredientId;
  * baseline stops reproducing these numbers and the backward-compatibility tests below
  * fail. Deriving them from the module under test would make those tests tautologies.
  */
-const PRE_157_WEIGHTS: RankingWeights = { price: 0, time: 0, familiarity: 1.5 };
+const PRE_157_WEIGHTS: RankingWeights = { price: 0, time: 0, familiarity: 1.5, simplicity: 0 };
 
 /** The old chip levels, in the raw engine units the query string used to carry. */
 const PRE_157_CHIP_LEVEL_1 = 1;
@@ -110,13 +112,14 @@ describe("toRankingWeights — the one bridge between slider notches and engine 
     }
   });
 
-  it("raises price and time linearly, and lowers the familiarity penalty as variation rises", () => {
+  it("raises price, time and simplicity linearly, and lowers the familiarity penalty as variation rises", () => {
     expect(toRankingWeights(uniform(PREFERENCE_WEIGHT_MAX))).toEqual({
       price: 3,
       time: 3,
       // The inversion: high Variation means LESS novelty penalty. A sign error here
       // would make "Vi lyfter fram rätter ni inte lagat förut" bury unfamiliar dishes.
       familiarity: 0,
+      simplicity: 3,
     });
     expect(toRankingWeights(uniform(50)).familiarity).toBeCloseTo(0.75, 10);
   });
@@ -133,25 +136,50 @@ describe("toRankingWeights — the one bridge between slider notches and engine 
     }
   });
 
-  it("discards simplicity entirely — the axis is stored but inert until #151", () => {
-    // The guarantee behind "do not render the fourth slider". If this test ever fails
-    // because simplicity started mattering, the slider may ship — and not before.
-    for (let notch = 0; notch <= PREFERENCE_WEIGHT_MAX; notch += PREFERENCE_WEIGHT_STEP) {
-      expect(toRankingWeights({ ...NEUTRAL_PREFERENCE_WEIGHTS, simplicity: notch })).toEqual(
-        toRankingWeights(NEUTRAL_PREFERENCE_WEIGHTS),
-      );
+  it("simplicity: 0 leaves the whole library's order exactly as before #153", () => {
+    // #151 landed the curated effort_level; this is the assertion that a household
+    // sitting at the neutral default (never touched the Enkelhet slider or "Enklare")
+    // still ranks exactly as it did before this axis carried a term at all.
+    for (const profile of PROFILES) {
+      const reference = rankedIds(profile.constraints, toRankingWeights(NEUTRAL_PREFERENCE_WEIGHTS), 7);
+      expect(
+        rankedIds(profile.constraints, toRankingWeights({ ...NEUTRAL_PREFERENCE_WEIGHTS, simplicity: 0 }), 7),
+      ).toEqual(reference);
     }
   });
 
-  it("leaves the whole library's order untouched at every simplicity notch", () => {
-    for (const profile of PROFILES) {
-      const reference = rankedIds(profile.constraints, toRankingWeights(NEUTRAL_PREFERENCE_WEIGHTS), 7);
+  it("simplicity: 100 ranks a simple template ahead of an otherwise-identical project template", () => {
+    // The headline acceptance criterion for #153: with the axis maxed, effort_level
+    // now actually decides an order it could not touch before this landed.
+    const data = makeEngineData({
+      ingredients: [makeIngredient("aret-runt", { available_year_round: true, peak_months: [] })],
+    });
+    const slot = [makeSlot({ role: "vegetable", ingredient_id: "aret-runt", substitutable: true })];
+    const simple = {
+      template: makeTemplate("simple-dish", { ingredient_slots: slot, effort_level: "simple" as const }),
+      substitutions: [],
+    };
+    const project = {
+      template: makeTemplate("project-dish", { ingredient_slots: slot, effort_level: "project" as const }),
+      substitutions: [],
+    };
 
-      for (let notch = 0; notch <= PREFERENCE_WEIGHT_MAX; notch += PREFERENCE_WEIGHT_STEP) {
-        const weights = toRankingWeights({ ...NEUTRAL_PREFERENCE_WEIGHTS, simplicity: notch });
-        expect(rankedIds(profile.constraints, weights, 7)).toEqual(reference);
-      }
-    }
+    // At 0 the two score identically — effort_level does not decide anything yet.
+    const neutralWeights = toRankingWeights({ ...NEUTRAL_PREFERENCE_WEIGHTS, simplicity: 0 });
+    expect(scoreCandidate(data, simple, neutralWeights, 1)).toBe(
+      scoreCandidate(data, project, neutralWeights, 1),
+    );
+
+    // At 100 the simple dish wins outright, in either input order.
+    const maxWeights = toRankingWeights({ ...NEUTRAL_PREFERENCE_WEIGHTS, simplicity: 100 });
+    expect(rankCandidates(data, [project, simple], maxWeights, 1).map((c) => c.template.id)).toEqual([
+      "simple-dish",
+      "project-dish",
+    ]);
+    expect(rankCandidates(data, [simple, project], maxWeights, 1).map((c) => c.template.id)).toEqual([
+      "simple-dish",
+      "project-dish",
+    ]);
   });
 });
 

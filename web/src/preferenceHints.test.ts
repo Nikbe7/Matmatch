@@ -24,12 +24,11 @@ const ALL_VALUES = Array.from(
 );
 
 describe("the slider axes", () => {
-  it("is exactly three — enkelhet is not among them", () => {
-    // #151 has produced no curated effort signal, so a fourth slider would change
-    // nothing observable. A control with no consequence is the objection that got
-    // sliders rejected once already (DECISION_LOG 2026-07-31).
-    expect([...SLIDER_AXES]).toEqual(["price", "time", "variation"]);
-    expect(SLIDER_AXES).not.toContain("simplicity");
+  it("is exactly four, enkelhet included, since #153", () => {
+    // #151 curated effort_level and #153 wired it into toRankingWeights, so the
+    // slider now changes something observable — the objection that kept it out
+    // (DECISION_LOG 2026-07-31) no longer applies.
+    expect([...SLIDER_AXES]).toEqual(["price", "time", "variation", "simplicity"]);
   });
 });
 

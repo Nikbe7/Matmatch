@@ -28,11 +28,11 @@
 // error as an AI-invented cost figure: a number-shaped promise the engine cannot keep.
 
 /**
- * The axes with a slider. Three, not four — `simplicity` is stored but inert until
- * #151 lands a curated effort signal, and a control that changes nothing teaches the
- * household that the controls are decorative.
+ * The axes with a slider. Four since #153 — `simplicity` joins the other three now
+ * that #151 has curated `effort_level`, in the same register and with no marking that
+ * it is new.
  */
-export const SLIDER_AXES = ["price", "time", "variation"] as const;
+export const SLIDER_AXES = ["price", "time", "variation", "simplicity"] as const;
 export type SliderAxis = (typeof SLIDER_AXES)[number];
 
 export const PREFERENCE_STEP = 5;
@@ -140,6 +140,35 @@ export const AXIS_COPY: Record<SliderAxis, AxisCopy> = {
         from: PREFERENCE_MAX,
         level: "Spelar störst roll",
         hint: "Nya rätter får samma chans som era vanliga.",
+      },
+    ],
+  },
+  // #153, gated on #151's curated effort_level. Low is an active choice, not a
+  // deficiency, and high is a choice too, not a mark of ambition — see the field
+  // comment on `effort_level` in src/schema/recipeTemplate.ts. Structurally the same
+  // bands as price/time, so the axis rises linearly the same way in toRankingWeights.
+  simplicity: {
+    label: "Enkelhet",
+    bands: [
+      {
+        from: 0,
+        level: "Spelar ingen roll",
+        hint: "Det får gärna kräva lite pyssel i köket.",
+      },
+      {
+        from: 5,
+        level: "Spelar viss roll",
+        hint: "Vi lutar åt enklare middagar, men säsong och omväxling kan väga över.",
+      },
+      {
+        from: STRONG_THRESHOLD,
+        level: "Spelar stor roll",
+        hint: "Vi väljer hellre en enklare middag än något ni sällan lagar.",
+      },
+      {
+        from: PREFERENCE_MAX,
+        level: "Spelar störst roll",
+        hint: "Få moment, en panna, minimal disk.",
       },
     ],
   },

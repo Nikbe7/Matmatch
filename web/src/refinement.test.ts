@@ -20,7 +20,7 @@ import {
 function suggestion(id: string, cuisine: Cuisine = "swedish_nordic"): TonightResponse {
   return {
     result: {
-      template: { id, name: id, blurb: "Testblurb.", cost_tier: "mid", prep_time_band: "20-40min", cuisine },
+      template: { id, name: id, blurb: "Testblurb.", cost_tier: "mid", prep_time_band: "20-40min", effort_level: "moderate", cuisine },
       ingredients: [],
       substitutions: [],
       score: 1,
@@ -47,7 +47,7 @@ describe("refinementReducer — Billigare / Snabbare", () => {
   it("increments price from off to level 1 on the first tap, and counts the reroll", () => {
     const next = refinementReducer(INITIAL_REFINEMENT, { type: "increment", axis: "price" });
 
-    expect(next.weights).toEqual({ price: WEIGHT_LEVELS[1], time: 0, variation: 0 });
+    expect(next.weights).toEqual({ price: WEIGHT_LEVELS[1], time: 0, variation: 0, simplicity: 0 });
     expect(next.rerollDepth).toBe(1);
   });
 
@@ -59,6 +59,7 @@ describe("refinementReducer — Billigare / Snabbare", () => {
       price: WEIGHT_LEVELS[1],
       time: WEIGHT_LEVELS[1],
       variation: 0,
+      simplicity: 0,
     });
     expect(afterTime.rerollDepth).toBe(2);
   });
@@ -81,7 +82,7 @@ describe("refinementReducer — Billigare / Snabbare", () => {
 
   it("every tap changes the state — a chip resets itself in one tap at the top level", () => {
     const atMax = stateWith({
-      weights: { price: WEIGHT_LEVELS[MAX_WEIGHT_LEVEL], time: 0, variation: 0 },
+      weights: { price: WEIGHT_LEVELS[MAX_WEIGHT_LEVEL], time: 0, variation: 0, simplicity: 0 },
       rerollDepth: 5,
     });
 
@@ -96,13 +97,13 @@ describe("refinementReducer — Billigare / Snabbare", () => {
 describe("refinementReducer — reroll, exclusion and reset", () => {
   it("counts a plain reroll without touching the weights", () => {
     const weighted = stateWith({
-      weights: { price: 2, time: 1, variation: 0 },
+      weights: { price: 2, time: 1, variation: 0, simplicity: 0 },
       excludedTemplateIds: ["a"],
     });
 
     const next = refinementReducer(weighted, { type: "reroll", chip: "something_else" });
 
-    expect(next.weights).toEqual({ price: 2, time: 1, variation: 0 });
+    expect(next.weights).toEqual({ price: 2, time: 1, variation: 0, simplicity: 0 });
     expect(next.excludedTemplateIds).toEqual(["a"]);
     expect(next.rerollDepth).toBe(1);
   });
@@ -133,14 +134,14 @@ describe("refinementReducer — reroll, exclusion and reset", () => {
 
   it("resets weights and exclusions to defaults, keeping the session's reroll depth", () => {
     const deep = stateWith({
-      weights: { price: 3, time: 2, variation: 1 },
+      weights: { price: 3, time: 2, variation: 1, simplicity: 4 },
       excludedTemplateIds: ["a", "b", "c"],
       rerollDepth: 6,
     });
 
     const next = refinementReducer(deep, { type: "reset" });
 
-    expect(next.weights).toEqual({ price: 0, time: 0, variation: 0 });
+    expect(next.weights).toEqual({ price: 0, time: 0, variation: 0, simplicity: 0 });
     expect(next.excludedTemplateIds).toEqual([]);
     // Reset restores the suggestion, not the household's patience.
     expect(next.rerollDepth).toBe(7);

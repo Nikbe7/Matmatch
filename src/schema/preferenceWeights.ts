@@ -68,20 +68,12 @@ export const PreferenceWeightsSchema = z.object({
    */
   variation: PreferenceWeightSchema,
   /**
-   * STORED BUT INERT — and it must NOT be rendered.
-   *
-   * There is no curated effort/difficulty signal on `RecipeTemplate` yet; #151 is the
-   * data pass that creates one, and until it lands this axis cannot change a single
-   * ranking decision (asserted in src/engine/preferenceWeights.test.ts). The
-   * "Vad är viktigt för er?" block therefore shows THREE sliders, not four.
-   *
-   * Do not add the fourth slider "for completeness". A control the household drags
-   * with no observable consequence teaches them the controls are decorative, which is
-   * strictly worse than a control that is simply absent — and it is the exact
-   * objection that got sliders rejected once already (DECISION_LOG 2026-07-31, the
-   * "no observable consequence per notch" half). It is persisted now only so that
-   * #153's "Enklare" chip expresses a delta on an axis that already exists rather than
-   * inventing a parallel one.
+   * "Spelar liten roll" → the engine applies no effort penalty at all. Live since
+   * #153: #151 curated `effort_level` (`simple`/`moderate`/`project`) per template
+   * against moments, vessels and washing-up, and `toRankingWeights` in
+   * src/engine/ranking.ts now derives a real ranking term from this axis, the same
+   * way it derives one from `price` and `time`. 0 contributes nothing, 100 weighs as
+   * much as a maxed-out price or time axis (DECISION_LOG 2026-08-21).
    */
   simplicity: PreferenceWeightSchema,
 });

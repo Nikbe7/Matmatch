@@ -45,17 +45,14 @@ alter table public.households
   add column preference_price public.preference_weight not null default 0,
   add column preference_time public.preference_weight not null default 0,
   add column preference_variation public.preference_weight not null default 0,
-  -- Stored but inert, and NOT rendered: there is no curated effort signal on
-  -- recipe_templates yet (#151 is the data pass that creates one), so this axis cannot
-  -- change a ranking decision. It is persisted now only so #153's "Enklare" chip lands
-  -- on an axis that already exists instead of inventing a parallel mechanic. Do not add
-  -- the fourth slider until #151 lands — see the field comment in
-  -- src/schema/preferenceWeights.ts for why a control with no consequence is worse than
-  -- a missing one.
+  -- Live since #153: #151 curated `effort_level` per recipe_templates row, and
+  -- toRankingWeights (src/engine/ranking.ts) derives a real ranking term from this
+  -- axis the same way it does for price and time. See the field comment in
+  -- src/schema/preferenceWeights.ts.
   add column preference_simplicity public.preference_weight not null default 0;
 
 comment on column public.households.preference_simplicity is
-  'Stored but inert until #151 supplies a curated effort signal. Must not be rendered as a slider while it changes nothing.';
+  'How much the household wants the engine to favour low-effort dishes (#151 effort_level, #153). 0 is neutral, same as the other three axes.';
 
 comment on table public.households is
   'Household ownership anchor plus the persistent preference baseline (#157). Constraints live on household_members; the household''s effective set is derived, never stored.';
