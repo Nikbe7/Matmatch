@@ -232,6 +232,13 @@ session file directly, rather than asking Niklas to paste, when his summary is a
 when an approval question needs answering, or when something looks like it went wrong. Grep
 for the specific tool call or branch name instead of reading whole files.
 
+When an effort or feasibility judgment turns on what tooling is actually connected — an MCP
+server, a skill — check `.mcp.json` and `.claude/skills/` directly rather than assuming from
+memory; both drift as Niklas adds and removes tooling over time. A tool being connected can
+lower the cost of building something, which is a fair input to a cost/benefit call. It is
+never, on its own, a reason building it now is the right call — that's still phase fit and
+the core loop, the same challenge as any other feature.
+
 Mention Claude Code setup only when it changes: a new chat when context is saturated or the
 topic changes, Opus for architecture or hard debugging. One line, no block. Silence means
 the defaults are fine.
