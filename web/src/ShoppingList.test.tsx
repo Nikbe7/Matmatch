@@ -14,7 +14,7 @@ import type { IngredientAllergenMarking, TonightResult } from "./api";
 
 function result(overrides: Partial<TonightResult> = {}): TonightResult {
   return {
-    template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb.", cost_tier: "mid", prep_time_band: "20-40min", cuisine: "swedish_nordic" },
+    template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb.", cost_tier: "mid", prep_time_band: "20-40min", effort_level: "moderate", cuisine: "swedish_nordic" },
     ingredients: [
       { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
       { role: "vegetable", name: "Morot", slotIndex: 1, ingredientId: "morot", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
@@ -153,7 +153,7 @@ describe("ShoppingList", () => {
     render(
       <ShoppingList
         result={result({
-          template: { id: "fisksoppa", name: "Fisksoppa", blurb: "Testblurb.", cost_tier: "budget", prep_time_band: "<20min", cuisine: "swedish_nordic" },
+          template: { id: "fisksoppa", name: "Fisksoppa", blurb: "Testblurb.", cost_tier: "budget", prep_time_band: "<20min", effort_level: "moderate", cuisine: "swedish_nordic" },
           ingredients: [{ role: "protein", name: "Torsk", slotIndex: 0, ingredientId: "torsk", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
         })}
         portions={2}

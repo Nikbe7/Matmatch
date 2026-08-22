@@ -1,5 +1,5 @@
 import type { CostTier } from "../../src/schema/ingredient";
-import type { PrepTimeBand, QuantityUnit } from "../../src/schema/recipeTemplate";
+import type { EffortLevel, PrepTimeBand, QuantityUnit } from "../../src/schema/recipeTemplate";
 import type { ScaledQuantity, SuggestionReasonCode } from "./api";
 
 // Display mappings for curated engine enums, shared by every screen that renders a
@@ -50,6 +50,16 @@ export const PREP_TIME_LABELS: Record<PrepTimeBand, string> = {
   "<20min": "Under 20 min",
   "20-40min": "20–40 min",
   "40min+": "Över 40 min",
+};
+
+// #151/#161: the curated effort_level, as a Swedish word in the metadata row — never
+// a second dot meter. The row already has one meter and it means cost; two meters
+// with different meanings in the same row is unreadable, and the reference's dots
+// mean something else entirely (DECISION_LOG on the simplicity axis).
+export const EFFORT_LEVEL_LABELS: Record<EffortLevel, string> = {
+  simple: "Enkelt",
+  moderate: "Mellan",
+  project: "Projekt",
 };
 
 // #122: the Tonight card's one-line "why this dish". Each phrase is written to

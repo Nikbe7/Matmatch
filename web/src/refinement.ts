@@ -55,21 +55,20 @@ export const WEIGHT_LEVELS = [0, 35, 100] as const;
 export const MAX_WEIGHT_LEVEL = WEIGHT_LEVELS.length - 1;
 
 /**
- * The axes a chip can nudge. `variation` joins price/time with "Testa nytt" (#153) —
- * the same axis the Variation slider moves, in the same notches, so the chip is a
- * session delta on the household's baseline rather than a second idea of "new".
- *
- * `simplicity` is deliberately absent: the axis exists server-side but has no curated
- * effort signal behind it (#151), so "Enklare" is not built and nothing here can
- * produce a delta on it.
+ * The axes a chip can nudge. `variation` joined price/time with "Testa nytt" (#153),
+ * and `simplicity` joins them now with "Enklare" (#153, gated on #151's curated
+ * effort_level) — the same axis the Enkelhet slider moves, in the same notches, so
+ * every chip is a session delta on the household's baseline rather than a second idea
+ * of the same preference.
  */
-export type WeightAxis = "price" | "time" | "variation";
+export type WeightAxis = "price" | "time" | "variation" | "simplicity";
 
 /** Chip identity as it appears in analytics — stable, never the Swedish label. */
 export type ChipId =
   | "cheaper"
   | "faster"
   | "try_new"
+  | "simpler"
   | "other_cuisine"
   | "something_else"
   | "reset"
@@ -103,7 +102,7 @@ export interface RefinementState {
 }
 
 export const INITIAL_REFINEMENT: RefinementState = {
-  weights: { price: 0, time: 0, variation: 0 },
+  weights: { price: 0, time: 0, variation: 0, simplicity: 0 },
   excludedTemplateIds: [],
   rerollDepth: 0,
   pantryIngredientIds: [],

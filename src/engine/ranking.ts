@@ -5,7 +5,12 @@ import {
   type PreferenceWeights,
 } from "../schema/preferenceWeights.js";
 import type { CostTier } from "../schema/ingredient.js";
-import type { Familiarity, PrepTimeBand, RecipeTemplate } from "../schema/recipeTemplate.js";
+import type {
+  EffortLevel,
+  Familiarity,
+  PrepTimeBand,
+  RecipeTemplate,
+} from "../schema/recipeTemplate.js";
 import type { CandidateTemplate } from "./candidates.js";
 import type { EngineData } from "./data.js";
 
@@ -48,6 +53,12 @@ export interface RankingWeights {
    * before this field existed.
    */
   familiarity: number;
+  /**
+   * Score points per effort-level step (simple → moderate → project). Live since
+   * #153, the same shape as `price` and `time`: 0 at `simplicity: 0`, rising linearly
+   * to `MAX_AXIS_RANKING_WEIGHT` at `simplicity: 100`.
+   */
+  simplicity: number;
 }
 
 /**
@@ -88,6 +99,12 @@ const FAMILIARITY_INDEX: Readonly<Record<Familiarity, number>> = {
   adventurous: 2,
 };
 
+const EFFORT_LEVEL_INDEX: Readonly<Record<EffortLevel, number>> = {
+  simple: 0,
+  moderate: 1,
+  project: 2,
+};
+
 /** Ordinal view of the curated cost-tier enum: budget 0, mid 1, premium 2. */
 export function costTierIndex(tier: CostTier): number {
   return COST_TIER_INDEX[tier];
@@ -101,6 +118,11 @@ export function prepTimeIndex(band: PrepTimeBand): number {
 /** Ordinal view of the authored familiarity enum: everyday 0, occasional 1, adventurous 2. */
 export function familiarityIndex(familiarity: Familiarity): number {
   return FAMILIARITY_INDEX[familiarity];
+}
+
+/** Ordinal view of the curated effort-level enum: simple 0, moderate 1, project 2. */
+export function effortLevelIndex(effortLevel: EffortLevel): number {
+  return EFFORT_LEVEL_INDEX[effortLevel];
 }
 
 // Maximum score improvement a fully in-season template can earn. Not user-adjustable
@@ -194,14 +216,15 @@ const OMNIVORE_PREFERENCE_WEIGHT = 1.5;
  * module scored with before any of this existed. A household that never touches a
  * slider gets the same order over the whole template library, byte for byte.
  *
- * Price and time rise linearly to `MAX_AXIS_RANKING_WEIGHT`; variation *falls*
- * linearly to zero, because a high Variation preference means less novelty penalty,
- * not more. That inversion is the reason this lives in one function: it is the kind of
- * sign error that would be invisible at a second call site.
+ * Price, time and simplicity rise linearly to `MAX_AXIS_RANKING_WEIGHT`; variation
+ * *falls* linearly to zero, because a high Variation preference means less novelty
+ * penalty, not more. That inversion is the reason this lives in one function: it is
+ * the kind of sign error that would be invisible at a second call site.
  *
- * `simplicity` is read and deliberately discarded — see its field comment in
- * src/schema/preferenceWeights.ts. It produces no term here until #151 supplies a
- * curated effort signal, which is exactly why its slider must not be rendered.
+ * `simplicity` has been live since #153: #151 curated `effort_level` per template, so
+ * this axis now derives a real term exactly like `price` and `time` do — a household
+ * that has never touched the Enkelhet slider or tapped "Enklare" still scores at 0,
+ * unchanged from before either issue landed.
  */
 export function toRankingWeights(preference: PreferenceWeights): RankingWeights {
   const scale = MAX_AXIS_RANKING_WEIGHT / PREFERENCE_WEIGHT_MAX;
@@ -211,6 +234,7 @@ export function toRankingWeights(preference: PreferenceWeights): RankingWeights 
     time: preference.time * scale,
     familiarity:
       NEUTRAL_FAMILIARITY_STEP_WEIGHT * (1 - preference.variation / PREFERENCE_WEIGHT_MAX),
+    simplicity: preference.simplicity * scale,
   };
 }
 
@@ -443,6 +467,7 @@ interface ScoreBreakdown {
   familiarityPenalty: number;
   omnivorePenalty: number;
   repeatPenalty: number;
+  simplicityPenalty: number;
 }
 
 function scoreBreakdown(
@@ -469,7 +494,17 @@ function scoreBreakdown(
 
   const repeatPenalty = recency ? recencyPenalty(candidate.template.id, recency) : 0;
 
-  return { costPenalty, timePenalty, seasonalityBonus, familiarityPenalty, omnivorePenalty, repeatPenalty };
+  const simplicityPenalty = effortLevelIndex(candidate.template.effort_level) * weights.simplicity;
+
+  return {
+    costPenalty,
+    timePenalty,
+    seasonalityBonus,
+    familiarityPenalty,
+    omnivorePenalty,
+    repeatPenalty,
+    simplicityPenalty,
+  };
 }
 
 export function scoreCandidate(
@@ -481,7 +516,15 @@ export function scoreCandidate(
   recency?: RecencyContext,
 ): number {
   const b = scoreBreakdown(data, candidate, weights, month, householdDietaryFlags, recency);
-  return b.costPenalty + b.timePenalty - b.seasonalityBonus + b.familiarityPenalty + b.omnivorePenalty + b.repeatPenalty;
+  return (
+    b.costPenalty +
+    b.timePenalty -
+    b.seasonalityBonus +
+    b.familiarityPenalty +
+    b.omnivorePenalty +
+    b.repeatPenalty +
+    b.simplicityPenalty
+  );
 }
 
 function compareTemplateIds(a: RecipeTemplate, b: RecipeTemplate): number {
@@ -655,8 +698,9 @@ function varietyReason(
  * candidate that would have been shown in its place (`runnerUp`) — "why this dish"
  * only means something relative to the alternative, exactly as the score itself only
  * ever decides an *order*. A term "dominates" when it is among the two largest
- * positive gaps out of every term the score has, named or not (familiarity and the
- * omnivore preference have no user-facing phrasing yet — see requirement 2, #122).
+ * positive gaps out of every term the score has, named or not (familiarity, the
+ * omnivore preference and simplicity have no user-facing phrasing yet — see
+ * requirement 2, #122).
  * Landing in the top two but being unnamed silently costs that slot rather than
  * falling through to a smaller, nameable gap: requirement 5 forbids crediting a term
  * that did not actually drive the difference between this dish and the alternative.
@@ -680,6 +724,7 @@ function scoreTermReasons(
     { code: "not_recently_cooked", diff: runnerUpTerms.repeatPenalty - pickedTerms.repeatPenalty },
     { code: undefined, diff: runnerUpTerms.familiarityPenalty - pickedTerms.familiarityPenalty },
     { code: undefined, diff: runnerUpTerms.omnivorePenalty - pickedTerms.omnivorePenalty },
+    { code: undefined, diff: runnerUpTerms.simplicityPenalty - pickedTerms.simplicityPenalty },
   ];
 
   return diffs

@@ -20,9 +20,8 @@ export const PREFERENCE_BLOCK_TITLE = "Vad är viktigt för er?";
  * control panel under the suggestion is still a control panel. On the profile, where
  * the household came specifically to adjust things, it renders open.
  *
- * Three sliders, never four: `simplicity` is carried through untouched by
- * `onChange` but has no control, because #151 has not produced a curated effort signal
- * and a slider that changes nothing observable is worse than an absent one.
+ * Four sliders since #153, all in the same register: `simplicity` renders exactly
+ * like the other three, with no marking that it is the newest one.
  */
 export function PreferenceBlock({
   weights,

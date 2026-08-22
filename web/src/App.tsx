@@ -29,6 +29,7 @@ import {
   costTierLabel,
   costTierMeter,
   dinerChangeReasonLine,
+  EFFORT_LEVEL_LABELS,
   PREP_TIME_LABELS,
   suggestionReasonLine,
 } from "./display";
@@ -871,7 +872,7 @@ function levelMeter(level: number): string {
  * do something right now.
  */
 function hasActiveAdjustment(refinement: RefinementState): boolean {
-  return (["price", "time", "variation"] as const).some(
+  return (["price", "time", "variation", "simplicity"] as const).some(
     (axis) => weightLevel(refinement, axis) > 0,
   );
 }
@@ -942,13 +943,20 @@ function AdjustmentChips({
       />
       {/* #153: the variation axis, same mechanic and same notches as the two above —
           a session delta on the household's own Variation baseline, never a parallel
-          weight. "Enklare" is deliberately absent: `simplicity` has no curated signal
-          behind it yet (#151), and a chip that changes no ranking teaches that the
-          controls are decorative. */}
+          weight. */}
       <LevelChip
         label="Testa nytt"
         level={weightLevel(refinement, "variation")}
         onTap={() => onIncrement("variation")}
+        disabled={busy}
+      />
+      {/* #153, gated on #151's curated effort_level: the simplicity axis, same
+          mechanic as the three above — a session delta on the household's own
+          Enkelhet baseline. */}
+      <LevelChip
+        label="Enklare"
+        level={weightLevel(refinement, "simplicity")}
+        onTap={() => onIncrement("simplicity")}
         disabled={busy}
       />
       <Chip onClick={onOtherCuisine} disabled={busy}>
@@ -1002,6 +1010,8 @@ function SuggestionCard({
         <span role="img" aria-label={costTierLabel(result.template.cost_tier)}>
           <span aria-hidden="true">{costTierMeter(result.template.cost_tier)}</span>
         </span>
+        {" · "}
+        {EFFORT_LEVEL_LABELS[result.template.effort_level]}
       </p>
       <p className="suggestion__blurb">{result.template.blurb}</p>
       {reasonLine && <p className="suggestion__reason suggestion__reason--muted">{reasonLine}</p>}
@@ -1379,6 +1389,7 @@ function TonightView({
     price: "cheaper",
     time: "faster",
     variation: "try_new",
+    simplicity: "simpler",
   };
 
   function handleIncrement(axis: WeightAxis) {

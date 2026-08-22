@@ -8,6 +8,14 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-21 — Simplicity axis activated across slider, chip and metadata row (#153, #161)
+
+With #151's curated `effort_level` landed, this slice flips the simplicity axis from stored-but-inert to live on all three surfaces at once, deliberately not staggered: `toRankingWeights` now derives a `simplicity` term the same shape as `price`/`time` (0 contributes nothing, 100 weighs as much as a maxed-out price or time axis), the fourth "Enkelhet" slider renders in the "Vad är viktigt för er?" block in the same register as the other three with no marking that it is new, and a fifth "Enklare" chip expresses a session delta on the same axis. Shipping only one of the three would have left either a control with no consequence (the exact objection that kept the slider out since 2026-07-31) or a ranking term nobody could see or nudge.
+
+The Tonight metadata row gains `effort_level` as a Swedish word ("Enkelt"/"Mellan"/"Projekt"), not a second dot meter: the row already has one meter and it means cost, and stacking a second meter with a different meaning in the same row is unreadable — the reference's dots mean something else again. The chip row is now five permanent chips, which reads as a control panel at 360px; flagged in the PR with a screenshot rather than resolved unilaterally, since narrowing it is a design call.
+
+`src/engine/preferenceWeights.test.ts`'s inertness test (#157) is replaced with the opposite claim: `simplicity: 0` still reproduces the pre-#153 order over the whole library, and `simplicity: 100` now demonstrably reorders an otherwise-identical `simple` vs. `project` pair. The migration's column comment and the schema field comment, both of which said "stored but inert," are updated to say what the axis actually does now — a comment claiming an axis is inert after it demonstrably isn't is worse than no comment.
+
 ## 2026-08-21 — Curated `effort_level` against moment/kärl/disk, not technical skill or time (#151)
 
 `effort_level` (`simple`/`moderate`/`project`) is curated per template against a written rubric about what is observable and countable in the kitchen — number of moments, number of vessels, how much washing-up a dish leaves. Explicitly not technical difficulty and not the cook's skill: a low value is a household's active choice ("det får gärna kräva lite pyssel i köket"), not a deficiency, the same way a high one is a choice and not a mark of ambition. Curation followed the method 2026-08-16's `prep_minutes` entry demanded and the earlier attempt skipped: the rubric was written down first, every template was graded blind against it, a structural cross-check (`src/tools/effortLevelHeuristic.ts`) was computed independently from each template's own fields, and only the rows where the two disagreed (22 of 170, 12.9%) went to manual review rather than a worksheet over the whole catalog.

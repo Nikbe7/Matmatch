@@ -8,6 +8,7 @@ import type { Household } from "../../src/schema/household";
 import type { CostTier } from "../../src/schema/ingredient";
 import type {
   Cuisine,
+  EffortLevel,
   IngredientSlotRole,
   PrepTimeBand,
   QuantityUnit,
@@ -25,9 +26,9 @@ import type {
  * server owns the baseline and the combination; this file only ever says "and on top of
  * that, tonight, a bit more of this".
  *
- * Two axes here, four on the server: "variation" and "simplicity" exist as axes but have
- * no chip yet (#153), so nothing in `web/` can currently produce a delta on them. Drift
- * is caught immediately — an axis this file knows about and the server does not comes
+ * All four axes are represented here since #153: every chip is a session delta on the
+ * same axis its slider moves, never a parallel notion of the same idea. Drift is
+ * caught immediately — an axis this file knows about and the server does not comes
  * back as a 400 from the first request that sends it.
  */
 export interface SessionWeights {
@@ -37,11 +38,13 @@ export interface SessionWeights {
    * "Testa nytt" (#153). The same axis the Variation slider moves, in the same notches
    * — the chip is a session delta on top of whatever the household set as its baseline,
    * never a parallel notion of "new".
-   *
-   * `simplicity` is still absent: it exists as an axis server-side but has no curated
-   * signal behind it, so nothing in `web/` may produce a delta on it (#151).
    */
   variation: number;
+  /**
+   * "Enklare" (#153). The same axis the Enkelhet slider moves, in the same notches —
+   * a session delta on top of the household's baseline, never a parallel mechanic.
+   */
+  simplicity: number;
 }
 
 /**
@@ -182,6 +185,9 @@ export interface TonightResult {
     blurb: string;
     cost_tier: CostTier;
     prep_time_band: PrepTimeBand;
+    // #151/#161: curated, shown in the metadata row as a Swedish word, never as a
+    // second dot meter (display.ts's `EFFORT_LEVEL_LABELS`).
+    effort_level: EffortLevel;
     // Read by the "Annat kök" chip, which resolves cuisine to template-id
     // exclusions client-side rather than sending it as a request parameter.
     cuisine: Cuisine;
@@ -306,6 +312,7 @@ export async function fetchTonight(
   if (options.weights?.price) params.set("price", String(options.weights.price));
   if (options.weights?.time) params.set("time", String(options.weights.time));
   if (options.weights?.variation) params.set("variation", String(options.weights.variation));
+  if (options.weights?.simplicity) params.set("simplicity", String(options.weights.simplicity));
   if (options.pantry && options.pantry.length > 0) params.set("pantry", options.pantry.join(","));
   if (options.diners) params.set("diners", options.diners);
   if (options.keep) params.set("keep", options.keep);
@@ -488,9 +495,7 @@ export async function createHousehold(accessToken: string, household: Household)
  * import, but keeping the client's own contract in one file is why every other server
  * type on this boundary is restated rather than reached for.
  *
- * `simplicity` is carried but never rendered: #151 has not produced a curated effort
- * signal, so a fourth slider would change nothing the household could observe. It is
- * sent back unchanged so a write never silently zeroes an axis it does not show.
+ * `simplicity` has its own slider since #153, same as the other three.
  */
 export interface PreferenceWeights {
   price: number;

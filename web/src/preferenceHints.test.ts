@@ -24,21 +24,18 @@ const ALL_VALUES = Array.from(
 );
 
 describe("the slider axes", () => {
-  it("is exactly three — enkelhet is not among them", () => {
-    // #151 has produced no curated effort signal, so a fourth slider would change
-    // nothing observable. A control with no consequence is the objection that got
-    // sliders rejected once already (DECISION_LOG 2026-07-31).
-    expect([...SLIDER_AXES]).toEqual(["price", "time", "variation"]);
-    expect(SLIDER_AXES).not.toContain("simplicity");
+  it("is exactly four, enkelhet included, since #153", () => {
+    // #151 curated effort_level and #153 wired it into toRankingWeights, so the
+    // slider now changes something observable — the objection that kept it out
+    // (DECISION_LOG 2026-07-31) no longer applies.
+    expect([...SLIDER_AXES]).toEqual(["price", "time", "variation", "simplicity"]);
   });
 });
 
 describe("hint bands", () => {
   it.each(SLIDER_AXES)("gives %s a hint at every position the slider can hold", (axis) => {
     for (const value of ALL_VALUES) {
-      const band = bandFor(axis, value);
-      expect(band.hint.length).toBeGreaterThan(0);
-      expect(band.level.length).toBeGreaterThan(0);
+      expect(bandFor(axis, value).hint.length).toBeGreaterThan(0);
     }
   });
 
@@ -67,7 +64,6 @@ describe("hint bands", () => {
     // engine could not keep.
     for (const band of AXIS_COPY[axis].bands) {
       expect(band.hint).not.toMatch(/\d/);
-      expect(band.level).not.toMatch(/\d/);
       expect(band.hint).not.toContain("%");
     }
   });
@@ -100,13 +96,15 @@ describe("hint bands", () => {
 });
 
 describe("sliderAccessibleName", () => {
-  it("names the axis and its level in words, never a bare number", () => {
-    expect(sliderAccessibleName("price", 0)).toBe("Pris, spelar ingen roll");
-    expect(sliderAccessibleName("time", 100)).toBe("Tid, spelar störst roll");
+  it("names just the axis — the current value is carried by the hint, never a second summary", () => {
+    // Retired: a value-carrying accessible name ("Pris, spelar ingen roll") that could
+    // disagree with the hint sentence below it. The control's name is now static; the
+    // hint, via aria-valuetext in PreferenceSlider.tsx, is the one place the current
+    // value is described, for sighted and screen-reader households alike.
+    expect(sliderAccessibleName("price")).toBe("Pris");
+    expect(sliderAccessibleName("time")).toBe("Tid");
     for (const axis of SLIDER_AXES) {
-      for (const value of ALL_VALUES) {
-        expect(sliderAccessibleName(axis, value)).not.toMatch(/\d/);
-      }
+      expect(sliderAccessibleName(axis)).not.toMatch(/\d/);
     }
   });
 });
