@@ -1253,8 +1253,19 @@ function TonightView({
     // and is reachable from the bottom nav — handed over via navigation state
     // rather than lifted into Gate, since TonightView already holds everything
     // `/lista` needs to render it (ListaRoute below).
+    //
+    // pantryIngredientIds rides along too (#200): Tonight's pantry row lets a
+    // household mark what it has, but until now that selection was thrown away at
+    // exactly this handoff — the guided flow's ingredients arrive from the server
+    // pre-flagged `inPantry`, Tonight's do not, and nothing here re-attached the
+    // household's own taps. ListaRoute below applies them.
     navigate("/lista", {
-      state: { result: shown, portions: current.portions, diners: diners.parameter },
+      state: {
+        result: shown,
+        portions: current.portions,
+        diners: diners.parameter,
+        pantryIngredientIds: refinementRef.current.pantryIngredientIds,
+      },
     });
   }
 
@@ -1582,6 +1593,16 @@ interface AcceptedListingState {
   result: TonightResult;
   portions: number;
   diners?: string;
+  /** What the household had marked on Tonight's pantry row at the moment of choice
+   * (#200) — ingredient ids, forwarded to `ShoppingList` below so the list opens
+   * with those items already in "Har hemma" instead of contradicting the dish's own
+   * "valt för att ni har X hemma" reason line. Applied inside `ShoppingList` itself,
+   * not here: it must land on top of whichever base list wins there (freshly built
+   * or resumed from storage), or a household that accepts the same dish twice in one
+   * session — reroll away, mark a new pantry item, accept again — finds its second
+   * pantry tap silently ignored because a stored list for that template id already
+   * won. */
+  pantryIngredientIds?: readonly string[];
 }
 
 /**
@@ -1601,6 +1622,7 @@ function ListaRoute({ accessToken }: { accessToken: string }) {
     return (
       <ShoppingList
         result={accepted.result}
+        pantryIngredientIds={accepted.pantryIngredientIds}
         explanation={
           suggestionReasonLine(accepted.result.reasonCodes ?? [], accepted.result.pantryMatch ?? []) ??
           undefined

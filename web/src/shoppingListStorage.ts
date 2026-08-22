@@ -200,12 +200,17 @@ export function clearShoppingList(): void {
  * Every ingredient starts in "Att köpa", unbought — except the ones the household
  * already told us it has.
  *
- * `inPantry` is set only by the guided flow (UX_FLOW §5 step 3 feeding step 5's
- * "✓ ris, ✓ grädde"); the Tonight card never asks the question, so its ingredients
- * carry no flag and every item starts in "Att köpa" exactly as before. `slotIndex`
- * and `ingredientId` are stored too, as of #124 — never the pantry selection itself,
- * which stays unpersisted as before, but the ingredient-swap popover needs an
- * identifier for its tap target to survive a reload.
+ * `inPantry` here is set only by the guided flow's server response (UX_FLOW §5
+ * step 3 feeding step 5's "✓ ris, ✓ grädde") — Tonight's ingredients carry no such
+ * flag. Tonight's pantry-row selection is applied separately and later, by
+ * `ShoppingList` itself (#200): on top of whichever list this function or a
+ * resumed `stored` list produced, never baked into the ingredients beforehand, so
+ * a second accept of the same dish still picks up a pantry tap made after the
+ * first one was already stored. An ingredient with no flag either way starts in
+ * "Att köpa" exactly as before. `slotIndex` and `ingredientId` are stored too, as
+ * of #124 — never the pantry selection itself, which stays unpersisted as before,
+ * but the ingredient-swap popover needs an identifier for its tap target to
+ * survive a reload.
  */
 export function freshShoppingList(
   templateId: string,
