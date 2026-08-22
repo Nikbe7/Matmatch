@@ -103,6 +103,7 @@ export interface ShoppingListMeal {
 
 export function ShoppingList({
   result,
+  explanation,
   portions,
   diners,
   accessToken,
@@ -111,6 +112,16 @@ export function ShoppingList({
   onCook,
 }: {
   result: ShoppingListMeal;
+  /**
+   * The dish's one-line "why" (#122/#125) — Tonight's `suggestionReasonLine` or the
+   * guided flow's own deterministic `GuidedDirection.summary`. This is the one place
+   * both flows converge (`ListaRoute` and `GuidedFlow`'s inline "shopping" step both
+   * render this component), so it is where #125's "explanation reachable from
+   * wherever the ingredient list already is" lands rather than a new screen.
+   * Omitted, never guessed, on a list resumed from storage after a reload — neither
+   * source persists it.
+   */
+  explanation?: string;
   /**
    * Omitted on a list re-opened from storage after a reload: the household's portion
    * count is not in hand there, and the line is left off rather than guessed — what
@@ -234,6 +245,7 @@ export function ShoppingList({
         {portions !== undefined && (
           <p className="shopping-list__portions">{formatPortions(portions)}</p>
         )}
+        {explanation && <p className="shopping-list__reason muted">{explanation}</p>}
       </header>
 
       <section className="shopping-list__section">

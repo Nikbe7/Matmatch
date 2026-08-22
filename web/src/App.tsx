@@ -1601,6 +1601,10 @@ function ListaRoute({ accessToken }: { accessToken: string }) {
     return (
       <ShoppingList
         result={accepted.result}
+        explanation={
+          suggestionReasonLine(accepted.result.reasonCodes ?? [], accepted.result.pantryMatch ?? []) ??
+          undefined
+        }
         portions={accepted.portions}
         diners={accepted.diners}
         accessToken={accessToken}

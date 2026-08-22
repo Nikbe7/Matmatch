@@ -80,6 +80,24 @@ describe("ShoppingList", () => {
     expect(screen.getByText("Morot")).toBeTruthy();
   });
 
+  it("shows the explanation line when provided, and omits it when not", () => {
+    mockFetch();
+    const { unmount } = render(
+      <ShoppingList
+        result={result()}
+        explanation="Valt för att ni har morot hemma."
+        portions={2}
+        accessToken="tok"
+        onNewSuggestion={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Valt för att ni har morot hemma.")).toBeTruthy();
+    unmount();
+
+    render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
+    expect(screen.queryByText("Valt för att ni har morot hemma.")).toBeNull();
+  });
+
   it("moving an item puts it in Har hemma and updates both counts", async () => {
     mockFetch();
     const user = userEvent.setup();

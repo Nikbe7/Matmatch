@@ -173,6 +173,14 @@ select.input {
   font-size: var(--font-size-sm);
 }
 
+/* #125: the dish's one-line "why" (#122), carried through from wherever it was
+   chosen — Tonight's `.suggestion__reason` or the guided flow's own direction
+   summary — to the one screen both flows converge on. */
+.shopping-list__reason {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+}
+
 .shopping-list__section {
   margin-bottom: var(--space-5);
 }

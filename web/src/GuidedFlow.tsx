@@ -866,6 +866,7 @@ export function GuidedFlow({
                   picker is never rendered once its shopping list is on screen. */}
               <ShoppingList
                 result={meal}
+                explanation={chosen?.summary}
                 portions={state.portions ?? undefined}
                 diners={diners.parameter}
                 accessToken={accessToken}
