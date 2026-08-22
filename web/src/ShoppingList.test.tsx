@@ -186,13 +186,13 @@ describe("ShoppingList", () => {
     expect(screen.queryByText("Morot")).toBeNull();
   });
 
-  it("clears the stored list and calls onNewSuggestion when Ny förslag is clicked", async () => {
+  it("clears the stored list and calls onNewSuggestion when Nytt förslag is clicked", async () => {
     mockFetch();
     const user = userEvent.setup();
     const onNewSuggestion = vi.fn();
     render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={onNewSuggestion} />);
 
-    await user.click(screen.getByRole("button", { name: "Ny förslag" }));
+    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
 
     expect(onNewSuggestion).toHaveBeenCalledTimes(1);
     expect(loadShoppingList("kycklinggryta")).toBeNull();
@@ -510,7 +510,7 @@ describe("ShoppingList", () => {
   });
 
   describe("cooking", () => {
-    it("makes 'Börja laga' the primary action and steps 'Ny förslag' down", () => {
+    it("makes 'Börja laga' the primary action and steps 'Nytt förslag' down", () => {
       const onCook = vi.fn();
       render(
         <ShoppingList
@@ -523,7 +523,7 @@ describe("ShoppingList", () => {
       );
 
       expect(screen.getByRole("button", { name: "Börja laga" }).className).toContain("btn-primary");
-      expect(screen.getByRole("button", { name: "Ny förslag" }).className).toContain("btn-secondary");
+      expect(screen.getByRole("button", { name: "Nytt förslag" }).className).toContain("btn-secondary");
     });
 
     it("opens the cook screen", async () => {
@@ -542,13 +542,13 @@ describe("ShoppingList", () => {
       expect(onCook).toHaveBeenCalled();
     });
 
-    it("omits the button, and keeps 'Ny förslag' primary, when there is nothing to cook", () => {
+    it("omits the button, and keeps 'Nytt förslag' primary, when there is nothing to cook", () => {
       render(
         <ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />,
       );
 
       expect(screen.queryByRole("button", { name: "Börja laga" })).toBeNull();
-      expect(screen.getByRole("button", { name: "Ny förslag" }).className).toContain("btn-primary");
+      expect(screen.getByRole("button", { name: "Nytt förslag" }).className).toContain("btn-primary");
     });
 
     // The instructions moved to /laga/:id (#154) — one surface owns them, and this

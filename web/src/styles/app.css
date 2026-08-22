@@ -304,7 +304,7 @@ select.input {
  * --------------------------------------------------------------------------- */
 
 .profile-intro {
-  margin: calc(-1 * var(--space-2)) 0 var(--space-5);
+  margin: 0 0 var(--space-5);
   color: var(--color-muted);
   font-size: 0.8125rem;
   line-height: 1.5;
