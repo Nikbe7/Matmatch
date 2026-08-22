@@ -9,8 +9,8 @@ import {
 } from "../preferenceHints";
 
 /**
- * One preference axis (#158): label, the level in words, the control, and a sentence
- * saying what the app will actually do at that level.
+ * One preference axis (#158): label, the control, and a sentence saying what the app
+ * will actually do at that level.
  *
  * A plain `<input type="range">`, not a new UI primitive — the reference reaches for a
  * Radix slider, and pulling in a component library to render one control would be a
@@ -23,6 +23,16 @@ import {
  * which is where the behavioural thresholds are stated and tested. A component that
  * chose its own phrasing per value is exactly how a hint starts promising something the
  * engine does not do.
+ *
+ * No value label beside the axis name (removed post-#161 review). `HintBand.level`
+ * ("Spelar ingen roll" etc.) describes how much the household has dialled an axis up,
+ * which is a different claim from what the hint sentence below it says the engine
+ * actually does at that notch — and at 0 the two disagree on variation and simplicity:
+ * 0 is defined (#157) to reproduce yesterday's behaviour, not "this axis has no
+ * effect", so "Spelar ingen roll" sits next to "Vi håller oss till sådant ni känner
+ * igen" claiming the opposite of what the hint just said. Two summaries of the same
+ * value where one is wrong is worse than one — the hint is the single source of truth
+ * for what a notch means, so it is the only one shown, and the only one announced.
  */
 export function PreferenceSlider({
   axis,
@@ -43,7 +53,6 @@ export function PreferenceSlider({
     <div className="preference-slider">
       <div className="preference-slider__head">
         <span className="preference-slider__label">{label}</span>
-        <span className="preference-slider__level">{band.level}</span>
       </div>
       <input
         type="range"
@@ -53,11 +62,13 @@ export function PreferenceSlider({
         step={PREFERENCE_STEP}
         value={value}
         disabled={disabled}
-        // The level in words, not the raw notch: a screen reader should hear what the
+        // The hint sentence, not the raw notch: a screen reader should hear what the
         // household reads. `aria-valuetext` overrides the number the range input would
-        // otherwise announce, which on its own means nothing to anybody.
-        aria-label={sliderAccessibleName(axis, value)}
-        aria-valuetext={band.level}
+        // otherwise announce, which on its own means nothing to anybody — and it is the
+        // same sentence rendered below, never a separate summary that could disagree
+        // with it.
+        aria-label={sliderAccessibleName(axis)}
+        aria-valuetext={band.hint}
         aria-describedby={hintId}
         onChange={(event) => onChange(Number(event.target.value))}
       />

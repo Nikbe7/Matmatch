@@ -2764,6 +2764,39 @@ describe("App — the preference block (#158, #159)", () => {
     ).toBeTruthy();
   });
 
+  it("shows no separate value label — the hint is the only summary of a notch, for sighted and screen-reader households alike", async () => {
+    // The bug this replaces: a value label ("Spelar ingen roll") beside the axis name
+    // that could say the opposite of the hint sentence right under it (Variation and
+    // Enkelhet at notch 0, where the hint describes real engine behaviour rather than
+    // "no effect"). One summary now, not two, and the accessible layer carries the
+    // same one the household reads rather than a competing word.
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, tonightBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await openBlock();
+
+    for (const text of ["Spelar ingen roll", "Spelar viss roll", "Spelar stor roll", "Spelar störst roll"]) {
+      expect(screen.queryByText(text)).toBeNull();
+    }
+
+    const variationSlider = screen.getByRole("slider", { name: /^Variation/ });
+    const enkelhetSlider = screen.getByRole("slider", { name: /^Enkelhet/ });
+    expect(variationSlider.getAttribute("aria-valuetext")).toBe(
+      "Vi håller oss till sådant ni känner igen.",
+    );
+    expect(enkelhetSlider.getAttribute("aria-valuetext")).toBe(
+      "Det får gärna kräva lite pyssel i köket.",
+    );
+
+    fireEvent.change(variationSlider, { target: { value: "100" } });
+    await waitFor(() =>
+      expect(variationSlider.getAttribute("aria-valuetext")).toBe(
+        "Nya rätter får samma chans som era vanliga.",
+      ),
+    );
+  });
+
   it("is the same block, expanded, on the profile — one value on two surfaces", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();

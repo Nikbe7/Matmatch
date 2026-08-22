@@ -1725,10 +1725,6 @@ select.input {
   font-size: var(--font-size-base);
   font-weight: 500;
 }
-.preference-slider__level {
-  color: var(--color-muted);
-  font-size: var(--font-size-sm);
-}
 .preference-slider__hint {
   margin: var(--space-2) 0 0;
   color: var(--color-muted);

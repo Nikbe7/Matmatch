@@ -1,5 +1,5 @@
-// The wording of the three preference sliders (#158) — label, level text and hint —
-// and the one rule for when that wording is allowed to change.
+// The wording of the preference sliders (#158) — label and hint — and the one rule
+// for when that wording is allowed to change.
 //
 // This is copy with a specification behind it, which is why it lives in its own
 // module with its own tests rather than inline in a component. DECISION_LOG
@@ -45,9 +45,14 @@ const STRONG_THRESHOLD = 50;
 export interface HintBand {
   /** The lowest notch this band covers. */
   from: number;
-  /** The muted text beside the label. */
-  level: string;
-  /** The sentence under the control, in plain prose — no numbers, no percentages. */
+  /**
+   * The sentence under the control, in plain prose — no numbers, no percentages. The
+   * single source of truth for what a notch means: there used to be a second, shorter
+   * summary beside the axis label ("Spelar ingen roll" etc.), retired because it
+   * described how much the household had dialled an axis up rather than what the
+   * engine does at that notch, and the two disagreed at 0 on variation and simplicity
+   * — 0 reproduces yesterday's behaviour (#157), not "this axis has no effect".
+   */
   hint: string;
 }
 
@@ -67,22 +72,18 @@ export const AXIS_COPY: Record<SliderAxis, AxisCopy> = {
     bands: [
       {
         from: 0,
-        level: "Spelar ingen roll",
         hint: "Vi tittar inte på priset när vi väljer.",
       },
       {
         from: 5,
-        level: "Spelar viss roll",
         hint: "Vi lutar åt billigare middagar, men säsong och omväxling kan väga över.",
       },
       {
         from: STRONG_THRESHOLD,
-        level: "Spelar stor roll",
         hint: "Vi väljer hellre en billigare middag än något ni sällan lagar.",
       },
       {
         from: PREFERENCE_MAX,
-        level: "Spelar störst roll",
         hint: "Vi väljer det billigaste vi kan, så länge ni inte precis lagat det.",
       },
     ],
@@ -92,22 +93,18 @@ export const AXIS_COPY: Record<SliderAxis, AxisCopy> = {
     bands: [
       {
         from: 0,
-        level: "Spelar ingen roll",
         hint: "En middag får ta den tid den tar.",
       },
       {
         from: 5,
-        level: "Spelar viss roll",
         hint: "Vi lutar åt snabbare middagar, men säsong och omväxling kan väga över.",
       },
       {
         from: STRONG_THRESHOLD,
-        level: "Spelar stor roll",
         hint: "Vi väljer hellre en snabb middag än något ni sällan lagar.",
       },
       {
         from: PREFERENCE_MAX,
-        level: "Spelar störst roll",
         hint: "Vi väljer det snabbaste vi kan, så länge ni inte precis lagat det.",
       },
     ],
@@ -123,22 +120,18 @@ export const AXIS_COPY: Record<SliderAxis, AxisCopy> = {
     bands: [
       {
         from: 0,
-        level: "Spelar ingen roll",
         hint: "Vi håller oss till sådant ni känner igen.",
       },
       {
         from: 5,
-        level: "Spelar viss roll",
         hint: "Vi föreslår något ovant ibland, men det välbekanta ligger närmast till hands.",
       },
       {
         from: STRONG_THRESHOLD,
-        level: "Spelar stor roll",
         hint: "Vi drar oss inte för rätter ni aldrig lagat.",
       },
       {
         from: PREFERENCE_MAX,
-        level: "Spelar störst roll",
         hint: "Nya rätter får samma chans som era vanliga.",
       },
     ],
@@ -152,22 +145,18 @@ export const AXIS_COPY: Record<SliderAxis, AxisCopy> = {
     bands: [
       {
         from: 0,
-        level: "Spelar ingen roll",
         hint: "Det får gärna kräva lite pyssel i köket.",
       },
       {
         from: 5,
-        level: "Spelar viss roll",
         hint: "Vi lutar åt enklare middagar, men säsong och omväxling kan väga över.",
       },
       {
         from: STRONG_THRESHOLD,
-        level: "Spelar stor roll",
         hint: "Vi väljer hellre en enklare middag än något ni sällan lagar.",
       },
       {
         from: PREFERENCE_MAX,
-        level: "Spelar störst roll",
         hint: "Få moment, en panna, minimal disk.",
       },
     ],
@@ -183,10 +172,14 @@ export function bandFor(axis: SliderAxis, value: number): HintBand {
 }
 
 /**
- * The accessible name for the control: the label plus the level in words, so a screen
- * reader hears what the household reads and never a bare number out of context. Same
- * discipline as the chip dot meters (DECISION_LOG 2026-08-05).
+ * The accessible name for the control: just the axis label, same as what is shown on
+ * screen. Does not fold the current value in — that used to be `HintBand.level`
+ * ("Pris, spelar ingen roll"), retired because it is a second summary of the value
+ * that can disagree with the hint sentence (see PreferenceSlider.tsx). The hint is
+ * what actually describes the current value, and `aria-valuetext` carries it, so a
+ * screen reader hears the same one sentence the household reads rather than a name
+ * plus a competing summary.
  */
-export function sliderAccessibleName(axis: SliderAxis, value: number): string {
-  return `${AXIS_COPY[axis].label}, ${bandFor(axis, value).level.toLowerCase()}`;
+export function sliderAccessibleName(axis: SliderAxis): string {
+  return AXIS_COPY[axis].label;
 }
