@@ -17,21 +17,36 @@ import { HttpError } from "../httpError.js";
 // union, not an import of it — the same reason SessionWeights mirrors RankingWeights
 // in web/src/api.ts rather than importing it: this file lives on the Node side and
 // web/ compiles without Node types on purpose, so the dependency can only run one
-// direction. Drift is caught immediately: an event shape this file does not know
-// about comes back as a 400 from the first request that sends it, same as the
-// weights mirror.
+// direction. A shape this file does not know about comes back as a 400 — but that
+// only surfaces the drift to whoever is watching the response. It went unnoticed for
+// three chip ids and a whole event type (#197) because analyticsSink.ts swallows a
+// non-2xx response with no logging; see that file for the console.error this drift
+// added specifically so the next one is loud instead of silent.
 //
 // The vocabulary is closed deliberately: an unknown event name (a typo, a stale
 // client) is refused outright rather than stored, and the whole batch is rejected
 // rather than storing the events that did validate — a typo that lands as data is
 // worse than an error that surfaces immediately.
 
-const ChipIdSchema = z.enum(["cheaper", "faster", "other_cuisine", "something_else", "reset"]);
+const ChipIdSchema = z.enum([
+  "cheaper",
+  "faster",
+  "try_new",
+  "simpler",
+  "other_cuisine",
+  "something_else",
+  "reset",
+  "pantry",
+]);
 
-const SessionWeightsSchema = z.object({
-  price: z.number(),
-  time: z.number(),
-});
+const SessionWeightsSchema = z
+  .object({
+    price: z.number(),
+    time: z.number(),
+    variation: z.number(),
+    simplicity: z.number(),
+  })
+  .strict();
 
 const ChipTapEventSchema = z
   .object({
@@ -65,11 +80,33 @@ const MealChoiceHistoryFailedEventSchema = z
   })
   .strict();
 
+const AppErrorContextSchema = z.enum([
+  "gate",
+  "onboarding",
+  "profile_load",
+  "profile_save",
+  "tonight_no_result",
+  "tonight_refinement",
+  "guided_options",
+  "guided_directions",
+  "guided_diner_change",
+  "instructions",
+]);
+
+const AppErrorShownEventSchema = z
+  .object({
+    name: z.literal("app_error_shown"),
+    context: AppErrorContextSchema,
+    code: z.string().min(1),
+  })
+  .strict();
+
 const AnalyticsEventSchema = z.discriminatedUnion("name", [
   ChipTapEventSchema,
   SessionAbandonedEventSchema,
   MealChosenEventSchema,
   MealChoiceHistoryFailedEventSchema,
+  AppErrorShownEventSchema,
 ]);
 
 // Mirrors the frontend buffer cap (web/src/analyticsSink.ts) — a batch larger than

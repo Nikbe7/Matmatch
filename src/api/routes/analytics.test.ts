@@ -176,7 +176,7 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
             event: {
               name: "refinement_chip_tap",
               chip: "cheaper",
-              weights: { price: 1, time: 0 },
+              weights: { price: 1, time: 0, variation: 0, simplicity: 0 },
               level: 1,
               rerollDepth: 0,
             },
@@ -195,6 +195,73 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
 
     expect(response.status).toBe(204);
     expect(await countEvents(user.userId)).toBe(4);
+  });
+
+  // The full chip vocabulary web/src/refinement.ts's ChipId union can actually
+  // produce — kept in sync by hand with that file, the same mirroring discipline
+  // the module comment above describes for the rest of this file. This is the
+  // regression test for #197: three of these eight ids (try_new, simpler, pantry)
+  // were missing from ChipIdSchema, so any batch containing one of them — including
+  // the meal_chosen event riding alongside it — was rejected whole and silently
+  // dropped by the client.
+  const allChipIds = [
+    "cheaper",
+    "faster",
+    "try_new",
+    "simpler",
+    "other_cuisine",
+    "something_else",
+    "reset",
+    "pantry",
+  ] as const;
+
+  it.each(allChipIds)(
+    "accepts a refinement_chip_tap for chip id %s, alongside a meal_chosen event",
+    async (chip) => {
+      const app = buildApp();
+      const user = await userWithHousehold(app);
+
+      const response = await request(app)
+        .post("/api/analytics/events")
+        .set(authHeader(user.accessToken))
+        .send({
+          events: [
+            validMealChosenEvent,
+            {
+              event: {
+                name: "refinement_chip_tap",
+                chip,
+                weights: { price: 35, time: 0, variation: 0, simplicity: 0 },
+                rerollDepth: 1,
+              },
+              clientTimestamp: validClientTimestamp,
+            },
+          ],
+        });
+
+      expect(response.status).toBe(204);
+      expect(await countEvents(user.userId)).toBe(2);
+    },
+  );
+
+  it("accepts an app_error_shown event — the whole event type #197 also found missing", async () => {
+    const app = buildApp();
+    const user = await userWithHousehold(app);
+
+    const response = await request(app)
+      .post("/api/analytics/events")
+      .set(authHeader(user.accessToken))
+      .send({
+        events: [
+          {
+            event: { name: "app_error_shown", context: "tonight_no_result", code: "no_match" },
+            clientTimestamp: validClientTimestamp,
+          },
+        ],
+      });
+
+    expect(response.status).toBe(204);
+    expect(await countEvents(user.userId)).toBe(1);
   });
 
   it("stores events under the caller's own household only", async () => {

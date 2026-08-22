@@ -54,9 +54,23 @@ export function createHttpAnalyticsSink(accessToken: string): AnalyticsSinkHandl
         // Lets the request outlive a page-hide flush rather than being cancelled
         // when the tab navigates away or closes.
         keepalive: true,
-      })?.catch(() => {
-        // Drop on failure — no retry queue, no local persistence (see module comment).
-      });
+      })
+        ?.then((response) => {
+          // A non-2xx here means the server's event-shape mirror has drifted from
+          // this client (#197) — a batch this shape was rejected and, per the module
+          // comment, is already gone with no retry. Logging is the only way that
+          // drift is ever seen; before this it shipped silently for months.
+          if (!response.ok) {
+            console.error(
+              "[analytics] flush rejected",
+              response.status,
+              batch.map(({ event }) => event.name),
+            );
+          }
+        })
+        .catch(() => {
+          // Drop on failure — no retry queue, no local persistence (see module comment).
+        });
     } catch {
       // A synchronous throw from fetch itself (e.g. a broken test double, or an
       // environment without fetch) — same outcome as an async failure: the batch
