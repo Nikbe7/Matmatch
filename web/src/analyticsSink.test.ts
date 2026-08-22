@@ -62,6 +62,26 @@ describe("createHttpAnalyticsSink", () => {
     handle.stop();
   });
 
+  it("logs the rejected batch's event names on a non-2xx response (#197)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400 } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const handle = createHttpAnalyticsSink("token-123");
+    handle.sink(mealChosen("kycklinggryta"));
+    handle.flush();
+    await Promise.resolve();
+    await Promise.resolve();
+    handle.stop();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[analytics] flush rejected",
+      400,
+      expect.arrayContaining(["meal_chosen"]),
+    );
+    errorSpy.mockRestore();
+  });
+
   it("does not call fetch when flushed with nothing buffered", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
