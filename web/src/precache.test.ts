@@ -64,7 +64,7 @@ describe("PWA precache manifest (built dist/)", () => {
   });
 
   it("precaches the self-hosted font files, so display/UI type doesn't silently fall back offline", () => {
-    // Fraunces/DM Sans are self-hosted (issue #136) specifically so the PWA
+    // Fraunces/Karla are self-hosted (issue #136) specifically so the PWA
     // never depends on a network fetch to a font CDN. That guarantee only
     // holds if the woff2 files actually end up in the precache manifest.
     const fontEntries = readPrecacheEntries().filter((entry) => entry.url.endsWith(".woff2"));

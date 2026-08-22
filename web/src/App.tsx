@@ -1877,7 +1877,15 @@ function ProfileMemberRow({
           <span className="profile-member-row__meta">
             {" · "}
             {TYPE_LABELS[member.type]}
-            {allergySummary ? ` · ${allergySummary}` : ""}
+            {allergySummary && (
+              <>
+                {" · "}
+                <span className="profile-member-row__allergy">
+                  <span aria-hidden="true">⚠ </span>
+                  {allergySummary}
+                </span>
+              </>
+            )}
           </span>
         </span>
         <span className="profile-member-row__action">{expanded ? "Stäng" : "Ändra"}</span>

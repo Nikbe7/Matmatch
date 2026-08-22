@@ -1,10 +1,10 @@
 @import "tailwindcss";
 @import "@fontsource-variable/fraunces";
-@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/karla";
 /* Real italic face, not the browser's synthetic slant — the two existing
    `font-style: italic` rules below (.suggestion__reason, .swapped-badge)
    predate this file and used to fake it against a system font. */
-@import "@fontsource-variable/dm-sans/wght-italic.css";
+@import "@fontsource-variable/karla/wght-italic.css";
 @import "./tokens.css";
 
 @utility text-eyebrow {
@@ -345,6 +345,16 @@ select.input {
 .profile-member-row__meta {
   color: var(--color-muted);
   font-size: 0.8125rem;
+}
+
+/* UX_FLOW §6: allergies must stay visually distinct from ordinary member
+   details, never sharing the muted `.profile-member-row__meta` treatment they
+   sit inside — the "⚠" glyph plus danger colour, matching the same pattern
+   `.ingredient-allergen-notice` and `.allergy-group legend` already use, so a
+   reader who cannot perceive colour still gets the distinction. */
+.profile-member-row__allergy {
+  color: var(--color-danger);
+  font-weight: 600;
 }
 
 .profile-member-row__action {
@@ -743,6 +753,26 @@ select.input {
   background: var(--color-surface);
   color: var(--color-danger);
   border-color: var(--color-danger);
+}
+
+/* A trailing row-level affordance ("Har hemma", "Behöver handlas", "Ångra
+   bytet" on the shopping list) — text-only, so it reads as a quiet second
+   action next to the row's own checkbox rather than a bordered control
+   competing with it at the same visual weight. Still the full touch target
+   and underlined so it stays legibly tappable without a border. */
+.btn-quiet {
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  border-color: transparent;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.btn-quiet:hover:not(:disabled) {
+  color: var(--color-text);
 }
 
 /* Card */
