@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import ImageKit from "@imagekit/nodejs";
 import path from "node:path";
 import { createTokenVerifier, tokenVerifierConfigFromEnv } from "../auth/verifyToken.js";
 import { connectionStringFromEnv, createDbClient } from "../db/client.js";
@@ -23,6 +24,15 @@ async function main() {
     ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     : undefined;
 
+  // Same undefined-means-not-configured shape as anthropicClient above. The public
+  // key is web/'s to hold (VITE_IMAGEKIT_PUBLIC_KEY) but the auth route also returns
+  // it in the signed-params response, so it's threaded through here rather than
+  // duplicated as a second env var this process would also need.
+  const imagekitClient = process.env.IMAGEKIT_PRIVATE_KEY
+    ? new ImageKit({ privateKey: process.env.IMAGEKIT_PRIVATE_KEY })
+    : undefined;
+  const imagekitPublicKey = process.env.IMAGEKIT_PUBLIC_KEY;
+
   // Set in the deployed image (see Dockerfile), unset locally. Its presence is what
   // turns this process into the single service that serves both the client and the
   // API from one origin; without it the app is API-only and `npm run dev` behaves
@@ -31,7 +41,15 @@ async function main() {
     ? path.resolve(process.env.WEB_DIST)
     : undefined;
 
-  const app = createApp({ sql, engineData, verifyToken, anthropicClient, webDistDir });
+  const app = createApp({
+    sql,
+    engineData,
+    verifyToken,
+    anthropicClient,
+    imagekitClient,
+    imagekitPublicKey,
+    webDistDir,
+  });
 
   app.listen(port, () => {
     console.log(`matmatch api listening on :${port}`);

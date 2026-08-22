@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
+    "@imagekit/nodejs": "^7.11.0",
     "express": "^5.2.1",
     "jose": "^6.2.7",
     "postgres": "^3.4.9",

@@ -1,3 +1,4 @@
+import type ImageKit from "@imagekit/nodejs";
 import express, { type Express } from "express";
 import type { AnthropicMessagesClient } from "../ai/generateInstructions.js";
 import type { TokenVerifier } from "../auth/verifyToken.js";
@@ -10,6 +11,7 @@ import { dishGenerateRouter } from "./routes/dishGenerate.js";
 import { guidedRouter } from "./routes/guided.js";
 import { healthRouter } from "./routes/health.js";
 import { householdsRouter } from "./routes/households.js";
+import { imagekitAuthRouter } from "./routes/imagekitAuth.js";
 import { ingredientAlternativesRouter } from "./routes/ingredientAlternatives.js";
 import { instructionsRouter } from "./routes/instructions.js";
 import { tonightRouter } from "./routes/tonight.js";
@@ -29,6 +31,13 @@ export interface AppDependencies {
   // instructions route handles that by returning the null-instructions failure
   // path, never by refusing to start.
   anthropicClient?: AnthropicMessagesClient;
+  // Undefined when IMAGEKIT_PRIVATE_KEY isn't configured (local dev, CI) — the
+  // imagekit auth route answers 503 rather than ever holding a key it doesn't have.
+  imagekitClient?: ImageKit;
+  // Threaded alongside imagekitClient rather than read from env inside the route,
+  // same reasoning as every other AppDependencies field: the route stays a pure
+  // function of what it's handed, not of process.env.
+  imagekitPublicKey?: string;
   // Absolute path to the built frontend (`web/dist`). Set only in the deployed
   // single-service configuration, where this process serves the client and the API
   // from one origin. Undefined in local development (Vite serves the client and
@@ -51,6 +60,7 @@ export function createApp(deps: AppDependencies): Express {
   app.use(ingredientAlternativesRouter(deps.sql, deps.engineData, deps.verifyToken));
   app.use(dishGenerateRouter(deps.sql, deps.engineData, deps.verifyToken, deps.anthropicClient));
   app.use(analyticsRouter(deps.sql, deps.verifyToken));
+  app.use(imagekitAuthRouter(deps.verifyToken, deps.imagekitClient, deps.imagekitPublicKey));
 
   // After the API routers, so a real route always wins over the SPA fallback, and
   // before the error middleware, because the fallback is ordinary middleware — put
