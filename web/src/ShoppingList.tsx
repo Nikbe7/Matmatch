@@ -103,6 +103,7 @@ export interface ShoppingListMeal {
 
 export function ShoppingList({
   result,
+  pantryIngredientIds,
   explanation,
   portions,
   diners,
@@ -112,6 +113,14 @@ export function ShoppingList({
   onCook,
 }: {
   result: ShoppingListMeal;
+  /**
+   * Tonight's pantry-row selection at the moment of choice (#200) — ingredient ids,
+   * applied on top of whichever base list wins below (freshly built or resumed from
+   * storage). The guided flow doesn't pass this: its ingredients arrive from the
+   * server already flagged `inPantry` (`src/api/guidedCatalog.ts`), which
+   * `freshShoppingList` reads directly.
+   */
+  pantryIngredientIds?: readonly string[];
   /**
    * The dish's one-line "why" (#122/#125) — Tonight's `suggestionReasonLine` or the
    * guided flow's own deterministic `GuidedDirection.summary`. This is the one place
@@ -150,7 +159,20 @@ export function ShoppingList({
 }) {
   const [items, setItems] = useState<ShoppingListItem[]>(() => {
     const stored = loadShoppingList(result.template.id);
-    return stored ? stored.items : freshShoppingList(result.template.id, result.ingredients).items;
+    const base = stored ? stored.items : freshShoppingList(result.template.id, result.ingredients).items;
+    // Applied after the stored-vs-fresh choice above, not before, and to either
+    // outcome: a household can accept the same dish twice in one session — reroll
+    // away, mark a new pantry item, accept again — and the second accept must still
+    // land on top of a list already stored from the first (#200). Only ever moves an
+    // item *into* "Har hemma", never out — a household that already moved something
+    // there by hand, in an earlier session, keeps it there even if this particular
+    // accept didn't tap it.
+    if (!pantryIngredientIds || pantryIngredientIds.length === 0) return base;
+    return base.map((item) =>
+      item.section === "to_buy" && pantryIngredientIds.includes(item.ingredientId)
+        ? { ...item, section: "have_at_home" as const }
+        : item,
+    );
   });
 
   // The dish name and substitutions are stored alongside the items so this list can

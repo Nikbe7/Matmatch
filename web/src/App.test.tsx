@@ -2345,6 +2345,26 @@ function tonightBody(
   };
 }
 
+// One of its ingredients ("ris") also names a pantry-row option, so tapping that
+// chip and choosing this dish is the case #200 covers.
+function risDishBody() {
+  return {
+    result: {
+      template: { id: "risgryta", name: "Risgryta", blurb: "Testblurb.", cost_tier: "budget", prep_time_band: "<20min", effort_level: "simple", cuisine: "swedish_nordic" },
+      ingredients: [
+        { role: "starch", name: "Ris", slotIndex: 0, ingredientId: "ris", substituted: false, allergens: [], quantity: { kind: "amount", amount: 300, unit: "g" } },
+        { role: "protein", name: "Kyckling", slotIndex: 1, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      ],
+      substitutions: [],
+      score: 0.4,
+      cookedToday: false,
+    },
+    portions: 2,
+    pantryIngredients: PANTRY_OPTIONS,
+    preferenceWeights: NEUTRAL_BASELINE,
+  };
+}
+
 describe("App — Tonight's pantry row (#152)", () => {
   it("shows a handful of likely staples, not the whole catalog, and a way to the rest", async () => {
     sessionHolder.current = fakeSession;
@@ -2507,6 +2527,65 @@ describe("App — Tonight's pantry row (#152)", () => {
     const reason = screen.getByText(/^Valt för att/);
     expect(reason.textContent).toBe("Valt för att ni har potatis hemma.");
     expect(reason.textContent).not.toContain("säsong");
+  });
+
+  it("seeds 'Har hemma' on the shopping list from what was marked on Tonight's pantry row (#200)", async () => {
+    // Before #200: the dish's own reason line could say "ni har ris hemma" while the
+    // resulting list put ris under "Behöver handlas" like every other item — the one
+    // input this zero-input screen asks for was thrown away exactly where it should
+    // have paid off.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, tonightBody()))
+      .mockResolvedValue(jsonResponse(200, risDishBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "ris" }));
+    await screen.findByRole("heading", { name: "Risgryta" });
+
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+
+    await screen.findByRole("heading", { name: "Behöver handlas (1)" });
+    expect(screen.getByText("Kyckling")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Har hemma (1)" })).toBeTruthy();
+    expect(screen.getByText("Ris")).toBeTruthy();
+  });
+
+  it("applies a pantry tap even when a list was already stored from an earlier accept of the same dish (#200)", async () => {
+    // The bare fix alone has a gap: ShoppingList's own useState initializer prefers
+    // a stored list for the same template id over anything freshly computed. A
+    // household that accepts a dish once (no pantry tap), backs out with "Nytt
+    // förslag", marks a pantry item, and accepts the *same* dish again must not have
+    // that second tap silently swallowed by the first accept's already-stored list.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, risDishBody()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Risgryta" });
+
+    // First accept, no pantry tap — stores ris and kyckling both under "to_buy".
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+    await screen.findByRole("heading", { name: "Behöver handlas (2)" });
+
+    // Back to Ikväll without a reload — Gate's fetch never reruns, so the same
+    // dish is still on screen.
+    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+    await screen.findByRole("heading", { name: "Risgryta" });
+
+    await user.click(screen.getByRole("button", { name: "ris" }));
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+
+    await screen.findByRole("heading", { name: "Behöver handlas (1)" });
+    expect(screen.getByText("Kyckling")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Har hemma (1)" })).toBeTruthy();
+    expect(screen.getByText("Ris")).toBeTruthy();
   });
 });
 
