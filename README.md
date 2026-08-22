@@ -37,6 +37,8 @@ npm run start:cloud  # one-shot against the cloud project, reads .env.cloud inst
 
 Reads `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWT_AUDIENCE`, and `PORT` (default `3000`) from `.env` — same values as above. `SUPABASE_URL` is the project base URL; the JWKS endpoint and expected token issuer are both derived from it (`src/auth/verifyToken.ts`), so there's a single value to point at local vs. cloud rather than two kept in sync by hand. Loads `data/*.json` into memory once at startup (not per request) and exits if that fails.
 
+`IMAGEKIT_PRIVATE_KEY` and `IMAGEKIT_PUBLIC_KEY` are optional, same shape as `ANTHROPIC_API_KEY` below: without them `GET /api/imagekit/auth` answers 503 instead of refusing to start. Nothing in the app calls that route yet — issue #190.
+
 `GET /health` needs nothing else and is what a host's health check should hit. Every route under `/api` requires `Authorization: Bearer <token>` — a Supabase-issued access token, verified against the JWKS endpoint derived from `SUPABASE_URL`.
 
 `npm run start:cloud` loads `.env.cloud` instead of `.env` via Node's built-in `--env-file` — no dotenv, no config framework. Keep cloud credentials in `.env.cloud` (gitignored, like `.env`) rather than switching `.env` back and forth between local and cloud values.

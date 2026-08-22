@@ -248,6 +248,7 @@ Shipped (`src/api/routes/`):
 - `POST /api/instructions` — Tier 1 cooking instructions for a suggestion, cached by template + substitution set
 - `POST /api/cooked` — marks the dish on the Tonight card as cooked (`{templateId, substitutions[]}`), which is what feeds repeat-avoidance. Idempotent: a repeat tap on the same Swedish calendar day answers 200 with the first tap's timestamp rather than 409, and writes no second row. Recent history itself is *not* an endpoint — `GET /api/tonight` loads it server-side for ranking and returns only `cookedToday` on the suggestion, the one fact the card needs to render its confirmation after a reload.
 - `POST /api/analytics/events` — batch ingest for `web/src/analytics.ts`'s typed events (`{events: [{event, clientTimestamp}]}`), issue #91. All-or-nothing: an unrecognised event name or a payload shape that doesn't match the closed vocabulary 400s the whole batch before anything is stored. 204 on success. Read access is a psql query for now — no dashboard or reporting endpoint exists.
+- `GET /api/imagekit/auth` — signed upload params (token/expire/signature) for a client-side ImageKit upload, issue #190. The private key never leaves this process. Unattached: nothing in `web/` calls it yet, and 503s if `IMAGEKIT_PRIVATE_KEY`/`IMAGEKIT_PUBLIC_KEY` aren't set.
 
 Planned, not yet built:
 - `POST /suggestions/directions` — given intent + main ingredient + pantry input, returns 3 direction candidates (Meal Engine filters first, AI Orchestrator fills in only if needed)

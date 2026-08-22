@@ -37,6 +37,14 @@ playwright/.cache/
 # Scratch artifacts — working tools for a task, not durable data or docs
 tmp/
 
+# Claude Code agent tooling — skills and local settings are per-developer
+# tooling config, not app code or docs; re-installable via `npx skills add`.
+# .mcp.json IS tracked (project-scoped MCP server list is intentional, shared config).
+.agents/
+.claude/skills/
+.claude/settings.local.json
+skills-lock.json
+
 # PR visual evidence — attach to the PR description as uploads, never commit
 # to the tree (see docs/engineering/GIT_AND_GITHUB.md)
 web/screenshots/
