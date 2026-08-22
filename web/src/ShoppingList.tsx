@@ -108,7 +108,7 @@ export function ShoppingList({
   diners,
   accessToken,
   onNewSuggestion,
-  newSuggestionLabel = "Ny förslag",
+  newSuggestionLabel = "Nytt förslag",
   onCook,
 }: {
   result: ShoppingListMeal;
@@ -310,7 +310,7 @@ export function ShoppingList({
       </section>
 
       {/* Cooking is what the list is *for*, so it takes the primary slot and
-          "Ny förslag" steps down to secondary (#154). The instructions themselves
+          "Nytt förslag" steps down to secondary (#154). The instructions themselves
           no longer live on this screen at all — one surface owns them. */}
       {onCook && (
         <Button type="button" variant="primary" onClick={onCook}>
