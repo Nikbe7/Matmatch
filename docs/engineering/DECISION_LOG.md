@@ -72,6 +72,8 @@ Onboarding keeps asking about allergies, but as a single yes/no question below t
 
 **Why a forced choice beats a default of "nej".** A preselected "Nej" costs zero taps and was the obvious design, but it makes a household that answered no indistinguishable from one that scrolled past the question — and the app treats both as allergy-free. That is the app assuming a safety answer the user never gave. One tap buys the difference between a declared answer and a silent assumption, and safety answers are exactly where an assumption is not allowed. It also means "nej" is a real, recorded answer: two taps to the first suggestion, still the fast path.
 
+**Closed #119 (2026-08-22) as superseded by this entry.** #119 asked to make allergy input optional at onboarding — closer to the 2026-08-10 position this entry already reversed. Optional input is fail-open the same way a preselected "nej" is: a household with no answer is indistinguishable from one with no allergies. The low-friction case #119 was trying to protect is already covered here, at one tap, by the explicit "Inga allergier" answer.
+
 **How to apply:** any surface that collects a safety-critical answer states the question and waits for it — no preselected safe-sounding default, no inferring an answer from silence. Preference-shaped data may default; allergy-shaped data may not. Answering "nej" after picking allergies clears them, because what is shown and what is stored must be the same thing.
 
 ---
