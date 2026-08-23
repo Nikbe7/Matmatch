@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { PreferenceWeights } from "../api";
 import { SLIDER_AXES } from "../preferenceHints";
 import { PreferenceSlider } from "./PreferenceSlider";
@@ -9,10 +9,16 @@ export const PREFERENCE_BLOCK_TITLE = "Vad är viktigt för er?";
  * "Vad är viktigt för er?" (#159) — the same three sliders on both surfaces, editing
  * the same household baseline.
  *
- * One component, deliberately, and it holds no values of its own: both Tonight and the
- * profile pass the baseline in and get changes back out. Two copies of this block with
- * their own state is how the two screens would start disagreeing about what the
- * household asked for.
+ * `settled`/`onCommit` are the household's actual baseline: both Tonight and the
+ * profile pass it in and get a new committed value back out, so the two screens
+ * can never disagree about what was asked for. The live, per-notch value while a
+ * thumb is moving is a *different* piece of state, owned locally right here rather
+ * than lifted to whichever screen renders this block (2026-08-23) — it used to live
+ * in `Gate`, the component owning the whole fetched Tonight response and routed
+ * shell, so every notch of a drag re-rendered the entire screen under the sliders
+ * for a value nothing outside this component reads live. That was the actual cause
+ * of "the slider isn't smooth" once the settle-timer and touch-action fixes on
+ * their own still weren't enough.
  *
  * `collapsible` is the only difference between the surfaces. On Tonight the block is
  * collapsed and shows nothing but its heading, so a household that never scrolls past
@@ -24,14 +30,12 @@ export const PREFERENCE_BLOCK_TITLE = "Vad är viktigt för er?";
  * like the other three, with no marking that it is the newest one.
  */
 export function PreferenceBlock({
-  weights,
-  onChange,
+  settled,
   onCommit,
   collapsible = false,
   disabled,
 }: {
-  weights: PreferenceWeights;
-  onChange: (weights: PreferenceWeights) => void;
+  settled: PreferenceWeights;
   onCommit: (weights: PreferenceWeights) => void;
   collapsible?: boolean;
   disabled?: boolean;
@@ -39,16 +43,27 @@ export function PreferenceBlock({
   const [open, setOpen] = useState(!collapsible);
   const panelId = useId();
 
+  // Seeded from the real baseline and re-synced whenever it changes from outside
+  // (the first load landing, or a commit made on the *other* screen before this one
+  // mounted) — but every notch in between updates only this local state, never the
+  // parent, which is the whole point.
+  const [live, setLive] = useState(settled);
+  useEffect(() => setLive(settled), [settled]);
+
   const sliders = (
     <div className="preference-block__sliders">
       {SLIDER_AXES.map((axis) => (
         <PreferenceSlider
           key={axis}
           axis={axis}
-          value={weights[axis]}
+          value={live[axis]}
           disabled={disabled}
-          onChange={(value) => onChange({ ...weights, [axis]: value })}
-          onCommit={(value) => onCommit({ ...weights, [axis]: value })}
+          onChange={(value) => setLive((current) => ({ ...current, [axis]: value }))}
+          onCommit={(value) => {
+            const next = { ...live, [axis]: value };
+            setLive(next);
+            onCommit(next);
+          }}
         />
       ))}
     </div>

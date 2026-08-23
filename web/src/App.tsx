@@ -653,15 +653,20 @@ const WEEKDAYS = ["Söndag", "Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag",
 // The Tonight eyebrow's weekday (#138) — read from the local clock, since the
 // server response carries no day of its own to trust or mistrust.
 export interface PreferenceBaseline {
-  /** Updates on every notch — what the sliders render, so dragging stays responsive. */
-  weights: PreferenceWeights;
   /**
-   * The value once a drag (or a keyboard step) commits. Persisting and re-ranking
-   * both key off this, so neither happens mid-drag and the two can never act on
-   * different values.
+   * The value once a drag (or a keyboard step) commits — never a live, per-notch
+   * value. Persisting and re-ranking key off this, so neither happens mid-drag.
+   *
+   * Deliberately not "what the sliders render": that used to live here too, which
+   * meant every notch of a drag called `setState` on `Gate` — the component owning
+   * the whole fetched Tonight response and routed shell — and re-rendered the
+   * entire screen under the sliders (suggestion card, chips, pantry row) for a
+   * value nothing outside `PreferenceBlock` reads live. `PreferenceBlock` now owns
+   * that per-notch state itself, so a drag re-renders only the small subtree
+   * showing it (2026-08-23, the actual cause of "the slider isn't smooth" once the
+   * settle-timer and touch-action fixes still weren't enough).
    */
   settled: PreferenceWeights;
-  onChange: (weights: PreferenceWeights) => void;
   onCommit: (weights: PreferenceWeights) => void;
   /** Until the first load lands there is nothing honest to show — the block waits. */
   ready: boolean;
@@ -691,35 +696,26 @@ function usePreferenceBaseline(
    */
   stored: PreferenceWeights | undefined,
 ): PreferenceBaseline {
-  const [weights, setWeights] = useState<PreferenceWeights | null>(null);
   const [settled, setSettled] = useState<PreferenceWeights | null>(null);
 
   useEffect(() => {
     if (stored === undefined) return;
-    setWeights((current) => current ?? stored);
     setSettled((current) => current ?? stored);
   }, [stored]);
-
-  function onChange(next: PreferenceWeights) {
-    setWeights(next);
-  }
 
   // Fired from the slider's native `change` event (release for a pointer drag, once
   // per press for the keyboard) rather than a settle timer — see PreferenceSlider's
   // own comment. A write and a re-rank can never be triggered mid-drag this way, so
   // there is nothing to debounce.
   function onCommit(next: PreferenceWeights) {
-    setWeights(next);
     setSettled(next);
     void updatePreferenceWeights(accessToken, next).catch(() => {});
   }
 
   return {
-    weights: weights ?? NEUTRAL_PREFERENCE_WEIGHTS,
     settled: settled ?? NEUTRAL_PREFERENCE_WEIGHTS,
-    onChange,
     onCommit,
-    ready: weights !== null,
+    ready: settled !== null,
   };
 }
 
@@ -1328,8 +1324,9 @@ function TonightView({
   /**
    * A slider that has stopped moving re-ranks in place (#159).
    *
-   * Keyed on `baseline.settled`, not on the live value, so one drag is one request:
-   * `usePreferenceBaseline` debounces both the write and this. The dish on screen is
+   * Keyed on `baseline.settled`, not the live per-notch value `PreferenceBlock` now
+   * keeps to itself, so one drag is one request: `usePreferenceBaseline.onCommit`
+   * fires once, on release, driving both the write and this. The dish on screen is
    * passed as `previous` exactly as a chip tap does, and `showResponse` swaps it only
    * once the new one has arrived — the screen never goes through an empty state, which
    * is where a household loses what they were just reading.
@@ -1536,8 +1533,7 @@ function TonightView({
           own settings and invite a "correction" that overwrites what is really stored. */}
       {baseline.ready && (
         <PreferenceBlock
-          weights={baseline.weights}
-          onChange={baseline.onChange}
+          settled={baseline.settled}
           onCommit={baseline.onCommit}
           collapsible
           disabled={fetchingNext}
@@ -2077,11 +2073,7 @@ function ProfilRoute({
           the thing that carries the weights. Expanded here, unlike Tonight's collapsed
           copy of the same block. */}
       {baseline.ready && (
-        <PreferenceBlock
-          weights={baseline.weights}
-          onChange={baseline.onChange}
-          onCommit={baseline.onCommit}
-        />
+        <PreferenceBlock settled={baseline.settled} onCommit={baseline.onCommit} />
       )}
 
       <ProfileAccount session={session} />
