@@ -54,7 +54,14 @@ const PRE_157_WEIGHTS: RankingWeights = { price: 0, time: 0, familiarity: 1.5, s
 const PRE_157_CHIP_LEVEL_1 = 1;
 const PRE_157_CHIP_LEVEL_2 = 3;
 
-/** The notch each of those levels became — `WEIGHT_LEVELS` in web/src/refinement.ts. */
+/**
+ * The notches these two levels became under #157's units conversion. Level 2 is
+ * still what a chip tap produces — `WEIGHT_ON` in web/src/refinement.ts, since
+ * 2026-08-23 the chips' only active notch. Level 1 (35) is no longer reachable by
+ * any chip, but the conversion math is still exercised below: a household can
+ * still hand-drag a slider to this notch, and `toRankingWeights` must still
+ * convert it correctly.
+ */
 const CHIP_NOTCH_LEVEL_1 = 35;
 const CHIP_NOTCH_LEVEL_2 = 100;
 

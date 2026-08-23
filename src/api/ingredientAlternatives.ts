@@ -21,8 +21,8 @@ export interface IngredientAlternativeView {
   ingredientId: string;
   name: string;
   // The curated tier only — never a kronor figure (CLAUDE.md non-negotiable). The
-  // popover renders this through the same `costTierMeter`/`costTierLabel` dot meter
-  // every other surface uses.
+  // popover renders this through the same `costTierLabel` word every other surface
+  // uses.
   costTier: CostTier;
   // The slot's own scaled quantity, identical across every alternative for this slot
   // (a swap changes what you buy, not how much — tonightIngredients.ts's comment on

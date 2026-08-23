@@ -26,11 +26,13 @@ export const PREFERENCE_BLOCK_TITLE = "Vad är viktigt för er?";
 export function PreferenceBlock({
   weights,
   onChange,
+  onCommit,
   collapsible = false,
   disabled,
 }: {
   weights: PreferenceWeights;
   onChange: (weights: PreferenceWeights) => void;
+  onCommit: (weights: PreferenceWeights) => void;
   collapsible?: boolean;
   disabled?: boolean;
 }) {
@@ -46,6 +48,7 @@ export function PreferenceBlock({
           value={weights[axis]}
           disabled={disabled}
           onChange={(value) => onChange({ ...weights, [axis]: value })}
+          onCommit={(value) => onCommit({ ...weights, [axis]: value })}
         />
       ))}
     </div>

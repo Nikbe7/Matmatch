@@ -27,7 +27,6 @@ import {
 } from "../../src/schema/household";
 import {
   costTierLabel,
-  costTierMeter,
   dinerChangeReasonLine,
   EFFORT_LEVEL_LABELS,
   PREP_TIME_LABELS,
@@ -52,10 +51,9 @@ import { StateScreen } from "./components/StateScreen";
 import { presentError, GENERIC_ERROR_MESSAGE, OFFLINE_MESSAGE } from "./errorPresentation";
 import {
   INITIAL_REFINEMENT,
-  MAX_WEIGHT_LEVEL,
+  isAxisActive,
   refinementReducer,
   searchOtherCuisine,
-  weightLevel,
   type ChipId,
   type RefinementAction,
   type RefinementState,
@@ -87,7 +85,7 @@ export const DIETARY_FLAG_LABELS: Record<DietaryFlag, string> = {
 // Re-exported so existing consumers (and tests) keep importing these from App,
 // while the guided flow can import them without the two modules importing each
 // other. The definitions live in display.ts.
-export { costTierLabel, costTierMeter, PREP_TIME_LABELS };
+export { costTierLabel, PREP_TIME_LABELS };
 
 type AuthMode = "sign_in" | "sign_up";
 
@@ -654,24 +652,17 @@ const WEEKDAYS = ["Söndag", "Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag",
 
 // The Tonight eyebrow's weekday (#138) — read from the local clock, since the
 // server response carries no day of its own to trust or mistrust.
-/**
- * How long a slider has to sit still before the app acts on it (#159).
- *
- * One drag must produce one write and one re-rank, not twenty. Long enough that a
- * thumb sweeping the whole track never fires mid-way, short enough that letting go
- * feels like it did something.
- */
-const PREFERENCE_SETTLE_MS = 400;
-
 export interface PreferenceBaseline {
   /** Updates on every notch — what the sliders render, so dragging stays responsive. */
   weights: PreferenceWeights;
   /**
-   * The value after the drag stopped. Persisting and re-ranking both key off this, so
-   * neither happens mid-drag and the two can never act on different values.
+   * The value once a drag (or a keyboard step) commits. Persisting and re-ranking
+   * both key off this, so neither happens mid-drag and the two can never act on
+   * different values.
    */
   settled: PreferenceWeights;
   onChange: (weights: PreferenceWeights) => void;
+  onCommit: (weights: PreferenceWeights) => void;
   /** Until the first load lands there is nothing honest to show — the block waits. */
   ready: boolean;
 }
@@ -709,24 +700,25 @@ function usePreferenceBaseline(
     setSettled((current) => current ?? stored);
   }, [stored]);
 
-  // One timer, restarted on every notch, driving both consequences — so a write and a
-  // re-rank can never be triggered by different positions of the same drag.
-  const settleRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(settleRef.current), []);
-
   function onChange(next: PreferenceWeights) {
     setWeights(next);
-    clearTimeout(settleRef.current);
-    settleRef.current = setTimeout(() => {
-      setSettled(next);
-      void updatePreferenceWeights(accessToken, next).catch(() => {});
-    }, PREFERENCE_SETTLE_MS);
+  }
+
+  // Fired from the slider's native `change` event (release for a pointer drag, once
+  // per press for the keyboard) rather than a settle timer — see PreferenceSlider's
+  // own comment. A write and a re-rank can never be triggered mid-drag this way, so
+  // there is nothing to debounce.
+  function onCommit(next: PreferenceWeights) {
+    setWeights(next);
+    setSettled(next);
+    void updatePreferenceWeights(accessToken, next).catch(() => {});
   }
 
   return {
     weights: weights ?? NEUTRAL_PREFERENCE_WEIGHTS,
     settled: settled ?? NEUTRAL_PREFERENCE_WEIGHTS,
     onChange,
+    onCommit,
     ready: weights !== null,
   };
 }
@@ -855,51 +847,42 @@ function dinersLabel(diners: readonly DinerLabel[] | undefined): string {
   return (diners ?? []).map((diner) => diner.label).join(", ");
 }
 
-// The visible level of a "Billigare"/"Snabbare" chip. Same dot idiom as the cost
-// tier meter above, and purely visual for the same reason — AdjustmentChips wires
-// the level into the chip's accessible name so it is never conveyed by fill alone.
-function levelMeter(level: number): string {
-  return "●".repeat(level) + "○".repeat(MAX_WEIGHT_LEVEL - level);
-}
-
 /**
  * Whether any adjustment chip is currently expressing something (#183).
  *
- * Only the level chips can be "on" — "Annat kök" and "Byt förslag" are momentary
+ * Only the toggle chips can be "on" — "Annat kök" and "Byt förslag" are momentary
  * actions that leave no state behind. This is what "Återställ" is offered against:
- * a permanent reset chip beside three chips at zero is a control for undoing
- * nothing, taking a slot in the one row that is supposed to hold only things that
- * do something right now.
+ * a permanent reset chip beside four chips that are all off is a control for
+ * undoing nothing, taking a slot in the one row that is supposed to hold only
+ * things that do something right now.
  */
 function hasActiveAdjustment(refinement: RefinementState): boolean {
-  return (["price", "time", "variation", "simplicity"] as const).some(
-    (axis) => weightLevel(refinement, axis) > 0,
+  return (["price", "time", "variation", "simplicity"] as const).some((axis) =>
+    isAxisActive(refinement, axis),
   );
 }
 
-function LevelChip({
+/**
+ * A chip with a binary on/off state (2026-08-23, DECISION_LOG — supersedes the
+ * 0/1/2 level cycle). `pressed` plus `aria-pressed` (from `Chip`) is the whole
+ * affordance; there is no level to show, so no meter, dots or accessible-name
+ * suffix. Same pressed/unpressed idiom as the pantry chips already on this
+ * screen — one fewer idiom for a household to learn.
+ */
+function ToggleChip({
   label,
-  level,
+  active,
   onTap,
   disabled,
 }: {
   label: string;
-  level: number;
+  active: boolean;
   onTap: () => void;
   disabled: boolean;
 }) {
-  const atMax = level >= MAX_WEIGHT_LEVEL;
   return (
-    <Chip
-      pressed={level > 0}
-      aria-label={`${label}, nivå ${level} av ${MAX_WEIGHT_LEVEL}${atMax ? ", högsta nivån" : ""}`}
-      onClick={onTap}
-      disabled={disabled}
-    >
+    <Chip pressed={active} onClick={onTap} disabled={disabled}>
       {label}
-      <span aria-hidden="true" className="chip__meter">
-        {levelMeter(level)}
-      </span>
     </Chip>
   );
 }
@@ -908,55 +891,55 @@ function LevelChip({
  * The refinement row (UX_FLOW §4/§5 step 5). Every chip produces a new suggestion
  * immediately — that is the whole reason these are chips and not slider notches
  * (DECISION_LOG 2026-07-31, and the 2026-08-05 chip entry). "Billigare" and "Snabbare" stay pressed
- * and keep showing their level for the rest of the session, so a household several
- * rerolls deep can still see what it asked for; the other two are momentary actions
- * and carry no pressed state. "Något annat" is not here — #142 moved that control
- * onto the suggestion itself as "Byt förslag", matching the reference exactly
- * rather than duplicating it in both places.
+ * for the rest of the session, so a household several rerolls deep can still see
+ * what it asked for; the other two are momentary actions and carry no pressed
+ * state. "Något annat" is not here — #142 moved that control onto the suggestion
+ * itself as "Byt förslag", matching the reference exactly rather than duplicating
+ * it in both places.
  */
 function AdjustmentChips({
   refinement,
   busy,
-  onIncrement,
+  onToggle,
   onOtherCuisine,
   onReset,
 }: {
   refinement: RefinementState;
   busy: boolean;
-  onIncrement: (axis: WeightAxis) => void;
+  onToggle: (axis: WeightAxis) => void;
   onOtherCuisine: () => void;
   onReset: () => void;
 }) {
   return (
     <div role="group" aria-label="Justera förslaget" className="chip-row">
-      <LevelChip
+      <ToggleChip
         label="Billigare"
-        level={weightLevel(refinement, "price")}
-        onTap={() => onIncrement("price")}
+        active={isAxisActive(refinement, "price")}
+        onTap={() => onToggle("price")}
         disabled={busy}
       />
-      <LevelChip
+      <ToggleChip
         label="Snabbare"
-        level={weightLevel(refinement, "time")}
-        onTap={() => onIncrement("time")}
+        active={isAxisActive(refinement, "time")}
+        onTap={() => onToggle("time")}
         disabled={busy}
       />
-      {/* #153: the variation axis, same mechanic and same notches as the two above —
-          a session delta on the household's own Variation baseline, never a parallel
+      {/* #153: the variation axis, same mechanic as the two above — a session
+          delta on the household's own Variation baseline, never a parallel
           weight. */}
-      <LevelChip
+      <ToggleChip
         label="Testa nytt"
-        level={weightLevel(refinement, "variation")}
-        onTap={() => onIncrement("variation")}
+        active={isAxisActive(refinement, "variation")}
+        onTap={() => onToggle("variation")}
         disabled={busy}
       />
       {/* #153, gated on #151's curated effort_level: the simplicity axis, same
           mechanic as the three above — a session delta on the household's own
           Enkelhet baseline. */}
-      <LevelChip
+      <ToggleChip
         label="Enklare"
-        level={weightLevel(refinement, "simplicity")}
-        onTap={() => onIncrement("simplicity")}
+        active={isAxisActive(refinement, "simplicity")}
+        onTap={() => onToggle("simplicity")}
         disabled={busy}
       />
       <Chip onClick={onOtherCuisine} disabled={busy}>
@@ -1007,9 +990,7 @@ function SuggestionCard({
       <p className="suggestion__meta">
         {PREP_TIME_LABELS[result.template.prep_time_band]}
         {" · "}
-        <span role="img" aria-label={costTierLabel(result.template.cost_tier)}>
-          <span aria-hidden="true">{costTierMeter(result.template.cost_tier)}</span>
-        </span>
+        {costTierLabel(result.template.cost_tier)}
         {" · "}
         {EFFORT_LEVEL_LABELS[result.template.effort_level]}
       </p>
@@ -1403,10 +1384,12 @@ function TonightView({
     simplicity: "simpler",
   };
 
-  function handleIncrement(axis: WeightAxis) {
-    const next = apply({ type: "increment", axis });
+  function handleToggle(axis: WeightAxis) {
+    const next = apply({ type: "toggle_axis", axis });
 
-    reportChipTap(CHIP_BY_AXIS[axis], next, weightLevel(next, axis));
+    // `level` keeps its name in the analytics event (Phase 2 reads it to tell "turned
+    // on" from "turned off") but is now 0/1, not 0/1/2 — there is no level any more.
+    reportChipTap(CHIP_BY_AXIS[axis], next, isAxisActive(next, axis) ? 1 : 0);
     void requestSuggestion(next, current.result?.template.id);
   }
 
@@ -1511,7 +1494,7 @@ function TonightView({
             <AdjustmentChips
               refinement={refinement}
               busy={fetchingNext}
-              onIncrement={handleIncrement}
+              onToggle={handleToggle}
               onOtherCuisine={handleOtherCuisine}
               onReset={handleReset}
             />
@@ -1555,6 +1538,7 @@ function TonightView({
         <PreferenceBlock
           weights={baseline.weights}
           onChange={baseline.onChange}
+          onCommit={baseline.onCommit}
           collapsible
           disabled={fetchingNext}
         />
@@ -2093,7 +2077,11 @@ function ProfilRoute({
           the thing that carries the weights. Expanded here, unlike Tonight's collapsed
           copy of the same block. */}
       {baseline.ready && (
-        <PreferenceBlock weights={baseline.weights} onChange={baseline.onChange} />
+        <PreferenceBlock
+          weights={baseline.weights}
+          onChange={baseline.onChange}
+          onCommit={baseline.onCommit}
+        />
       )}
 
       <ProfileAccount session={session} />

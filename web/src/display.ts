@@ -9,36 +9,22 @@ import type { ScaledQuantity, SuggestionReasonCode } from "./api";
 // Split out of App.tsx when the guided flow needed the same mappings: importing them
 // from App.tsx would have made App and GuidedFlow import each other.
 
-// Display-only mapping (DECISION_LOG 2026-07-29, amended for the dot meter): the
-// dots are never the underlying cost_tier value and never stand in for an invented
-// kronor figure. An exhaustive switch means a new tier value fails typecheck here
-// rather than silently rendering nothing.
-export function costTierMeter(tier: CostTier): string {
-  switch (tier) {
-    case "budget":
-      return "●○○";
-    case "mid":
-      return "●●○";
-    case "premium":
-      return "●●●";
-    default: {
-      const exhaustive: never = tier;
-      return exhaustive;
-    }
-  }
-}
-
-// The dot meter is purely visual — a screen reader must announce this word, not
-// three bullet characters, so cards wire this in as an aria-label rather than
-// relying on the dot string's own accessible name.
+// Display-only mapping (DECISION_LOG 2026-07-29, amended 2026-08-23 to drop the dot
+// meter): a dot meter has no textual anchor for a sighted user and, worse, is never
+// the only "Mellan" in the metadata row — `EFFORT_LEVEL_LABELS` below uses the same
+// word for "moderate" effort, so two unrelated axes could both read "Mellan" with
+// nothing to tell them apart. Naming the tier explicitly by price ("Mellanpris"
+// rather than "Mellan") fixes both problems in one change. Never stands in for an
+// invented kronor figure — an exhaustive switch means a new tier value fails
+// typecheck here rather than silently rendering nothing.
 export function costTierLabel(tier: CostTier): string {
   switch (tier) {
     case "budget":
-      return "Billig";
+      return "Billigt";
     case "mid":
-      return "Mellan";
+      return "Mellanpris";
     case "premium":
-      return "Dyr";
+      return "Dyrare";
     default: {
       const exhaustive: never = tier;
       return exhaustive;
