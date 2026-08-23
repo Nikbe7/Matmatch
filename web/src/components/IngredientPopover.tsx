@@ -5,7 +5,7 @@ import {
   type IngredientAlternative,
   type IngredientAlternativesResult,
 } from "../api";
-import { costTierLabel, costTierMeter } from "../display";
+import { costTierLabel } from "../display";
 import { matchesIngredientQuery } from "../guided";
 import { Button } from "./Button";
 import { Chip } from "./Chip";
@@ -96,8 +96,7 @@ function AlternativesList({
                 onClick={() => onApply(alternative)}
               >
                 <span>{alternative.name}</span>
-                <span aria-hidden="true">{costTierMeter(alternative.costTier)}</span>
-                <span className="sr-only">{costTierLabel(alternative.costTier)}</span>
+                <span className="muted">{costTierLabel(alternative.costTier)}</span>
               </button>
             </li>
           ))}

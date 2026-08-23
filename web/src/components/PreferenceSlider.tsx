@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   AXIS_COPY,
   PREFERENCE_MAX,
@@ -38,16 +39,39 @@ export function PreferenceSlider({
   axis,
   value,
   onChange,
+  onCommit,
   disabled,
 }: {
   axis: SliderAxis;
   value: number;
+  /** Every notch — keeps the thumb and the hint sentence responsive while dragging. */
   onChange: (value: number) => void;
+  /**
+   * The value once the household lets go — never mid-drag. Wired to the input's
+   * native `change` event (via `ref`, below) rather than a settle timer: `change`
+   * only fires on release for a pointer drag, and once per press for the keyboard,
+   * which is exactly "commit" in both cases with no risk of firing while a thumb is
+   * still down (#159 follow-up — a settle timer could fire mid-drag if the thumb
+   * paused between notches, re-ranking and resizing the suggestion card under it).
+   */
+  onCommit: (value: number) => void;
   disabled?: boolean;
 }) {
   const { label } = AXIS_COPY[axis];
   const band = bandFor(axis, value);
   const hintId = `preference-hint-${axis}`;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // React's `onChange` prop is wired to the DOM `input` event (fires continuously
+  // while dragging) with no built-in way to also hear the native `change` event
+  // (fires once, on release) — so `onCommit` is attached directly.
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    const handleCommit = () => onCommit(Number(input.value));
+    input.addEventListener("change", handleCommit);
+    return () => input.removeEventListener("change", handleCommit);
+  }, [onCommit]);
 
   return (
     <div className="preference-slider">
@@ -55,6 +79,7 @@ export function PreferenceSlider({
         <span className="preference-slider__label">{label}</span>
       </div>
       <input
+        ref={inputRef}
         type="range"
         className="preference-slider__control"
         min={PREFERENCE_MIN}

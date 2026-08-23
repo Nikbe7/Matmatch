@@ -138,7 +138,7 @@ describe("GuidedFlow — the happy path, tap by tap", () => {
     expect(query!.get("pantry")).toBe("ris");
   });
 
-  it("shows three cards with a cost meter that is a tier, never a price", async () => {
+  it("shows three cards with a cost tier label that is a tier, never a price", async () => {
     const user = userEvent.setup();
     stubApi({
       ...threeDirections,
@@ -153,9 +153,15 @@ describe("GuidedFlow — the happy path, tap by tap", () => {
     await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
     await screen.findByRole("heading", { name: "Tre förslag" });
 
-    expect(screen.getByRole("img", { name: "Billig" })).toBeTruthy();
-    expect(screen.getByRole("img", { name: "Mellan" })).toBeTruthy();
-    expect(screen.getByRole("img", { name: "Dyr" })).toBeTruthy();
+    // The label is a bare text node beside the prep-time text in the same <p>
+    // (`.direction-card__meta`), so it has no element of its own for `getByText` to
+    // match — check the meta rows' combined text instead.
+    const metaText = document.querySelectorAll(".direction-card__meta");
+    expect(Array.from(metaText).map((el) => el.textContent)).toEqual([
+      expect.stringContaining("Billigt"),
+      expect.stringContaining("Mellanpris"),
+      expect.stringContaining("Dyrare"),
+    ]);
     expect(document.body.textContent).not.toMatch(/\d+\s*kr/i);
   });
 

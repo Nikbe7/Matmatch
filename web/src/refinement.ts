@@ -13,46 +13,37 @@ import type { SessionWeights, TonightResponse } from "./api";
 // filling a gap.
 
 /**
- * Where a "Billigare"/"Snabbare" chip puts its axis at each of its levels — level 0 is
- * off.
+ * What a "Billigare"/"Snabbare" chip sets its axis to when tapped on — 0 is off.
  *
- * Expressed in SLIDER NOTCHES (0–100, step 5) since #157, not in raw engine weights.
- * That is the whole point of the change: the chip and the household's persistent Pris
- * slider now move the same axis in the same units, and the server combines the two
- * (`combinePreferenceWeights`) instead of holding two ideas of what "cheaper" means.
- * A tap is a delta on top of the baseline, so a household that has already dragged Pris
- * up gets the chip's nudge *added* to what it already asked for, which is what "chips
- * stay the fast path, sliders are the baseline" means in arithmetic.
+ * Binary since 2026-08-23 (DECISION_LOG), superseding the 2026-08-05 two-level
+ * calibration on level count: that entry's own "level 1" (35 notches) was
+ * deliberately calibrated to *lose* to a single `NEUTRAL_FAMILIARITY_STEP_WEIGHT`
+ * step, so a household's first tap could visibly change nothing about the
+ * suggestion — the same "does nothing" failure the 2026-08-05 entry itself used to
+ * kill levels 4 and 5. That nudge-level job now belongs to the persistent
+ * Pris/Tid/Variation/Enkelhet sliders (2026-08-16); a chip is a statement about
+ * tonight, not a dial, so one tap sets the axis all the way on and the second tap
+ * turns it off.
  *
- * Two active levels, not five: `cost_tier` and `prep_time_band` each have three values,
- * so the only ranking-relevant thresholds are "beats one familiarity step" and "beats
- * the largest possible familiarity gap (two steps)".
+ * Expressed in SLIDER NOTCHES (0–100, step 5) since #157: the chip and the
+ * household's persistent slider move the same axis in the same units, and the
+ * server combines the two (`combinePreferenceWeights`) instead of holding two ideas
+ * of what "cheaper" means. `WEIGHT_ON = 100` → engine weight 3, exactly
+ * `NEUTRAL_FAMILIARITY_STEP_WEIGHT * 2`: enough to beat even the largest
+ * familiarity gap (adventurous vs. everyday, two steps), so the expressed
+ * preference dominates. Also exactly `MAX_CHIP_PREFERENCE` in
+ * `src/api/guidedIntent.ts`, whose own comment already argued for starting the
+ * guided flow's "Billigt" intent chip at full strength rather than a timid level 1
+ * — binary-at-100 makes both chip surfaces mean the same thing on the same axis.
  *
- * Level 1 = 35 notches → engine weight 1.05 (35/100 * MAX_AXIS_RANKING_WEIGHT, which is
- * 3 in `src/engine/ranking.ts`). The smallest expressed preference, still calibrated to
- * lose to a single `NEUTRAL_FAMILIARITY_STEP_WEIGHT` step (1.5) — a household that taps
- * once is nudging the order, not overriding it. It was exactly 1.0 before #157; 35 is
- * the nearest notch on the step-5 grid, and `src/engine/preferenceWeights.test.ts`
- * asserts the 1.00 → 1.05 shift produces an identical ranking over the entire template
- * library, so this is a change of units and not of behaviour.
- *
- * Level 2 = 100 notches → engine weight 3, unchanged and exactly
- * `NEUTRAL_FAMILIARITY_STEP_WEIGHT * 2`: enough to beat even the largest familiarity gap
- * (adventurous vs. everyday, two steps), so the expressed preference dominates.
- *
- * Not imported from `src/engine/ranking.ts` — that module's type-only imports pull in
- * `src/engine/data.ts`'s `node:fs`/`node:url` usage through `tsc -b`'s type graph, which
- * `web/`'s browser tsconfig (no `node` types) cannot resolve. If
- * `NEUTRAL_FAMILIARITY_STEP_WEIGHT` or `MAX_AXIS_RANKING_WEIGHT` is ever re-derived,
- * re-derive these literals alongside them — do not let them drift stale.
- *
- * Levels 4 and 5 of the old five-level scale produced no observable change in ranking
- * order — see DECISION_LOG 2026-08-05 — so this is the full range now.
+ * Not derived from `src/engine/ranking.ts` — that module's type-only imports pull
+ * in `src/engine/data.ts`'s `node:fs`/`node:url` usage through `tsc -b`'s type
+ * graph, which `web/`'s browser tsconfig (no `node` types) cannot resolve. If
+ * `NEUTRAL_FAMILIARITY_STEP_WEIGHT` or `MAX_AXIS_RANKING_WEIGHT` is ever
+ * re-derived, re-derive this literal (and `MAX_CHIP_PREFERENCE`) alongside them —
+ * do not let them drift stale.
  */
-export const WEIGHT_LEVELS = [0, 35, 100] as const;
-
-/** The highest level a chip can cycle to (index into `WEIGHT_LEVELS`). */
-export const MAX_WEIGHT_LEVEL = WEIGHT_LEVELS.length - 1;
+export const WEIGHT_ON = 100;
 
 /**
  * The axes a chip can nudge. `variation` joined price/time with "Testa nytt" (#153),
@@ -111,8 +102,8 @@ export const INITIAL_REFINEMENT: RefinementState = {
 export type RefinementAction =
   /** A chip that re-requests without changing the weight vector. */
   | { type: "reroll"; chip: Extract<ChipId, "something_else" | "other_cuisine"> }
-  /** "Billigare" / "Snabbare": cycles one axis 0 → 1 → 2 → 0. */
-  | { type: "increment"; axis: WeightAxis }
+  /** "Billigare" / "Snabbare": toggles one axis between 0 and `WEIGHT_ON`. */
+  | { type: "toggle_axis"; axis: WeightAxis }
   /** A suggestion reached the screen — it must not come back this session. */
   | { type: "suggestion_shown"; templateId: string }
   /** Templates ruled out while searching for a different cuisine. */
@@ -138,15 +129,16 @@ export function refinementReducer(
   action: RefinementAction,
 ): RefinementState {
   switch (action.type) {
-    case "increment": {
-      const currentLevel = weightLevel(state, action.axis);
-      const nextLevel = (currentLevel + 1) % WEIGHT_LEVELS.length;
+    case "toggle_axis": {
+      const isOn = isAxisActive(state, action.axis);
       return {
         ...state,
         weights: {
           ...state.weights,
-          [action.axis]: WEIGHT_LEVELS[nextLevel],
+          [action.axis]: isOn ? 0 : WEIGHT_ON,
         },
+        // Increments either direction: the friction signal is the tap itself, not
+        // which way it moved the axis.
         rerollDepth: state.rerollDepth + 1,
       };
     }
@@ -192,9 +184,9 @@ export function refinementReducer(
   }
 }
 
-/** The 0–`MAX_WEIGHT_LEVEL` level a chip renders, for the dot meter and its accessible name. */
-export function weightLevel(state: RefinementState, axis: WeightAxis): number {
-  return WEIGHT_LEVELS.indexOf(state.weights[axis] as (typeof WEIGHT_LEVELS)[number]);
+/** Whether a chip's axis is on — the chip's whole visible state (`aria-pressed`). */
+export function isAxisActive(state: RefinementState, axis: WeightAxis): boolean {
+  return state.weights[axis] === WEIGHT_ON;
 }
 
 /**

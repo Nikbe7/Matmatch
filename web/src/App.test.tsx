@@ -7,7 +7,7 @@ import type { CostTier } from "../../src/schema/ingredient";
 import { setAnalyticsSink, type AnalyticsEvent } from "./analytics";
 import { saveShoppingList, SHOPPING_LIST_VERSION } from "./shoppingListStorage";
 import { saveCookRecord, substitutionKey } from "./instructionsStorage";
-import { WEIGHT_LEVELS } from "./refinement";
+import { WEIGHT_ON } from "./refinement";
 
 // Covers the signed-out state (login form, never reaches the network) and the
 // household gate: no-household → onboarding, submit → Tonight, API error →
@@ -59,7 +59,7 @@ vi.mock("./analyticsSink", () => ({
 }));
 
 const { default: App } = await import("./App");
-const { ALLERGY_LABELS, costTierMeter, costTierLabel } = await import("./App");
+const { ALLERGY_LABELS, costTierLabel } = await import("./App");
 
 /** A member block, addressed the way the household sees it: by that member's label. */
 function memberCard(label: string): HTMLElement {
@@ -680,23 +680,25 @@ describe("App — household gate", () => {
   });
 });
 
-describe("costTierMeter / costTierLabel", () => {
-  const expected: Record<CostTier, { meter: string; label: string }> = {
-    budget: { meter: "●○○", label: "Billig" },
-    mid: { meter: "●●○", label: "Mellan" },
-    premium: { meter: "●●●", label: "Dyr" },
+describe("costTierLabel", () => {
+  // "Mellan" was the "mid" cost tier's old label — and also EFFORT_LEVEL_LABELS'
+  // word for "moderate" effort, so the two could read identically on screen with
+  // nothing to tell them apart. Explicitly price words (2026-08-23) fix that.
+  const expected: Record<CostTier, string> = {
+    budget: "Billigt",
+    mid: "Mellanpris",
+    premium: "Dyrare",
   };
 
-  for (const [tier, { meter, label }] of Object.entries(expected) as [CostTier, { meter: string; label: string }][]) {
-    it(`maps "${tier}" to its dot meter and Swedish label`, () => {
-      expect(costTierMeter(tier)).toBe(meter);
+  for (const [tier, label] of Object.entries(expected) as [CostTier, string][]) {
+    it(`maps "${tier}" to its Swedish price label`, () => {
       expect(costTierLabel(tier)).toBe(label);
     });
   }
 });
 
 describe("App — Tonight suggestion card", () => {
-  it("renders the dish name, cost tier meter and prep time — and no ingredient list", async () => {
+  it("renders the dish name, cost tier label and prep time — and no ingredient list", async () => {
     sessionHolder.current = fakeSession;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
 
@@ -716,28 +718,19 @@ describe("App — Tonight suggestion card", () => {
     expect(container.textContent).not.toContain("(ersättning)");
     expect(container.querySelector(".suggestion__ingredients")).toBeNull();
 
-    // The raw "mid" enum value must never leak into rendered text — only the dot
-    // meter and its Swedish accessible name should appear.
+    // The raw "mid" enum value must never leak into rendered text — only its
+    // Swedish price label should appear. No dot meter any more (2026-08-23): the
+    // word is the only carrier, and it's plain visible text, not an aria-label-only
+    // announcement.
     expect(container.textContent).not.toMatch(/\bmid\b/);
-    expect(container.textContent).toContain("●●○");
+    expect(container.textContent).toContain("Mellanpris");
 
-    // A role-based query, not an attribute check: jsdom doesn't enforce the rule
-    // that aria-label is ignored on a generic-role element, so a plain
-    // `container.querySelector('[aria-label="Mellan"]')` would pass even if the
-    // wrapper had no naming role at all. getByRole computes the accessible name
-    // the way a real screen reader would and fails if role="img" is missing.
-    const meter = screen.getByRole("img", { name: "Mellan" });
-    const dots = meter.querySelector('[aria-hidden="true"]');
-    expect(dots).not.toBeNull();
-    expect(dots!.textContent).toBe("●●○");
-
-    // #151/#161: effort_level renders as a Swedish word beside the cost meter, not
-    // as a raw enum value and not as a second dot meter — the row means exactly one
-    // thing per meter, and there is exactly one meter.
+    // #151/#161: effort_level renders as a Swedish word beside the cost tier, not
+    // as a raw enum value and not as a dot meter — the row is plain text throughout.
     expect(container.textContent).not.toMatch(/\bsimple\b/);
     const metaRow = container.querySelector(".suggestion__meta")!;
     expect(metaRow.textContent).toContain("Enkelt");
-    expect(within(metaRow as HTMLElement).queryAllByRole("img")).toHaveLength(1);
+    expect(within(metaRow as HTMLElement).queryAllByRole("img")).toHaveLength(0);
   });
 
   it("shows one reason only, phrased as a sentence with no numbers, even when the server sends two", async () => {
@@ -806,17 +799,23 @@ describe("App — Tonight suggestion card", () => {
     expect(screen.queryByRole("heading", { name: "Kycklinggryta", level: 3 })).toBeNull();
   });
 
-  const labelByTier: Record<CostTier, string> = { budget: "Billig", mid: "Mellan", premium: "Dyr" };
+  const labelByTier: Record<CostTier, string> = {
+    budget: "Billigt",
+    mid: "Mellanpris",
+    premium: "Dyrare",
+  };
 
   for (const [tier, label] of Object.entries(labelByTier) as [CostTier, string][]) {
-    it(`exposes "${label}" as the accessible name for cost tier "${tier}"`, async () => {
+    it(`renders "${label}" as the visible cost tier label for "${tier}"`, async () => {
       sessionHolder.current = fakeSession;
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBodyForTier(tier))));
 
       render(<App />);
       await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-      expect(screen.getByRole("img", { name: label })).toBeTruthy();
+      // A bare text node inside `.suggestion__meta`, not its own element — `getByText`
+      // can't match it, so check the meta row's combined text instead.
+      expect(document.querySelector(".suggestion__meta")!.textContent).toContain(label);
     });
   }
 });
@@ -887,7 +886,7 @@ describe("App — adjustment chips", () => {
     expect(thirdUrl).toContain("previous=fisksoppa");
   });
 
-  it("raises the price weight, keeps the chip pressed, and announces its level", async () => {
+  it("turns the price weight on at full strength and keeps the chip pressed", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = vi
@@ -900,24 +899,24 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    expect(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: "Billigare" }).getAttribute("aria-pressed")).toBe("false");
 
-    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }));
+    await user.click(screen.getByRole("button", { name: "Billigare" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
-    expect((fetchMock.mock.calls[1]![0] as string)).toContain(`price=${WEIGHT_LEVELS[1]}`);
+    expect((fetchMock.mock.calls[1]![0] as string)).toContain(`price=${WEIGHT_ON}`);
 
-    // Still pressed and still showing its level a reroll later — the whole point
-    // of chip state being session-persistent rather than per-request.
-    const pressed = screen.getByRole("button", { name: "Billigare, nivå 1 av 2" });
+    // Still pressed a reroll later — the whole point of chip state being
+    // session-persistent rather than per-request.
+    const pressed = screen.getByRole("button", { name: "Billigare" });
     expect(pressed.getAttribute("aria-pressed")).toBe("true");
 
     await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByRole("heading", { name: "Ärtsoppa" });
-    expect(screen.getByRole("button", { name: "Billigare, nivå 1 av 2" })).toBeTruthy();
-    expect((fetchMock.mock.calls[2]![0] as string)).toContain(`price=${WEIGHT_LEVELS[1]}`);
+    expect(screen.getByRole("button", { name: "Billigare" }).getAttribute("aria-pressed")).toBe("true");
+    expect((fetchMock.mock.calls[2]![0] as string)).toContain(`price=${WEIGHT_ON}`);
   });
 
-  it("cycles through both levels and wraps back to 0 in one more tap, each tap requesting a new suggestion", async () => {
+  it("a second tap turns the axis back off, and still requests a new suggestion", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (url: string) =>
@@ -929,20 +928,19 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Snabbare, nivå 0 av 2" }));
-    await screen.findByRole("button", { name: "Snabbare, nivå 1 av 2" });
+    await user.click(screen.getByRole("button", { name: "Snabbare" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Snabbare" }).getAttribute("aria-pressed")).toBe("true"),
+    );
 
-    await user.click(screen.getByRole("button", { name: "Snabbare, nivå 1 av 2" }));
-    const atMax = await screen.findByRole("button", { name: "Snabbare, nivå 2 av 2, högsta nivån" });
-    expect(atMax.getAttribute("aria-pressed")).toBe("true");
+    const callsWhileOn = fetchMock.mock.calls.length;
+    await user.click(screen.getByRole("button", { name: "Snabbare" }));
 
-    const callsAtMax = fetchMock.mock.calls.length;
-    await user.click(atMax);
-
-    const wrapped = await screen.findByRole("button", { name: "Snabbare, nivå 0 av 2" });
-    expect(wrapped.getAttribute("aria-pressed")).toBe("false");
-    // The wrap-to-0 tap is not a no-op — it re-requests like every other tap.
-    expect(fetchMock.mock.calls.length).toBe(callsAtMax + 1);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Snabbare" }).getAttribute("aria-pressed")).toBe("false"),
+    );
+    // Turning the chip off is not a no-op — it re-requests like every other tap.
+    expect(fetchMock.mock.calls.length).toBe(callsWhileOn + 1);
   });
 
   it("Annat kök skips a same-cuisine suggestion and excludes it too", async () => {
@@ -1010,13 +1008,15 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }));
-    await screen.findByRole("button", { name: "Billigare, nivå 1 av 2" });
+    await user.click(screen.getByRole("button", { name: "Billigare" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Billigare" }).getAttribute("aria-pressed")).toBe("true"),
+    );
 
     await user.click(screen.getByRole("button", { name: "Återställ" }));
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    const restored = screen.getByRole("button", { name: "Billigare, nivå 0 av 2" });
+    const restored = screen.getByRole("button", { name: "Billigare" });
     expect(restored.getAttribute("aria-pressed")).toBe("false");
   });
 
@@ -1038,14 +1038,18 @@ describe("App — adjustment chips", () => {
 
     expect(screen.queryByRole("button", { name: "Återställ" })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Snabbare, nivå 0 av 2" }));
-    await screen.findByRole("button", { name: "Snabbare, nivå 1 av 2" });
+    await user.click(screen.getByRole("button", { name: "Snabbare" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Snabbare" }).getAttribute("aria-pressed")).toBe("true"),
+    );
     expect(screen.getByRole("button", { name: "Återställ" })).toBeTruthy();
 
     // And gone again once the session is back to neutral, rather than lingering as
     // the one chip that never turns off.
     await user.click(screen.getByRole("button", { name: "Återställ" }));
-    await screen.findByRole("button", { name: "Snabbare, nivå 0 av 2" });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Snabbare" }).getAttribute("aria-pressed")).toBe("false"),
+    );
     expect(screen.queryByRole("button", { name: "Återställ" })).toBeNull();
   });
 
@@ -1090,8 +1094,10 @@ describe("App — adjustment chips", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Kycklinggryta" });
 
-    await user.click(screen.getByRole("button", { name: "Testa nytt, nivå 0 av 2" }));
-    await screen.findByRole("button", { name: "Testa nytt, nivå 1 av 2" });
+    await user.click(screen.getByRole("button", { name: "Testa nytt" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Testa nytt" }).getAttribute("aria-pressed")).toBe("true"),
+    );
 
     expect(screen.getByRole("button", { name: "Återställ" })).toBeTruthy();
   });
@@ -1118,7 +1124,7 @@ describe("App — refinement instrumentation", () => {
     // effect just installed.
     setAnalyticsSink((event) => events.push(event));
 
-    await user.click(screen.getByRole("button", { name: "Billigare, nivå 0 av 2" }));
+    await user.click(screen.getByRole("button", { name: "Billigare" }));
     await screen.findByRole("heading", { name: "Linssoppa" });
     await user.click(screen.getByRole("button", { name: "Byt förslag" }));
     await screen.findByRole("heading", { name: "Ärtsoppa" });
@@ -1127,14 +1133,14 @@ describe("App — refinement instrumentation", () => {
       {
         name: "refinement_chip_tap",
         chip: "cheaper",
-        weights: { price: WEIGHT_LEVELS[1], time: 0, variation: 0, simplicity: 0 },
+        weights: { price: WEIGHT_ON, time: 0, variation: 0, simplicity: 0 },
         level: 1,
         rerollDepth: 1,
       },
       {
         name: "refinement_chip_tap",
         chip: "something_else",
-        weights: { price: WEIGHT_LEVELS[1], time: 0, variation: 0, simplicity: 0 },
+        weights: { price: WEIGHT_ON, time: 0, variation: 0, simplicity: 0 },
         level: undefined,
         rerollDepth: 2,
       },
@@ -2607,7 +2613,7 @@ describe("App — Testa nytt (#153)", () => {
     await user.click(screen.getByRole("button", { name: /^Testa nytt/ }));
 
     await screen.findByRole("heading", { name: "Fisksoppa" });
-    expect(fetchMock.mock.calls[1]![0] as string).toContain(`variation=${WEIGHT_LEVELS[1]}`);
+    expect(fetchMock.mock.calls[1]![0] as string).toContain(`variation=${WEIGHT_ON}`);
   });
 
   it("expresses itself on the same axis the Variation slider does — same value, either way in", async () => {
@@ -2638,7 +2644,7 @@ describe("App — Testa nytt (#153)", () => {
     const slider = screen.getByRole("slider", { name: /^Variation/ });
     expect(slider.getAttribute("max")).toBe("100");
     expect(slider.getAttribute("step")).toBe("5");
-    expect(Number(viaChip)).toBe(WEIGHT_LEVELS[1]);
+    expect(Number(viaChip)).toBe(WEIGHT_ON);
   });
 
 });
@@ -2661,7 +2667,7 @@ describe("App — Enklare (#153, #151)", () => {
     await user.click(screen.getByRole("button", { name: /^Enklare/ }));
 
     await screen.findByRole("heading", { name: "Fisksoppa" });
-    expect(fetchMock.mock.calls[1]![0] as string).toContain(`simplicity=${WEIGHT_LEVELS[1]}`);
+    expect(fetchMock.mock.calls[1]![0] as string).toContain(`simplicity=${WEIGHT_ON}`);
   });
 
   it("expresses itself on the same axis the Enkelhet slider does — same value, either way in", async () => {
@@ -2688,7 +2694,7 @@ describe("App — Enklare (#153, #151)", () => {
     const slider = screen.getByRole("slider", { name: /^Enkelhet/ });
     expect(slider.getAttribute("max")).toBe("100");
     expect(slider.getAttribute("step")).toBe("5");
-    expect(Number(viaChip)).toBe(WEIGHT_LEVELS[1]);
+    expect(Number(viaChip)).toBe(WEIGHT_ON);
   });
 });
 
@@ -2767,10 +2773,12 @@ describe("App — the preference block (#158, #159)", () => {
     await openBlock();
     const slider = screen.getByRole("slider", { name: /^Pris/ });
 
-    // Four notches dragged past in quick succession — and still one write.
-    for (const value of ["5", "10", "15", "20"]) {
-      fireEvent.change(slider, { target: { value } });
+    // Three notches dragged past — the native `input` event, same as a real drag —
+    // and only the release (`change`) commits.
+    for (const value of ["5", "10", "15"]) {
+      fireEvent.input(slider, { target: { value } });
     }
+    fireEvent.change(slider, { target: { value: "20" } });
 
     await waitFor(() =>
       expect(fetchMock.mock.calls.some((call) => call[1]?.method === "PUT")).toBe(true),

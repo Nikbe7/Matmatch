@@ -3,12 +3,11 @@ import type { Cuisine } from "../../src/schema/recipeTemplate";
 import type { TonightResponse } from "./api";
 import {
   INITIAL_REFINEMENT,
+  isAxisActive,
   MAX_CUISINE_PROBES,
-  MAX_WEIGHT_LEVEL,
   refinementReducer,
   searchOtherCuisine,
-  weightLevel,
-  WEIGHT_LEVELS,
+  WEIGHT_ON,
   type RefinementState,
 } from "./refinement";
 
@@ -44,51 +43,47 @@ function stateWith(patch: Partial<RefinementState> = {}): RefinementState {
 }
 
 describe("refinementReducer — Billigare / Snabbare", () => {
-  it("increments price from off to level 1 on the first tap, and counts the reroll", () => {
-    const next = refinementReducer(INITIAL_REFINEMENT, { type: "increment", axis: "price" });
+  it("turns price on at full strength on the first tap, and counts the reroll", () => {
+    const next = refinementReducer(INITIAL_REFINEMENT, { type: "toggle_axis", axis: "price" });
 
-    expect(next.weights).toEqual({ price: WEIGHT_LEVELS[1], time: 0, variation: 0, simplicity: 0 });
+    expect(next.weights).toEqual({ price: WEIGHT_ON, time: 0, variation: 0, simplicity: 0 });
     expect(next.rerollDepth).toBe(1);
   });
 
-  it("increments time independently of price", () => {
-    const afterCost = refinementReducer(INITIAL_REFINEMENT, { type: "increment", axis: "price" });
-    const afterTime = refinementReducer(afterCost, { type: "increment", axis: "time" });
+  it("toggles time independently of price", () => {
+    const afterCost = refinementReducer(INITIAL_REFINEMENT, { type: "toggle_axis", axis: "price" });
+    const afterTime = refinementReducer(afterCost, { type: "toggle_axis", axis: "time" });
 
     expect(afterTime.weights).toEqual({
-      price: WEIGHT_LEVELS[1],
-      time: WEIGHT_LEVELS[1],
+      price: WEIGHT_ON,
+      time: WEIGHT_ON,
       variation: 0,
       simplicity: 0,
     });
     expect(afterTime.rerollDepth).toBe(2);
   });
 
-  it("cycles through both levels and wraps back to 0", () => {
+  it("a second tap turns the axis back off — no level in between", () => {
     let state = INITIAL_REFINEMENT;
 
-    state = refinementReducer(state, { type: "increment", axis: "price" });
-    expect(weightLevel(state, "price")).toBe(1);
-    expect(state.weights.price).toBe(WEIGHT_LEVELS[1]);
+    state = refinementReducer(state, { type: "toggle_axis", axis: "price" });
+    expect(isAxisActive(state, "price")).toBe(true);
+    expect(state.weights.price).toBe(WEIGHT_ON);
 
-    state = refinementReducer(state, { type: "increment", axis: "price" });
-    expect(weightLevel(state, "price")).toBe(MAX_WEIGHT_LEVEL);
-    expect(state.weights.price).toBe(WEIGHT_LEVELS[MAX_WEIGHT_LEVEL]);
-
-    state = refinementReducer(state, { type: "increment", axis: "price" });
-    expect(weightLevel(state, "price")).toBe(0);
+    state = refinementReducer(state, { type: "toggle_axis", axis: "price" });
+    expect(isAxisActive(state, "price")).toBe(false);
     expect(state.weights.price).toBe(0);
   });
 
-  it("every tap changes the state — a chip resets itself in one tap at the top level", () => {
-    const atMax = stateWith({
-      weights: { price: WEIGHT_LEVELS[MAX_WEIGHT_LEVEL], time: 0, variation: 0, simplicity: 0 },
+  it("every tap changes the state and counts the reroll, including a tap that turns the axis off", () => {
+    const on = stateWith({
+      weights: { price: WEIGHT_ON, time: 0, variation: 0, simplicity: 0 },
       rerollDepth: 5,
     });
 
-    const next = refinementReducer(atMax, { type: "increment", axis: "price" });
+    const next = refinementReducer(on, { type: "toggle_axis", axis: "price" });
 
-    expect(next).not.toBe(atMax);
+    expect(next).not.toBe(on);
     expect(next.weights.price).toBe(0);
     expect(next.rerollDepth).toBe(6);
   });

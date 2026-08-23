@@ -9,7 +9,7 @@ import {
 import { allergyExclusionReason, capitalizeForSentence } from "./allergyLabels";
 import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { createGuidedClient } from "./guidedClient";
-import { costTierLabel, costTierMeter, dinerChangeReasonLine, PREP_TIME_LABELS } from "./display";
+import { costTierLabel, dinerChangeReasonLine, PREP_TIME_LABELS } from "./display";
 import { ShoppingList, type ShoppingListMeal } from "./ShoppingList";
 import { formatPortionsCount, portionsNoun } from "./display";
 import { Button } from "./components/Button";
@@ -190,11 +190,7 @@ function DirectionCard({
       <p id={metaId} className="direction-card__meta">
         {PREP_TIME_LABELS[direction.template.prep_time_band]}
         <span aria-hidden="true"> · </span>
-        <span role="img" aria-label={costTierLabel(direction.template.cost_tier)}>
-          <span aria-hidden="true">{costTierMeter(direction.template.cost_tier)}</span>
-        </span>
-        <span aria-hidden="true"> · </span>
-        <span aria-hidden="true">{costTierLabel(direction.template.cost_tier)}</span>
+        {costTierLabel(direction.template.cost_tier)}
       </p>
       {covered.length > 0 && (
         <p id={coveredId} className="direction-card__covered">

@@ -64,8 +64,8 @@ export interface RankingWeights {
 /**
  * The engine weight a maxed-out axis carries, i.e. what `100` on a slider buys.
  *
- * 3, because that is what the top adjustment-chip level has always been worth
- * (`WEIGHT_LEVELS[2]` in web/src/refinement.ts): enough to beat the largest possible
+ * 3, because that is what an "on" adjustment chip has always been worth
+ * (`WEIGHT_ON` in web/src/refinement.ts): enough to beat the largest possible
  * familiarity gap (two steps at `NEUTRAL_FAMILIARITY_STEP_WEIGHT`), so a household that
  * pushes an axis all the way genuinely dominates the order. Keeping the ceiling at the
  * old chip maximum is also what lets a chip be re-expressed as a slider delta without
@@ -160,16 +160,21 @@ const SEASONALITY_WEIGHT = 0.25;
 // beating köttbullar on a household that only asked for "cheaper") is a familiarity
 // problem, not a seasonality-sized one.
 //
-// Chosen at 1.5, calibrated against a chip-raised weight of 1 rather than against the
-// neutral default — the default is `NEUTRAL_PREFERENCE_WEIGHTS` (all zeros) precisely so
-// a household that has expressed nothing gets no price/time penalty at all, which would
-// make "calibrated against the default" meaningless. The first "Billigare" or "Snabbare"
-// tap moves an axis to notch 35 (weight 1.05, see web/src/refinement.ts); at that weight
-// one familiarity step (1.5) still beats one cost-tier or prep-band step (1.05), and a
-// full two-step gap (adventurous vs. everyday, 3.0) still beats two (2.10). It is not
-// unbeatable: an axis pushed to 100 (weight 3) makes that expressed preference dominate a
-// familiarity gap again, the same yield-to-a-real-preference property SEASONALITY_WEIGHT
-// has.
+// Chosen at 1.5, originally calibrated against a chip-raised weight of 1 rather than
+// against the neutral default — the default is `NEUTRAL_PREFERENCE_WEIGHTS` (all zeros)
+// precisely so a household that has expressed nothing gets no price/time penalty at all,
+// which would make "calibrated against the default" meaningless. A full two-step
+// familiarity gap (adventurous vs. everyday, 3.0) still beats two cost-tier/prep-band
+// steps (2.10) at that calibration. It is not unbeatable: an axis pushed to 100 (weight 3,
+// `MAX_AXIS_RANKING_WEIGHT`) makes an expressed preference dominate a familiarity gap
+// again, the same yield-to-a-real-preference property SEASONALITY_WEIGHT has.
+//
+// Since 2026-08-23 the Tonight adjustment chips are binary — a tap moves an axis straight
+// to notch 100 (weight 3), never to an intermediate notch — so this constant's "loses to
+// one familiarity step" case is only reachable by hand-dragging a slider to a low notch,
+// not by any chip. It stays 1.5 regardless: sliders still cover the full 0–100 range, and
+// a household that drags Pris to notch 35 should get the same "nudge, not override"
+// behaviour a chip used to express at that value.
 //
 // Since #157 this is a *floor value*, not the value used: `toRankingWeights` scales it
 // down to 0 as the Variation slider rises, so "Vi lyfter fram rätter ni inte lagat förut"
@@ -177,13 +182,11 @@ const SEASONALITY_WEIGHT = 0.25;
 // variation 100 the familiarity term drops out entirely and repeat-avoidance becomes the
 // novelty signal, which is the honest reading of that hint text.
 //
-// `WEIGHT_LEVELS` in web/src/refinement.ts hardcodes its two active chip levels in
-// *slider* units as `[0, 35, 100]`, calibrated against this constant (35 → weight 1.05,
-// "loses to one familiarity step"; 100 → weight 3, "beats the largest possible
-// familiarity gap") — not imported, because that module's type-only imports pull in this
-// file's Node-only dependencies through tsc -b's type graph, which web/'s browser tsconfig
-// cannot resolve. Re-derive those literals by hand if this value or
-// MAX_AXIS_RANKING_WEIGHT changes.
+// `WEIGHT_ON` in web/src/refinement.ts hardcodes the binary chips' one active notch (100,
+// weight 3, "beats the largest possible familiarity gap") — not imported, because that
+// module's type-only imports pull in this file's Node-only dependencies through tsc -b's
+// type graph, which web/'s browser tsconfig cannot resolve. Re-derive that literal by
+// hand if this value or MAX_AXIS_RANKING_WEIGHT changes.
 const NEUTRAL_FAMILIARITY_STEP_WEIGHT = 1.5;
 
 // Penalty applied to a template tagged `vegetarian` or `vegan` when the household

@@ -778,21 +778,6 @@ select.input {
   cursor: not-allowed;
 }
 
-/* The level meter reads as a quiet annotation on the label, never as part of it
-   (#183). At 360px "Billigare ○○" set solid at label weight and size made the
-   circles compete with the word — and the word is what the household is reading.
-   Kept rather than deleted: `pressed` alone is binary, so removing the dots would
-   make level 1 and level 2 look identical, which is the "the controls do nothing"
-   impression the whole chip mechanic exists to avoid. The level is also in the
-   chip's accessible name, so this is never the only carrier. */
-.chip__meter {
-  margin-left: var(--space-1);
-  font-size: 0.75em;
-  letter-spacing: 0.08em;
-  opacity: 0.55;
-  font-weight: 400;
-}
-
 .chip-pressed {
   background: var(--color-accent);
   color: var(--color-accent-contrast);
@@ -1750,6 +1735,11 @@ select.input {
   width: 100%;
   height: var(--touch-target);
   margin: var(--space-2) 0 0;
+  /* Without this, a touch that starts on the 44px strip but drifts vertically by even
+     a pixel gets stolen by the page's own vertical scroll mid-drag, and the thumb
+     stops tracking the finger — this is what "the slider doesn't feel smooth" turned
+     out to be on a touch device. */
+  touch-action: none;
   /* The visible 4px line is painted on the input itself and centred there, while the
      native track is made full-height and transparent below. That is what puts the
      thumb in the middle of the 44px strip instead of near its top edge: a thumb the

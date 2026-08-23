@@ -34,11 +34,12 @@ export interface IntentParameters {
   preferHighProtein: boolean;
 }
 
-// The delta a maxed adjustment chip carries — `WEIGHT_LEVELS[2]` in
-// web/src/refinement.ts, i.e. the top of the slider. "Billigt" is an explicit,
-// unambiguous statement about price, so it starts where the Tonight card's "Billigare"
-// chip *ends* rather than at a timid level 1. Expressed in slider notches since #157;
-// it was 3 (raw engine units) before, which is what 100 notches now translates to.
+// What an adjustment chip carries — `WEIGHT_ON` in web/src/refinement.ts, i.e. the
+// top of the slider. "Billigt" is an explicit, unambiguous statement about price,
+// so it matches what the Tonight card's "Billigare" chip now sets on a single tap
+// (2026-08-23: chips are binary, no longer a timid level 1). Expressed in slider
+// notches since #157; it was 3 (raw engine units) before, which is what 100 notches
+// now translates to.
 const MAX_CHIP_PREFERENCE = 100;
 
 // Every axis absent: an intent that expresses no preference must not quietly restate
