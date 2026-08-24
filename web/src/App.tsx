@@ -1236,12 +1236,17 @@ function TonightView({
     // exactly this handoff — the guided flow's ingredients arrive from the server
     // pre-flagged `inPantry`, Tonight's do not, and nothing here re-attached the
     // household's own taps. ListaRoute below applies them.
+    //
+    // The server's own coverage answer, not the raw taps (#219): "ris" tapped covers
+    // a `jasminris` row, and only the engine knows that. Falls back to the taps for a
+    // response from before the field existed, which is the old behaviour exactly.
     navigate("/lista", {
       state: {
         result: shown,
         portions: current.portions,
         diners: diners.parameter,
-        pantryIngredientIds: refinementRef.current.pantryIngredientIds,
+        pantryIngredientIds:
+          shown.pantryCoveredIngredientIds ?? refinementRef.current.pantryIngredientIds,
       },
     });
   }
@@ -1573,10 +1578,12 @@ interface AcceptedListingState {
   result: TonightResult;
   portions: number;
   diners?: string;
-  /** What the household had marked on Tonight's pantry row at the moment of choice
-   * (#200) — ingredient ids, forwarded to `ShoppingList` below so the list opens
-   * with those items already in "Har hemma" instead of contradicting the dish's own
-   * "valt för att ni har X hemma" reason line. Applied inside `ShoppingList` itself,
+  /** Which of *this dish's* ingredients the household's pantry covers at the moment
+   * of choice (#200, #219) — the server's `pantryCoveredIngredientIds`, forwarded to
+   * `ShoppingList` below so the list opens with those items already in "Har hemma"
+   * instead of contradicting the dish's own "valt för att ni har X hemma" reason
+   * line. Dish-side ids, so they compare equal to the rows they mark even when a
+   * substitution group bridged the tap ("ris") to the row (`jasminris`). Applied inside `ShoppingList` itself,
    * not here: it must land on top of whichever base list wins there (freshly built
    * or resumed from storage), or a household that accepts the same dish twice in one
    * session — reroll away, mark a new pantry item, accept again — finds its second

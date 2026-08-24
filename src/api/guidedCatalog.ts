@@ -66,6 +66,34 @@ function candidateFrequency(candidates: readonly CandidateTemplate[]): Map<strin
   return frequency;
 }
 
+/**
+ * Whether `ingredientId` is interchangeable with something already on the grid, in
+ * which case offering it is offering the same tap twice (#220).
+ *
+ * Greedy against the ids already taken, deliberately not a union-find over the group
+ * graph: `creme-fraiche` belongs to both `gradde` and `syrade-mjolkprodukter`, so
+ * transitive merging would put vispgrädde and filmjölk behind one square. Matching
+ * only against what is already picked keeps every collapse one hop from a square the
+ * household can actually see.
+ *
+ * Unlike `pantryItemCovering` in the engine, no role filter applies here: the grid
+ * asks what a household has in the cupboard, which is a question about the ingredient
+ * and not about any particular slot. Two ingredients that share *any* group are the
+ * same answer to that question.
+ */
+function isInterchangeableWithPicked(
+  data: EngineData,
+  ingredientId: string,
+  picked: ReadonlySet<string>,
+): boolean {
+  for (const group of data.substitutionGroupsByMemberIngredientId.get(ingredientId) ?? []) {
+    for (const memberId of group.member_ingredient_ids) {
+      if (memberId !== ingredientId && picked.has(memberId)) return true;
+    }
+  }
+  return false;
+}
+
 function buildOptions(
   data: EngineData,
   candidates: readonly CandidateTemplate[],
@@ -74,7 +102,7 @@ function buildOptions(
 ): IngredientOption[] {
   const frequency = candidateFrequency(candidates);
 
-  return [...frequency.entries()]
+  const ordered = [...frequency.entries()]
     .flatMap(([ingredientId, count]) => {
       const ingredient = data.ingredientsById.get(ingredientId);
       if (!ingredient || !categories.includes(ingredient.category)) return [];
@@ -83,9 +111,25 @@ function buildOptions(
     // Ties break on id, never on catalog order: the grid must be identical on every
     // request and every machine, or two households comparing screens see different
     // apps for no reason.
-    .sort((a, b) => b.count - a.count || (a.ingredient.id < b.ingredient.id ? -1 : 1))
-    .slice(0, limit)
-    .map(({ ingredient }) => ({ id: ingredient.id, name: ingredient.name }));
+    .sort((a, b) => b.count - a.count || (a.ingredient.id < b.ingredient.id ? -1 : 1));
+
+  // One square per substitution group (#220). Walked in frequency order and filled to
+  // `limit` *after* the skips, so collapsing "ris"/"jasminris" into one square hands
+  // the freed slot to the next staple down rather than shortening the grid. The
+  // survivor keeps its own id and name — group ids are not a usable namespace here
+  // (five of them collide with ingredient ids), so nothing downstream has to learn a
+  // second kind of identifier.
+  const picked = new Set<string>();
+  const options: IngredientOption[] = [];
+
+  for (const { ingredient } of ordered) {
+    if (options.length >= limit) break;
+    if (isInterchangeableWithPicked(data, ingredient.id, picked)) continue;
+    picked.add(ingredient.id);
+    options.push({ id: ingredient.id, name: ingredient.name });
+  }
+
+  return options;
 }
 
 /** The step-2 grid: the proteins the most of this household's dinners are built from. */
@@ -161,7 +205,9 @@ export function buildGuidedIngredients(
   householdMembers: readonly HouseholdMember[],
   portions: number,
 ): GuidedIngredientView[] {
-  const covered = new Set(direction.coveredPantryIngredientIds);
+  // The slot-side half of each pair (#219): these mark the *rows*, so they must name
+  // what the dish uses. A household that marked "ris" gets the jasminris row ticked.
+  const covered = new Set(direction.pantryCoverage.map((entry) => entry.ingredientId));
   const substituteBySlotIndex = new Map(
     direction.substitutions.map((substitution) => [
       substitution.slot_index,

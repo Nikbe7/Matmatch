@@ -60,24 +60,24 @@ describe("pickDirections — how many cards", () => {
   it("shows exactly three when the household has more than three options", () => {
     const list = [ranked("a"), ranked("b"), ranked("c"), ranked("d"), ranked("e")];
 
-    expect(pickDirections(list, { main: ANY })).toHaveLength(DIRECTION_COUNT);
+    expect(pickDirections(data, list, { main: ANY })).toHaveLength(DIRECTION_COUNT);
   });
 
   it("shows fewer rather than padding when a constrained household has fewer", () => {
     // A constrained household legitimately has one or two options (all 8 allergies
     // plus vegan leaves 14 templates before a main ingredient is even chosen).
     // Three is a target, never a guarantee, and never something to invent.
-    expect(pickDirections([ranked("a"), ranked("b")], { main: ANY })).toHaveLength(2);
+    expect(pickDirections(data, [ranked("a"), ranked("b")], { main: ANY })).toHaveLength(2);
   });
 
   it("returns an empty set rather than throwing when nothing survives", () => {
-    expect(pickDirections([], { main: ANY })).toEqual([]);
+    expect(pickDirections(data, [], { main: ANY })).toEqual([]);
   });
 
   it("honours an explicit count", () => {
     const list = [ranked("a"), ranked("b"), ranked("c"), ranked("d")];
 
-    expect(ids(pickDirections(list, { main: ANY, count: 1 }))).toEqual(["a"]);
+    expect(ids(pickDirections(data, list, { main: ANY, count: 1 }))).toEqual(["a"]);
   });
 });
 
@@ -89,7 +89,7 @@ describe("pickDirections — main ingredient", () => {
       ranked("kyckling-pasta", { ingredient_slots: slots("kyckling", "pasta") }),
     ];
 
-    expect(ids(pickDirections(list, { main: main("kyckling") }))).toEqual([
+    expect(ids(pickDirections(data, list, { main: main("kyckling") }))).toEqual([
       "kyckling-ris",
       "kyckling-pasta",
     ]);
@@ -110,14 +110,14 @@ describe("pickDirections — main ingredient", () => {
       score: 0,
     };
 
-    expect(ids(pickDirections([candidate], { main: main("ris") }))).toEqual(["rescued"]);
-    expect(pickDirections([candidate], { main: main("vetepasta") })).toEqual([]);
+    expect(ids(pickDirections(data, [candidate], { main: main("ris") }))).toEqual(["rescued"]);
+    expect(pickDirections(data, [candidate], { main: main("vetepasta") })).toEqual([]);
   });
 
   it("drops the constraint entirely under `any`, which is the §9 loosen path", () => {
     const list = [ranked("bonor", { ingredient_slots: slots("svarta-bonor") })];
 
-    expect(ids(pickDirections(list, { main: ANY }))).toEqual(["bonor"]);
+    expect(ids(pickDirections(data, list, { main: ANY }))).toEqual(["bonor"]);
   });
 });
 
@@ -129,7 +129,7 @@ describe("pickDirections — pantry coverage", () => {
       ranked("uses-two", { ingredient_slots: slots("lax", "ris", "gradde") }),
     ];
 
-    expect(ids(pickDirections(list, { main: ANY, pantryIngredientIds: ["ris", "gradde"] }))).toEqual([
+    expect(ids(pickDirections(data, list, { main: ANY, pantryIngredientIds: ["ris", "gradde"] }))).toEqual([
       "uses-two",
       "uses-one",
       "uses-nothing",
@@ -139,12 +139,15 @@ describe("pickDirections — pantry coverage", () => {
   it("reports which pantry ingredients each direction covers, for the shopping-list split", () => {
     const list = [ranked("gryta", { ingredient_slots: slots("lax", "ris", "gradde") })];
 
-    const directions = pickDirections(list, {
+    const directions = pickDirections(data, list, {
       main: ANY,
       pantryIngredientIds: ["ris", "gradde", "pasta"],
     });
 
-    expect(directions[0]?.coveredPantryIngredientIds).toEqual(["ris", "gradde"]);
+    expect(directions[0]?.pantryCoverage.map((entry) => entry.ingredientId)).toEqual([
+      "ris",
+      "gradde",
+    ]);
   });
 
   it("counts a pantry ingredient once even when a dish uses it in two slots", () => {
@@ -153,7 +156,7 @@ describe("pickDirections — pantry coverage", () => {
       ranked("spread", { ingredient_slots: slots("ris", "gradde") }),
     ];
 
-    expect(ids(pickDirections(list, { main: ANY, pantryIngredientIds: ["ris", "gradde"] }))).toEqual([
+    expect(ids(pickDirections(data, list, { main: ANY, pantryIngredientIds: ["ris", "gradde"] }))).toEqual([
       "spread",
       "double",
     ]);
@@ -162,8 +165,8 @@ describe("pickDirections — pantry coverage", () => {
   it("leaves the ranked order untouched when the pantry step was skipped", () => {
     const list = [ranked("a"), ranked("b"), ranked("c")];
 
-    expect(ids(pickDirections(list, { main: ANY }))).toEqual(["a", "b", "c"]);
-    expect(ids(pickDirections(list, { main: ANY, pantryIngredientIds: [] }))).toEqual(["a", "b", "c"]);
+    expect(ids(pickDirections(data, list, { main: ANY }))).toEqual(["a", "b", "c"]);
+    expect(ids(pickDirections(data, list, { main: ANY, pantryIngredientIds: [] }))).toEqual(["a", "b", "c"]);
   });
 });
 
@@ -174,14 +177,14 @@ describe("pickDirections — the Proteinrikt intent", () => {
   ];
 
   it("prefers high-protein-tagged dishes when the chip is on", () => {
-    expect(ids(pickDirections(list, { main: ANY, preferHighProtein: true }))).toEqual([
+    expect(ids(pickDirections(data, list, { main: ANY, preferHighProtein: true }))).toEqual([
       "proteinrik",
       "vanlig",
     ]);
   });
 
   it("changes nothing when the chip is off", () => {
-    expect(ids(pickDirections(list, { main: ANY }))).toEqual(["vanlig", "proteinrik"]);
+    expect(ids(pickDirections(data, list, { main: ANY }))).toEqual(["vanlig", "proteinrik"]);
   });
 
   it("never filters — an untagged dish still surfaces when tagged ones run out", () => {
@@ -189,7 +192,7 @@ describe("pickDirections — the Proteinrikt intent", () => {
     // dinner templates carry the tag before allergies are applied at all.
     const onlyUntagged = [ranked("a"), ranked("b")];
 
-    expect(ids(pickDirections(onlyUntagged, { main: ANY, preferHighProtein: true }))).toEqual([
+    expect(ids(pickDirections(data, onlyUntagged, { main: ANY, preferHighProtein: true }))).toEqual([
       "a",
       "b",
     ]);
@@ -210,7 +213,7 @@ describe("pickDirections — the Proteinrikt intent", () => {
     ];
 
     expect(
-      ids(pickDirections(mixed, { main: ANY, preferHighProtein: true, pantryIngredientIds: ["ris"] })),
+      ids(pickDirections(data, mixed, { main: ANY, preferHighProtein: true, pantryIngredientIds: ["ris"] })),
     ).toEqual(["tagged-pantry", "tagged-no-pantry"]);
   });
 });
@@ -224,7 +227,7 @@ describe("pickDirections — cuisine variety", () => {
       ranked("as-1", { cuisine: "asian" }),
     ];
 
-    expect(ids(pickDirections(list, { main: ANY }))).toEqual(["sv-1", "it-1", "as-1"]);
+    expect(ids(pickDirections(data, list, { main: ANY }))).toEqual(["sv-1", "it-1", "as-1"]);
   });
 
   it("falls back to rank order when there is no other cuisine to reach for", () => {
@@ -234,7 +237,7 @@ describe("pickDirections — cuisine variety", () => {
       ranked("sv-3", { cuisine: "swedish_nordic" }),
     ];
 
-    expect(ids(pickDirections(list, { main: ANY }))).toEqual(["sv-1", "sv-2", "sv-3"]);
+    expect(ids(pickDirections(data, list, { main: ANY }))).toEqual(["sv-1", "sv-2", "sv-3"]);
   });
 
   it("never trades a pantry match away for variety", () => {
@@ -246,7 +249,7 @@ describe("pickDirections — cuisine variety", () => {
       ranked("sv-pantry-2", { cuisine: "swedish_nordic", ingredient_slots: slots("ris") }),
     ];
 
-    expect(ids(pickDirections(list, { main: ANY, pantryIngredientIds: ["ris"] }))).toEqual([
+    expect(ids(pickDirections(data, list, { main: ANY, pantryIngredientIds: ["ris"] }))).toEqual([
       "sv-pantry-1",
       "sv-pantry-2",
       "as-no-pantry",
@@ -264,9 +267,9 @@ describe("pickDirections — determinism", () => {
     ];
     const selection = { main: ANY, pantryIngredientIds: ["ris"], preferHighProtein: true };
 
-    const first = ids(pickDirections(list, selection));
+    const first = ids(pickDirections(data, list, selection));
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      expect(ids(pickDirections(list, selection))).toEqual(first);
+      expect(ids(pickDirections(data, list, selection))).toEqual(first);
     }
   });
 
@@ -274,7 +277,7 @@ describe("pickDirections — determinism", () => {
     const list = [ranked("a"), ranked("b"), ranked("c"), ranked("d")];
     const before = ids(list);
 
-    pickDirections(list, { main: ANY, pantryIngredientIds: ["ris"] });
+    pickDirections(data, list, { main: ANY, pantryIngredientIds: ["ris"] });
 
     expect(ids(list)).toEqual(before);
   });
@@ -336,7 +339,7 @@ describe("pickDirections — allergen safety over the real catalog", () => {
   const rowsByIngredientId = data.allergenMappingByIngredientId;
 
   /** Every ingredient the guided flow could put on screen for this household. */
-  function surfacedIngredientIds(h: MealConstraints, selection: Partial<Parameters<typeof pickDirections>[1]> = {}) {
+  function surfacedIngredientIds(h: MealConstraints, selection: Partial<Parameters<typeof pickDirections>[2]> = {}) {
     const surfaced = new Set<string>();
     const list = realRanked(h);
 
@@ -350,7 +353,7 @@ describe("pickDirections — allergen safety over the real catalog", () => {
     }
 
     for (const choice of choices) {
-      for (const direction of pickDirections(list, { main: choice, ...selection })) {
+      for (const direction of pickDirections(data, list, { main: choice, ...selection })) {
         for (const ingredientId of effectiveIngredientIds(direction)) surfaced.add(ingredientId);
       }
     }
@@ -409,7 +412,7 @@ describe("pickDirections — allergen safety over the real catalog", () => {
     const list = realRanked(h);
 
     for (const preferHighProtein of [false, true]) {
-      for (const direction of pickDirections(list, { main: ANY, preferHighProtein })) {
+      for (const direction of pickDirections(data, list, { main: ANY, preferHighProtein })) {
         expect(direction.template.dietary_tags).toContain("vegan");
       }
     }
@@ -419,7 +422,7 @@ describe("pickDirections — allergen safety over the real catalog", () => {
     const list = realRanked(household({ allergies: ["gluten"] }));
     const byId = new Map(list.map((candidate) => [candidate.template.id, candidate]));
 
-    for (const direction of pickDirections(list, { main: ANY, pantryIngredientIds: ["ris"] })) {
+    for (const direction of pickDirections(data, list, { main: ANY, pantryIngredientIds: ["ris"] })) {
       const source = byId.get(direction.template.id);
       expect(source).toBeDefined();
       expect(direction.template).toBe(source!.template);
@@ -433,16 +436,16 @@ describe("eligibleDirections — the §9 empty-state signal", () => {
   it("is empty exactly when the constraints leave nothing, so the caller can offer to loosen", () => {
     const list = realRanked(household({ allergies: ["gluten", "dairy_lactose"], dietary_flags: ["vegan"] }));
 
-    expect(eligibleDirections(list, { main: main("entrecote") })).toEqual([]);
-    expect(eligibleDirections(list, { main: ANY }).length).toBeGreaterThan(0);
+    expect(eligibleDirections(data, list, { main: main("entrecote") })).toEqual([]);
+    expect(eligibleDirections(data, list, { main: ANY }).length).toBeGreaterThan(0);
   });
 
   it("can legitimately return fewer than three for a real constrained household", () => {
     const list = realRanked(household({ dietary_flags: ["vegan"] }));
-    const eligible = eligibleDirections(list, { main: main("kikartor") });
+    const eligible = eligibleDirections(data, list, { main: main("kikartor") });
 
     expect(eligible.length).toBeGreaterThan(0);
-    expect(pickDirections(list, { main: main("kikartor") }).length).toBeLessThanOrEqual(
+    expect(pickDirections(data, list, { main: main("kikartor") }).length).toBeLessThanOrEqual(
       eligible.length,
     );
   });
@@ -456,10 +459,10 @@ describe("pickDirections — the Billigt intent rides the existing weight vector
     const h = household();
     const candidates = selectCandidateTemplates(data, h);
 
-    const neutral = pickDirections(rankCandidates(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 }, 6), {
+    const neutral = pickDirections(data, rankCandidates(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 0, time: 0 }, 6), {
       main: ANY,
     });
-    const cheap = pickDirections(rankCandidates(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 3, time: 0 }, 6), {
+    const cheap = pickDirections(data, rankCandidates(data, candidates, { ...NEUTRAL_RANKING_WEIGHTS, price: 3, time: 0 }, 6), {
       main: ANY,
     });
 
@@ -493,7 +496,7 @@ describe("pickDirections — synthetic data sanity", () => {
       6,
     );
 
-    expect(ids(pickDirections(list, { main: main("kyckling"), pantryIngredientIds: ["ris"] }))).toEqual(
+    expect(ids(pickDirections(engineData, list, { main: main("kyckling"), pantryIngredientIds: ["ris"] }))).toEqual(
       ["wok"],
     );
   });

@@ -10,7 +10,8 @@ import { selectCandidateTemplates } from "./candidates.js";
 import { loadEngineData } from "./data.js";
 import { orderByPantryCoverage, pickDirections } from "./directions.js";
 import {
-  coveredPantryIngredientIds,
+  coveredPantryIngredients,
+  distinctPantryItemCount,
   effectiveIngredientIds,
   explainSuggestion,
   pickNextSuggestion,
@@ -74,14 +75,14 @@ describe("orderByPantryCoverage", () => {
   it("is the identity when the household selected nothing", () => {
     // The step was skipped, which is not the same as "has nothing" — either way it
     // stops being an ordering signal and the score order stands untouched.
-    expect(orderByPantryCoverage(ranked, []).map((d) => d.template.id)).toEqual(
+    expect(orderByPantryCoverage(data, ranked, []).map((d) => d.template.id)).toEqual(
       ranked.map((candidate) => candidate.template.id),
     );
   });
 
   it("never adds or drops a candidate — it only reorders", () => {
     for (const pantry of PANTRY_SELECTIONS) {
-      const ordered = orderByPantryCoverage(ranked, pantry);
+      const ordered = orderByPantryCoverage(data, ranked, pantry);
       expect(new Set(ordered.map((d) => d.template.id))).toEqual(
         new Set(ranked.map((c) => c.template.id)),
       );
@@ -91,8 +92,8 @@ describe("orderByPantryCoverage", () => {
 
   it("puts higher coverage first, always", () => {
     for (const pantry of PANTRY_SELECTIONS) {
-      const coverage = orderByPantryCoverage(ranked, pantry).map(
-        (d) => d.coveredPantryIngredientIds.length,
+      const coverage = orderByPantryCoverage(data, ranked, pantry).map((d) =>
+        distinctPantryItemCount(d.pantryCoverage),
       );
       const nonIncreasing = coverage.every((value, i) => i === 0 || coverage[i - 1]! >= value);
       expect(nonIncreasing).toBe(true);
@@ -101,7 +102,7 @@ describe("orderByPantryCoverage", () => {
 
   it("keeps the score order inside a coverage bucket", () => {
     const pantry = ["spagetti", "gul-lok", "ris"];
-    const ordered = orderByPantryCoverage(ranked, pantry);
+    const ordered = orderByPantryCoverage(data, ranked, pantry);
     const scoreOrder = new Map(ranked.map((candidate, index) => [candidate.template.id, index]));
 
     // Within one bucket the shared rank order must survive verbatim: coverage decides
@@ -110,7 +111,8 @@ describe("orderByPantryCoverage", () => {
       const previous = ordered[i - 1]!;
       const current = ordered[i]!;
       if (
-        previous.coveredPantryIngredientIds.length === current.coveredPantryIngredientIds.length
+        distinctPantryItemCount(previous.pantryCoverage) ===
+        distinctPantryItemCount(current.pantryCoverage)
       ) {
         expect(scoreOrder.get(previous.template.id)!).toBeLessThan(
           scoreOrder.get(current.template.id)!,
@@ -121,8 +123,8 @@ describe("orderByPantryCoverage", () => {
 
   it("counts an ingredient once even when a dish uses it in two slots", () => {
     for (const pantry of PANTRY_SELECTIONS) {
-      for (const direction of orderByPantryCoverage(ranked, pantry)) {
-        const covered = direction.coveredPantryIngredientIds;
+      for (const direction of orderByPantryCoverage(data, ranked, pantry)) {
+        const covered = direction.pantryCoverage.map((entry) => entry.ingredientId);
         expect(new Set(covered).size).toBe(covered.length);
       }
     }
@@ -141,20 +143,20 @@ describe("Tonight and the guided flow share one pantry ranking input", () => {
       const ranked = rankedFor(household(), NEUTRAL_PREFERENCE_WEIGHTS);
 
       const tonight = new Map(
-        orderByPantryCoverage(ranked, pantry).map((d) => [
+        orderByPantryCoverage(data, ranked, pantry).map((d) => [
           d.template.id,
-          [...d.coveredPantryIngredientIds].sort(),
+          d.pantryCoverage.map((entry) => entry.ingredientId).sort(),
         ]),
       );
 
       // The guided flow's own view of the same selection, taken from the full-length
       // direction set with no main-ingredient constraint and no intent.
       const guided = new Map(
-        pickDirections(ranked, {
+        pickDirections(data, ranked, {
           main: { kind: "any" },
           pantryIngredientIds: pantry,
           count: ranked.length,
-        }).map((d) => [d.template.id, [...d.coveredPantryIngredientIds].sort()]),
+        }).map((d) => [d.template.id, d.pantryCoverage.map((entry) => entry.ingredientId).sort()]),
       );
 
       expect(tonight).toEqual(guided);
@@ -166,11 +168,11 @@ describe("Tonight and the guided flow share one pantry ranking input", () => {
     const ranked = rankedFor(household(), NEUTRAL_PREFERENCE_WEIGHTS);
 
     const tonightPick = pickNextSuggestion(
-      orderByPantryCoverage(ranked, pantry),
+      orderByPantryCoverage(data, ranked, pantry),
       new Set(),
       undefined,
     );
-    const [guidedFirst] = pickDirections(ranked, {
+    const [guidedFirst] = pickDirections(data, ranked, {
       main: { kind: "any" },
       pantryIngredientIds: pantry,
     });
@@ -184,7 +186,7 @@ describe("the pantry_match reason", () => {
   const weights = toRankingWeights(NEUTRAL_PREFERENCE_WEIGHTS);
 
   function explain(pantry: readonly string[], excluded: ReadonlySet<string> = new Set()) {
-    const ordered = orderByPantryCoverage(ranked, pantry);
+    const ordered = orderByPantryCoverage(data, ranked, pantry);
     const picked = pickNextSuggestion(ordered, excluded, undefined)!;
     return {
       picked,
@@ -209,9 +211,9 @@ describe("the pantry_match reason", () => {
 
     // The premise: something really does outscore the pick, so coverage is what put
     // it in front. Without this the assertion below would pass vacuously.
-    const ordered = orderByPantryCoverage(ranked, pantry);
+    const ordered = orderByPantryCoverage(data, ranked, pantry);
     expect(ordered.some((candidate) => candidate.score > picked.score)).toBe(true);
-    expect(coveredPantryIngredientIds(picked, new Set(pantry)).length).toBeGreaterThan(0);
+    expect(coveredPantryIngredients(data, picked, new Set(pantry)).length).toBeGreaterThan(0);
 
     expect(codes).toContain("pantry_match");
   });
@@ -231,7 +233,7 @@ describe("the pantry_match reason", () => {
     // Where the score winner also leads on coverage, the pantry decided nothing and
     // claiming otherwise would credit a tap that changed no outcome.
     const pantry = [...data.ingredientsById.keys()];
-    const ordered = orderByPantryCoverage(ranked, pantry);
+    const ordered = orderByPantryCoverage(data, ranked, pantry);
     const picked = pickNextSuggestion(ordered, new Set(), undefined)!;
 
     if (!ordered.some((candidate) => candidate.score > picked.score)) {
@@ -272,7 +274,7 @@ describe("pantry input can never affect allergy or dietary filtering", () => {
         const ranked = rankedFor(constraints, preference);
         for (const pantry of PANTRY_SELECTIONS) {
           const ids = new Set(
-            orderByPantryCoverage(ranked, pantry).map((d) => d.template.id),
+            orderByPantryCoverage(data, ranked, pantry).map((d) => d.template.id),
           );
           // Set equality: pantry and weights may reorder, and only reorder. One
           // template added or removed would mean ordering had reached into filtering.
@@ -290,7 +292,7 @@ describe("pantry input can never affect allergy or dietary filtering", () => {
       for (const preference of WEIGHT_EXTREMES) {
         const ranked = rankedFor(constraints, preference);
         for (const pantry of PANTRY_SELECTIONS) {
-          const offenders = orderByPantryCoverage(ranked, pantry)
+          const offenders = orderByPantryCoverage(data, ranked, pantry)
             .flatMap((direction) => effectiveIngredientIds(direction))
             .filter((ingredientId) => {
               const row = rowsByIngredientId.get(ingredientId);
@@ -317,8 +319,10 @@ describe("pantry input can never affect allergy or dietary filtering", () => {
       const everything = [...data.ingredientsById.keys()];
 
       for (const preference of WEIGHT_EXTREMES) {
-        const ordered = orderByPantryCoverage(rankedFor(constraints, preference), everything);
-        const covered = ordered.flatMap((direction) => direction.coveredPantryIngredientIds);
+        const ordered = orderByPantryCoverage(data, rankedFor(constraints, preference), everything);
+        const covered = ordered.flatMap((direction) =>
+          direction.pantryCoverage.map((entry) => entry.ingredientId),
+        );
         const offenders = covered.filter((ingredientId) =>
           rowsByIngredientId.get(ingredientId)?.allergens.includes(allergy),
         );
