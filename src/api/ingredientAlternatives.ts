@@ -5,8 +5,6 @@ import {
 } from "../engine/candidates.js";
 import type { EngineData } from "../engine/data.js";
 import { scaleSlotQuantity, type ScaledQuantity } from "../engine/quantities.js";
-import type { Allergy } from "../schema/allergyDietary.js";
-import type { HouseholdMember } from "../schema/household.js";
 import type { CostTier } from "../schema/ingredient.js";
 import type { IngredientSlot } from "../schema/recipeTemplate.js";
 
@@ -37,7 +35,7 @@ export interface IngredientAlternativesView {
   cheaper?: IngredientAlternativeView[];
   similar?: IngredientAlternativeView[];
   /**
-   * The full role-valid catalog pool, allergy-gated, minus the current ingredient —
+   * The full role-valid catalog pool, catalog-resolved, minus the current ingredient —
    * always present when `substitutable` is true, even as `[]`. The client filters it
    * locally by typed query (the #110 idiom), so this is fetched once per popover open
    * rather than once per keystroke.

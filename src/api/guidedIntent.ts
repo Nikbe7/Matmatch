@@ -56,7 +56,7 @@ const NEUTRAL: PreferenceWeightsDelta = {};
  *    step, applied as coverage bucketing in `pickDirections`; adding a weight on top
  *    would be inventing a second meaning for the chip.
  *  * `high_protein` — a selection preference over `high_protein_preference`-tagged
- *    templates. Not a filter (only 13 dinner templates carry the tag before allergies)
+ *    templates. Not a filter (only 13 dinner templates carry the tag at all)
  *    and not a score term (`scoreCandidate` deliberately has none).
  *  * `surprise_me` — neutral weights; what makes it a surprise is that the flow skips
  *    the main-ingredient and pantry steps and lets the engine pick, not a different

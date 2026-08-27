@@ -14,16 +14,10 @@ export interface ShoppingListItem {
   section: ShoppingListSection;
   bought: boolean;
   /**
-   * The household-union allergen marking for this ingredient (#116). Stored
-   * alongside the item, not re-derived on the client — the client holds no
-   * household to derive it from — so it survives a reload with no connection,
-   * which is when it matters most (UX_FLOW §7: usable offline).
-   */
-  /**
    * How much to buy, already scaled to tonight's diners by the server (#123).
-   * Stored for the same reason as `allergens`: the client cannot re-derive it — it
-   * holds neither the template's authored amounts nor the portion count — and the
-   * shop is exactly where the list gets re-opened with no connection.
+   * Stored rather than re-derived: the client holds neither the template's authored
+   * amounts nor the portion count, and the shop is exactly where the list gets
+   * re-opened with no connection (UX_FLOW §7: usable offline).
    */
   quantity: ScaledQuantity;
   /** Which template slot this item fills, and the ingredient currently there (#124)

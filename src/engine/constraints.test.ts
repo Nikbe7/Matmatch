@@ -1,52 +1,50 @@
 import { describe, expect, it } from "vitest";
-import { ALLERGIES, DIETARY_FLAGS } from "../schema/vocabulary.js";
+import { DIETARY_FLAGS } from "../schema/vocabulary.js";
 import { HouseholdSchema, type HouseholdMember } from "../schema/household.js";
 import { mealConstraints, mealDiners } from "./constraints.js";
 
 function member(overrides: Partial<HouseholdMember> = {}): HouseholdMember {
-  return { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [], ...overrides };
+  return { type: "adult", portion_factor: 1, dietary_flags: [], ...overrides };
 }
 
 describe("mealConstraints", () => {
-  it("unions allergies and dietary flags across members", () => {
+  it("unions dietary flags across members", () => {
     const constraints = mealConstraints([
-      member({ allergies: ["gluten"], dietary_flags: ["vegetarian"] }),
-      member({ allergies: ["fish"], dietary_flags: [] }),
-      member({ allergies: [], dietary_flags: ["vegan"] }),
+      member({ dietary_flags: ["vegetarian"] }),
+      member({ dietary_flags: [] }),
+      member({ dietary_flags: ["vegan"] }),
     ]);
 
-    expect(constraints.allergies).toEqual(["gluten", "fish"]);
     expect(constraints.dietary_flags).toEqual(["vegetarian", "vegan"]);
   });
 
   it("deduplicates a constraint two members share", () => {
     const constraints = mealConstraints([
-      member({ allergies: ["peanuts"] }),
-      member({ allergies: ["peanuts"] }),
+      member({ dietary_flags: ["vegan"] }),
+      member({ dietary_flags: ["vegan"] }),
     ]);
 
-    expect(constraints.allergies).toEqual(["peanuts"]);
+    expect(constraints.dietary_flags).toEqual(["vegan"]);
   });
 
   it("orders by the locked §5.2 vocabulary, not by the order members are listed in", () => {
     // The property that makes behavior preservation an equality assertion rather than
     // a set comparison — and that keeps the value safe to compare or key on later.
     const forwards = mealConstraints([
-      member({ allergies: ["soy"], dietary_flags: ["vegan"] }),
-      member({ allergies: ["gluten"], dietary_flags: ["high_protein_preference"] }),
+      member({ dietary_flags: ["high_protein_preference"] }),
+      member({ dietary_flags: ["vegan"] }),
     ]);
     const backwards = mealConstraints([
-      member({ allergies: ["gluten"], dietary_flags: ["high_protein_preference"] }),
-      member({ allergies: ["soy"], dietary_flags: ["vegan"] }),
+      member({ dietary_flags: ["vegan"] }),
+      member({ dietary_flags: ["high_protein_preference"] }),
     ]);
 
     expect(forwards).toEqual(backwards);
-    expect(forwards.allergies).toEqual(["gluten", "soy"]);
     expect(forwards.dietary_flags).toEqual(["vegan", "high_protein_preference"]);
   });
 
   it("yields empty constraints for a household that declares nothing", () => {
-    expect(mealConstraints([member(), member()])).toEqual({ allergies: [], dietary_flags: [] });
+    expect(mealConstraints([member(), member()])).toEqual({ dietary_flags: [] });
   });
 
   it("yields empty constraints for an empty member list, which callers must never reach from user input", () => {
@@ -54,18 +52,10 @@ describe("mealConstraints", () => {
     // "none selected" to the full household *before* calling this (#112, fail-closed).
     // The function itself stays total rather than throwing, so the engine has no
     // opinion about how a caller got here.
-    expect(mealConstraints([])).toEqual({ allergies: [], dietary_flags: [] });
+    expect(mealConstraints([])).toEqual({ dietary_flags: [] });
   });
 
-  it("carries the whole locked vocabulary when members between them declare all of it", () => {
-    const constraints = mealConstraints(
-      ALLERGIES.map((allergy) => member({ allergies: [allergy] })),
-    );
-
-    expect(constraints.allergies).toEqual([...ALLERGIES]);
-  });
-
-  it("unions every dietary flag in the locked vocabulary the same way", () => {
+  it("unions every dietary flag in the locked vocabulary", () => {
     const constraints = mealConstraints(
       DIETARY_FLAGS.map((flag) => member({ dietary_flags: [flag] })),
     );
@@ -75,29 +65,26 @@ describe("mealConstraints", () => {
 });
 
 describe("the full household — behavior preservation across #115", () => {
-  // The binding condition on this change: the union over every member must equal
-  // exactly what the household-level arrays used to hold, so not one suggestion moves.
+  // The binding condition on that change: the union over every member must equal
+  // exactly what the household-level array used to hold, so not one suggestion moves.
   // Each case below is a household profile as it existed before constraints moved onto
-  // members, paired with the arrays that profile stored.
-  const cases: { name: string; before: { allergies: string[]; dietary_flags: string[] } }[] = [
-    { name: "no restrictions", before: { allergies: [], dietary_flags: [] } },
-    { name: "one allergy", before: { allergies: ["gluten"], dietary_flags: [] } },
-    { name: "one dietary flag", before: { allergies: [], dietary_flags: ["vegetarian"] } },
+  // members, paired with the array that profile stored. #224 removed the allergy half
+  // of this; the dietary half is untouched and still has to hold.
+  const cases: { name: string; before: { dietary_flags: string[] } }[] = [
+    { name: "no restrictions", before: { dietary_flags: [] } },
+    { name: "one dietary flag", before: { dietary_flags: ["vegetarian"] } },
     {
       name: "the mixed profile the persistence tests use",
-      before: { allergies: ["gluten", "fish"], dietary_flags: ["vegetarian"] },
+      before: { dietary_flags: ["vegetarian", "high_protein_preference"] },
     },
-    {
-      name: "every allergy and every flag at once",
-      before: { allergies: [...ALLERGIES], dietary_flags: [...DIETARY_FLAGS] },
-    },
+    { name: "every flag at once", before: { dietary_flags: [...DIETARY_FLAGS] } },
   ];
 
   it.each(cases)(
-    "the migration's backfill — every member carrying the household's arrays — reproduces them exactly ($name)",
+    "the migration's backfill — every member carrying the household's array — reproduces it exactly ($name)",
     ({ before }) => {
       // This mirrors the SQL backfill in 20260810000000_per_member_constraints.sql:
-      // every member gets the household's arrays verbatim.
+      // every member gets the household's array verbatim.
       const household = HouseholdSchema.parse({
         members: [
           { type: "adult", portion_factor: 1, ...before },
@@ -118,20 +105,13 @@ describe("the full household — behavior preservation across #115", () => {
       // a profile edited after the migration.
       const household = HouseholdSchema.parse({
         members: [
-          ...before.allergies.map((allergy, index) => ({
+          ...before.dietary_flags.map((flag, index) => ({
             type: index % 2 === 0 ? "adult" : "child",
             portion_factor: 1,
-            allergies: [allergy],
-            dietary_flags: [],
-          })),
-          ...before.dietary_flags.map((flag) => ({
-            type: "adult",
-            portion_factor: 1,
-            allergies: [],
             dietary_flags: [flag],
           })),
           // At least one member always exists, even for the no-restrictions case.
-          { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
+          { type: "adult", portion_factor: 1, dietary_flags: [] },
         ],
       });
 
@@ -139,16 +119,16 @@ describe("the full household — behavior preservation across #115", () => {
     },
   );
 
-  it("is exhaustive over the locked allergy vocabulary, one member each", () => {
-    for (const allergy of ALLERGIES) {
+  it("is exhaustive over the locked dietary vocabulary, one member each", () => {
+    for (const flag of DIETARY_FLAGS) {
       const household = HouseholdSchema.parse({
         members: [
-          { type: "adult", portion_factor: 1, allergies: [allergy], dietary_flags: [] },
-          { type: "child", portion_factor: 0.5, allergies: [], dietary_flags: [] },
+          { type: "adult", portion_factor: 1, dietary_flags: [flag] },
+          { type: "child", portion_factor: 0.5, dietary_flags: [] },
         ],
       });
 
-      expect(mealConstraints(household.members).allergies).toEqual([allergy]);
+      expect(mealConstraints(household.members).dietary_flags).toEqual([flag]);
     }
   });
 });
@@ -156,14 +136,13 @@ describe("the full household — behavior preservation across #115", () => {
 describe("mealDiners — constraints scoped to who is eating (#112)", () => {
   // Two people, one restriction each, so every assertion below can say *whose*
   // constraint survived rather than just how many did.
-  const glutenAdult = member({ allergies: ["gluten"], dietary_flags: ["vegetarian"] });
-  const peanutChild = member({
+  const vegetarianAdult = member({ dietary_flags: ["vegetarian"] });
+  const veganChild = member({
     type: "child",
     portion_factor: 0.5,
-    allergies: ["peanuts"],
     dietary_flags: ["vegan"],
   });
-  const roster = [glutenAdult, peanutChild];
+  const roster = [vegetarianAdult, veganChild];
 
   describe("the default is provably every member", () => {
     it("with no selection, the diners are the member list itself", () => {
@@ -179,7 +158,7 @@ describe("mealDiners — constraints scoped to who is eating (#112)", () => {
     it("is the whole household for every roster size, not just the two-member case", () => {
       for (let size = 1; size <= 8; size += 1) {
         const members = Array.from({ length: size }, (_, index) =>
-          member({ allergies: [ALLERGIES[index % ALLERGIES.length]!] }),
+          member({ dietary_flags: [DIETARY_FLAGS[index % DIETARY_FLAGS.length]!] }),
         );
 
         expect(mealDiners(members).members).toHaveLength(size);
@@ -195,62 +174,56 @@ describe("mealDiners — constraints scoped to who is eating (#112)", () => {
   });
 
   describe("a deselected member's constraints stop applying; a selected member's do not", () => {
-    it("dropping the peanut-allergic child leaves gluten and drops peanuts", () => {
+    it("dropping the vegan child leaves vegetarian and drops vegan", () => {
       const { constraints } = mealDiners(roster, new Set([0]));
 
-      expect(constraints.allergies).toEqual(["gluten"]);
       expect(constraints.dietary_flags).toEqual(["vegetarian"]);
     });
 
-    it("dropping the gluten-allergic adult leaves peanuts and drops gluten", () => {
+    it("dropping the vegetarian adult leaves vegan and drops vegetarian", () => {
       const { constraints } = mealDiners(roster, new Set([1]));
 
-      expect(constraints.allergies).toEqual(["peanuts"]);
       expect(constraints.dietary_flags).toEqual(["vegan"]);
     });
 
-    it("is exhaustive over the locked allergy vocabulary, both directions", () => {
-      // The safety claim in both of its halves, for every allergy there is: the
-      // carrier's allergy is dropped when they are not eating, and kept when they are.
-      for (const allergy of ALLERGIES) {
-        const carrier = member({ allergies: [allergy] });
+    it("is exhaustive over the locked dietary vocabulary, both directions", () => {
+      // The claim in both of its halves, for every flag there is: the carrier's flag
+      // is dropped when they are not eating, and kept when they are.
+      for (const flag of DIETARY_FLAGS) {
+        const carrier = member({ dietary_flags: [flag] });
         // The carrier in the middle, so a subset that drops them is not just a prefix.
         const members = [member(), carrier, member()];
 
-        expect(mealDiners(members, new Set([0, 2])).constraints.allergies).toEqual([]);
-        expect(mealDiners(members, new Set([1])).constraints.allergies).toEqual([allergy]);
-        expect(mealDiners(members, new Set([0, 1])).constraints.allergies).toEqual([allergy]);
-      }
-    });
-
-    it("is exhaustive over the locked dietary vocabulary the same way", () => {
-      for (const flag of DIETARY_FLAGS) {
-        const carrier = member({ dietary_flags: [flag] });
-        const members = [member(), carrier];
-
-        expect(mealDiners(members, new Set([0])).constraints.dietary_flags).toEqual([]);
+        expect(mealDiners(members, new Set([0, 2])).constraints.dietary_flags).toEqual([]);
         expect(mealDiners(members, new Set([1])).constraints.dietary_flags).toEqual([flag]);
+        expect(mealDiners(members, new Set([0, 1])).constraints.dietary_flags).toEqual([flag]);
       }
     });
 
-    it("keeps an allergy two members share when only one of them is deselected", () => {
+    it("keeps a flag two members share when only one of them is deselected", () => {
       const members = [
-        member({ allergies: ["tree_nuts"] }),
-        member({ allergies: ["tree_nuts"] }),
-        member({ allergies: ["egg"] }),
+        member({ dietary_flags: ["vegan"] }),
+        member({ dietary_flags: ["vegan"] }),
+        member({ dietary_flags: ["vegetarian"] }),
       ];
 
-      expect(mealDiners(members, new Set([0, 2])).constraints.allergies).toEqual([
-        "egg",
-        "tree_nuts",
+      expect(mealDiners(members, new Set([0, 2])).constraints.dietary_flags).toEqual([
+        "vegetarian",
+        "vegan",
       ]);
-      expect(mealDiners(members, new Set([2])).constraints.allergies).toEqual(["egg"]);
+      expect(mealDiners(members, new Set([2])).constraints.dietary_flags).toEqual(["vegetarian"]);
     });
 
     it("still orders by the locked vocabulary, not by diner order", () => {
-      const members = [member({ allergies: ["soy"] }), member({ allergies: ["gluten"] })];
+      const members = [
+        member({ dietary_flags: ["high_protein_preference"] }),
+        member({ dietary_flags: ["vegan"] }),
+      ];
 
-      expect(mealDiners(members, new Set([1, 0])).constraints.allergies).toEqual(["gluten", "soy"]);
+      expect(mealDiners(members, new Set([1, 0])).constraints.dietary_flags).toEqual([
+        "vegan",
+        "high_protein_preference",
+      ]);
     });
   });
 
@@ -275,7 +248,7 @@ describe("mealDiners — constraints scoped to who is eating (#112)", () => {
       const diners = mealDiners(roster, selection);
 
       expect(diners.members).toEqual(roster);
-      expect(diners.constraints.allergies).toEqual(["gluten", "peanuts"]);
+      expect(diners.constraints.dietary_flags).toEqual(["vegetarian", "vegan"]);
       expect(diners).toEqual(fullHousehold);
     });
 
@@ -295,7 +268,9 @@ describe("mealDiners — constraints scoped to who is eating (#112)", () => {
         if (!valid || selection.size === 0) {
           expect(constraints).toEqual(household);
         } else {
-          expect(household.allergies).toEqual(expect.arrayContaining([...constraints.allergies]));
+          expect(household.dietary_flags).toEqual(
+            expect.arrayContaining([...constraints.dietary_flags]),
+          );
         }
       }
     });
@@ -327,7 +302,10 @@ describe("mealDiners — constraints scoped to who is eating (#112)", () => {
   });
 
   it("does not mutate the member list it is given", () => {
-    const members = [member({ allergies: ["gluten"] }), member({ allergies: ["fish"] })];
+    const members = [
+      member({ dietary_flags: ["vegetarian"] }),
+      member({ dietary_flags: ["vegan"] }),
+    ];
     const before = structuredClone(members);
 
     mealDiners(members, new Set([0]));

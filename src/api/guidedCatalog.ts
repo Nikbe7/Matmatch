@@ -2,7 +2,6 @@ import type { CandidateTemplate } from "../engine/candidates.js";
 import type { EngineData } from "../engine/data.js";
 import type { Direction } from "../engine/directions.js";
 import { effectiveIngredientIds } from "../engine/ranking.js";
-import type { HouseholdMember } from "../schema/household.js";
 import type { IngredientCategory } from "../schema/ingredient.js";
 import { HttpError } from "./httpError.js";
 import { buildTonightIngredients, type TonightIngredientView } from "./tonightIngredients.js";
@@ -48,10 +47,10 @@ const PANTRY_CATEGORIES: readonly IngredientCategory[] = [
  * ingredients worth offering are the ones the most dishes can actually be built
  * from, so the grids follow the catalog instead of going stale beside it. Counted
  * over the *household's* candidate set rather than the whole library, which is what
- * keeps the grid from offering a fish-allergic household a tap target ("lax") whose
- * only possible outcome is the §9 empty state. It is not a safety mechanism — the
- * engine would never serve that dish either way — it is the difference between a
- * grid of real choices and a grid with traps in it.
+ * keeps the grid from offering a vegetarian household a tap target ("kycklingfilé")
+ * whose only possible outcome is the §9 empty state. It is not a filtering mechanism
+ * — the engine would never serve that dish either way — it is the difference between
+ * a grid of real choices and a grid with traps in it.
  */
 function candidateFrequency(candidates: readonly CandidateTemplate[]): Map<string, number> {
   const frequency = new Map<string, number>();

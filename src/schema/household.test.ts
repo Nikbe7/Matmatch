@@ -5,8 +5,8 @@ describe("HouseholdSchema", () => {
   it("parses a valid household", () => {
     const fixture = {
       members: [
-        { type: "adult", name: "Ella", portion_factor: 1, allergies: ["gluten"], dietary_flags: ["vegetarian"] },
-        { type: "child", portion_factor: 0.6, allergies: ["fish"], dietary_flags: [] },
+        { type: "adult", name: "Ella", portion_factor: 1, dietary_flags: ["vegetarian"] },
+        { type: "child", portion_factor: 0.6, dietary_flags: [] },
       ],
     };
 
@@ -15,7 +15,7 @@ describe("HouseholdSchema", () => {
 
   it("parses a household with no restrictions", () => {
     const fixture = {
-      members: [{ type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] }],
+      members: [{ type: "adult", portion_factor: 1, dietary_flags: [] }],
     };
 
     expect(HouseholdSchema.safeParse(fixture).success).toBe(true);
@@ -30,7 +30,7 @@ describe("HouseholdSchema", () => {
 
   it("rejects a member type outside adult/child", () => {
     const result = HouseholdSchema.safeParse({
-      members: [{ type: "teenager", portion_factor: 1, allergies: [], dietary_flags: [] }],
+      members: [{ type: "teenager", portion_factor: 1, dietary_flags: [] }],
     });
 
     expect(result.success).toBe(false);
@@ -39,75 +39,56 @@ describe("HouseholdSchema", () => {
 
   it("rejects a non-positive portion_factor", () => {
     const result = HouseholdSchema.safeParse({
-      members: [{ type: "adult", portion_factor: 0, allergies: [], dietary_flags: [] }],
+      members: [{ type: "adult", portion_factor: 0, dietary_flags: [] }],
     });
 
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]).toMatchObject({ path: ["members", 0, "portion_factor"] });
   });
 
-  it("rejects an allergy outside the locked §5.2 vocabulary", () => {
-    const result = HouseholdSchema.safeParse({
-      members: [{ type: "adult", portion_factor: 1, allergies: ["sesame"], dietary_flags: [] }],
-    });
-
-    expect(result.success).toBe(false);
-    expect(result.error?.issues[0]).toMatchObject({ path: ["members", 0, "allergies", 0] });
-  });
-
   it("rejects a dietary flag outside the locked §5.2 vocabulary", () => {
     const result = HouseholdSchema.safeParse({
-      members: [{ type: "adult", portion_factor: 1, allergies: [], dietary_flags: ["pescatarian"] }],
+      members: [{ type: "adult", portion_factor: 1, dietary_flags: ["pescatarian"] }],
     });
 
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]).toMatchObject({ path: ["members", 0, "dietary_flags", 0] });
   });
 
-  it("rejects duplicate allergies on one member", () => {
-    const result = HouseholdSchema.safeParse({
-      members: [{ type: "adult", portion_factor: 1, allergies: ["gluten", "gluten"], dietary_flags: [] }],
-    });
-
-    expect(result.success).toBe(false);
-    expect(result.error?.issues[0]!.message).toContain("must not contain duplicate values");
-  });
-
   it("rejects duplicate dietary flags on one member", () => {
     const result = HouseholdSchema.safeParse({
-      members: [{ type: "adult", portion_factor: 1, allergies: [], dietary_flags: ["vegan", "vegan"] }],
+      members: [{ type: "adult", portion_factor: 1, dietary_flags: ["vegan", "vegan"] }],
     });
 
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]!.message).toContain("must not contain duplicate values");
   });
 
-  it("accepts the same allergy on two different members — that is a union, not a duplicate", () => {
+  it("accepts the same dietary flag on two different members — that is a union, not a duplicate", () => {
     const result = HouseholdSchema.safeParse({
       members: [
-        { type: "adult", portion_factor: 1, allergies: ["peanuts"], dietary_flags: [] },
-        { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+        { type: "adult", portion_factor: 1, dietary_flags: ["vegan"] },
+        { type: "child", portion_factor: 0.5, dietary_flags: ["vegan"] },
       ],
     });
 
     expect(result.success).toBe(true);
   });
 
-  it("requires allergies and dietary_flags rather than defaulting them to empty", () => {
-    // Deliberate, and the §5.4 reasoning one level down: an omitted safety value must
-    // be impossible to mistake for a declared-empty one, so this fails loudly.
+  it("requires dietary_flags rather than defaulting it to empty", () => {
+    // Deliberate: an omitted constraint must be impossible to mistake for a
+    // declared-empty one, so this fails loudly. #224 removed the allergies half; the
+    // reasoning holds for what is left, and the column behind it is still `not null`
+    // with no default (20260810000000).
     const result = HouseholdSchema.safeParse({ members: [{ type: "adult", portion_factor: 1 }] });
 
     expect(result.success).toBe(false);
-    expect(result.error?.issues.map((issue) => issue.path.at(-1)).sort()).toEqual([
-      "allergies",
-      "dietary_flags",
-    ]);
+    expect(result.error?.issues.map((issue) => issue.path.at(-1))).toEqual(["dietary_flags"]);
   });
 });
 
 describe("member name", () => {
-  const base = { type: "adult" as const, portion_factor: 1, allergies: [], dietary_flags: [] };
+  const base = { type: "adult" as const, portion_factor: 1, dietary_flags: [] };
 
   it("is optional", () => {
     expect(HouseholdSchema.safeParse({ members: [base] }).success).toBe(true);
@@ -135,8 +116,8 @@ describe("member name", () => {
 });
 
 describe("memberLabels", () => {
-  const adult = { type: "adult" as const, portion_factor: 1, allergies: [], dietary_flags: [] };
-  const child = { type: "child" as const, portion_factor: 0.5, allergies: [], dietary_flags: [] };
+  const adult = { type: "adult" as const, portion_factor: 1, dietary_flags: [] };
+  const child = { type: "child" as const, portion_factor: 0.5, dietary_flags: [] };
 
   it("numbers unnamed members within their own type", () => {
     expect(memberLabels([adult, adult, child, child])).toEqual([

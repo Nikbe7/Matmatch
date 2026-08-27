@@ -17,7 +17,7 @@ import { z } from "zod";
 // SEASONALITY_WEIGHT/FAMILIARITY_STEP_WEIGHT/RECENCY_PENALTY_WEIGHT lives. Nothing
 // else may convert between the two spaces.
 //
-// Nothing here touches allergy or dietary filtering, and it must never learn to:
+// Nothing here touches dietary filtering, and it must never learn to:
 // `selectCandidateTemplates` takes no weights at all, so safety-critical exclusion is
 // structurally out of reach of anything a household can drag a slider to.
 // (src/engine/preferenceWeights.test.ts asserts that exhaustively.)

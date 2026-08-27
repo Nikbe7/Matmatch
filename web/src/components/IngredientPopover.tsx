@@ -13,7 +13,7 @@ import { Chip } from "./Chip";
 // #124: tapping an ingredient opens this popover — intent filters first (Billigare,
 // Liknande), a search box below them over the wider role-valid catalog (the #110
 // type-to-filter idiom, filtered client-side against one fetch), no AI path in this
-// slice (#132). Every candidate already passed the deterministic allergy gate
+// slice (#132). Every candidate already resolved against the deterministic catalog
 // server-side before it reached this component; nothing here filters again.
 
 type FetchState =
@@ -119,7 +119,7 @@ export function IngredientPopover({
   accessToken: string;
   templateId: string;
   /** The diner subset the shopping list itself was built for (App.tsx/GuidedFlow.tsx's
-   * `diners.parameter`) — forwarded so a candidate's allergy gate and quantity agree
+   * `diners.parameter`) — forwarded so a candidate's eligibility and quantity agree
    * with the rest of the list rather than silently widening to the whole household. */
   diners?: string;
   ingredientName: string;

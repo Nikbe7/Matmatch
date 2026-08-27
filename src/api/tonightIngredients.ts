@@ -1,9 +1,7 @@
 import type { RankedCandidate } from "../engine/ranking.js";
 import type { EngineData } from "../engine/data.js";
-import { memberLabels, type HouseholdMember } from "../schema/household.js";
 import type { IngredientSlotRole } from "../schema/recipeTemplate.js";
 import { scaleSlotQuantity, type ScaledQuantity } from "../engine/quantities.js";
-import { ALLERGIES } from "../schema/vocabulary.js";
 
 // Display-shaping for the Tonight route only — not Meal Engine logic. The engine
 // deals in ingredient ids; the card needs the curated Swedish name, which lives in
@@ -11,11 +9,10 @@ import { ALLERGIES } from "../schema/vocabulary.js";
 // src/engine/ ignorant of display concerns and keeps the response additive: the
 // existing `template`/`substitutions` shape is untouched.
 
-
 export interface TonightIngredientView {
   role: IngredientSlotRole;
   // A resolved name string, never the full Ingredient row — embedding the row
-  // would let the frontend start reading default_cost_tier/allergens off it and
+  // would let the frontend start reading default_cost_tier off it and
   // reimplementing engine logic client-side (see issue #64).
   name: string;
   /**
@@ -26,10 +23,10 @@ export interface TonightIngredientView {
   slotIndex: number;
   /**
    * The id of the ingredient currently filling this slot — the substitute if the
-   * slot was rescued or user-swapped, the template's own ingredient otherwise (#124).
+   * household swapped it, the template's own ingredient otherwise (#124).
    * A bare identifier only, not the catalog row: it lets the client ask "what else
-   * could go here" without letting it read default_cost_tier or allergens off it
-   * directly (see the `name` comment above, same rule).
+   * could go here" without letting it read default_cost_tier off it directly (see
+   * the `name` comment above, same rule).
    */
   ingredientId: string;
   substituted: boolean;
@@ -42,12 +39,10 @@ export interface TonightIngredientView {
   quantity: ScaledQuantity;
 }
 
-
-
 /**
  * One resolved ingredient view per slot, in slot order, using the substitute
- * ingredient where the filtering slice rescued the slot and the template's own
- * ingredient otherwise. Throws if a slot's ingredient id isn't in the loaded
+ * ingredient where the household swapped one in and the template's own ingredient
+ * otherwise. Throws if a slot's ingredient id isn't in the loaded
  * catalog — that's corrupt curated data, not a request the caller can fix, and
  * must fail loudly rather than render an empty name.
  *

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AllergySchema, DietaryFlagSchema } from "../schema/allergyDietary.js";
+import { DietaryFlagSchema } from "../schema/allergyDietary.js";
 import {
   combinePreferenceWeights,
   NEUTRAL_PREFERENCE_WEIGHTS,
@@ -27,17 +27,10 @@ import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "./__fixt
 //
 // Every test here runs against the REAL catalog rather than synthetic fixtures. The
 // claims being made are about what actual households actually see — "the migration
-// changes nobody's ranking", "no slider position can widen an allergy filter" — and a
+// changes nobody's ranking", "no slider position can widen a dietary filter" — and a
 // three-template fixture cannot support either of them.
 
 const data = await loadEngineData();
-
-/**
- * The curated allergen mapping, read straight off the loaded catalog — the same index
- * src/engine/candidates.test.ts checks against. Asserted independently of the engine so
- * a filtering bug cannot hide behind the engine's own view of the data.
- */
-const rowsByIngredientId = data.allergenMappingByIngredientId;
 
 /**
  * The engine constants `src/engine/ranking.ts` scored with BEFORE #157, written out as
@@ -68,16 +61,16 @@ const CHIP_NOTCH_LEVEL_2 = 100;
 const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 /**
- * The household profiles the whole-library assertions sweep over: unconstrained, each
- * dietary flag on its own, and one heavily-allergic profile — so "the whole template
- * library" means the library as seen through every materially different candidate set,
- * not just the widest one.
+ * The household profiles the whole-library assertions sweep over: unconstrained and
+ * each hard dietary flag on its own — so "the whole template library" means the
+ * library as seen through every materially different candidate set, not just the
+ * widest one. The heavily-allergic profile that used to sit here went with allergy
+ * filtering (#224); these three are now every distinct candidate set there is.
  */
 const PROFILES = [
   { label: "no constraints", constraints: household() },
   { label: "vegetarian", constraints: household({ dietary_flags: ["vegetarian"] }) },
   { label: "vegan", constraints: household({ dietary_flags: ["vegan"] }) },
-  { label: "gluten + dairy", constraints: household({ allergies: ["gluten", "dairy_lactose"] }) },
 ];
 
 function rankedIds(constraints: ReturnType<typeof household>, weights: RankingWeights, month: number): string[] {
@@ -359,52 +352,6 @@ describe("weights are ranking-only — no slider position can affect allergy or 
 
   const WEIGHT_SWEEP = [0, 5, 35, 50, 100].map(uniform);
 
-  it.each(AllergySchema.options)(
-    "shows an identical candidate set at every weight combination for a household allergic to %s",
-    (allergy) => {
-      const constraints = household({ allergies: [allergy] });
-      const reference = new Set(rankedIds(constraints, toRankingWeights(NEUTRAL_PREFERENCE_WEIGHTS), 7));
-
-      for (const preference of WEIGHT_SWEEP) {
-        for (const month of ALL_MONTHS) {
-          const ids = new Set(rankedIds(constraints, toRankingWeights(preference), month));
-          // Set equality, deliberately: weights are allowed to reorder, and only to
-          // reorder. A weight that added or removed a single template would mean the
-          // score had reached into filtering.
-          expect(ids).toEqual(reference);
-        }
-      }
-    },
-  );
-
-  it.each(AllergySchema.options)(
-    "never surfaces an ingredient containing %s at any weight combination",
-    (allergy) => {
-      const constraints = household({ allergies: [allergy] });
-      for (const preference of WEIGHT_SWEEP) {
-        const candidates = selectCandidateTemplates(data, constraints);
-        const ranked = rankCandidates(
-          data,
-          candidates,
-          toRankingWeights(preference),
-          7,
-          constraints.dietary_flags,
-        );
-
-        const offenders = ranked
-          .flatMap((candidate) => effectiveIngredientIds(candidate))
-          .filter((ingredientId) => {
-            const row = rowsByIngredientId.get(ingredientId);
-            // Fail-safe: a missing row or an unverified row disqualifies as surely as
-            // one that lists the allergen.
-            return !row || row.verification_status !== "verified" || row.allergens.includes(allergy);
-          });
-
-        expect(offenders).toEqual([]);
-      }
-    },
-  );
-
   it.each(DietaryFlagSchema.options)(
     "shows an identical candidate set at every weight combination for a household declaring %s",
     (flag) => {
@@ -417,25 +364,30 @@ describe("weights are ranking-only — no slider position can affect allergy or 
     },
   );
 
-  it.each(AllergySchema.options)(
-    "keeps %s excluded even for an allergic household that also declared vegan",
-    (allergy) => {
-      const constraints = household({ allergies: [allergy], dietary_flags: ["vegan"] });
+  it.each(["vegetarian", "vegan"] as const)(
+    "never surfaces a dish untagged for %s at any weight combination",
+    (flag) => {
+      // The other half of the claim above: not only is the *set* the same at every
+      // weight, every member of it still carries the tag. A weight that reordered its
+      // way to an untagged dish would pass the set-equality test only if filtering had
+      // already been wrong.
+      const constraints = household({ dietary_flags: [flag] });
+
       for (const preference of WEIGHT_SWEEP) {
-        const candidates = selectCandidateTemplates(data, constraints);
-        const ranked = rankCandidates(
-          data,
-          candidates,
-          toRankingWeights(preference),
-          7,
-          constraints.dietary_flags,
-        );
+        for (const month of ALL_MONTHS) {
+          const candidates = selectCandidateTemplates(data, constraints);
+          const offenders = rankCandidates(
+            data,
+            candidates,
+            toRankingWeights(preference),
+            month,
+            constraints.dietary_flags,
+          )
+            .filter((candidate) => !candidate.template.dietary_tags.includes(flag))
+            .map((candidate) => candidate.template.id);
 
-        const offenders = ranked
-          .flatMap((candidate) => effectiveIngredientIds(candidate))
-          .filter((ingredientId) => rowsByIngredientId.get(ingredientId)?.allergens.includes(allergy));
-
-        expect(offenders).toEqual([]);
+          expect(offenders).toEqual([]);
+        }
       }
     },
   );

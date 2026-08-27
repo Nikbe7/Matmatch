@@ -140,14 +140,14 @@ describe.skipIf(!stackAvailable)("PUT /api/households", () => {
     expect(stillNone.status).toBe(404);
   });
 
-  it("rejects an invalid allergy value with 400, the same code POST uses, and writes nothing", async () => {
+  it("rejects an invalid dietary flag with 400, the same code POST uses, and writes nothing", async () => {
     const app = buildApp();
     const user = await userWithHousehold(app);
 
     const response = await request(app)
       .put("/api/households")
       .set(authHeader(user.accessToken))
-      .send({ members: [{ type: "adult", portion_factor: 1, allergies: ["not-a-real-allergy"], dietary_flags: [] }] });
+      .send({ members: [{ type: "adult", portion_factor: 1, dietary_flags: ["not-a-real-flag"] }] });
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe("invalid_request");
@@ -180,7 +180,7 @@ describe.skipIf(!stackAvailable)("PUT /api/households", () => {
     const response = await request(app)
       .put("/api/households")
       .set(authHeader(attacker.accessToken))
-      .send(makeHousehold({ members: [{ type: "adult", portion_factor: 1, allergies: ["peanuts"] }] }));
+      .send(makeHousehold({ members: [{ type: "adult", portion_factor: 1, dietary_flags: ["vegan"] }] }));
 
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe("household_not_found");
@@ -190,36 +190,38 @@ describe.skipIf(!stackAvailable)("PUT /api/households", () => {
     expect(ownerRead.body.household).toEqual(noRestrictionsBody);
   });
 
-  describe("allergy set correctness — exhaustive, not sampled", () => {
-    it("adding an allergy to an existing member is reflected exactly", async () => {
+  describe("dietary flag set correctness — exhaustive, not sampled", () => {
+    // #224 removed the allergy half of this block. The claims are unchanged: PUT is a
+    // full replacement, and a constraint lives on the member who declared it.
+    it("adding a flag to an existing member is reflected exactly", async () => {
       const app = buildApp();
       const user = await userWithHousehold(app);
 
-      const withAllergy = makeHousehold({ allergies: ["gluten"] });
-      await request(app).put("/api/households").set(authHeader(user.accessToken)).send(withAllergy);
+      const withFlag = makeHousehold({ dietary_flags: ["vegetarian"] });
+      await request(app).put("/api/households").set(authHeader(user.accessToken)).send(withFlag);
 
       const after = await request(app).get("/api/households").set(authHeader(user.accessToken));
-      expect(after.body.household.members[0].allergies).toEqual(["gluten"]);
+      expect(after.body.household.members[0].dietary_flags).toEqual(["vegetarian"]);
     });
 
-    it("removing an allergy is reflected exactly", async () => {
+    it("removing a flag is reflected exactly", async () => {
       const app = buildApp();
-      const user = await userWithHousehold(app, makeHousehold({ allergies: ["gluten"] }));
+      const user = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegetarian"] }));
 
       await request(app)
         .put("/api/households")
         .set(authHeader(user.accessToken))
-        .send(makeHousehold({ allergies: [] }));
+        .send(makeHousehold({ dietary_flags: [] }));
 
       const after = await request(app).get("/api/households").set(authHeader(user.accessToken));
-      expect(after.body.household.members[0].allergies).toEqual([]);
+      expect(after.body.household.members[0].dietary_flags).toEqual([]);
     });
 
-    it("removing the member who carried the only instance of an allergy removes it from the household", async () => {
+    it("removing the member who carried the only instance of a flag removes it from the household", async () => {
       const app = buildApp();
       const twoMembers = makeHousehold({
         members: [
-          { type: "adult", portion_factor: 1, allergies: ["fish"] },
+          { type: "adult", portion_factor: 1, dietary_flags: ["vegan"] },
           { type: "adult", portion_factor: 1 },
         ],
       });
@@ -231,41 +233,39 @@ describe.skipIf(!stackAvailable)("PUT /api/households", () => {
       await request(app).put("/api/households").set(authHeader(user.accessToken)).send(oneMemberLeft);
 
       const after = await request(app).get("/api/households").set(authHeader(user.accessToken));
-      const allAllergies = after.body.household.members.flatMap((member: { allergies: string[] }) => member.allergies);
-      expect(allAllergies).toEqual([]);
+      const allFlags = after.body.household.members.flatMap(
+        (member: { dietary_flags: string[] }) => member.dietary_flags,
+      );
+      expect(allFlags).toEqual([]);
     });
 
-    it("an update that omits an allergy on an existing member removes it — PUT is full replace, not patch", async () => {
+    it("an update that omits a flag on an existing member removes it — PUT is full replace, not patch", async () => {
       const app = buildApp();
       const user = await userWithHousehold(
         app,
-        makeHousehold({ allergies: ["gluten"], dietary_flags: ["vegetarian"] }),
+        makeHousehold({ members: [{ type: "adult", portion_factor: 1, dietary_flags: ["vegetarian", "vegan"] }] }),
       );
 
-      // Same member, same dietary_flags, allergies simply absent from this write.
+      // Same member, "vegan" simply absent from this write.
       await request(app)
         .put("/api/households")
         .set(authHeader(user.accessToken))
         .send(makeHousehold({ dietary_flags: ["vegetarian"] }));
 
       const after = await request(app).get("/api/households").set(authHeader(user.accessToken));
-      expect(after.body.household.members[0].allergies).toEqual([]);
       expect(after.body.household.members[0].dietary_flags).toEqual(["vegetarian"]);
     });
   });
 });
 
 describe.skipIf(!stackAvailable)("PUT /api/households — Tonight impact", () => {
-  it("a dish carrying a newly-added allergen never comes back once the household is updated", async () => {
+  it("a dish excluded by a newly-added dietary flag never comes back once the household is updated", async () => {
     const engineData = makeEngineData({
-      ingredients: [makeIngredient("jordnotter"), makeIngredient("morot")],
-      allergenMappings: [
-        { ingredient_id: "jordnotter", allergens: ["peanuts"], verification_status: "verified" },
-        { ingredient_id: "morot", allergens: [], verification_status: "verified" },
-      ],
+      ingredients: [makeIngredient("notfars", { category: "protein" })],
       templates: [
-        makeTemplate("satay", {
-          ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "jordnotter", substitutable: false })],
+        makeTemplate("kottfars", {
+          dietary_tags: [],
+          ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "notfars", substitutable: false })],
         }),
       ],
     });
@@ -274,16 +274,16 @@ describe.skipIf(!stackAvailable)("PUT /api/households — Tonight impact", () =>
 
     const before = await request(app).get("/api/tonight").set(authHeader(user.accessToken));
     expect(before.status).toBe(200);
-    expect(before.body.result?.template.id).toBe("satay");
+    expect(before.body.result?.template.id).toBe("kottfars");
 
     await request(app)
       .put("/api/households")
       .set(authHeader(user.accessToken))
-      .send(makeHousehold({ allergies: ["peanuts"] }));
+      .send(makeHousehold({ dietary_flags: ["vegan"] }));
 
-    // Checked twice: the peanut allergy leaves this household with zero safe
-    // templates, so a stale cache or a re-derived-from-scratch bug would show up as
-    // the dish reappearing on either call, not just the first.
+    // Checked twice: going vegan leaves this household with zero eligible templates,
+    // so a stale cache or a re-derived-from-scratch bug would show up as the dish
+    // reappearing on either call, not just the first.
     for (let i = 0; i < 2; i++) {
       const after = await request(app).get("/api/tonight").set(authHeader(user.accessToken));
       expect(after.status).toBe(200);

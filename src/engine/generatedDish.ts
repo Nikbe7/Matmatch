@@ -1,5 +1,5 @@
 import { COST_TIER_ORDER } from "../tools/validation.js";
-import type { Allergy, DietaryFlag } from "../schema/allergyDietary.js";
+import type { DietaryFlag } from "../schema/allergyDietary.js";
 import type { CostTier } from "../schema/ingredient.js";
 import type { GeneratedDishOutput } from "../schema/generatedDish.js";
 import { isIngredientUnknown } from "./catalog.js";
@@ -16,7 +16,7 @@ import type { EngineData } from "./data.js";
 //
 // Exact match only, in two normalized forms — never fuzzy/substring/Levenshtein
 // matching. A fuzzy match that succeeds *wrongly* silently attaches a verified
-// allergen row to the wrong ingredient (e.g. "mandel" vs "mandelmjölk", "ost" vs
+// catalog row to the wrong ingredient (e.g. "mandel" vs "mandelmjölk", "ost" vs
 // "getost") — a fail-*open* failure no test can reliably catch, because the test
 // would have to predict which wrong pair the model proposes. Exact matching keeps
 // the only possible failure mode "unresolved," which is fail-closed and handled by
@@ -155,15 +155,20 @@ export function resolveGeneratedDish(data: EngineData, output: GeneratedDishOutp
 /**
  * Whether a resolved generated dish may be shown.
  *
- * Reduced to the catalog check by #224. The allergen half of this gate is gone with
- * the rest of allergy filtering; what remains is the one condition that was never
- * about allergies — a slot naming an ingredient the engine cannot identify has no
- * name, quantity or cost tier to render, so the dish is withheld rather than shown
- * with a hole in it.
+ * Reduced to the catalog check by #224, and it is worth being precise about how
+ * little is left. `hasUnverifiedContent` no longer withholds anything: it never did
+ * for a household with no declared allergies, and that is now every household, so an
+ * unresolvable ingredient name behaves exactly as it always did for such a household
+ * — the dish is shown and the caller marks it unverified (dishGenerate.ts). That is
+ * behaviour preservation, not a relaxation.
  *
- * `hasUnverifiedContent` no longer withholds anything. It never did for a household
- * without declared allergies, which is now every household; the caller still marks
- * such a dish unverified for display.
+ * What remains is the condition that was never about allergies: a slot carrying an
+ * ingredient *id* the catalog does not know has no name, quantity or cost tier to
+ * render. `resolveGeneratedDish` cannot produce one — it only ever sets an id it just
+ * looked up — so this cannot fire on today's call graph and is defence in depth at
+ * the Tier 2 boundary rather than a live filter. It is kept because that is exactly
+ * the boundary a future path (a model proposing ids, a cached dish read back across a
+ * catalog change) would arrive through, and being withheld is the right answer there.
  */
 export function isGeneratedDishVisibleToHousehold(
   data: Pick<EngineData, "ingredientsById">,

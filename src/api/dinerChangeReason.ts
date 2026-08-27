@@ -8,8 +8,8 @@ import { memberLabels, type HouseholdMember } from "../schema/household.js";
 // leaves it unsafe. Lives here rather than in src/engine/ because it only ever
 // runs after `evaluateTemplateAgainstConstraints` has already decided the dish is
 // unsafe — it explains that decision in terms of the household, it does not make
-// a second one. It never compares allergy lists to decide safety; that question
-// stays answered exactly once, by the engine.
+// a second one. It never compares dietary flags to decide eligibility; that
+// question stays answered exactly once, by the engine.
 
 export interface ReplacedDishExplanation {
   /** The raw catalog template a `keep` id named — never in `ranked`, or this
@@ -53,22 +53,24 @@ export function explainReplacedDish(
  * The eating member responsible for `evaluation`'s failure, or `undefined` when
  * the evaluation was itself safe (nothing to explain) or — defensively — when no
  * eating member's own declaration matches (should not happen: `constraints` is
- * always the union over `eating`, so whatever allergy or flag failed the dish
- * belongs to at least one of them).
+ * always the union over `eating`, so whatever flag failed the dish belongs to at
+ * least one of them).
  *
  * `members` is the full roster (label numbering is positional over the whole
  * roster, DECISION_LOG 2026-08-09), `eating` the diner subset the failing
  * `constraints` were derived from (`mealDiners`'s `.members`) — only a person
  * actually at tonight's table can be "the reason," even though the household as a
- * whole may have others with the same declared allergy.
+ * whole may have others with the same declared flag.
  */
 export function affectedMemberLabel(
   evaluation: TemplateEvaluation,
   members: readonly HouseholdMember[],
   eating: readonly HouseholdMember[],
 ): string | undefined {
-  // The `unsafeSlot` branch went with allergy filtering (#224). A dish can now only
-  // be replaced for a dietary reason, so that is the only reason there is to name.
+  // The allergy branch went with allergy filtering (#224). A dish can now only be
+  // replaced *for a person* over a dietary flag, so that is the only reason there is
+  // to name; the surviving `unknownSlotIngredient` outcome is a catalog fault nobody
+  // at the table is responsible for, and falls through to `undefined` below.
   if ("missingDietaryFlags" in evaluation) {
     const culpritFlags = evaluation.missingDietaryFlags;
     return firstMatchingMemberLabel(members, eating, (member) =>

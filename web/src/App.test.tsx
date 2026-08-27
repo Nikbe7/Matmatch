@@ -2,7 +2,6 @@ import type { Session } from "@supabase/supabase-js";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ALLERGIES } from "../../src/schema/vocabulary";
 import type { CostTier } from "../../src/schema/ingredient";
 import { setAnalyticsSink, type AnalyticsEvent } from "./analytics";
 import { saveShoppingList, SHOPPING_LIST_VERSION } from "./shoppingListStorage";
@@ -59,7 +58,7 @@ vi.mock("./analyticsSink", () => ({
 }));
 
 const { default: App } = await import("./App");
-const { ALLERGY_LABELS, costTierLabel } = await import("./App");
+const { costTierLabel } = await import("./App");
 
 /** A member block, addressed the way the household sees it: by that member's label. */
 function memberCard(label: string): HTMLElement {
@@ -82,8 +81,8 @@ const suggestionBody = {
   result: {
     template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb för kycklinggryta.", cost_tier: "mid", prep_time_band: "20-40min", effort_level: "simple", cuisine: "swedish_nordic" },
     ingredients: [
-      { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
-      { role: "aromatic", name: "Rödlök", slotIndex: 1, ingredientId: "rodlok", substituted: true, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "aromatic", name: "Rödlök", slotIndex: 1, ingredientId: "rodlok", substituted: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
     ],
     substitutions: [],
     score: 0.5,
@@ -96,7 +95,7 @@ function suggestionBodyForTier(tier: CostTier) {
   return {
     result: {
       template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb för kycklinggryta.", cost_tier: tier, prep_time_band: "20-40min", effort_level: "moderate", cuisine: "swedish_nordic" },
-      ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+      ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, quantity: { kind: "amount", amount: 400, unit: "g" } }],
       substitutions: [],
       score: 0.5,
       cookedToday: false,
@@ -253,18 +252,15 @@ describe("App — the sign-in screen (#168)", () => {
   });
 });
 
-// #168: onboarding asks who lives here, then one mandatory allergy question.
-// Dietary preferences are gone from this screen entirely — they are ranking
-// influence, not safety, and are edited on the profile.
+// Onboarding asks who lives here and nothing else. #168's mandatory allergy question
+// is gone with allergy filtering (#224), and dietary preferences never belonged here
+// — they are ranking influence, edited on the profile. What survives from #168 is the
+// shape of the screen: member rows, and a primary action that is not gated on
+// anything else.
 describe("App — household gate", () => {
   async function renderOnboarding() {
     render(<App />);
     await screen.findByRole("heading", { name: "Vilka bor här?" });
-  }
-
-  /** Answers the allergy question, which is what unlocks the primary action. */
-  async function answerAllergies(user: ReturnType<typeof userEvent.setup>, answer: "Ja" | "Nej") {
-    await user.click(screen.getByRole("radio", { name: answer }));
   }
 
   const submit = () => screen.getByRole("button", { name: "Visa kvällens middag" });
@@ -278,7 +274,7 @@ describe("App — household gate", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("asks for who lives here and nothing else — no preference chips, no allergy chips yet", async () => {
+  it("asks for who lives here and nothing else — no preference chips, no constraint chips", async () => {
     sessionHolder.current = fakeSession;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
 
@@ -288,88 +284,14 @@ describe("App — household gate", () => {
     expect(within(card).getByLabelText("Namn")).toBeTruthy();
     expect(within(card).getByLabelText("Typ")).toBeTruthy();
     expect(within(card).getByLabelText("Portionsstorlek")).toBeTruthy();
-    // Dietary preferences left onboarding entirely, and the allergy chips are
-    // behind the question below — the member row carries neither.
+    // Dietary preferences are edited on the profile, and there is no allergy question
+    // any more (#224) — the screen asks nothing but who lives here.
     expect(card.querySelector("fieldset")).toBeNull();
     expect(screen.queryByRole("button", { name: "Vegetariskt" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Jordnötter" })).toBeNull();
+    expect(screen.queryByRole("radio")).toBeNull();
   });
 
-  it("keeps the primary action disabled until the allergy question is answered, either way", async () => {
-    // The reason the question has no preselected answer (DECISION_LOG 2026-08-16):
-    // a checked "Nej" would make a household that answered no indistinguishable
-    // from one that never saw the question, and the app treats both as
-    // allergy-free. Both answers unlock; neither is assumed.
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
-
-    await renderOnboarding();
-
-    expect(screen.getByRole("radio", { name: "Nej" }).hasAttribute("checked")).toBe(false);
-    expect((screen.getByRole("radio", { name: "Nej" }) as HTMLInputElement).checked).toBe(false);
-    expect((screen.getByRole("radio", { name: "Ja" }) as HTMLInputElement).checked).toBe(false);
-    expect((submit() as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText("Svara på frågan om allergier först.")).toBeTruthy();
-
-    await answerAllergies(user, "Nej");
-    expect((submit() as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.queryByText("Svara på frågan om allergier först.")).toBeNull();
-
-    // "Ja" unlocks too, once it names an allergy — see the half-answer test below.
-    await answerAllergies(user, "Ja");
-    await user.click(screen.getByRole("button", { name: "Jordnötter" }));
-    expect((submit() as HTMLButtonElement).disabled).toBe(false);
-  });
-
-  it("does not accept a half-answered yes — a declared allergy must name itself", async () => {
-    // "Ja" with nothing picked produces a payload identical to "Nej": the household
-    // would be stored as allergy-free and its first suggestion filtered against
-    // nothing. Same rule as the question itself — no assuming a safety answer.
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
-
-    await renderOnboarding();
-    await answerAllergies(user, "Ja");
-
-    expect((submit() as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText("Välj vilken allergi det gäller, eller svara Nej.")).toBeTruthy();
-
-    await user.click(screen.getByRole("button", { name: "Jordnötter" }));
-    expect((submit() as HTMLButtonElement).disabled).toBe(false);
-
-    // Deselecting the only allergy puts the block back — the household is once
-    // again claiming an allergy it has not named.
-    await user.click(screen.getByRole("button", { name: "Jordnötter" }));
-    expect((submit() as HTMLButtonElement).disabled).toBe(true);
-
-    // And "Nej" is always a way out of it.
-    await answerAllergies(user, "Nej");
-    expect((submit() as HTMLButtonElement).disabled).toBe(false);
-  });
-
-  it("falls back to the derived label when a name is cleared, rather than showing a nameless allergy block", async () => {
-    // An empty label is worst exactly here: several members stacked, an allergy
-    // block each, and the block whose owner has no visible name is where an
-    // allergy gets attached to the wrong person.
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
-
-    await renderOnboarding();
-    const nameField = within(memberCard("Vuxen 1")).getByLabelText("Namn");
-    await user.type(nameField, "Ella");
-    await user.clear(nameField);
-
-    expect(screen.getByRole("heading", { name: "Vuxen 1" })).toBeTruthy();
-
-    await answerAllergies(user, "Ja");
-    const legend = document.querySelector("fieldset.allergy-group legend")!;
-    expect(legend.textContent).toContain("Vuxen 1");
-  });
-
-  it("creates a valid household with empty allergy lists when the answer is no", async () => {
+  it("creates a valid household with an explicitly empty dietary_flags list", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     const fetchMock = vi
@@ -380,7 +302,6 @@ describe("App — household gate", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await renderOnboarding();
-    await answerAllergies(user, "Nej");
     await user.click(submit());
 
     await screen.findByRole("heading", { name: "Ikväll" });
@@ -388,145 +309,13 @@ describe("App — household gate", () => {
     expect(fetchMock.mock.calls[1][0]).toBe("/api/households");
     expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: "POST" });
 
-    // Explicitly empty, never omitted: an unset safety value must not be
-    // mistakable for a declared-empty one (HouseholdMemberSchema).
+    // Explicitly empty, never omitted: an unset constraint must not be mistakable for
+    // a declared-empty one (HouseholdMemberSchema, and the not-null column behind it).
     const body = JSON.parse(fetchMock.mock.calls[1][1].body);
     expect(body.members).toHaveLength(1);
-    expect(body.members[0].allergies).toEqual([]);
     expect(body.members[0].dietary_flags).toEqual([]);
-    expect("allergies" in body.members[0]).toBe(true);
     expect("dietary_flags" in body.members[0]).toBe(true);
-  });
-
-  it("reveals the allergy picker per person on yes, and saves exactly the picked ones to the right person", async () => {
-    // The behaviour #115 exists for: after this, "whose allergy is it" survives the
-    // round trip, which is what #112 needs to narrow constraints to tonight's diners.
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(householdNotFound)
-      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
-      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await renderOnboarding();
-    await user.click(screen.getByRole("button", { name: "+ Lägg till medlem" }));
-    await answerAllergies(user, "Ja");
-
-    // One block per person, each naming whose allergies it holds.
-    const blocks = Array.from(document.querySelectorAll("fieldset.allergy-group"));
-    expect(blocks).toHaveLength(2);
-    expect(blocks[0]!.querySelector("legend")!.textContent).toContain("Vuxen 1");
-    expect(blocks[1]!.querySelector("legend")!.textContent).toContain("Vuxen 2");
-
-    await user.click(within(blocks[0] as HTMLElement).getByRole("button", { name: "Jordnötter" }));
-    await user.click(within(blocks[0] as HTMLElement).getByRole("button", { name: "Fisk" }));
-    await user.click(submit());
-    await screen.findByRole("heading", { name: "Ikväll" });
-
-    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(body.members).toHaveLength(2);
-    expect(body.members[0]).toMatchObject({ allergies: ["peanuts", "fish"], dietary_flags: [] });
-    expect(body.members[1]).toMatchObject({ allergies: [], dietary_flags: [] });
-    // The household itself no longer carries either field.
-    expect(body.allergies).toBeUndefined();
-    expect(body.dietary_flags).toBeUndefined();
-  });
-
-  it("saves the household only after the allergy answer, never before it", async () => {
-    // The failure mode this change could introduce: a first suggestion shown for a
-    // household whose declared allergy had not been recorded yet. Asserted on the
-    // call order — the Tonight request that produces that suggestion must come
-    // after the POST that carries the allergy.
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(householdNotFound)
-      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
-      .mockResolvedValueOnce(jsonResponse(200, suggestionBody));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await renderOnboarding();
-    await answerAllergies(user, "Ja");
-    await user.click(
-      within(document.querySelector("fieldset.allergy-group") as HTMLElement).getByRole("button", {
-        name: "Jordnötter",
-      }),
-    );
-
-    // Nothing has been written yet, and no suggestion has been requested.
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    await user.click(submit());
-    await screen.findByRole("heading", { name: "Kycklinggryta" });
-
-    const [gateCall, postCall, tonightCall] = fetchMock.mock.calls;
-    expect(gateCall[0]).toBe("/api/tonight");
-    expect(postCall[0]).toBe("/api/households");
-    expect(JSON.parse(postCall[1].body).members[0].allergies).toEqual(["peanuts"]);
-    expect(tonightCall[0]).toBe("/api/tonight");
-  });
-
-  it("clears picked allergies when the answer changes back to no", async () => {
-    // What is shown and what is stored have to be the same thing: a hidden
-    // allergy that is nonetheless saved is the worse failure mode of the two.
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(householdNotFound)
-      .mockResolvedValueOnce(jsonResponse(201, { id: "h1", members: [] }))
-      .mockResolvedValueOnce(jsonResponse(200, { result: null, reason: "no_safe_templates" }));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await renderOnboarding();
-    await answerAllergies(user, "Ja");
-    await user.click(screen.getByRole("button", { name: "Jordnötter" }));
-    await answerAllergies(user, "Nej");
-
-    expect(document.querySelector("fieldset.allergy-group")).toBeNull();
-
-    await user.click(submit());
-    await screen.findByRole("heading", { name: "Ikväll" });
-
-    expect(JSON.parse(fetchMock.mock.calls[1][1].body).members[0].allergies).toEqual([]);
-  });
-
-  it("renders exactly the locked allergy vocabulary as chips, per member", async () => {
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
-
-    await renderOnboarding();
-    await answerAllergies(user, "Ja");
-
-    const block = document.querySelector("fieldset.allergy-group")!;
-    const chipLabels = Array.from(block.querySelectorAll("button")).map(
-      (button) => button.textContent,
-    );
-
-    expect(chipLabels).toEqual(ALLERGIES.map((allergy) => ALLERGY_LABELS[allergy]));
-  });
-
-  it("marks the allergy block as a safety constraint by more than colour", async () => {
-    // #101/UX_FLOW §6, carried over to the "ja" branch: the block keeps the border,
-    // the "⚠" glyph and its own legend text, all in the markup rather than only in
-    // the stylesheet, so it is tellable from a preference group without colour.
-    sessionHolder.current = fakeSession;
-    const user = userEvent.setup();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(householdNotFound));
-
-    await renderOnboarding();
-    await answerAllergies(user, "Ja");
-
-    const block = document.querySelector("fieldset.allergy-group") as HTMLFieldSetElement;
-    expect(block.tagName).toBe("FIELDSET");
-    expect(block.className).toContain("allergy-group");
-    const legend = block.querySelector("legend")!;
-    expect(legend.textContent).toContain("Allergier");
-    expect(legend.textContent).toContain("⚠");
+    expect("allergies" in body.members[0]).toBe(false);
   });
 
   it("keeps the form filled and shows a friendly message, never the server's raw text, on API error", async () => {
@@ -547,7 +336,6 @@ describe("App — household gate", () => {
     await user.click(screen.getByRole("button", { name: "+ Lägg till medlem" }));
     expect(screen.getAllByText("Typ")).toHaveLength(2);
 
-    await answerAllergies(user, "Nej");
     await user.click(submit());
 
     const alert = await screen.findByRole("alert");
@@ -567,7 +355,6 @@ describe("App — household gate", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await renderOnboarding();
-    await answerAllergies(user, "Nej");
     await user.click(submit());
     await screen.findByRole("heading", { name: "Ikväll" });
 
@@ -824,7 +611,7 @@ function suggestionBodyFor(id: string, name: string, cuisine = "swedish_nordic")
   return {
     result: {
       template: { id, name, blurb: `Testblurb för ${name.toLowerCase()}.`, cost_tier: "budget", prep_time_band: "<20min", effort_level: "moderate", cuisine },
-      ingredients: [{ role: "protein", name: "Torsk", slotIndex: 0, ingredientId: "torsk", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+      ingredients: [{ role: "protein", name: "Torsk", slotIndex: 0, ingredientId: "torsk", substituted: false, quantity: { kind: "amount", amount: 400, unit: "g" } }],
       substitutions: [],
       score: 0.3,
       cookedToday: false,
@@ -1398,7 +1185,6 @@ describe("App — the cook screen (#154)", () => {
           name: "Kyckling",
           section: "to_buy",
           bought: false,
-          allergens: [],
           quantity: { kind: "amount", amount: 900, unit: "g" },
           slotIndex: 0,
           ingredientId: "kyckling",
@@ -1467,7 +1253,7 @@ describe("App — entering the guided flow", () => {
         templateId: "nagot-annat",
         templateName: "Svartbönsgryta",
         substitutions: [],
-        items: [{ name: "Svarta bönor", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "svarta-bonor" }],
+        items: [{ name: "Svarta bönor", section: "to_buy", bought: false, quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "svarta-bonor" }],
       }),
     );
     vi.stubGlobal(
@@ -1494,7 +1280,7 @@ describe("App — entering the guided flow", () => {
       JSON.stringify({
         version: 4,
         templateId: "kycklinggryta",
-        items: [{ name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" }],
+        items: [{ name: "Kyckling", section: "to_buy", bought: false, quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" }],
       }),
     );
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, suggestionBody)));
@@ -1545,8 +1331,8 @@ describe("App — offline", () => {
         version: 4,
         templateId: "kycklinggryta",
         items: [
-          { name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" },
-          { name: "Ris", section: "have_at_home", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 1, ingredientId: "ris" },
+          { name: "Kyckling", section: "to_buy", bought: false, quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" },
+          { name: "Ris", section: "have_at_home", bought: false, quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 1, ingredientId: "ris" },
         ],
       }),
     );
@@ -1569,7 +1355,7 @@ describe("App — offline", () => {
       JSON.stringify({
         version: 4,
         templateId: "kycklinggryta",
-        items: [{ name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" }],
+        items: [{ name: "Kyckling", section: "to_buy", bought: false, quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" }],
       }),
     );
     vi.stubGlobal("fetch", offlineFetch());
@@ -1640,7 +1426,7 @@ describe("App — the Tonight card's diner picker (#112)", () => {
           effort_level: "moderate",
           cuisine: "swedish_nordic",
         },
-        ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+        ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, quantity: { kind: "amount", amount: 400, unit: "g" } }],
         substitutions: [],
         score: 0.5,
         cookedToday: false,
@@ -1763,16 +1549,18 @@ describe("App — the Tonight card's diner picker (#112)", () => {
     expect(screen.queryByRole("group", { name: "Vilka äter?" })).toBeNull();
   });
 
-  it("names the cross-contamination limit rather than implying it is handled", async () => {
+  it("says nothing about allergens — the picker scopes dietary flags and portions only", async () => {
+    // Inverts the pre-#224 assertion. The cross-contamination caveat this screen used
+    // to carry was honest while the app filtered allergens; with nothing else in the
+    // product mentioning them, it reads as a residual promise instead of a limit.
     sessionHolder.current = fakeSession;
     stubTonight(suggestionWithDiners("kycklinggryta"));
 
     render(<App />);
 
     await screen.findByRole("heading", { name: "kycklinggryta" });
-    expect(
-      screen.getByText(/Rester och gemensamma kastruller kan ändå innehålla allergener/),
-    ).toBeTruthy();
+    const picker = screen.getByRole("group", { name: "Vilka äter?" });
+    expect(picker.textContent).not.toMatch(/allergen/i);
   });
 
   it("writes nothing to localStorage and never posts to the household", async () => {
@@ -1816,7 +1604,6 @@ describe("App — a diner change keeps the dish when it is still valid (#133)", 
             slotIndex: 0,
             ingredientId: "kyckling",
             substituted: false,
-            allergens: [],
             quantity: { kind: "amount", amount: 400, unit: "g" },
           },
         ],
@@ -1946,7 +1733,7 @@ describe("App — a failed diner change never leaves the card and the picker dis
               effort_level: "moderate",
               cuisine: "swedish_nordic",
             },
-            ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+            ingredients: [{ role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, quantity: { kind: "amount", amount: 400, unit: "g" } }],
             substitutions: [],
             score: 0.5,
             cookedToday: false,
@@ -2118,29 +1905,24 @@ describe("App — the profile screen (#166)", () => {
     await openProfil(user);
     await user.click(await screen.findByRole("button", { name: /Ella/ }));
 
+    // One group, not two: the allergy fieldset beside this one is gone with allergy
+    // filtering (#224), and nothing on this screen is a safety constraint any more —
+    // which is why there is no warning glyph or `allergy-group` class left to assert.
     const groups = Array.from(document.querySelectorAll(".profile-member-detail fieldset"));
-    expect(groups).toHaveLength(2);
+    expect(groups).toHaveLength(1);
 
-    const [preferences, allergies] = groups as [HTMLFieldSetElement, HTMLFieldSetElement];
+    const [preferences] = groups as [HTMLFieldSetElement];
     expect(preferences.querySelector("legend")!.textContent).toBe("Kostpreferenser");
-    // Distinct legend text plus a warning glyph — both non-colour signals, present
-    // in the markup rather than only in the stylesheet.
-    expect(allergies.querySelector("legend")!.textContent).toContain("Allergier");
-    expect(allergies.querySelector("legend")!.textContent).toContain("⚠");
-    expect(allergies.className).toContain("allergy-group");
+    expect(document.querySelector(".allergy-group")).toBeNull();
 
-    // And the two groups genuinely hold different chips, in the locked order.
     expect(Array.from(preferences.querySelectorAll("button")).map((b) => b.textContent)).toEqual([
       "Vegetariskt",
       "Veganskt",
       "Proteinrikt",
     ]);
-    expect(Array.from(allergies.querySelectorAll("button")).map((b) => b.textContent)).toEqual(
-      ALLERGIES.map((allergy) => ALLERGY_LABELS[allergy]),
-    );
   });
 
-  it("adding an allergy shows it in the collapsed row, by name — not a count", async () => {
+  it("keeps the collapsed row to name and type — it summarises no constraint", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     vi.stubGlobal(
@@ -2154,16 +1936,22 @@ describe("App — the profile screen (#166)", () => {
     render(<App />);
     await openProfil(user);
 
+    // The allergy names this line used to carry were its only constraint content, and
+    // they went with allergy filtering (#224). Nothing replaced them: a member's
+    // dietary flags are visible once the row is expanded and not before. Pinned rather
+    // than left implicit, because "the row shows no constraint at all" is a product
+    // consequence of #224 someone should decide about deliberately, not discover.
     const row = await screen.findByRole("button", { name: /^Ella/ });
     expect(row.textContent).toContain("Ella");
     expect(row.textContent).toContain("Barn");
-    expect(row.textContent).not.toContain("Nötter");
 
     await user.click(row);
-    await user.click(screen.getByRole("button", { name: ALLERGY_LABELS.tree_nuts }));
+    await user.click(screen.getByRole("button", { name: "Vegetariskt" }));
 
-    expect(screen.getByRole("button", { name: /^Ella/ }).textContent).toContain(
-      ALLERGY_LABELS.tree_nuts,
+    expect(screen.getByRole("button", { name: /^Ella/ }).textContent).not.toContain("Vegetariskt");
+    // The chip itself does hold the state — it is the summary line that stays silent.
+    expect(screen.getByRole("button", { name: "Vegetariskt" }).getAttribute("aria-pressed")).toBe(
+      "true",
     );
   });
 
@@ -2206,13 +1994,13 @@ describe("App — the profile screen (#166)", () => {
     await openProfil(user);
 
     await user.click(await screen.findByRole("button", { name: /^Ella/ }));
-    await user.click(screen.getByRole("button", { name: ALLERGY_LABELS.tree_nuts }));
+    await user.click(screen.getByRole("button", { name: "Vegetariskt" }));
     await user.click(screen.getByRole("button", { name: "Spara" }));
 
     expect(await screen.findByRole("alert")).toBeTruthy();
     // The edit survives the failed save — retrying does not mean re-selecting it.
-    expect(screen.getByRole("button", { name: /^Ella/ }).textContent).toContain(
-      ALLERGY_LABELS.tree_nuts,
+    expect(screen.getByRole("button", { name: "Vegetariskt" }).getAttribute("aria-pressed")).toBe(
+      "true",
     );
   });
 
@@ -2358,8 +2146,8 @@ function risDishBody() {
     result: {
       template: { id: "risgryta", name: "Risgryta", blurb: "Testblurb.", cost_tier: "budget", prep_time_band: "<20min", effort_level: "simple", cuisine: "swedish_nordic" },
       ingredients: [
-        { role: "starch", name: "Ris", slotIndex: 0, ingredientId: "ris", substituted: false, allergens: [], quantity: { kind: "amount", amount: 300, unit: "g" } },
-        { role: "protein", name: "Kyckling", slotIndex: 1, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+        { role: "starch", name: "Ris", slotIndex: 0, ingredientId: "ris", substituted: false, quantity: { kind: "amount", amount: 300, unit: "g" } },
+        { role: "protein", name: "Kyckling", slotIndex: 1, ingredientId: "kyckling", substituted: false, quantity: { kind: "amount", amount: 400, unit: "g" } },
       ],
       substitutions: [],
       score: 0.4,

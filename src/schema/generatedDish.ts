@@ -15,7 +15,7 @@ import {
 // absent relative to RecipeTemplateSchema (src/schema/recipeTemplate.ts) — no
 // ingredient_id (only a free-text proposed name), no cost_tier, no dietary_tags. The
 // hard rule (DECISION_LOG 2026-08-05): "Tier 2 may invent the dish, never the
-// ingredients." An ingredient id, an allergen, or a cost figure is never something
+// ingredients." An ingredient id or a cost figure is never something
 // the model asserts; those are always derived by our own code from the resolved,
 // curated catalog (src/engine/generatedDish.ts). This schema is deliberately shared
 // by src/ai/ (which validates the model's raw response against it) and src/engine/

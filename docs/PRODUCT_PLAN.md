@@ -12,7 +12,7 @@ North star framing: *"Spotify recommends music I like → Matmatch recommends an
 
 ### What Matmatch is
 - A guided decision tool that ends in a shopping list and a plan, in under a minute for a returning user
-- A household-aware system (portions, allergies, preferences) — not a single-user recipe tool
+- A household-aware system (portions, dietary preferences) — not a single-user recipe tool
 - A cost- and season-aware assistant for the Swedish grocery context
 - A tool that gets *faster* to use the more you use it
 
@@ -47,7 +47,7 @@ Matmatch's defensible position is the **combination**: household memory + pantry
 The MVP must prove one thing: **that the interactive, household-aware, pantry-aware meal-building loop is fast and valuable enough that people come back the next week.** Everything else is secondary.
 
 ### In scope for MVP
-- Household profile creation (members, portion size, basic dietary flags, allergies — hard filters)
+- Household profile creation (members, portion size, dietary flags — vegetarian/vegan are hard filters). Allergies were in scope and were removed in #224; see DECISION_LOG 2026-08-25 for why, before proposing them back
 - Home screen with a **zero-input "Tonight" suggestion** (the flagship experience)
 - Guided quick-select flow as the primary alternative path: intent chip → main ingredient (chosen or AI-suggested) → "what I already have" quick multi-select → 3 direction cards → pick → adjust via chips (cheaper / more protein / more flavor) → portion auto-calculation → shopping list (have vs. buy)
 - Optional free-text chat as a refinement layer on top of the guided flow (not the primary path)

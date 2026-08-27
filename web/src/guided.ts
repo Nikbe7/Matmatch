@@ -167,9 +167,9 @@ function normalizeForMatch(value: string): string {
 }
 
 /**
- * Whether an ingredient's Swedish name matches step 2's filter query. Exported so
- * both the safe grid and the allergy-excluded explanation list (a display-only
- * concern, never the selectable set) filter with the exact same rule.
+ * Whether an ingredient's Swedish name matches step 2's filter query. Exported
+ * rather than inlined so the grid has one matching rule; it used to be shared with
+ * the allergy-excluded explanation list, which went with #224.
  */
 export function matchesIngredientQuery(name: string, query: string): boolean {
   return normalizeForMatch(name).includes(normalizeForMatch(query));

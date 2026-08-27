@@ -4,7 +4,7 @@ import { mealDiners } from "../engine/constraints.js";
 import type { HouseholdMember } from "../schema/household.js";
 
 function member(overrides: Partial<HouseholdMember> = {}): HouseholdMember {
-  return { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [], ...overrides };
+  return { type: "adult", portion_factor: 1, dietary_flags: [], ...overrides };
 }
 
 describe("parseDinersFromQuery", () => {
@@ -59,17 +59,19 @@ describe("parseDinersFromQuery", () => {
   it("hands an out-of-range index straight through to the engine, which widens it", () => {
     // The division of labour: this module does not know the roster, so range is the
     // engine's call. Asserted end to end so neither half can quietly stop covering it.
-    const roster = [member({ allergies: ["peanuts"] }), member()];
+    const roster = [member({ dietary_flags: ["vegan"] }), member()];
 
     expect(parseDinersFromQuery("5")).toEqual(new Set([5]));
-    expect(mealDiners(roster, parseDinersFromQuery("5")).constraints.allergies).toEqual([
-      "peanuts",
+    expect(mealDiners(roster, parseDinersFromQuery("5")).constraints.dietary_flags).toEqual([
+      "vegan",
     ]);
   });
 
   it("round-trips a real selection through the engine", () => {
-    const roster = [member({ allergies: ["peanuts"] }), member({ allergies: ["fish"] })];
+    const roster = [member({ dietary_flags: ["vegan"] }), member({ dietary_flags: ["vegetarian"] })];
 
-    expect(mealDiners(roster, parseDinersFromQuery("1")).constraints.allergies).toEqual(["fish"]);
+    expect(mealDiners(roster, parseDinersFromQuery("1")).constraints.dietary_flags).toEqual([
+      "vegetarian",
+    ]);
   });
 });

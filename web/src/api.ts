@@ -64,18 +64,14 @@ export type SuggestionReasonCode =
 /**
  * One household member as the picker knows them: a display label at a position.
  *
- * Deliberately not the member — no allergies, no dietary flags, no portion factor.
+ * Deliberately not the member — no dietary flags, no portion factor.
  * The client renders a control; it never holds a second copy of the household, which
- * is the last place a second source of truth about allergies should exist.
+ * is the last place a second source of truth about a household should exist.
  */
 export interface DinerLabel {
   label: string;
 }
 
-/**
- * One allergen an ingredient carries and who in the household it affects (#116) —
- * against the full household union, always, never the diner set for tonight.
- */
 /**
  * An amount already scaled to tonight's diners, or the explicit "efter smak" marker
  * (#123). Structured rather than a formatted string, exactly like `portions`: the
@@ -100,7 +96,7 @@ export interface TonightIngredient {
 }
 
 /**
- * One candidate the ingredient-swap popover can offer (#124) — role-matched, allergy-
+ * One candidate the ingredient-swap popover can offer (#124) — role-matched, catalog-
  * gated, with the slot's own scaled quantity so applying it is "replace the item with
  * this view," no special-casing.
  */
@@ -132,7 +128,7 @@ export async function fetchIngredientAlternatives(
   ingredientId: string,
   /**
    * `diners` as the server spells it (see `FetchTonightOptions.diners`) — omitted
-   * for everyone. Without this, allergy gating and quantities would come back
+   * for everyone. Without this, the candidate set and quantities would come back
    * scoped to the whole household even when tonight's diner picker narrowed who is
    * eating, disagreeing with every other value already on screen.
    */
@@ -335,11 +331,6 @@ export interface IngredientOption {
   name: string;
 }
 
-/**
- * A catalog ingredient the step-2 filter can match by name but the household
- * cannot select, because it is excluded by one of its own declared allergies —
- * the basis for the "why nothing matched" explanation rather than a bare miss.
- */
 export interface GuidedOptions {
   diners: DinerLabel[];
   mainIngredients: IngredientOption[];
@@ -528,7 +519,7 @@ export async function updatePreferenceWeights(
  * The profile screen's own fetch (#166) — deliberately never cached or reused from
  * the onboarding/Gate flow. DECISION_LOG's PUT-as-full-replacement entry only holds
  * because every editing surface fetches fresh immediately before editing; a stale
- * copy here could silently drop an allergy the household added elsewhere.
+ * copy here could silently drop a dietary flag the household added elsewhere.
  */
 export async function fetchHousehold(accessToken: string): Promise<Household> {
   const response = await fetch("/api/households", {

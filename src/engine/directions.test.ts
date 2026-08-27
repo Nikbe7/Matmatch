@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AllergySchema } from "../schema/allergyDietary.js";
+import type { DietaryFlag } from "../schema/allergyDietary.js";
 import { selectCandidateTemplates } from "./candidates.js";
 import { loadEngineData } from "./data.js";
 import {
@@ -328,95 +328,54 @@ describe("suggestMainIngredientId — 'Föreslå åt mig'", () => {
   });
 });
 
-describe("pickDirections — allergen safety over the real catalog", () => {
-  // Exhaustive, not sampled (CLAUDE.md non-negotiable). Selection happens strictly
+describe("pickDirections — dietary filtering holds over the real catalog", () => {
+  // Exhaustive over the flags that filter, not sampled. Selection happens strictly
   // downstream of `selectCandidateTemplates`, so this cannot in principle reintroduce
-  // an excluded ingredient — and that is exactly why it is asserted rather than
-  // assumed: this is the module a future change would be tempted to make "smarter".
-  const rowsByIngredientId = data.allergenMappingByIngredientId;
+  // an excluded dish — and that is exactly why it is asserted rather than assumed:
+  // this is the module a future change would be tempted to make "smarter". Allergy
+  // filtering is gone (#224); this is the half of the sweep that still has a subject.
+  const HARD_DIETARY_FLAGS: readonly DietaryFlag[] = ["vegetarian", "vegan"];
 
-  /** Every ingredient the guided flow could put on screen for this household. */
-  function surfacedIngredientIds(h: MealConstraints, selection: Partial<Parameters<typeof pickDirections>[1]> = {}) {
-    const surfaced = new Set<string>();
-    const list = realRanked(h);
-
-    // Every main-ingredient choice the flow can reach, not one representative:
-    // the grid offers a fixed set, and "any" is reachable from the §9 loosen path.
+  /** Every main-ingredient choice the flow can reach, not one representative: the
+   *  grid offers a fixed set, and "any" is reachable from the §9 loosen path. */
+  function everyChoice(list: RankedCandidate[]): MainIngredientChoice[] {
     const choices: MainIngredientChoice[] = [ANY];
     for (const candidate of list) {
       for (const ingredientId of effectiveIngredientIds(candidate)) {
         choices.push(main(ingredientId));
       }
     }
-
-    for (const choice of choices) {
-      for (const direction of pickDirections(list, { main: choice, ...selection })) {
-        for (const ingredientId of effectiveIngredientIds(direction)) surfaced.add(ingredientId);
-      }
-    }
-
-    return surfaced;
+    return choices;
   }
 
-  it.each(AllergySchema.options)(
-    "never surfaces an ingredient containing %s to a household allergic to it",
-    (allergy) => {
-      const offenders = [...surfacedIngredientIds(household({ allergies: [allergy] }))].filter(
-        (ingredientId) => {
-          const row = rowsByIngredientId.get(ingredientId);
-          // Fail-safe, checked independently of the engine: no row, or an unverified
-          // row, is as disqualifying as a row that contains the allergen.
-          return !row || row.verification_status !== "verified" || row.allergens.includes(allergy);
-        },
-      );
-
-      expect(offenders).toEqual([]);
-    },
-  );
-
-  it.each(AllergySchema.options)(
-    "never surfaces %s under the pantry, Proteinrikt or Billigt paths either",
-    (allergy) => {
-      // The three levers this slice adds, each of which reorders the safe set — none
-      // of which may ever reach outside it.
-      const h = household({ allergies: [allergy] });
+  it.each(HARD_DIETARY_FLAGS)(
+    "never surfaces a dish untagged for %s, whatever the intent and whichever lever is pulled",
+    (flag) => {
+      // The levers this slice adds each reorder the allowed set — none may ever reach
+      // outside it, and that includes the pantry and Proteinrikt paths.
+      const h = household({ dietary_flags: [flag] });
+      const list = realRanked(h);
       const pantryIngredientIds = [...data.ingredientsById.keys()];
 
-      const offenders = [
-        ...surfacedIngredientIds(h, { pantryIngredientIds }),
-        ...surfacedIngredientIds(h, { preferHighProtein: true }),
-      ].filter((ingredientId) => rowsByIngredientId.get(ingredientId)?.allergens.includes(allergy));
+      const selections = [{}, { pantryIngredientIds }, { preferHighProtein: true }];
+      const offenders: string[] = [];
+
+      for (const selection of selections) {
+        for (const choice of everyChoice(list)) {
+          for (const direction of pickDirections(list, { main: choice, ...selection })) {
+            if (!direction.template.dietary_tags.includes(flag)) {
+              offenders.push(direction.template.id);
+            }
+          }
+        }
+      }
 
       expect(offenders).toEqual([]);
     },
   );
 
-  it.each(AllergySchema.options)(
-    "never surfaces %s to an allergic vegetarian or vegan household either",
-    (allergy) => {
-      for (const flag of ["vegetarian", "vegan"] as const) {
-        const offenders = [
-          ...surfacedIngredientIds(household({ allergies: [allergy], dietary_flags: [flag] })),
-        ].filter((ingredientId) => rowsByIngredientId.get(ingredientId)?.allergens.includes(allergy));
-
-        expect(offenders).toEqual([]);
-      }
-    },
-  );
-
-  it("never surfaces a non-vegan dish to a vegan household, whatever the intent", () => {
-    const h = household({ dietary_flags: ["vegan"] });
-    const list = realRanked(h);
-
-    for (const preferHighProtein of [false, true]) {
-      for (const direction of pickDirections(list, { main: ANY, preferHighProtein })) {
-        expect(direction.template.dietary_tags).toContain("vegan");
-      }
-    }
-  });
-
   it("every direction it returns came from the ranked candidate set, unmodified", () => {
-    const list = realRanked(household({ allergies: ["gluten"] }));
+    const list = realRanked(household({ dietary_flags: ["vegetarian"] }));
     const byId = new Map(list.map((candidate) => [candidate.template.id, candidate]));
 
     for (const direction of pickDirections(list, { main: ANY, pantryIngredientIds: ["ris"] })) {
@@ -431,7 +390,7 @@ describe("pickDirections — allergen safety over the real catalog", () => {
 
 describe("eligibleDirections — the §9 empty-state signal", () => {
   it("is empty exactly when the constraints leave nothing, so the caller can offer to loosen", () => {
-    const list = realRanked(household({ allergies: ["gluten", "dairy_lactose"], dietary_flags: ["vegan"] }));
+    const list = realRanked(household({ dietary_flags: ["vegan"] }));
 
     expect(eligibleDirections(list, { main: main("entrecote") })).toEqual([]);
     expect(eligibleDirections(list, { main: ANY }).length).toBeGreaterThan(0);

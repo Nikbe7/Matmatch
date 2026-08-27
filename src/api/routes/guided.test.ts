@@ -17,6 +17,7 @@ import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "../../en
 import { createApp } from "../app.js";
 import { MAIN_INGREDIENT_GRID_SIZE, PANTRY_GRID_SIZE } from "../guidedCatalog.js";
 import { makeHousehold } from "../../engine/__fixtures__/household.js";
+import { selectCandidateTemplates } from "../../engine/candidates.js";
 
 // GET /api/guided/options and GET /api/guided/directions (UX_FLOW §5), against the
 // real local Supabase stack — real database, real auth, no mocks. Selection
@@ -134,58 +135,32 @@ describe.skipIf(!stackAvailable)("GET /api/guided/options", () => {
   });
 
   it("never offers a tap target the household could not be served", async () => {
-    // Not a safety mechanism — the engine would refuse the dish anyway — but a grid
-    // whose taps can only ever produce the §9 empty state is a grid of traps.
+    // Not a filtering mechanism — the engine would refuse the dish anyway — but a grid
+    // whose taps can only ever produce the §9 empty state is a grid of traps. The
+    // `excludedMainIngredients` list that used to name *why* a main was missing went
+    // with allergy filtering (#224): a dietary flag excludes a whole dish, not one
+    // ingredient, so there is nothing per-ingredient left to explain.
     const app = buildApp();
-    const user = await userWithHousehold(app, makeHousehold({ allergies: ["fish", "shellfish"] }));
+    const user = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
 
     const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
 
+    expect(response.status).toBe(200);
     const offered: string[] = [
       ...response.body.mainIngredients,
       ...response.body.pantryIngredients,
     ].map((option: { id: string }) => option.id);
 
-    for (const id of offered) {
-      const row = engineData.allergenMappingByIngredientId.get(id);
-      expect(row?.allergens.includes("fish")).toBe(false);
-      expect(row?.allergens.includes("shellfish")).toBe(false);
+    // Every offered main must appear in at least one dish this household may eat.
+    const eligible = new Set(
+      selectCandidateTemplates(engineData, { dietary_flags: ["vegan"] }).flatMap((candidate) =>
+        candidate.template.ingredient_slots.map((slot) => slot.ingredient_id),
+      ),
+    );
+    for (const id of response.body.mainIngredients.map((option: { id: string }) => option.id)) {
+      expect(eligible.has(id)).toBe(true);
     }
-    expect(offered).not.toContain("lax");
-  });
-
-  it("names 'lax' as fish-excluded for step 2's filter, but never lets it into the selectable grid", async () => {
-    // The real catalog's exhaustive-across-the-vocabulary coverage is a unit test
-    // (guidedCatalog.test.ts) against fixture data — the real catalog has no
-    // verified protein excluded by tree_nuts or peanuts to exercise. This proves
-    // the wiring against real data for the one allergy it can: fish.
-    const app = buildApp();
-    const user = await userWithHousehold(app, makeHousehold({ allergies: ["fish"] }));
-
-    const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
-
-    expect(response.status).toBe(200);
-    const excluded = response.body.excludedMainIngredients as {
-      id: string;
-      name: string;
-      allergies: string[];
-    }[];
-    const lax = excluded.find((option) => option.id === "lax");
-    // Raw catalog casing — sentence-start capitalization is a client display concern.
-    expect(lax).toEqual({ id: "lax", name: "lax", allergies: ["fish"] });
-
-    const mainIds: string[] = response.body.mainIngredients.map((o: { id: string }) => o.id);
-    const excludedIds = excluded.map((option) => option.id);
-    expect(mainIds.filter((id) => excludedIds.includes(id))).toEqual([]);
-  });
-
-  it("is empty for a household with no allergies", async () => {
-    const app = buildApp();
-    const user = await userWithHousehold(app);
-
-    const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
-
-    expect(response.body.excludedMainIngredients).toEqual([]);
+    expect(offered).not.toContain("entrecote");
   });
 
   it("narrows the grid to what a constrained household can actually cook", async () => {
@@ -463,25 +438,6 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — the direction s
 });
 
 describe.skipIf(!stackAvailable)("GET /api/guided/directions — safety and household scoping", () => {
-  it("never returns a dish an allergic household cannot eat", async () => {
-    const app = buildApp();
-    const user = await userWithHousehold(app, makeHousehold({ allergies: ["gluten", "dairy_lactose", "shellfish", "fish", "egg", "soy", "peanuts", "tree_nuts"] }));
-
-    const response = await directions(app, user.accessToken, { intent: "dinner_idea", main: "any" });
-
-    expect(response.status).toBe(200);
-    for (const direction of response.body.directions) {
-      for (const ingredient of direction.template.ingredient_slots) {
-        const row = engineData.allergenMappingByIngredientId.get(ingredient.ingredient_id);
-        const substituted = direction.substitutions.some(
-          (substitution: { slot_index: number }) =>
-            direction.template.ingredient_slots.indexOf(ingredient) === substitution.slot_index,
-        );
-        if (!substituted) expect(row?.allergens).toEqual([]);
-      }
-    }
-  });
-
   it("never returns a non-vegan dish to a vegan household, whatever the intent", async () => {
     const app = buildApp();
     const user = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
@@ -573,10 +529,10 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — empty states (U
 
   it("distinguishes 'no_safe_templates' from 'no_directions' — they need different ways out", async () => {
     // Deliberately a fixture catalog, not the real one: today's 170 templates leave
-    // even an all-eight-allergies vegan household 14 safe options, so the real data
-    // cannot reach this branch. It stays reachable — one more allergy, one narrower
-    // batch — and the client needs it to mean "loosen your household", not "loosen
-    // your main ingredient", so the wiring is proven here rather than assumed.
+    // even a vegan household 26 eligible options, so the real data cannot reach this
+    // branch. It stays reachable — one narrower batch — and the client needs it to
+    // mean "loosen your household", not "loosen your main ingredient", so the wiring
+    // is proven here rather than assumed.
     const meatOnly = makeEngineData({
       ingredients: [makeIngredient("notfars", { category: "protein" })],
       templates: [
@@ -610,7 +566,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — empty states (U
 
   it("never returns more cards than the household safely has", async () => {
     const app = buildApp();
-    const user = await userWithHousehold(app, makeHousehold({ allergies: ["gluten", "dairy_lactose", "egg", "soy"], dietary_flags: ["vegan"] }));
+    const user = await userWithHousehold(app, makeHousehold({ dietary_flags: ["vegan"] }));
 
     const response = await directions(app, user.accessToken, { intent: "dinner_idea", main: "any" });
 
@@ -703,21 +659,23 @@ describe.skipIf(!stackAvailable)("pantry input is never persisted (CLAUDE.md non
 });
 
 describe.skipIf(!stackAvailable)("the guided flow's diner set (#112)", () => {
-  // One restricted member and one clean one, so the diner set is the only variable.
-  const fishAdultAndCleanAdult = {
+  // One restricted member and one unrestricted one, so the diner set is the only
+  // variable. Written around a dietary flag since #224 — the fish-allergic Ida this
+  // suite used to use no longer has a constraint the engine knows about.
+  const vegetarianAdultAndOmnivoreAdult = {
     members: [
-      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
-      { type: "adult", portion_factor: 1, name: "Ida", allergies: ["fish"], dietary_flags: [] },
+      { type: "adult", portion_factor: 1, dietary_flags: [] },
+      { type: "adult", portion_factor: 1, name: "Ida", dietary_flags: ["vegetarian"] },
     ],
   };
 
-  async function fishHouseholdUser(app: Express) {
-    return userWithHousehold(app, fishAdultAndCleanAdult);
+  async function vegetarianHouseholdUser(app: Express) {
+    return userWithHousehold(app, vegetarianAdultAndOmnivoreAdult);
   }
 
-  it("keeps 'lax' out of the grid while the fish-allergic member is eating", async () => {
+  it("keeps meat mains out of the grid while the vegetarian member is eating", async () => {
     const app = buildApp();
-    const user = await fishHouseholdUser(app);
+    const user = await vegetarianHouseholdUser(app);
 
     const withEveryone = await request(app)
       .get("/api/guided/options")
@@ -729,52 +687,57 @@ describe.skipIf(!stackAvailable)("the guided flow's diner set (#112)", () => {
 
     for (const response of [withEveryone, withBoth]) {
       const ids: string[] = response.body.mainIngredients.map((o: { id: string }) => o.id);
-      expect(ids).not.toContain("lax");
-      expect(response.body.excludedMainIngredients.map((o: { id: string }) => o.id)).toContain("lax");
+      expect(ids).not.toContain("kycklingfile");
+      expect(ids).not.toContain("entrecote");
     }
   });
 
-  it("stops treating 'lax' as excluded once that member is deselected", async () => {
+  it("offers them again once that member is deselected", async () => {
     const app = buildApp();
-    const user = await fishHouseholdUser(app);
+    const user = await vegetarianHouseholdUser(app);
 
     const response = await request(app)
       .get("/api/guided/options")
       .query({ diners: "0" })
       .set(authHeader(user.accessToken));
 
-    // Nothing is excluded any more, so there is nothing to explain either. The grid
-    // itself is capped at MAIN_INGREDIENT_GRID_SIZE and ranked, so lax appearing in
-    // it is not guaranteed and is not the claim — that it is no longer *withheld*
-    // is, and the directions test below proves it is genuinely selectable.
-    expect(response.body.excludedMainIngredients).toEqual([]);
-    expect(response.body.mainIngredients.length).toBeGreaterThan(0);
+    // The grid is capped at MAIN_INGREDIENT_GRID_SIZE and ranked, so any *particular*
+    // meat main appearing is not guaranteed and is not the claim — that the grid is
+    // no longer the vegetarian one is, and the directions test below proves a meat
+    // main is genuinely selectable.
+    const omnivore = await userWithHousehold(app);
+    const unrestricted = await request(app)
+      .get("/api/guided/options")
+      .set(authHeader(omnivore.accessToken));
+
+    expect(response.status).toBe(200);
+    expect(response.body.mainIngredients).toEqual(unrestricted.body.mainIngredients);
   });
 
-  it("lets the directions endpoint return a lax dish for the same diner set", async () => {
-    // The pair the client is required to keep aligned: a grid that offers lax and a
-    // directions request that accepts it.
+  it("lets the directions endpoint return a chicken dish for the same diner set", async () => {
+    // The pair the client is required to keep aligned: a grid that offers a meat main
+    // and a directions request that accepts it.
     const app = buildApp();
-    const user = await fishHouseholdUser(app);
+    const user = await vegetarianHouseholdUser(app);
 
     const response = await request(app)
       .get("/api/guided/directions")
-      .query({ intent: "dinner_idea", main: "lax", diners: "0" })
+      .query({ intent: "dinner_idea", main: "kycklingfile", diners: "0" })
       .set(authHeader(user.accessToken));
 
     expect(response.status).toBe(200);
     expect(response.body.directions.length).toBeGreaterThan(0);
-    expect(response.body.mainIngredientId).toBe("lax");
+    expect(response.body.mainIngredientId).toBe("kycklingfile");
     expect(response.body.portions).toBe(1);
   });
 
-  it("rejects that same dish when the fish-allergic member is eating", async () => {
+  it("rejects that same dish when the vegetarian member is eating", async () => {
     const app = buildApp();
-    const user = await fishHouseholdUser(app);
+    const user = await vegetarianHouseholdUser(app);
 
     const response = await request(app)
       .get("/api/guided/directions")
-      .query({ intent: "dinner_idea", main: "lax" })
+      .query({ intent: "dinner_idea", main: "kycklingfile" })
       .set(authHeader(user.accessToken));
 
     expect(response.status).toBe(200);
@@ -784,7 +747,7 @@ describe.skipIf(!stackAvailable)("the guided flow's diner set (#112)", () => {
 
   it("fails closed on both endpoints for every malformed diner parameter", async () => {
     const app = buildApp();
-    const user = await fishHouseholdUser(app);
+    const user = await vegetarianHouseholdUser(app);
 
     for (const diners of ["", "9", "0,9", "-1", "lax", "0.5"]) {
       const options = await request(app)
@@ -792,11 +755,13 @@ describe.skipIf(!stackAvailable)("the guided flow's diner set (#112)", () => {
         .query({ diners })
         .set(authHeader(user.accessToken));
       expect(options.status).toBe(200);
-      expect(options.body.mainIngredients.map((o: { id: string }) => o.id)).not.toContain("lax");
+      expect(options.body.mainIngredients.map((o: { id: string }) => o.id)).not.toContain(
+        "kycklingfile",
+      );
 
       const directions = await request(app)
         .get("/api/guided/directions")
-        .query({ intent: "dinner_idea", main: "lax", diners })
+        .query({ intent: "dinner_idea", main: "kycklingfile", diners })
         .set(authHeader(user.accessToken));
       expect(directions.status).toBe(200);
       expect(directions.body.directions).toEqual([]);
@@ -806,7 +771,7 @@ describe.skipIf(!stackAvailable)("the guided flow's diner set (#112)", () => {
 
   it("returns the same member labels from options as Tonight does", async () => {
     const app = buildApp();
-    const user = await fishHouseholdUser(app);
+    const user = await vegetarianHouseholdUser(app);
 
     const options = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
     const tonight = await request(app).get("/api/tonight").set(authHeader(user.accessToken));
@@ -817,7 +782,7 @@ describe.skipIf(!stackAvailable)("the guided flow's diner set (#112)", () => {
 
   it("writes nothing — a diner selection is not a profile edit, and neither is the pantry", async () => {
     const app = buildApp();
-    const user = await fishHouseholdUser(app);
+    const user = await vegetarianHouseholdUser(app);
     const { getHouseholdForOwner } = await import("../../db/households.js");
     const before = await getHouseholdForOwner(sql!, user.userId);
 
@@ -835,27 +800,25 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — `keep` on a din
   // Same contract as tonight.ts's `keep` (src/api/app.test.ts); this only proves
   // the guided endpoint's own wiring — forcing the kept dish into the returned
   // cards, and naming who it was replaced for.
-  const adultAndPeanutChild = {
+  const adultAndVeganChild = {
     members: [
-      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
-      { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+      { type: "adult", portion_factor: 1, dietary_flags: [] },
+      { type: "child", portion_factor: 0.5, dietary_flags: ["vegan"] },
     ],
   };
 
   function keepEngineData(): EngineData {
     return makeEngineData({
-      ingredients: [makeIngredient("jordnotter"), makeIngredient("morot")],
-      allergenMappings: [
-        { ingredient_id: "jordnotter", allergens: ["peanuts"], verification_status: "verified" },
-        { ingredient_id: "morot", allergens: [], verification_status: "verified" },
-      ],
+      ingredients: [makeIngredient("notfars", { category: "protein" }), makeIngredient("morot")],
       templates: [
-        // Contains peanuts — safe only without the peanut-allergic child.
-        makeTemplate("satay", {
-          ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "jordnotter", substitutable: false })],
+        // Untagged — eligible only without the vegan child at the table.
+        makeTemplate("kottfars", {
+          dietary_tags: [],
+          ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "notfars", substitutable: false })],
         }),
-        // Safe for everyone, regardless of who is eating.
+        // Eligible for everyone, regardless of who is eating.
         makeTemplate("morotssoppa", {
+          dietary_tags: ["vegetarian", "vegan"],
           ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false })],
         }),
       ],
@@ -864,7 +827,7 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — `keep` on a din
 
   it("keeps the chosen direction in the returned cards when the new diner set still allows it", async () => {
     const app = buildApp(keepEngineData());
-    const user = await userWithHousehold(app, adultAndPeanutChild);
+    const user = await userWithHousehold(app, adultAndVeganChild);
 
     const response = await directions(app, user.accessToken, {
       intent: "dinner_idea",
@@ -880,20 +843,20 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — `keep` on a din
     expect(response.body.replacedFor).toBeUndefined();
   });
 
-  it("drops the kept dish and names the affected member once the new diner set makes it unsafe", async () => {
+  it("drops the kept dish and names the affected member once the new diner set excludes it", async () => {
     const app = buildApp(keepEngineData());
-    const user = await userWithHousehold(app, adultAndPeanutChild);
+    const user = await userWithHousehold(app, adultAndVeganChild);
 
     const response = await directions(app, user.accessToken, {
       intent: "dinner_idea",
       main: "any",
       diners: "0,1",
-      keep: "satay",
+      keep: "kottfars",
     });
 
     expect(response.status).toBe(200);
     expect(response.body.directions.map((d: { template: { id: string } }) => d.template.id)).not.toContain(
-      "satay",
+      "kottfars",
     );
     // The child has no declared name, so the derived label applies.
     expect(response.body.replacedFor).toBe("Barn 1");

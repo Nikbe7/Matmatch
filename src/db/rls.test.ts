@@ -39,7 +39,7 @@ afterAll(async () => {
 });
 
 const profile = HouseholdSchema.parse({
-  members: [{ type: "adult", portion_factor: 1, allergies: ["gluten"], dietary_flags: [] }],
+  members: [{ type: "adult", portion_factor: 1, dietary_flags: ["vegetarian"] }],
 });
 
 describe.skipIf(!stackAvailable)("row level security — application role", () => {
@@ -88,10 +88,16 @@ describe.skipIf(!stackAvailable)("row level security — application role", () =
   });
 
   it("cannot edit another user's member constraints even with a matching household id", async () => {
-    // Retargeted from `households` to `household_members` by #115: the allergy data
-    // this proves is protected now lives on the member rows, and their policies are
+    // Retargeted from `households` to `household_members` by #115: the constraint data
+    // this proves is protected lives on the member rows, and their policies are
     // defined by reference to the household's owner rather than by an owner column of
     // their own. Attacking the table that no longer holds the data would prove nothing.
+    //
+    // #224 retargeted the *column* for the same reason. This used to attack
+    // `allergies`, which the repository now writes as an unread empty list — an attack
+    // on a column holding nothing for everyone would pass whether RLS worked or not.
+    // `dietary_flags` is the constraint data a household actually has, so it is what
+    // the policy has to be demonstrated on.
     const alice = await createTestUser();
     const bob = await createTestUser();
     const bobHousehold = await createHousehold(sql!, bob.userId, profile);
@@ -100,20 +106,21 @@ describe.skipIf(!stackAvailable)("row level security — application role", () =
       sql!,
       alice.userId,
       (tx) => tx<{ household_id: string }[]>`
-        update household_members set allergies = '{}'::text[]::allergy_value[]
+        update household_members set dietary_flags = '{}'::text[]::dietary_flag_value[]
         where household_id = ${bobHousehold.id}
         returning household_id
       `,
     );
 
     expect(updated).toEqual([]);
-    // Bob's declared allergy is untouched — the dangerous direction is an attacker
-    // *clearing* someone's allergies, so this asserts the value, not just the row count.
-    const [row] = await admin!<{ allergies: string[] }[]>`
-      select allergies::text[] as allergies
+    // Bob's declared flag is untouched — the dangerous direction is an attacker
+    // *clearing* someone's constraints, so this asserts the value, not just the row
+    // count.
+    const [row] = await admin!<{ dietary_flags: string[] }[]>`
+      select dietary_flags::text[] as dietary_flags
       from household_members where household_id = ${bobHousehold.id}
     `;
-    expect(row!.allergies).toEqual(["gluten"]);
+    expect(row!.dietary_flags).toEqual(["vegetarian"]);
   });
 
   // Preference weights (#157) — the same owner-scoped policies, asserted for the new
@@ -391,16 +398,23 @@ describe.skipIf(!stackAvailable)("per-member constraint columns are reachable an
     );
 
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.allergies).toEqual(["gluten"]);
-    expect(created.household.members[0]!.allergies).toEqual(["gluten"]);
+    expect(rows[0]!.dietary_flags).toEqual(["vegetarian"]);
+    expect(created.household.members[0]!.dietary_flags).toEqual(["vegetarian"]);
+    // `allergies` is still selected above on purpose: the column outlived the feature
+    // (#224) and the grant is what this test is about. Nothing reads its value any
+    // more, and the repository writes every member an empty list to satisfy the
+    // column's `not null` — asserted here because no other test can see that write.
+    expect(rows[0]!.allergies).toEqual([]);
   });
 
-  it("has no default on the constraint columns, so an omitted allergy list errors instead of meaning none", async () => {
+  it("has no default on the constraint columns, so an omitted list errors instead of meaning none", async () => {
     const owner = await createTestUser();
     const created = await createHousehold(sql!, owner.userId, profile);
 
     // The safety property behind dropping the backfill defaults: a writer that forgets
-    // these columns must fail loudly rather than silently record "no allergies".
+    // these columns must fail loudly rather than silently record "nothing declared".
+    // Still enforced after #224, and still load-bearing for `dietary_flags` — it is
+    // also why `insertMembers` has to keep writing the now-unread `allergies` column.
     await expect(
       admin!`
         insert into household_members (household_id, type, portion_factor, position)

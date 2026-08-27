@@ -17,11 +17,11 @@ import { createApp } from "../app.js";
 
 // GET /api/ingredients/alternatives (#124), against the real local Supabase stack —
 // real database, real auth, no mocks. Deterministic classification (which candidate
-// is cheaper/similar, which allergens exclude a candidate) is covered exhaustively in
+// is cheaper/similar, which candidates a role admits) is covered exhaustively in
 // src/engine/candidates.test.ts and src/api/ingredientAlternatives.test.ts; what this
 // file proves is the wiring: request validation, the household on the row is the one
 // that gates the response, and the route never widens what the engine already
-// decided is safe.
+// decided.
 
 const stackAvailable = await isLocalStackAvailable();
 
@@ -66,13 +66,6 @@ function buildFixture(): EngineData {
       makeIngredient("schalottenlok", { default_cost_tier: "mid" }),
       makeIngredient("kyckling", { category: "protein", default_cost_tier: "mid" }),
       makeIngredient("tofu", { category: "protein", default_cost_tier: "budget" }),
-    ],
-    allergenMappings: [
-      { ingredient_id: "gul-lok", allergens: [], verification_status: "verified" as const },
-      { ingredient_id: "rodlok", allergens: [], verification_status: "verified" as const },
-      { ingredient_id: "schalottenlok", allergens: [], verification_status: "verified" as const },
-      { ingredient_id: "kyckling", allergens: [], verification_status: "verified" as const },
-      { ingredient_id: "tofu", allergens: ["soy"], verification_status: "verified" as const },
     ],
     substitutionGroups: [
       {
@@ -188,28 +181,6 @@ describe.skipIf(!stackAvailable)("GET /api/ingredients/alternatives", () => {
     // gul-lok and rodlok are both budget — same tier, so "similar", not "cheaper".
     expect(response.body.similar.map((a: { ingredientId: string }) => a.ingredientId)).toEqual(["rodlok"]);
     expect(response.body.cheaper).toBeUndefined();
-    expect(
-      response.body.searchPool.map((a: { ingredientId: string }) => a.ingredientId).sort(),
-    ).toEqual(["rodlok", "schalottenlok"]);
-  });
-
-  it("excludes a candidate the household is allergic to, even from the search pool", async () => {
-    const app = buildApp(buildFixture());
-    const user = await userWithHousehold(app, makeHousehold({ allergies: ["soy"] }));
-
-    // Protein slot 1 is non-substitutable in this fixture, so exercise the allergy
-    // gate on the aromatic slot with a soy-allergic household instead: no aromatic
-    // ingredient here carries soy, so the pool must be unaffected — the exclusion
-    // proof lives in src/engine/candidates.test.ts's exhaustive sweep. This asserts
-    // the wiring instead: constraints.allergies from *this* household's row reaches
-    // the engine call.
-    const response = await alternatives(app, user.accessToken, {
-      template: templateId,
-      slot: "0",
-      ingredient: "gul-lok",
-    });
-
-    expect(response.status).toBe(200);
     expect(
       response.body.searchPool.map((a: { ingredientId: string }) => a.ingredientId).sort(),
     ).toEqual(["rodlok", "schalottenlok"]);

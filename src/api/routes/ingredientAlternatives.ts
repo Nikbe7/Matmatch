@@ -14,7 +14,7 @@ import { buildIngredientAlternatives, type IngredientAlternativesView } from "..
 // fetched once per popover open — the search box below the filters is answered from
 // the same response's `searchPool` by filtering client-side (the #110 idiom), not by
 // a request per keystroke. No AI path in this slice (#132): every candidate here
-// comes from curated substitution groups, gated by the same deterministic allergy
+// comes from curated substitution groups, resolved by the same deterministic catalog
 // filter every other surface uses.
 
 const QuerySchema = z.object({
@@ -62,8 +62,12 @@ export function ingredientAlternativesRouter(
         );
       }
 
+      // The diner set no longer changes *which* alternatives are offered (#224 took
+      // the allergy gate out of this path), but it still decides how many portions the
+      // returned quantities are scaled to — so it is still parsed and still resolved
+      // through `mealDiners`, the single seam, rather than a portion sum of its own.
       const selectedDiners = parseDinersFromQuery((req.query as Record<string, unknown>).diners);
-      const { constraints, portions } = mealDiners(stored.household.members, selectedDiners);
+      const { portions } = mealDiners(stored.household.members, selectedDiners);
 
       const view = buildIngredientAlternatives(
         engineData,

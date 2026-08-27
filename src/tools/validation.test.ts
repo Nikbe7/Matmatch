@@ -241,8 +241,13 @@ describe("validateFiles — recipe-template derived fields", () => {
   });
 });
 
-describe("validateFiles — ingredient-allergen coverage", () => {
-  it("passes when every catalog ingredient has a verified mapping row", () => {
+// #224 removed the *coverage* direction of these checks — "every catalog ingredient
+// must have an allergen row" — because nothing reads the file any more and enforcing
+// it would fail validation on the first ingredient added to a catalog headed for
+// thousands of entries. What is asserted below is what the file is still validated
+// for: schema, duplicate ids, and rows pointing at ingredients that actually exist.
+describe("validateFiles — ingredient-allergen rows (validated, unread)", () => {
+  it("passes a clean mapping file alongside the ingredient catalog", () => {
     const result = validateFiles([
       fixture("valid-ingredients.json", "ingredient"),
       fixture("valid-ingredient-allergens.json", "ingredient-allergen"),
@@ -252,10 +257,22 @@ describe("validateFiles — ingredient-allergen coverage", () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it("no longer fails a catalog ingredient that has no mapping row", () => {
+    // Deliberately the inverse of the pre-#224 assertion: this is the check whose
+    // removal unblocks catalog growth, so it is worth pinning rather than deleting.
+    // The rows are a closed hand-verified record; ingredients do not have to point
+    // back at it.
+    const result = validateFiles([
+      fixture("valid-ingredients.json", "ingredient"),
+      fixture("ingredient-allergen-partial-coverage.json", "ingredient-allergen"),
+    ]);
+
+    expect(result.errors).toEqual([]);
+  });
+
   it("fails a mapping row referencing a nonexistent ingredient id", () => {
-    // The fixture only maps "nonexistent-ingredient", so the coverage check
-    // also fires (gul-lok/kyckling are uncovered) alongside the referential
-    // check under test here — both are correct, independent findings.
+    // The direction that survives: a row must point at an ingredient that exists, so
+    // a renamed or removed catalog entry cannot leave a dangling row behind.
     const result = validateFiles([
       fixture("valid-ingredients.json", "ingredient"),
       fixture("ingredient-allergen-missing-ingredient.json", "ingredient-allergen"),
@@ -263,38 +280,6 @@ describe("validateFiles — ingredient-allergen coverage", () => {
 
     expect(
       result.errors.some((error) => error.message.includes('references unknown ingredient id "nonexistent-ingredient"')),
-    ).toBe(true);
-  });
-
-  it("fails coverage when a catalog ingredient has no mapping row at all", () => {
-    const result = validateFiles([
-      fixture("valid-ingredients.json", "ingredient"),
-      fixture("ingredient-allergen-partial-coverage.json", "ingredient-allergen"),
-    ]);
-
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]!.message).toContain('ingredient "kyckling" has no ingredient-allergen mapping row');
-  });
-
-  it("warns (does not silently pass) when no ingredient file is passed, so the coverage check never ran", () => {
-    const result = validateFiles([fixture("valid-ingredient-allergens.json", "ingredient-allergen")]);
-
-    expect(result.errors).toEqual([]);
-    expect(
-      result.warnings.some(
-        (warning) => warning.message.includes("no ingredient file was passed") && warning.message.includes("coverage"),
-      ),
-    ).toBe(true);
-  });
-
-  it("skips the coverage check and notes it when no ingredient-allergen file is passed", () => {
-    const result = validateFiles([fixture("valid-ingredients.json", "ingredient")]);
-
-    expect(result.errors).toEqual([]);
-    expect(
-      result.notes.some(
-        (note) => note.includes("no ingredient-allergen file was passed") && note.includes("coverage"),
-      ),
     ).toBe(true);
   });
 
@@ -307,6 +292,7 @@ describe("validateFiles — ingredient-allergen coverage", () => {
     expect(result.errors).toEqual([]);
     expect(result.warnings).toHaveLength(1);
     expect(result.warnings[0]!.message).toContain("1 of 2 ingredient-allergen row(s) are unverified");
+    expect(result.warnings[0]!.message).toContain("hand-verified record");
   });
 
   it("fails on duplicate ingredient_id in the mapping across files", () => {

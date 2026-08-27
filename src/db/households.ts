@@ -139,6 +139,15 @@ async function insertMembers(
     // Written as text[] and cast by the column's domain type on the way in, matching
     // how the household-level columns were written before #115.
     dietary_flags: member.dietary_flags,
+    // #224 removed allergy filtering from the product but deliberately left the
+    // column in place, so the branch reverts with `git revert` rather than a down
+    // migration (DECISION_LOG 2026-08-25). The column is `not null` and its default
+    // was dropped in 20260810000000 — on purpose, so that "nobody wrote an allergy
+    // list" could never be silently recorded as "no allergies". That constraint is
+    // still enforced, so the write path has to satisfy it: every member is written
+    // with an empty list, which nothing reads. Remove this line only together with
+    // the column itself.
+    allergies: [] as string[],
   }));
 
   return sql<MemberRow[]>`

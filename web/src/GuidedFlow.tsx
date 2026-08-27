@@ -354,7 +354,7 @@ export function GuidedFlow({
         // Dropped, not left on screen, for the same reason the direction set below is:
         // after a failed refetch these grids answer a question the household has
         // already changed. A diner toggle is exactly that — a grid built while the
-        // fish-allergic member was away keeps offering "lax" as a tap target once she
+        // vegetarian member was away keeps offering meat as a tap target once she
         // is back at the table. The directions request would refuse it server-side, so
         // this is not a safety hole; it is the trap tap target the flow is built to
         // avoid.

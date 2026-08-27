@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { AllergySchema, type Allergy } from "../schema/allergyDietary.js";
 import type { GeneratedDishOutput } from "../schema/generatedDish.js";
 import {
   isGeneratedDishVisibleToHousehold,
   resolveGeneratedDish,
   resolveIngredientName,
 } from "./generatedDish.js";
+import { passesHardDietaryFilter } from "./candidates.js";
 import { makeEngineData, makeIngredient } from "./__fixtures__/engineData.js";
 
 const data = makeEngineData({
@@ -16,15 +16,6 @@ const data = makeEngineData({
     makeIngredient("gul-lok", { name: "gul lök", default_cost_tier: "budget" }),
     makeIngredient("potatis", { name: "potatis", category: "starch", default_cost_tier: "budget" }),
     makeIngredient("overifierad", { name: "overifierad ingrediens", default_cost_tier: "budget" }),
-  ],
-  allergenMappings: [
-    { ingredient_id: "kyckling", allergens: [], verification_status: "verified" },
-    { ingredient_id: "mandelmjolk", allergens: ["tree_nuts"], verification_status: "verified" },
-    { ingredient_id: "mandel", allergens: ["tree_nuts"], verification_status: "verified" },
-    { ingredient_id: "gul-lok", allergens: [], verification_status: "verified" },
-    { ingredient_id: "potatis", allergens: [], verification_status: "verified" },
-    // Deliberately missing mapping row for "overifierad" — same fail-safe posture
-    // as allergens.test.ts, exercised through the generated-dish path too.
   ],
 });
 
@@ -142,60 +133,35 @@ describe("resolveGeneratedDish", () => {
   });
 });
 
-describe("isGeneratedDishVisibleToHousehold — allergy gate, exhaustive over the locked vocabulary", () => {
-  it.each(AllergySchema.options)(
-    "withholds an unresolved-ingredient dish from a household declaring %s",
-    (allergy: Allergy) => {
-      const resolved = resolveGeneratedDish(
-        data,
-        dishOutput({ ingredients: [{ role: "protein", name: "flygande fisk" }] }),
-      );
-
-      expect(isGeneratedDishVisibleToHousehold(data, resolved, [allergy])).toBe(false);
-    },
-  );
-
-  it("shows an unresolved-ingredient dish to a household with no declared allergies", () => {
+describe("isGeneratedDishVisibleToHousehold — what is left of the Tier 2 gate", () => {
+  it("still shows a dish with an unresolvable ingredient name, and marks it unverified", () => {
+    // Behaviour preservation, not a relaxation: before #224 this dish was withheld
+    // only from a household that had *declared an allergy*, on the fail-safe reading
+    // that an ingredient we cannot identify might contain anything. With no allergies
+    // declared it was shown and marked. Every household is now that household.
     const resolved = resolveGeneratedDish(
       data,
       dishOutput({ ingredients: [{ role: "protein", name: "flygande fisk" }] }),
     );
 
-    expect(isGeneratedDishVisibleToHousehold(data, resolved, [])).toBe(true);
+    expect(resolved.hasUnverifiedContent).toBe(true);
+    expect(isGeneratedDishVisibleToHousehold(data, resolved)).toBe(true);
   });
 
-  it.each(AllergySchema.options)(
-    "withholds a fully-resolved dish containing %s from a household declaring it",
-    (allergy: Allergy) => {
-      // mandelmjolk is verified tree_nuts-only; test each allergy against a dish
-      // whose only real allergen is tree_nuts to exercise both the "matches" and
-      // "does not match" branches across the full vocabulary.
-      const resolved = resolveGeneratedDish(
-        data,
-        dishOutput({ ingredients: [{ role: "dairy", name: "mandelmjölk" }] }),
-      );
+  it("withholds a dish whose slot carries an ingredient id the catalog does not know", () => {
+    // Constructed directly: `resolveGeneratedDish` only ever sets an id it just looked
+    // up, so it cannot produce this. That is the point — the gate is defence in depth
+    // at the boundary a future path would arrive through, and a test is the only thing
+    // that keeps it from being deleted as dead on a reading of today's call graph.
+    const resolved = {
+      ...resolveGeneratedDish(data, dishOutput({ ingredients: [{ role: "protein", name: "kyckling" }] })),
+      slots: [{ role: "protein" as const, proposedName: "spökingrediens", ingredientId: "finns-inte" }],
+    };
 
-      const shouldBeWithheld = allergy === "tree_nuts";
-      expect(isGeneratedDishVisibleToHousehold(data, resolved, [allergy])).toBe(!shouldBeWithheld);
-    },
-  );
+    expect(isGeneratedDishVisibleToHousehold(data, resolved)).toBe(false);
+  });
 
-  it.each(AllergySchema.options)(
-    "withholds a resolved-but-unverified-mapping ingredient from any household declaring %s",
-    (allergy: Allergy) => {
-      // "overifierad" resolves to a real catalog id but has no allergen mapping row
-      // — the existing §5.4 fail-safe rule (allergens.ts) must still apply through
-      // the generated-dish path, not just for unresolved names.
-      const resolved = resolveGeneratedDish(
-        data,
-        dishOutput({ ingredients: [{ role: "vegetable", name: "overifierad ingrediens" }] }),
-      );
-
-      expect(isGeneratedDishVisibleToHousehold(data, resolved, [allergy])).toBe(false);
-    },
-  );
-
-  it("shows a fully-resolved, fully-verified, allergen-free dish to any household", () => {
+  it("shows a fully-resolved dish", () => {
     const resolved = resolveGeneratedDish(
       data,
       dishOutput({
@@ -206,7 +172,19 @@ describe("isGeneratedDishVisibleToHousehold — allergy gate, exhaustive over th
       }),
     );
 
-    expect(isGeneratedDishVisibleToHousehold(data, resolved, [])).toBe(true);
-    expect(isGeneratedDishVisibleToHousehold(data, resolved, ["gluten", "fish"])).toBe(true);
+    expect(isGeneratedDishVisibleToHousehold(data, resolved)).toBe(true);
+  });
+
+  it("does not consult dietary flags — that filter runs on dietaryTags, elsewhere", () => {
+    // `passesHardDietaryFilter` (candidates.ts) is what fails a generated dish for a
+    // vegan household, and it is deliberately not this function's job. Asserted so a
+    // future edit does not quietly move one of the two filters into the other.
+    const resolved = resolveGeneratedDish(
+      data,
+      dishOutput({ ingredients: [{ role: "protein", name: "kyckling" }] }),
+    );
+
+    expect(isGeneratedDishVisibleToHousehold(data, resolved)).toBe(true);
+    expect(passesHardDietaryFilter(resolved.dietaryTags, ["vegan"])).toBe(false);
   });
 });

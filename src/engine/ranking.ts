@@ -253,10 +253,9 @@ export const NEUTRAL_RANKING_WEIGHTS: RankingWeights = toRankingWeights(
 // this household cooked recently, decaying linearly to nothing over the window below.
 // A *penalty*, never a filter: a hard exclusion empties the candidate set for exactly
 // the constrained households `selectCandidateTemplates` is careful to keep options for
-// (all 8 allergies + vegan leaves 14 of ~170 templates), and an empty Tonight is the
-// dead end UX_FLOW §9 forbids. Cooking the same dish twice in a fortnight is a
-// preference, not a safety rule — so it belongs in the score, where something better
-// can outweigh it.
+// (vegan leaves 26 of ~170 templates), and an empty Tonight is the dead end UX_FLOW §9
+// forbids. Cooking the same dish twice in a fortnight is a preference, not a hard
+// rule — so it belongs in the score, where something better can outweigh it.
 //
 // Chosen at 5.0, bounded on both sides by the constants above:
 //

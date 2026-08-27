@@ -107,7 +107,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       const { members: eating, constraints, portions } = mealDiners(stored.household.members, selectedDiners);
 
       // Labels for the diner picker, by member position — never the members
-      // themselves, so no allergy data crosses the wire and the client never holds a
+      // themselves, so no constraint data crosses the wire and the client never holds a
       // second copy of the household. The client resets its selection whenever this
       // array changes, which is what keeps a position from outliving its roster.
       const diners = memberLabels(stored.household.members).map((label) => ({ label }));
