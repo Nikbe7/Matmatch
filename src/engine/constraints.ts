@@ -1,22 +1,20 @@
-import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../schema/vocabulary.js";
+import { DIETARY_FLAGS, type DietaryFlag } from "../schema/vocabulary.js";
 import type { HouseholdMember } from "../schema/household.js";
 import { totalPortions } from "./portions.js";
 
 // What a meal has to satisfy, derived from the people eating it.
 //
-// Since DECISION_LOG 2026-08-09 allergies and dietary flags live on the member
-// (src/schema/household.ts), so every consumer needs the union rather than a stored
-// field. This module is the only place that union is computed. That is the point:
-// it is the single seam #112 parameterizes by diner set, so Tonight, the guided flow
-// and Tier 2 generation cannot diverge on what is safe — there is no second
-// `.flatMap()` anywhere for them to diverge in.
+// Dietary flags live on the member (src/schema/household.ts), so every consumer needs
+// the union rather than a stored field. This module is the only place that union is
+// computed, and it is the single seam #112 parameterizes by diner set, so Tonight, the
+// guided flow and Tier 2 generation cannot diverge — there is no second `.flatMap()`
+// anywhere for them to diverge in.
 //
 // Pure and total: no I/O, no clock, no AI, exactly like the rest of src/engine/. The
 // diner set arrives as data — this module never parses a query string, and the HTTP
 // shape of a diner selection lives entirely in src/api/diners.ts.
 
 export interface MealConstraints {
-  allergies: readonly Allergy[];
   dietary_flags: readonly DietaryFlag[];
 }
 
@@ -53,7 +51,7 @@ function inVocabularyOrder<T>(vocabulary: readonly T[], selected: ReadonlySet<T>
  * safe answer is the *larger* constraint set, so "I could not make sense of this
  * selection" and "everyone is eating" are deliberately the same outcome — a
  * selection this cannot fully honour is one it must not partially honour, since a
- * partially-applied diner set silently drops somebody's allergy.
+ * partially-applied diner set silently drops somebody's dietary flag.
  *
  * That is also why this rejects the whole selection on one bad index rather than
  * filtering the bad ones out: dropping index 7 from `{0, 7}` would answer a question
@@ -73,7 +71,7 @@ function dinerMembers(
 }
 
 /**
- * The union of the given members' allergies and dietary flags.
+ * The union of the given members' dietary flags.
  *
  * Takes the member list rather than a `Household` so that a subset needs no synthetic
  * household — a shape that would be easy to build wrongly at each call site.
@@ -89,16 +87,13 @@ function dinerMembers(
  * reach it through a diner selection.
  */
 export function mealConstraints(members: readonly HouseholdMember[]): MealConstraints {
-  const allergies = new Set<Allergy>();
   const dietaryFlags = new Set<DietaryFlag>();
 
   for (const member of members) {
-    for (const allergy of member.allergies) allergies.add(allergy);
     for (const flag of member.dietary_flags) dietaryFlags.add(flag);
   }
 
   return {
-    allergies: inVocabularyOrder(ALLERGIES, allergies),
     dietary_flags: inVocabularyOrder(DIETARY_FLAGS, dietaryFlags),
   };
 }
@@ -119,7 +114,7 @@ export interface MealDiners {
  * Constraints and portions are derived here from a *single* resolution of the diner
  * set, which is the whole reason this exists rather than two calls at each route: a
  * caller never holds the subset, so it cannot filter for one set of people and cook
- * for another. Deselecting the child both stops applying their allergy and stops
+ * for another. Deselecting the child both stops applying their dietary flag and stops
  * buying their portion, and the two can't come apart.
  *
  * Passing no selection is the default everywhere, and answers for the whole

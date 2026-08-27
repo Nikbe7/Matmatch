@@ -17,7 +17,7 @@ import {
   type TonightResponse,
   type TonightResult,
 } from "./api";
-import { ALLERGIES, DIETARY_FLAGS, type Allergy, type DietaryFlag } from "../../src/schema/vocabulary";
+import { DIETARY_FLAGS, type DietaryFlag } from "../../src/schema/vocabulary";
 import {
   MEMBER_NAME_MAX_LENGTH,
   memberLabels,
@@ -64,17 +64,6 @@ import {
 // no household (onboarding), household exists (Tonight view). This slice is a
 // wire, not a screen — no router, no component library, no styling beyond browser
 // defaults.
-
-export const ALLERGY_LABELS: Record<Allergy, string> = {
-  gluten: "Gluten",
-  dairy_lactose: "Mjölk/laktos",
-  egg: "Ägg",
-  tree_nuts: "Trädnötter",
-  peanuts: "Jordnötter",
-  shellfish: "Skaldjur",
-  fish: "Fisk",
-  soy: "Soja",
-};
 
 export const DIETARY_FLAG_LABELS: Record<DietaryFlag, string> = {
   vegetarian: "Vegetariskt",
@@ -215,7 +204,6 @@ function emptyMember(type: HouseholdMemberType): HouseholdMember {
     // Explicitly empty, never omitted: HouseholdMemberSchema requires both arrays so
     // that an unset safety value cannot be mistaken for a declared-empty one, and the
     // form must satisfy that rather than lean on a default that does not exist.
-    allergies: [],
     dietary_flags: [],
   };
 }
@@ -236,19 +224,6 @@ const TYPE_LABELS: Record<HouseholdMemberType, string> = {
   adult: "Vuxen",
   child: "Barn",
 };
-
-/**
- * The profile screen's collapsed member row (#166): name, type, and *which*
- * allergies apply, never a count — a count can't be checked at a glance, and
- * confirming the app knows what to avoid is the point of that row. Capped at two
- * names plus an overflow count so the row never wraps at 360px.
- */
-function memberAllergySummary(allergies: readonly Allergy[]): string | null {
-  if (allergies.length === 0) return null;
-  const labels = allergies.map((allergy) => ALLERGY_LABELS[allergy]);
-  if (labels.length <= 2) return labels.join(", ");
-  return `${labels.slice(0, 2).join(", ")} +${labels.length - 2}`;
-}
 
 /**
  * Who a member is — name, type, portion size. Nothing here is a constraint on what
@@ -325,48 +300,6 @@ function MemberBasicFields({
 }
 
 /**
- * One member's allergies, in their own bordered, warning-toned, differently-labelled
- * fieldset (#101, UX_FLOW §6) — the same block on the profile screen and in
- * onboarding's "ja" branch, so a safety constraint never picks up the visual
- * language of the preference chips. The warning glyph and the word "Allergier"
- * carry the distinction on their own; the red treatment is reinforcement, never the
- * only signal.
- *
- * `subject` names whose allergies these are, and is only passed where several of
- * these blocks stand together (onboarding): on the profile the block already sits
- * inside one member's expanded row, and repeating the name there would be noise.
- */
-function AllergyFieldset({
-  member,
-  subject,
-  onChange,
-}: {
-  member: HouseholdMember;
-  subject?: string;
-  onChange: (patch: Partial<HouseholdMember>) => void;
-}) {
-  return (
-    <fieldset className="member-constraints allergy-group">
-      <legend>
-        <span aria-hidden="true">⚠ </span>Allergier{subject ? ` · ${subject}` : ""}
-      </legend>
-      <div className="chip-row">
-        {ALLERGIES.map((allergy) => (
-          <Chip
-            key={allergy}
-            variant="danger"
-            pressed={member.allergies.includes(allergy)}
-            onClick={() => onChange({ allergies: toggleValue(member.allergies, allergy) })}
-          >
-            {ALLERGY_LABELS[allergy]}
-          </Chip>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-/**
  * One member's editable fields on the profile screen (#166) — who they are, plus
  * both constraint groups. Onboarding deliberately does not use this: it asks who
  * lives here and one allergy question, and nothing else (#168).
@@ -407,8 +340,6 @@ function MemberDetailFields({
           ))}
         </div>
       </fieldset>
-
-      <AllergyFieldset member={member} onChange={onChange} />
     </>
   );
 }
@@ -463,44 +394,6 @@ function MemberFields({
  * A radio group rather than chips, because these are two mutually exclusive answers
  * to one question and must be announced as such.
  */
-type AllergyAnswer = "unanswered" | "no" | "yes";
-
-function AllergyQuestion({
-  answer,
-  onAnswer,
-}: {
-  answer: AllergyAnswer;
-  onAnswer: (answer: Exclude<AllergyAnswer, "unanswered">) => void;
-}) {
-  return (
-    <fieldset className="allergy-question">
-      <legend>Har någon i hushållet en allergi?</legend>
-      <div className="choice-row">
-        <label className="choice">
-          <input
-            type="radio"
-            name="allergy-answer"
-            value="no"
-            checked={answer === "no"}
-            onChange={() => onAnswer("no")}
-          />
-          Nej
-        </label>
-        <label className="choice">
-          <input
-            type="radio"
-            name="allergy-answer"
-            value="yes"
-            checked={answer === "yes"}
-            onChange={() => onAnswer("yes")}
-          />
-          Ja
-        </label>
-      </div>
-    </fieldset>
-  );
-}
-
 function OnboardingForm({
   session,
   onCreated,
@@ -509,7 +402,6 @@ function OnboardingForm({
   onCreated: () => void;
 }) {
   const [members, setMembers] = useState<HouseholdMember[]>([emptyMember("adult")]);
-  const [allergyAnswer, setAllergyAnswer] = useState<AllergyAnswer>("unanswered");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -536,25 +428,8 @@ function OnboardingForm({
     setMembers((current) => current.filter((_, i) => i !== index));
   }
 
-  /**
-   * Answering "nej" after having picked allergies clears them. Keeping them hidden
-   * would mean the household is saved with constraints the screen no longer shows —
-   * what is displayed and what is stored have to be the same thing, and hidden state
-   * that is nonetheless persisted is the worse failure mode of the two.
-   */
-  function answerAllergyQuestion(answer: Exclude<AllergyAnswer, "unanswered">) {
-    setAllergyAnswer(answer);
-    if (answer === "no") {
-      setMembers((current) => current.map((member) => ({ ...member, allergies: [] })));
-    }
-  }
-
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    // The disabled button already prevents this; the guard is here because the one
-    // thing that must never happen is a household being created — and a suggestion
-    // shown — while the allergy question stands unanswered or half-answered.
-    if (blockingAnswer !== null) return;
     setBusy(true);
     setError(null);
     try {
@@ -567,20 +442,6 @@ function OnboardingForm({
       setBusy(false);
     }
   }
-
-  /**
-   * Why the answer is not yet usable, or `null` when it is. "Ja" without a single
-   * chip picked is the half-answer that matters: it would produce a payload
-   * identical to "Nej", so a household that just declared an allergy would be
-   * stored as allergy-free and its first suggestion filtered against nothing —
-   * the fail-open case this screen exists to close.
-   */
-  const blockingAnswer: string | null =
-    allergyAnswer === "unanswered"
-      ? "Svara på frågan om allergier först."
-      : allergyAnswer === "yes" && members.every((member) => member.allergies.length === 0)
-        ? "Välj vilken allergi det gäller, eller svara Nej."
-        : null;
 
   return (
     <Card className="onboarding-card">
@@ -606,38 +467,14 @@ function OnboardingForm({
           + Lägg till medlem
         </button>
 
-        <AllergyQuestion answer={allergyAnswer} onAnswer={answerAllergyQuestion} />
-
-        {/* Allergies are declared per person (#115): a household does not have
-            allergies, people do, and knowing whose is what lets a meal be matched to
-            whoever is actually eating it (#112). */}
-        {allergyAnswer === "yes" && (
-          <div className="allergy-picker">
-            {members.map((member, index) => (
-              <AllergyFieldset
-                key={index}
-                member={member}
-                subject={labels[index]!}
-                onChange={(patch) => updateMember(index, patch)}
-              />
-            ))}
-          </div>
-        )}
-
         <Button
           type="submit"
           variant="primary"
           className="onboarding-submit"
-          disabled={busy || blockingAnswer !== null}
-          aria-describedby={blockingAnswer ? "onboarding-submit-hint" : undefined}
+          disabled={busy}
         >
           Visa kvällens middag
         </Button>
-        {blockingAnswer && (
-          <p id="onboarding-submit-hint" className="field-hint onboarding-submit-hint">
-            {blockingAnswer}
-          </p>
-        )}
         {error && (
           <p role="alert" className="error-text">
             {error}
@@ -1842,8 +1679,6 @@ function ProfileMemberRow({
   onRemove: () => void;
   removable: boolean;
 }) {
-  const allergySummary = memberAllergySummary(member.allergies);
-
   return (
     <div className="member-card">
       <button
@@ -1857,7 +1692,6 @@ function ProfileMemberRow({
           <span className="profile-member-row__meta">
             {" · "}
             {TYPE_LABELS[member.type]}
-            {allergySummary ? ` · ${allergySummary}` : ""}
           </span>
         </span>
         <span className="profile-member-row__action">{expanded ? "Stäng" : "Ändra"}</span>

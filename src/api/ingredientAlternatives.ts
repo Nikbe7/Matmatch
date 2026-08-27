@@ -56,8 +56,6 @@ export function buildIngredientAlternatives(
   engineData: EngineData,
   slot: IngredientSlot,
   currentIngredientId: string,
-  householdMembers: readonly HouseholdMember[],
-  allergies: readonly Allergy[],
   portions: number,
 ): IngredientAlternativesView {
   if (!slot.substitutable) return { substitutable: false };

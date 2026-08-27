@@ -69,8 +69,6 @@ export function ingredientAlternativesRouter(
         engineData,
         slot,
         currentIngredientId,
-        stored.household.members,
-        constraints.allergies,
         portions,
       );
 

@@ -3,7 +3,6 @@
 // bearer token from the caller — it never touches the Supabase client or storage
 // itself.
 
-import type { Allergy } from "../../src/schema/allergyDietary";
 import type { Household } from "../../src/schema/household";
 import type { CostTier } from "../../src/schema/ingredient";
 import type {
@@ -77,12 +76,6 @@ export interface DinerLabel {
  * One allergen an ingredient carries and who in the household it affects (#116) —
  * against the full household union, always, never the diner set for tonight.
  */
-export interface IngredientAllergenMarking {
-  allergy: Allergy;
-  /** A name where the member has one, otherwise the derived "Vuxen 1"/"Barn 2" label. */
-  members: string[];
-}
-
 /**
  * An amount already scaled to tonight's diners, or the explicit "efter smak" marker
  * (#123). Structured rather than a formatted string, exactly like `portions`: the
@@ -103,7 +96,6 @@ export interface TonightIngredient {
    * server-side for why). */
   ingredientId: string;
   substituted: boolean;
-  allergens: IngredientAllergenMarking[];
   quantity: ScaledQuantity;
 }
 
@@ -117,7 +109,6 @@ export interface IngredientAlternative {
   name: string;
   costTier: CostTier;
   quantity: ScaledQuantity;
-  allergens: IngredientAllergenMarking[];
 }
 
 /**
@@ -349,15 +340,10 @@ export interface IngredientOption {
  * cannot select, because it is excluded by one of its own declared allergies —
  * the basis for the "why nothing matched" explanation rather than a bare miss.
  */
-export interface ExcludedIngredientOption extends IngredientOption {
-  allergies: Allergy[];
-}
-
 export interface GuidedOptions {
   diners: DinerLabel[];
   mainIngredients: IngredientOption[];
   pantryIngredients: IngredientOption[];
-  excludedMainIngredients: ExcludedIngredientOption[];
 }
 
 export interface GuidedIngredient extends TonightIngredient {
