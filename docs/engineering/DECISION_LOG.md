@@ -8,6 +8,52 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-25 — Allergifiltrering tas bort helt; appen slutar fråga och slutar lova (#224)
+
+Reverserar CLAUDE.md:s första non-negotiable och nio poster i den här loggen: #168
+(onboarding frågar), 2026-08-10 (allergihantering klar), #115 (per medlem), de fyra
+2026-07-31-posterna (verifieringsmetod, mappningssemantik, `allergens: []`, låst
+mappningsschema) och 2026-07-29 (låst vokabulär). 2026-08-09 står kvar till hälften:
+constraints kommer fortfarande från dem som äter, men bara kostpreferenser reser den
+vägen nu.
+
+Allergenmappningarna krävde 100% manuell verifiering utan stickprov. Vid 206
+ingredienser var det görbart. Katalogen måste till tusentals för att AI-namnuppslag,
+utbytesförslag och skafferifrågan ska fungera — #221, #222 och #132 visade sig alla
+vara former av samma flaskhals — och då är det inte görbart längre, allra minst av en
+ensam person som saknar den kunskapen. En kurerad allergendatabas ingen kan
+underhålla är inte en säkerhetsfunktion; löftet står kvar utan täckning, vilket är
+sämre än inget löfte.
+
+Alternativet — låta en modell verifiera och behålla löftet — förkastades. Skillnaden
+är inte hur noggrann modellen är, utan vem som bär konsekvensen när den har fel. Ett
+hushåll som svarat "jordnötter" och fått en rätt serverad har blivit lovat något. Att
+inte fråga är dessutom den lägre ansvarspositionen för en svensk matapp.
+
+Två saker överlevde borttagningen och det är inte av slarv. `isIngredientUnknown`
+(`src/engine/catalog.ts`) är gatens andra fail-closed-villkor, som aldrig var en
+allergiregel: "we cannot say what an unknown ingredient even is." Substitutionsgrupper
+och framtida AI-förslag kan fortfarande bära en okänd id, så den kontrollen överlever
+allergivägen den satt bredvid. Och `dietary_flags` är orörda — fel svar där är en
+irriterad användare, inte en akutmottagning, och de låg i samma modul just där de
+lättast åkt med av misstag.
+
+Substitutionsmaskineriet blev en bieffekt: varje substitution motorn genererade var en
+räddning av en allergiutesluten slot, så `evaluateTemplateAgainstConstraints` har ingen
+slot-loop kvar och `unsafeSlot` är oproducerbar. Fältet `substitutions` står kvar på
+`CandidateTemplate` eftersom byt-ut-popoverns tillämpade byten reser samma väg.
+
+`data/ingredient-allergens.json` raderas inte. 206 verifierade rader är riktigt arbete
+och ligger kvar validerbara men olästa.
+
+**How to apply:** Lägg inte tillbaka en allergifråga utan att först lösa vem som
+underhåller mappningarna — det var underhållet, inte koden, som fällde funktionen.
+Låt inte en modell fylla i allergendata så länge något i produkten filtrerar på den.
+Blanda inte ihop `isIngredientUnknown` med den gamla gaten: den svarar på om motorn
+vet vad en ingrediens är, aldrig på om någon tål den. Och skilj `dietary_flags` från
+allergier i varje framtida ändring — att de en gång delade modul är ett historiskt
+sammanträffande, inte en släktskap.
+
 ## 2026-08-23 — Adjustment chips become binary toggles; the dot meter is removed everywhere (supersedes the 2026-08-05 two-level calibration on level count)
 
 **Decision:** Billigare, Snabbare, Testa nytt and Enklare are binary: one tap sets the axis to `WEIGHT_ON` (100 notches, engine weight 3 — unchanged from the old level 2), a second tap returns it to 0. There is no level 1, no dot meter and no level in the accessible name — `Chip`'s existing pressed state plus `aria-pressed` is the whole affordance. Reroll depth still increments on every tap in either direction, including the one that turns a chip off. The row still has five slots (Annat kök and the conditional Återställ chip are unchanged) — narrowing the row itself is still the open design call flagged 2026-08-21, not resolved here.
