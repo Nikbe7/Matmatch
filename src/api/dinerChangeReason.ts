@@ -1,8 +1,6 @@
-import { effectiveAllergens } from "../engine/allergens.js";
 import { evaluateTemplateAgainstConstraints, type TemplateEvaluation } from "../engine/candidates.js";
 import type { MealConstraints } from "../engine/constraints.js";
 import type { EngineData } from "../engine/data.js";
-import type { AllergenResolutionData } from "../engine/allergens.js";
 import type { RecipeTemplate } from "../schema/recipeTemplate.js";
 import { memberLabels, type HouseholdMember } from "../schema/household.js";
 
@@ -48,7 +46,7 @@ export function explainReplacedDish(
   if (!template) return undefined;
 
   const evaluation = evaluateTemplateAgainstConstraints(data, template, constraints);
-  return { template, affectedMemberLabel: affectedMemberLabel(data, evaluation, constraints, members, eating) };
+  return { template, affectedMemberLabel: affectedMemberLabel(evaluation, members, eating) };
 }
 
 /**
@@ -65,31 +63,12 @@ export function explainReplacedDish(
  * whole may have others with the same declared allergy.
  */
 export function affectedMemberLabel(
-  data: AllergenResolutionData,
   evaluation: TemplateEvaluation,
-  constraints: MealConstraints,
   members: readonly HouseholdMember[],
   eating: readonly HouseholdMember[],
 ): string | undefined {
-  if ("unsafeSlot" in evaluation) {
-    const contains = effectiveAllergens(data, evaluation.unsafeSlot.ingredientId);
-    const culpritAllergies = constraints.allergies.filter((allergy) => contains.has(allergy));
-    return (
-      firstMatchingMemberLabel(members, eating, (member) =>
-        member.allergies.some((allergy) => culpritAllergies.includes(allergy)),
-      ) ??
-      // Fail-safe fallback (§5.4, allergens.ts): a slot can be unsafe for a
-      // reason that traces to no single declared allergy — an ingredient
-      // missing from the catalog entirely, which `isIngredientExcluded`
-      // excludes regardless of allergies. `constraints.allergies` is only ever
-      // non-empty here (an allergy-free household never reaches this branch —
-      // `isIngredientExcluded` returns false outright when `allergies.length
-      // === 0`), so naming the first eating member who has declared *any*
-      // allergy is never a guess about who is eating; it is never silent.
-      firstMatchingMemberLabel(members, eating, (member) => member.allergies.length > 0)
-    );
-  }
-
+  // The `unsafeSlot` branch went with allergy filtering (#224). A dish can now only
+  // be replaced for a dietary reason, so that is the only reason there is to name.
   if ("missingDietaryFlags" in evaluation) {
     const culpritFlags = evaluation.missingDietaryFlags;
     return firstMatchingMemberLabel(members, eating, (member) =>

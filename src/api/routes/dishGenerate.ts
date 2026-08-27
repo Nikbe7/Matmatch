@@ -141,7 +141,7 @@ export function dishGenerateRouter(
       }
 
       const visible =
-        isGeneratedDishVisibleToHousehold(engineData, resolved, constraints.allergies) &&
+        isGeneratedDishVisibleToHousehold(engineData, resolved) &&
         passesHardDietaryFilter(resolved.dietaryTags, constraints.dietary_flags);
 
       if (!visible) {

@@ -1,8 +1,8 @@
 import { COST_TIER_ORDER } from "../tools/validation.js";
-import type { Allergy, DietaryFlag } from "../schema/allergyDietary.js";
+import type { DietaryFlag } from "../schema/allergyDietary.js";
 import type { CostTier } from "../schema/ingredient.js";
 import type { IngredientSlot, IngredientSlotRole, RecipeTemplate } from "../schema/recipeTemplate.js";
-import { isIngredientExcluded } from "./allergens.js";
+import { isIngredientUnknown } from "./catalog.js";
 import type { MealConstraints } from "./constraints.js";
 import type { EngineData } from "./data.js";
 
@@ -81,7 +81,6 @@ export function substituteCandidateIds(
   data: EngineData,
   role: IngredientSlotRole,
   currentIngredientId: string,
-  allergies: readonly Allergy[],
 ): string[] {
   const groups = data.substitutionGroupsByMemberIngredientId.get(currentIngredientId) ?? [];
   const seen = new Set<string>([currentIngredientId]);
@@ -95,7 +94,7 @@ export function substituteCandidateIds(
       // Edibility of a candidate member is always resolved through the verified
       // ingredient-allergen mapping — groups carry no allergen or dietary field
       // by design (§5.5).
-      if (isIngredientExcluded(data, memberId, allergies)) continue;
+      if (isIngredientUnknown(data, memberId)) continue;
       candidateIds.push(memberId);
     }
   }
@@ -119,10 +118,9 @@ export function substituteCandidateIds(
 function findSubstitute(
   data: EngineData,
   slot: IngredientSlot,
-  allergies: readonly Allergy[],
 ): string | undefined {
   if (!slot.substitutable) return undefined;
-  return substituteCandidateIds(data, slot.role, slot.ingredient_id, allergies)[0];
+  return substituteCandidateIds(data, slot.role, slot.ingredient_id)[0];
 }
 
 /**
@@ -138,7 +136,6 @@ export function roleSubstitutionPool(
   data: EngineData,
   role: IngredientSlotRole,
   excludeIngredientId: string,
-  allergies: readonly Allergy[],
 ): string[] {
   const seen = new Set<string>([excludeIngredientId]);
   const ids: string[] = [];
@@ -148,7 +145,7 @@ export function roleSubstitutionPool(
     for (const memberId of group.member_ingredient_ids) {
       if (seen.has(memberId)) continue;
       seen.add(memberId);
-      if (isIngredientExcluded(data, memberId, allergies)) continue;
+      if (isIngredientUnknown(data, memberId)) continue;
       ids.push(memberId);
     }
   }
@@ -213,7 +210,6 @@ export interface UnsafeSlot {
  */
 export type TemplateEvaluation =
   | { candidate: CandidateTemplate }
-  | { unsafeSlot: UnsafeSlot }
   | { missingDietaryFlags: readonly DietaryFlag[] };
 
 /**
@@ -234,18 +230,12 @@ export function evaluateTemplateAgainstConstraints(
     return { missingDietaryFlags };
   }
 
+  // No slot loop since #224. Every substitution the engine ever generated was a rescue
+  // of an allergy-excluded slot, and with allergy filtering gone there is nothing to
+  // rescue: a template either passes the dietary filter or it does not. `substitutions`
+  // stays on `CandidateTemplate` — empty from here — because the swap popover's applied
+  // swaps travel the same field, and removing it is slice 2's job, not this one's.
   const substitutions: SlotSubstitution[] = [];
-
-  for (const [slotIndex, slot] of template.ingredient_slots.entries()) {
-    if (!isIngredientExcluded(data, slot.ingredient_id, constraints.allergies)) continue;
-
-    const substituteId = findSubstitute(data, slot, constraints.allergies);
-    if (substituteId === undefined) {
-      return { unsafeSlot: { slotIndex, ingredientId: slot.ingredient_id } };
-    }
-
-    substitutions.push({ slot_index: slotIndex, slot, substitute_ingredient_id: substituteId });
-  }
 
   // `template.cost_tier` is returned unchanged, including for templates rescued by
   // a substitution. The effective cost tier of a swapped meal is explicitly

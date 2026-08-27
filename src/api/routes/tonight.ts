@@ -184,7 +184,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
             result: {
               template: kept.template,
               substitutions: kept.substitutions,
-              ingredients: buildTonightIngredients(engineData, kept, stored.household.members, portions),
+              ingredients: buildTonightIngredients(engineData, kept, portions),
               score: kept.score,
               reasonCodes,
               pantryMatch: reasonCodes.includes("pantry_match") ? pantryMatchNames(kept) : undefined,
@@ -275,7 +275,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         result: {
           template: picked.template,
           substitutions: picked.substitutions,
-          ingredients: buildTonightIngredients(engineData, picked, stored.household.members, portions),
+          ingredients: buildTonightIngredients(engineData, picked, portions),
           score: picked.score,
           reasonCodes,
           // Only ever present alongside the code that earns it — the client renders the

@@ -24,7 +24,6 @@ import {
 import { combinePreferenceWeights } from "../../schema/preferenceWeights.js";
 import {
   buildDirectionSummary,
-  buildExcludedMainIngredients,
   buildGuidedIngredients,
   buildMainIngredientOptions,
   buildPantryIngredientOptions,
@@ -95,7 +94,6 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
         pantryIngredients: buildPantryIngredientOptions(engineData, candidates),
         // Step 2's filter-miss explanation (requirement 4) — scoped to the household's
         // own allergies, not the whole catalog's allergen data.
-        excludedMainIngredients: buildExcludedMainIngredients(engineData, constraints.allergies),
       });
     } catch (error) {
       next(error);
@@ -246,7 +244,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
       const views: GuidedDirectionView[] = directions.map((direction) => ({
         template: direction.template,
         substitutions: direction.substitutions,
-        ingredients: buildGuidedIngredients(engineData, direction, stored.household.members, portions),
+        ingredients: buildGuidedIngredients(engineData, direction, portions),
         summary: buildDirectionSummary(engineData, direction),
         score: direction.score,
       }));

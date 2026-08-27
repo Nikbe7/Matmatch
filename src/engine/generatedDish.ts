@@ -2,7 +2,7 @@ import { COST_TIER_ORDER } from "../tools/validation.js";
 import type { Allergy, DietaryFlag } from "../schema/allergyDietary.js";
 import type { CostTier } from "../schema/ingredient.js";
 import type { GeneratedDishOutput } from "../schema/generatedDish.js";
-import { isIngredientExcluded, type AllergenResolutionData } from "./allergens.js";
+import { isIngredientUnknown } from "./catalog.js";
 import type { EngineData } from "./data.js";
 
 // Tier 2 deterministic core (issue #113): resolving a model's proposed dish against
@@ -153,28 +153,21 @@ export function resolveGeneratedDish(data: EngineData, output: GeneratedDishOutp
 // ---------------------------------------------------------------------------
 
 /**
- * Whether a resolved generated dish may be shown to a household with these
- * allergies. This is the Tier 2 safety boundary — the same fail-safe posture as
- * §5.4/allergens.ts, extended to cover unresolved ingredients:
+ * Whether a resolved generated dish may be shown.
  *
- *  - Any unresolved ingredient, with any declared allergy: withheld. An ingredient
- *    our code cannot even identify is treated exactly like a missing/unverified
- *    allergen mapping row (effectiveAllergens' fail-safe rule) — assumed to contain
- *    every allergen in the locked vocabulary. A household with no allergies has
- *    nothing to fail-safe against, so it may still see the dish (marked unverified
- *    by the caller — see ResolvedGeneratedDish.hasUnverifiedContent).
- *  - Any *resolved* ingredient the household must avoid (effectiveAllergens says so):
- *    withheld outright. Generated dishes carry no substitution groups in this slice,
- *    so there is no rescue path — one excluded ingredient excludes the whole dish.
+ * Reduced to the catalog check by #224. The allergen half of this gate is gone with
+ * the rest of allergy filtering; what remains is the one condition that was never
+ * about allergies — a slot naming an ingredient the engine cannot identify has no
+ * name, quantity or cost tier to render, so the dish is withheld rather than shown
+ * with a hole in it.
+ *
+ * `hasUnverifiedContent` no longer withholds anything. It never did for a household
+ * without declared allergies, which is now every household; the caller still marks
+ * such a dish unverified for display.
  */
 export function isGeneratedDishVisibleToHousehold(
-  data: AllergenResolutionData,
+  data: Pick<EngineData, "ingredientsById">,
   resolved: ResolvedGeneratedDish,
-  allergies: readonly Allergy[],
 ): boolean {
-  if (resolved.hasUnverifiedContent && allergies.length > 0) return false;
-
-  return resolved.slots.every(
-    (slot) => !slot.ingredientId || !isIngredientExcluded(data, slot.ingredientId, allergies),
-  );
+  return resolved.slots.every((slot) => !slot.ingredientId || !isIngredientUnknown(data, slot.ingredientId));
 }
