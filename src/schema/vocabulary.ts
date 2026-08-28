@@ -1,14 +1,17 @@
 // ARCHITECTURE.md §5.2 — dietary vocabulary (and the allergy value list), locked
 // values only.
 //
-// Zod-free, but no longer for the reason this file was split out. That reason was
-// the frontend importing the list directly for its onboarding allergy chips without
-// pulling zod in; those chips are gone (#224) and web/ does not import this module at
-// all any more — and it already imports `QuantityUnitSchema` from a zod module
-// elsewhere, so the constraint had stopped holding regardless. The split survives
-// because it costs nothing and `allergyDietary.ts` derives its enums from these
-// arrays rather than duplicating them; merging the two is a live option, not a
-// requirement.
+// Zod-free by design, and still for the original reason: the frontend imports this
+// module directly to render a chip list, and must not pull in zod's enum
+// construction just to read the values. What changed with #224 is only *which* list
+// — the onboarding allergy chips are gone, and web/src/App.tsx now imports
+// `DIETARY_FLAGS` here for the profile's dietary chips. `allergyDietary.ts` derives
+// its zod enums from these same arrays rather than duplicating them.
+//
+// The saving is smaller than it looks: web/ already imports `QuantityUnitSchema`
+// from `recipeTemplate.ts` as a value, so zod is in the bundle regardless. The split
+// is kept because it is free and the boundary is real, not because it is load-bearing
+// for bundle size.
 //
 // `ALLERGIES` has one consumer left: `IngredientAllergenMappingSchema`, which
 // validates `data/ingredient-allergens.json` — the closed hand-verified record that
