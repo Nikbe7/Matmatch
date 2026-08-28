@@ -46,6 +46,16 @@ slot-loop kvar och `unsafeSlot` är oproducerbar. Fältet `substitutions` står 
 `data/ingredient-allergens.json` raderas inte. 206 verifierade rader är riktigt arbete
 och ligger kvar validerbara men olästa.
 
+**Tillägg 2026-08-28, vid genomförandet:** issuens punkt "Vad som ska till" — en ärlig
+rad där hushållet ser en rätt, "Matmatch filtrerar inte för allergier — läs
+ingredienserna själv" — byggdes medvetet inte. Placeringen var frågan som fällde den:
+"en gång" utesluter varje yta, och den enda plats där raden vore handlingsbar är
+ingredienslistan, som redan står där i sin helhet med mängder. En rad om vad appen
+*inte* gör är också ett påstående om allergener från en app som annars inte har någon
+åsikt om dem — samma sorts kvarstående löfte som korskontamineringsraden i
+`DinerPicker`, som togs bort i samma slice. Att sluta fråga är påståendet. Vill någon
+ha raden tillbaka är det ett eget beslut, inte en bortglömd punkt.
+
 **How to apply:** Lägg inte tillbaka en allergifråga utan att först lösa vem som
 underhåller mappningarna — det var underhållet, inte koden, som fällde funktionen.
 Låt inte en modell fylla i allergendata så länge något i produkten filtrerar på den.
