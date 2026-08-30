@@ -19,6 +19,7 @@ import { presentError, type PresentedError } from "./errorPresentation";
 import {
   GUIDED_INTENTS,
   INITIAL_GUIDED,
+  MAX_PORTIONS,
   MIN_PORTIONS,
   guidedReducer,
   isFirstStep,
@@ -357,6 +358,10 @@ export function GuidedFlow({
   // landing `ShoppingList`'s one-time item snapshot on ingredients scaled for
   // whichever diner set wins the race rather than the one actually on screen.
   const [dinerChangePending, setDinerChangePending] = useState(false);
+  // #231: the commit-time rescale request. Distinct from `dinerChangePending` — that
+  // one guards a diner change that may replace the dish entirely, this one only
+  // re-scales the dish already chosen — but both must resolve before a list is built.
+  const [rescalePending, setRescalePending] = useState(false);
   // Bumped by the retry buttons to re-run a fetch below without duplicating its
   // request/cancellation logic in a second callback, as ShoppingList's Instructions
   // and Gate's offline screen both already do.
@@ -563,7 +568,7 @@ export function GuidedFlow({
           // ingredients for, so the displayed count has to match it exactly,
           // the same way `choose_direction` always reseeds from a fresh number
           // rather than carrying one over from a dish the household left behind.
-          dispatch({ type: "diner_change_portions", portions: loaded.portions });
+          dispatch({ type: "portions_rescaled", portions: loaded.portions });
         }
       })
       .catch((err: unknown) => {
@@ -611,6 +616,63 @@ export function GuidedFlow({
     // no longer explains.
     setError(null);
     dispatch({ type: "back" });
+  }
+
+  /**
+   * #231: commit the stepper's portion count.
+   *
+   * The stepper used to move a number and nothing else — the ingredients stayed
+   * scaled to whatever the *diner set* worked out to, so a household that stepped 2
+   * up to 6 got a list headed "6 portioner" with amounts for 2. The count and the
+   * amounts have to come from one scaling, and that scaling belongs on the server:
+   * the rounding rules live in `src/engine/quantities.ts`, and re-deriving them in
+   * the client would be a second, quietly wrong definition of the same thing.
+   *
+   * So the dish is refetched at the chosen count before the list is built — once, at
+   * commit, not once per tap of "+". `keep` is what makes that safe: it is the same
+   * contract #133 uses, so the request returns *this* dish rather than re-rolling the
+   * three cards under a household that has already chosen.
+   *
+   * Skipped entirely when the count already matches what the response was scaled for,
+   * which is the common path: most households never touch the stepper.
+   */
+  async function handleConfirmPortions() {
+    const scaledFor = response?.portions;
+    if (
+      state.portions === null ||
+      scaledFor === undefined ||
+      state.portions === scaledFor ||
+      state.chosenTemplateId === null ||
+      state.intent === null ||
+      main === null
+    ) {
+      dispatch({ type: "confirm_portions" });
+      return;
+    }
+
+    setRescalePending(true);
+    setError(null);
+    try {
+      const loaded = await client.fetchDirections({
+        intent: state.intent,
+        main,
+        pantry: pantryKey.length > 0 ? pantryKey.split(",") : [],
+        keep: state.chosenTemplateId,
+        portions: state.portions,
+      });
+      setResponse(loaded);
+      // The server's answer, not the request: it clamps, and the count on screen must
+      // name what the amounts below it were actually scaled to.
+      dispatch({ type: "portions_rescaled", portions: loaded.portions });
+      dispatch({ type: "confirm_portions" });
+    } catch (err: unknown) {
+      // Stays on this step rather than building a list from the amounts it already
+      // has: those are scaled for a different number than the one on screen, which is
+      // precisely the state this whole function exists to prevent.
+      setError(presentError(err, "guided_directions"));
+    } finally {
+      setRescalePending(false);
+    }
   }
 
   const backLabel = isFirstStep(state) ? "Till ikväll" : "Tillbaka";
@@ -847,6 +909,10 @@ export function GuidedFlow({
                     type="button"
                     className="portions-stepper__btn"
                     aria-label="Fler portioner"
+                    // #231: the route clamps to the same ceiling, so without this the
+                    // stepper could ask for a number the server would silently answer
+                    // with a different one.
+                    disabled={state.portions >= MAX_PORTIONS}
                     onClick={() => dispatch({ type: "adjust_portions", delta: 1 })}
                   >
                     +
@@ -855,12 +921,14 @@ export function GuidedFlow({
                 <Button
                   type="button"
                   variant="primary"
-                  onClick={() => dispatch({ type: "confirm_portions" })}
+                  onClick={handleConfirmPortions}
                   className="guided-action"
                   // #133: a still-in-flight keep/replace check must resolve before the
                   // shopping list is built — it can still change which dish (and which
                   // portions) "the chosen dish" even means.
-                  disabled={dinerChangePending}
+                  // #231: likewise the rescale request, which decides the amounts the
+                  // list is about to be built from.
+                  disabled={dinerChangePending || rescalePending}
                 >
                   Till inköpslistan
                 </Button>

@@ -245,7 +245,7 @@ describe("dish_no_longer_safe — a diner change made the chosen dish unsafe (#1
   });
 });
 
-describe("diner_change_portions — the kept dish's number stays true to what it was scaled for (#133)", () => {
+describe("portions_rescaled — the count stays true to what the ingredients were scaled for (#133, #231)", () => {
   const toPortions: GuidedAction[] = [
     ...pickChicken,
     { type: "confirm_pantry" },
@@ -256,14 +256,14 @@ describe("diner_change_portions — the kept dish's number stays true to what it
     const state = run(
       ...toPortions,
       { type: "adjust_portions", delta: 1 },
-      { type: "diner_change_portions", portions: 1.5 },
+      { type: "portions_rescaled", portions: 1.5 },
     );
 
     expect(state.portions).toBe(1.5);
   });
 
   it("still floors at MIN_PORTIONS, same as the stepper itself", () => {
-    const state = run(...toPortions, { type: "diner_change_portions", portions: 0.5 });
+    const state = run(...toPortions, { type: "portions_rescaled", portions: 0.5 });
 
     expect(state.portions).toBe(MIN_PORTIONS);
   });
@@ -271,7 +271,7 @@ describe("diner_change_portions — the kept dish's number stays true to what it
   it("is a no-op once the choice has already been released", () => {
     const released = run(...toPortions, { type: "dish_no_longer_safe" });
 
-    const state = guidedReducer(released, { type: "diner_change_portions", portions: 3 });
+    const state = guidedReducer(released, { type: "portions_rescaled", portions: 3 });
 
     expect(state).toBe(released);
   });

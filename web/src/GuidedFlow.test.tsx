@@ -1,8 +1,9 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GuidedFlow } from "./GuidedFlow";
 import { SHOPPING_LIST_VERSION, type StoredShoppingList } from "./shoppingListStorage";
+import { MAX_PORTIONS } from "./guided";
 
 // Renders the guided flow (UX_FLOW §5) against a stubbed API. The step machine
 // itself is covered directly in guided.test.ts; what this file proves is the
@@ -65,7 +66,16 @@ const noDirections = {
 function stubApi(body: unknown = threeDirections) {
   const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
     if (url.startsWith("/api/guided/options")) return jsonResponse(200, options);
-    if (url.startsWith("/api/guided/directions")) return jsonResponse(200, body);
+    if (url.startsWith("/api/guided/directions")) {
+      // #231: the route echoes the portion count it actually scaled to, and the
+      // client re-seeds its stepper from that. A stub that ignored `portions` would
+      // let a regression of the very bug #231 fixed pass unnoticed here.
+      const requested = new URLSearchParams(url.split("?")[1]).get("portions");
+      if (requested !== null && body !== null && typeof body === "object") {
+        return jsonResponse(200, { ...(body as object), portions: Number(requested) });
+      }
+      return jsonResponse(200, body);
+    }
     // Instructions, fetched by the shopping list — irrelevant here but must not 404
     // the test into an error path.
     return jsonResponse(200, { instructions: null, reason: "not_configured" });
@@ -551,6 +561,136 @@ describe("GuidedFlow — portion confirmation", () => {
     await user.click(screen.getByRole("button", { name: "Till inköpslistan" }));
 
     expect(await screen.findByText("För 3 portioner")).toBeTruthy();
+  });
+});
+
+// #231: the stepper used to move a number and nothing else. The ingredients stayed
+// scaled to whatever the diner set worked out to, so stepping 2 up to 6 produced a
+// list headed "6 portioner" with amounts for 2.
+describe("GuidedFlow — the portion count and the amounts come from one scaling (#231)", () => {
+  /** The same directions, scaled as a real server would for `portions`. */
+  function scaledStub(basePortions: number) {
+    return vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) return jsonResponse(200, options);
+      if (url.startsWith("/api/guided/directions")) {
+        const requested = new URLSearchParams(url.split("?")[1]).get("portions");
+        const portions = requested === null ? basePortions : Number(requested);
+        const scale = portions / basePortions;
+        return jsonResponse(200, {
+          ...threeDirections,
+          portions,
+          directions: threeDirections.directions.map((d) => ({
+            ...d,
+            ingredients: d.ingredients.map((i) => ({
+              ...i,
+              quantity: { ...i.quantity, amount: i.quantity.amount * scale },
+            })),
+          })),
+        });
+      }
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+  }
+
+  async function walkToPortions(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
+    await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
+    await screen.findByRole("heading", { name: "Hur många portioner?" });
+  }
+
+  it("refetches at the stepped count so the list's amounts match its header", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", scaledStub(2));
+    renderFlow();
+
+    await walkToPortions(user);
+    // 2 -> 4. Before #231 the header said 4 and the amounts stayed at the 2-portion
+    // 400 g; now the dish is refetched and 800 g is what the list is built from.
+    await user.click(screen.getByRole("button", { name: "Fler portioner" }));
+    await user.click(screen.getByRole("button", { name: "Fler portioner" }));
+    await user.click(screen.getByRole("button", { name: "Till inköpslistan" }));
+
+    expect(await screen.findByText("För 4 portioner")).toBeTruthy();
+    const row = screen.getByText("Kycklingfilé").closest("li")!;
+    expect(within(row).getByText("800 g")).toBeTruthy();
+  });
+
+  it("keeps the chosen dish rather than re-rolling the three cards", async () => {
+    // The refetch rides #133's `keep` contract; without it a household that stepped
+    // the count would land on a shopping list for a dish it never picked.
+    const user = userEvent.setup();
+    const fetchMock = scaledStub(2);
+    vi.stubGlobal("fetch", fetchMock);
+    renderFlow();
+
+    await walkToPortions(user);
+    await user.click(screen.getByRole("button", { name: "Fler portioner" }));
+    await user.click(screen.getByRole("button", { name: "Till inköpslistan" }));
+
+    await screen.findByText("För 3 portioner");
+    const rescale = directionsQueries(fetchMock).at(-1)!;
+    expect(rescale.get("portions")).toBe("3");
+    expect(rescale.get("keep")).toBe("gryta");
+    expect(screen.getByRole("heading", { name: "Kycklinggryta" })).toBeTruthy();
+  });
+
+  it("makes no request at all when the count was never stepped", async () => {
+    // The common path: most households never touch the stepper, and must not pay a
+    // round trip for a rescale to the number the response already carried.
+    const user = userEvent.setup();
+    const fetchMock = scaledStub(2);
+    vi.stubGlobal("fetch", fetchMock);
+    renderFlow();
+
+    await walkToPortions(user);
+    const before = directionsQueries(fetchMock).length;
+    await user.click(screen.getByRole("button", { name: "Till inköpslistan" }));
+
+    await screen.findByText("För 2 portioner");
+    expect(directionsQueries(fetchMock)).toHaveLength(before);
+  });
+
+  it("stays on the step when the rescale fails, rather than building a list from stale amounts", async () => {
+    const user = userEvent.setup();
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.startsWith("/api/guided/options")) return jsonResponse(200, options);
+        if (url.startsWith("/api/guided/directions")) {
+          calls += 1;
+          // The rescale request is the second directions call.
+          if (calls > 1) throw new TypeError("Failed to fetch");
+          return jsonResponse(200, threeDirections);
+        }
+        return jsonResponse(200, { instructions: null, reason: "not_configured" });
+      }),
+    );
+    renderFlow();
+
+    await walkToPortions(user);
+    await user.click(screen.getByRole("button", { name: "Fler portioner" }));
+    await user.click(screen.getByRole("button", { name: "Till inköpslistan" }));
+
+    // No shopping list — the amounts in hand are scaled for a different number than
+    // the one on screen, which is the state this whole path exists to prevent.
+    expect(screen.queryByText("För 3 portioner")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Inköpslista" })).toBeNull();
+  });
+
+  it("stops the stepper at the ceiling the route clamps to", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", scaledStub(2));
+    renderFlow();
+
+    await walkToPortions(user);
+    const more = screen.getByRole("button", { name: "Fler portioner" });
+    for (let i = 0; i < MAX_PORTIONS + 5; i += 1) {
+      if (!(more as HTMLButtonElement).disabled) await user.click(more);
+    }
+
+    expect(screen.getByRole("status").textContent).toBe(`För ${MAX_PORTIONS} portioner`);
+    expect((more as HTMLButtonElement).disabled).toBe(true);
   });
 });
 

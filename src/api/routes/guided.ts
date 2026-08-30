@@ -31,7 +31,8 @@ import {
   parsePantryFromQuery,
 } from "../guidedCatalog.js";
 import { intentParameters, parseIntentFromQuery } from "../guidedIntent.js";
-import { parseDinersFromQuery } from "../diners.js";
+import { parseDinersFromQuery, parsePortionsFromQuery } from "../diners.js";
+import { clampPortions } from "../../engine/quantities.js";
 import { parseKeepFromQuery } from "../tonightSelection.js";
 import { explainReplacedDish } from "../dinerChangeReason.js";
 import { memberLabels } from "../../schema/household.js";
@@ -109,6 +110,10 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
       const main = parseMainFromQuery(engineData, query.main);
       const pantryIngredientIds = parsePantryFromQuery(engineData, query.pantry);
       const selectedDiners = parseDinersFromQuery(query.diners);
+      // #231: an explicit portion count from the stepper. Absent means "however many
+      // the diner set works out to", which is what this route did unconditionally
+      // before — so an old client keeps its exact behaviour.
+      const requestedPortions = parsePortionsFromQuery(query.portions);
       // #133: the dish already chosen, sent only by a diner-set change on the
       // "directions" step — same contract as tonight.ts's `keep`.
       const keepTemplateId = parseKeepFromQuery(query.keep);
@@ -146,7 +151,17 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
 
       // The shared pipeline, unchanged and in the same order Tonight runs it. Only
       // the selection step below is specific to this flow.
-      const { members: eating, constraints, portions } = mealDiners(stored.household.members, selectedDiners);
+      const { members: eating, constraints, portions: dinerPortions } = mealDiners(
+        stored.household.members,
+        selectedDiners,
+      );
+      // What the ingredients below are actually scaled to, and what the response
+      // echoes back so the client's stepper can re-seed from it (#231). The diner
+      // total is clamped as well as the override: a set totalling 0.5 is reachable
+      // (#112) but the stepper floors at 1, and scaling to a number the screen can
+      // never display is how the count and the amounts came to disagree in the first
+      // place. One number decides both, here.
+      const portions = clampPortions(requestedPortions ?? dinerPortions);
       const candidates = selectCandidateTemplates(engineData, constraints);
       const ranked = rankCandidates(
         engineData,
