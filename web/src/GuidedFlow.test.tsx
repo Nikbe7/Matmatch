@@ -33,11 +33,13 @@ function direction(id: string, name: string, costTier = "mid") {
       name,
       cost_tier: costTier,
       prep_time_band: "20-40min",
+      effort_level: "moderate",
+      blurb: "En vardagsgryta som sköter sig själv.",
       cuisine: "swedish_nordic",
     },
     ingredients: [
       { role: "protein", name: "Kycklingfilé", slotIndex: 0, ingredientId: "kycklingfile", substituted: false, inPantry: false, quantity: { kind: "amount", amount: 400, unit: "g" } },
-      { role: "starch", name: "Ris", slotIndex: 1, ingredientId: "ris", substituted: false, inPantry: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "starch", name: "Ris", slotIndex: 1, ingredientId: "ris", substituted: false, inPantry: true, quantity: { kind: "amount", amount: 300, unit: "g" } },
     ],
     substitutions: [],
     summary: "Kycklingfilé, ris och paprika",
@@ -127,7 +129,7 @@ describe("GuidedFlow — the happy path, tap by tap", () => {
 
     await user.click(screen.getByRole("button", { name: "Kycklinggryta" }));
 
-    await screen.findByRole("heading", { name: "Hur många portioner?" });
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
     expect(screen.getByRole("status").textContent).toBe("För 2 portioner");
 
     await user.click(screen.getByRole("button", { name: "Till inköpslistan" }));
@@ -212,7 +214,7 @@ describe("GuidedFlow — the direction card itself is the tap target (#174)", ()
 
     await user.click(card);
 
-    await screen.findByRole("heading", { name: "Hur många portioner?" });
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
   });
 });
 
@@ -524,7 +526,7 @@ describe("GuidedFlow — portion confirmation", () => {
     await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
     await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
 
-    await screen.findByRole("heading", { name: "Hur många portioner?" });
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
     await user.click(screen.getByRole("button", { name: "Fler portioner" }));
     expect(screen.getByRole("status").textContent).toBe("För 3 portioner");
 
@@ -540,7 +542,7 @@ describe("GuidedFlow — portion confirmation", () => {
     await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
     await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
 
-    await screen.findByRole("heading", { name: "Hur många portioner?" });
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
     expect(screen.getByRole("status").textContent).toBe("För 2 portioner");
 
     await user.click(screen.getByRole("button", { name: "Färre portioner" }));
@@ -595,7 +597,7 @@ describe("GuidedFlow — the portion count and the amounts come from one scaling
   async function walkToPortions(user: ReturnType<typeof userEvent.setup>) {
     await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
     await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
-    await screen.findByRole("heading", { name: "Hur många portioner?" });
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
   }
 
   it("refetches at the stepped count so the list's amounts match its header", async () => {
@@ -691,6 +693,116 @@ describe("GuidedFlow — the portion count and the amounts come from one scaling
 
     expect(screen.getByRole("status").textContent).toBe(`För ${MAX_PORTIONS} portioner`);
     expect((more as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+// #207: the dish view — what the household commits to, before the list exists.
+describe("GuidedFlow — the dish view (#207)", () => {
+  async function reachDish(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole("button", { name: "Överraska mig" }));
+    await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+  }
+
+  it("shows the ingredients with amounts, the time, the cost and the effort", async () => {
+    // Before #207 this screen was a dish name and a stepper: the household committed
+    // to a dish — overwriting any existing list on the way — on less than a title.
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    await reachDish(user);
+
+    const list = screen.getByRole("list", { name: "Det här behövs" });
+    const kyckling = within(list).getByText("Kycklingfilé").closest("li")!;
+    const ris = within(list).getByText("Ris").closest("li")!;
+    expect(within(kyckling).getByText("400 g")).toBeTruthy();
+    expect(within(ris).getByText("300 g")).toBeTruthy();
+
+    const meta = screen.getByText(/20–40 min/);
+    expect(meta.textContent).toContain("Mellanpris");
+    expect(meta.textContent).toContain("Mellan");
+    expect(screen.getByText("En vardagsgryta som sköter sig själv.")).toBeTruthy();
+  });
+
+  it("marks what the household already has, the same split the list uses", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    await reachDish(user);
+
+    const risRow = screen.getByText("Ris").closest("li")!;
+    const kycklingRow = screen.getByText("Kycklingfilé").closest("li")!;
+    expect(within(risRow).getByText("har hemma")).toBeTruthy();
+    expect(within(kycklingRow).queryByText("har hemma")).toBeNull();
+  });
+
+  it("re-asks the server for amounts when the stepper moves, and marks them stale meanwhile", async () => {
+    // The bug #231 fixed one screen later, on a screen that now shows the amounts:
+    // "600 g" under "4 portioner" while the server scaled for 1 would be the same
+    // lie, in front of the household rather than behind them.
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) return jsonResponse(200, options);
+      if (url.startsWith("/api/guided/directions")) {
+        const requested = new URLSearchParams(url.split("?")[1]).get("portions");
+        const portions = requested === null ? 2 : Number(requested);
+        return jsonResponse(200, {
+          ...threeDirections,
+          portions,
+          directions: threeDirections.directions.map((d) => ({
+            ...d,
+            ingredients: d.ingredients.map((i) => ({
+              ...i,
+              quantity: { ...i.quantity, amount: i.quantity.amount * (portions / 2) },
+            })),
+          })),
+        });
+      }
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderFlow();
+
+    await reachDish(user);
+    const list = screen.getByRole("list", { name: "Det här behövs" });
+    const kycklingAmount = () => within(within(list).getByText("Kycklingfilé").closest("li")!);
+    expect(kycklingAmount().getByText("400 g")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Fler portioner" }));
+    await user.click(screen.getByRole("button", { name: "Fler portioner" }));
+
+    // Marked stale the moment the count moves — the amounts are still the old ones.
+    expect(list.getAttribute("aria-busy")).toBe("true");
+
+    await waitFor(() => expect(kycklingAmount().getByText("800 g")).toBeTruthy());
+    expect(list.getAttribute("aria-busy")).toBe("false");
+    // Four taps' worth of intent, one settled question: the debounce means the two
+    // clicks above did not each buy a round trip.
+    expect(directionsQueries(fetchMock).filter((q) => q.get("portions") !== null)).toHaveLength(1);
+  });
+
+  it("still asks 'Vilka äter?' here — the only place it can change after a dish is chosen", async () => {
+    // #207 asked for this picker to go. It stays because `back` releases the choice
+    // (guided.ts, case "back"), so removing it would make #133's whole "keep the dish
+    // or explain why it had to go" path unreachable rather than merely tidier.
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.startsWith("/api/guided/options")) {
+          return jsonResponse(200, { ...options, diners: [{ label: "Vuxen 1" }, { label: "Elsa" }] });
+        }
+        if (url.startsWith("/api/guided/directions")) return jsonResponse(200, threeDirections);
+        return jsonResponse(200, { instructions: null, reason: "not_configured" });
+      }),
+    );
+    renderFlow();
+
+    await reachDish(user);
+
+    expect(screen.getByRole("group", { name: "Vilka äter?" })).toBeTruthy();
   });
 });
 
@@ -1128,7 +1240,7 @@ describe("GuidedFlow — a diner change after choosing keeps or explains (#133)"
     await user.click(await screen.findByRole("button", { name: "Hoppa över" }));
     await screen.findByRole("heading", { name: "Tre förslag" });
     await user.click(await screen.findByRole("button", { name: "Kycklinggryta" }));
-    await screen.findByRole("heading", { name: "Hur många portioner?" });
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
   }
 
   it("keeps the chosen dish on the portions step when the new diner set still allows it", async () => {
@@ -1150,7 +1262,7 @@ describe("GuidedFlow — a diner change after choosing keeps or explains (#133)"
 
     await waitFor(() => expect(directionsQueries(fetchMock).length).toBeGreaterThan(callsBefore));
     // Never bounced off the portions step, and still the same dish.
-    expect(screen.getByRole("heading", { name: "Hur många portioner?" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Kycklinggryta" })).toBeTruthy();
     expect(screen.getByText("Kycklinggryta")).toBeTruthy();
     expect(directionsQueries(fetchMock).at(-1)!.get("keep")).toBe("gryta");
   });
@@ -1223,7 +1335,9 @@ describe("GuidedFlow — a diner change after choosing keeps or explains (#133)"
     // never left showing "Kycklinggryta" as though nothing happened.
     await screen.findByRole("heading", { name: "Tre förslag" });
     expect(screen.getByText("Rätten passar inte Elsa, här är ett nytt förslag")).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Hur många portioner?" })).toBeNull();
+    // The dish view is gone with it — its heading is the dish name (#207), so this
+    // asserts the household is no longer standing on a dish that was just withdrawn.
+    expect(screen.queryByRole("heading", { name: "Kycklinggryta" })).toBeNull();
   });
 });
 

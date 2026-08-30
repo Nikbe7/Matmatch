@@ -7,7 +7,13 @@ import {
 } from "./api";
 import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { createGuidedClient } from "./guidedClient";
-import { costTierLabel, dinerChangeReasonLine, PREP_TIME_LABELS } from "./display";
+import {
+  costTierLabel,
+  dinerChangeReasonLine,
+  EFFORT_LEVEL_LABELS,
+  formatQuantity,
+  PREP_TIME_LABELS,
+} from "./display";
 import { ShoppingList, type ShoppingListMeal } from "./ShoppingList";
 import { formatPortionsCount, portionsNoun } from "./display";
 import { Button } from "./components/Button";
@@ -66,6 +72,12 @@ function GuidedBackButton({ onBack, label }: { onBack: () => void; label: string
 }
 
 const GUIDED_STEP_COUNT = 3;
+
+/** How long the stepper has to settle before the dish view re-asks the server for
+ *  amounts at the new count (#207). Long enough that 2 → 6 is one request, short
+ *  enough that a household that stepped once and paused is not left reading amounts
+ *  for the old number. */
+const PORTION_RESCALE_DEBOUNCE_MS = 400;
 
 /**
  * The three-step progress indicator (#206) — segments, not the plain "Steg 1 av 3"
@@ -222,6 +234,113 @@ function DirectionCard({
         </p>
       )}
     </button>
+  );
+}
+
+
+/**
+ * The dish view (#207) — what the household is about to commit to, before the
+ * shopping list exists.
+ *
+ * Until this step the flow asked for a portion count against a bare dish name: the
+ * one screen between choosing and committing spent its space re-asking "Vilka äter?",
+ * a question the previous screen had just answered, while the thing being decided —
+ * what is actually in this dish, how long it takes, what it costs — was not on screen
+ * at all until after the list was generated.
+ *
+ * Deliberately *not* #125's dish screen. That one adds capabilities this has none of
+ * (per-ingredient swap, a dish-level action row, the free-text tweak box) and depends
+ * on #122/#124. This is the surface #125 will grow into, not a smaller copy of it —
+ * so nothing here is tappable that will have to move when #125 lands.
+ *
+ * `stale` marks the moment the stepper has moved but the amounts have not caught up
+ * yet. The amounts stay on screen rather than blanking — a list that empties on every
+ * tap is worse than one that is briefly a beat behind — but they are dimmed and
+ * `aria-busy`, because an amount that silently belongs to a different portion count
+ * is exactly the bug #231 fixed one screen further on.
+ */
+function DishView({
+  direction,
+  portions,
+  stale,
+  busy,
+  onAdjust,
+  onConfirm,
+}: {
+  direction: GuidedDirection;
+  portions: number;
+  stale: boolean;
+  busy: boolean;
+  onAdjust: (delta: number) => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Card className="dish-view">
+      <p className="dish-view__meta">
+        {PREP_TIME_LABELS[direction.template.prep_time_band]}
+        <span aria-hidden="true"> · </span>
+        {costTierLabel(direction.template.cost_tier)}
+        <span aria-hidden="true"> · </span>
+        {EFFORT_LEVEL_LABELS[direction.template.effort_level]}
+      </p>
+      {direction.template.blurb && <p className="dish-view__blurb">{direction.template.blurb}</p>}
+
+      <div className="portions-stepper dish-view__stepper">
+        <button
+          type="button"
+          className="portions-stepper__btn"
+          aria-label="Färre portioner"
+          disabled={portions <= MIN_PORTIONS}
+          onClick={() => onAdjust(-1)}
+        >
+          −
+        </button>
+        <span role="status" className="portions-value">
+          <span className="portions-value__word">För</span>{" "}
+          <span className="portions-value__count">{formatPortionsCount(portions)}</span>{" "}
+          <span className="portions-value__word">{portionsNoun(portions)}</span>
+        </span>
+        <button
+          type="button"
+          className="portions-stepper__btn"
+          aria-label="Fler portioner"
+          disabled={portions >= MAX_PORTIONS}
+          onClick={() => onAdjust(1)}
+        >
+          +
+        </button>
+      </div>
+
+      <ul
+        className={stale ? "dish-view__ingredients is-stale" : "dish-view__ingredients"}
+        aria-busy={stale}
+        aria-label="Det här behövs"
+      >
+        {direction.ingredients.map((ingredient) => (
+          <li key={`${ingredient.slotIndex}-${ingredient.ingredientId}`} className="dish-view__row">
+            <span className="dish-view__name">{ingredient.name}</span>
+            {/* Same "already at home" signal the shopping list splits on, shown here
+                so the household can see what this dish will actually cost them in
+                the shop before committing to it. */}
+            {ingredient.inPantry && <span className="dish-view__have">har hemma</span>}
+            <span className="item-amount">{formatQuantity(ingredient.quantity)}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Button
+        type="button"
+        variant="primary"
+        onClick={onConfirm}
+        className="guided-action"
+        // #133: a still-in-flight keep/replace check must resolve before the shopping
+        // list is built — it can still change which dish "the chosen dish" means.
+        // #231: likewise a rescale, which decides the amounts the list is built from.
+        disabled={busy}
+      >
+        Till inköpslistan
+      </Button>
+    </Card>
   );
 }
 
@@ -619,6 +738,73 @@ export function GuidedFlow({
   }
 
   /**
+   * Whether the amounts on screen belong to a different portion count than the one
+   * the stepper shows (#207). True from the tap until the rescale below lands.
+   */
+  const portionsAreStale =
+    state.step === "portions" &&
+    state.portions !== null &&
+    response !== null &&
+    state.portions !== response.portions;
+
+  /**
+   * #207: keep the dish view's amounts true to its own stepper.
+   *
+   * #231 fixed this at the commit boundary, which was enough while the amounts were
+   * not on screen. The dish view puts them there, so "600 g" sitting under "4
+   * portioner" while the server scaled it for 1 would be the same lie one screen
+   * earlier — and this time in front of the household rather than behind them.
+   *
+   * Debounced rather than per tap: stepping 2 → 6 is four taps and one intended
+   * question, and firing four requests to answer it would make the list flicker
+   * through three counts nobody asked about. `handleConfirmPortions` stays as the
+   * backstop for the case where the household commits inside the debounce window.
+   */
+  useEffect(() => {
+    if (!portionsAreStale) return;
+    if (state.portions === null) return;
+    const chosenTemplateId = state.chosenTemplateId;
+    const intent = state.intent;
+    if (chosenTemplateId === null || intent === null || main === null) return;
+
+    const requested = state.portions;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setRescalePending(true);
+      client
+        .fetchDirections({
+          intent,
+          main,
+          pantry: pantryKey.length > 0 ? pantryKey.split(",") : [],
+          keep: chosenTemplateId,
+          portions: requested,
+        })
+        .then((loaded) => {
+          if (cancelled) return;
+          setResponse(loaded);
+          // The server's answer, not the request: it clamps, and the count on screen
+          // must name what the amounts under it were actually scaled to.
+          dispatch({ type: "portions_rescaled", portions: loaded.portions });
+        })
+        .catch((err: unknown) => {
+          // Left on screen as stale rather than swapped for an error state: the
+          // household is mid-decision on a dish that is still perfectly valid, and
+          // `handleConfirmPortions` will try again — and refuse to commit — if this
+          // never succeeds.
+          if (!cancelled) setError(presentError(err, "guided_directions"));
+        })
+        .finally(() => {
+          if (!cancelled) setRescalePending(false);
+        });
+    }, PORTION_RESCALE_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [portionsAreStale, state.portions, state.chosenTemplateId, state.intent, main, pantryKey, client]);
+
+  /**
    * #231: commit the stepper's portion count.
    *
    * The stepper used to move a number and nothing else — the ingredients stayed
@@ -878,61 +1064,33 @@ export function GuidedFlow({
           {state.step === "portions" && chosen && state.portions !== null && (
             <>
               <GuidedStepHeader
-                eyebrow="Portioner"
-                title="Hur många portioner?"
+                eyebrow="Rätten"
+                title={chosen.template.name}
                 onBack={handleBack}
                 backLabel={backLabel}
               />
-              {/* #133: the chosen dish is a refinement target here too — kept when the
-                  new diner set still allows it, replaced (never silently) when not. */}
+              {/* #207 asked for this picker to go, on the grounds that the screen
+                  spent its space re-asking a question the previous one answered. It
+                  stays, deliberately, and the reason is #133 rather than screen
+                  space: `back` from this step releases the choice
+                  (`guided.ts`, case "back"), so this is the *only* place a diner set
+                  can change while a dish is chosen. Removing it does not just drop a
+                  control — it makes the whole "keep the dish or explain why it had to
+                  go" path unreachable, which is a logged decision to reverse rather
+                  than a side effect to accept quietly.
+
+                  The original complaint is also much weaker now: this was a screen
+                  whose entire content was a re-ask, and it is now a dish view with
+                  the picker as one control on it. See the PR. */}
               <DinerPicker state={diners} busy={dinerChangePending} />
-              <Card className="portions-card">
-                <h3 className="portions-card__dish">{chosen.template.name}</h3>
-                <div className="portions-stepper">
-                  <button
-                    type="button"
-                    className="portions-stepper__btn"
-                    aria-label="Färre portioner"
-                    disabled={state.portions <= MIN_PORTIONS}
-                    onClick={() => dispatch({ type: "adjust_portions", delta: -1 })}
-                  >
-                    −
-                  </button>
-                  <span role="status" className="portions-value">
-                    <span className="portions-value__word">För</span>{" "}
-                    <span className="portions-value__count">
-                      {formatPortionsCount(state.portions)}
-                    </span>{" "}
-                    <span className="portions-value__word">{portionsNoun(state.portions)}</span>
-                  </span>
-                  <button
-                    type="button"
-                    className="portions-stepper__btn"
-                    aria-label="Fler portioner"
-                    // #231: the route clamps to the same ceiling, so without this the
-                    // stepper could ask for a number the server would silently answer
-                    // with a different one.
-                    disabled={state.portions >= MAX_PORTIONS}
-                    onClick={() => dispatch({ type: "adjust_portions", delta: 1 })}
-                  >
-                    +
-                  </button>
-                </div>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={handleConfirmPortions}
-                  className="guided-action"
-                  // #133: a still-in-flight keep/replace check must resolve before the
-                  // shopping list is built — it can still change which dish (and which
-                  // portions) "the chosen dish" even means.
-                  // #231: likewise the rescale request, which decides the amounts the
-                  // list is about to be built from.
-                  disabled={dinerChangePending || rescalePending}
-                >
-                  Till inköpslistan
-                </Button>
-              </Card>
+              <DishView
+                direction={chosen}
+                portions={state.portions}
+                stale={portionsAreStale}
+                busy={dinerChangePending || rescalePending}
+                onAdjust={(delta) => dispatch({ type: "adjust_portions", delta })}
+                onConfirm={handleConfirmPortions}
+              />
             </>
           )}
 
