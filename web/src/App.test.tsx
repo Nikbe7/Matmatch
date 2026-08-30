@@ -2228,6 +2228,54 @@ describe("App — Tonight's pantry row (#152)", () => {
     expect(document.querySelector(".tonight-suggestion.is-reranking")).toBeNull();
   });
 
+  // #206/#201: the "Fler" layer — the longest list in the app, and until now the one
+  // with no way to narrow it and a tab bar painted on top of it.
+  it("narrows the sheet's list as you type, and falls back to the whole list on a miss", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, tonightBody())));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Fler" }));
+
+    const sheet = screen.getByRole("dialog", { name: "Vad har du hemma?" });
+    const filter = within(sheet).getByRole("textbox");
+
+    await user.type(filter, "purjo");
+    expect(within(sheet).getByRole("button", { name: "purjolök" })).toBeTruthy();
+    expect(within(sheet).queryByRole("button", { name: "ris" })).toBeNull();
+
+    // A miss shows the full list under an explanation rather than an empty grid —
+    // the same fallback step 2's own filter makes (#110).
+    await user.clear(filter);
+    await user.type(filter, "zzzz");
+    expect(within(sheet).getByRole("status").textContent).toContain("Ingen träff");
+    expect(within(sheet).getByRole("button", { name: "purjolök" })).toBeTruthy();
+  });
+
+  it("makes the bottom nav inert while the sheet is open, and interactive again after", async () => {
+    // Raising the z-index alone was not enough (#201): a nav painted behind a sheet
+    // is still in the tab order and still reachable by a screen reader, and the
+    // dialog claims aria-modal="true".
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, tonightBody())));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const nav = screen.getByRole("navigation", { name: "Huvudnavigation" });
+    expect(nav.hasAttribute("inert")).toBe(false);
+
+    await user.click(screen.getByRole("button", { name: "Fler" }));
+    expect(nav.hasAttribute("inert")).toBe(true);
+
+    const sheet = screen.getByRole("dialog", { name: "Vad har du hemma?" });
+    await user.click(within(sheet).getByRole("button", { name: "Klar" }));
+    expect(nav.hasAttribute("inert")).toBe(false);
+  });
+
   it("opens the guided flow's full grid in a layer, without leaving the suggestion", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();

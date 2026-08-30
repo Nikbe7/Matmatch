@@ -206,6 +206,48 @@ describe("GuidedFlow — the direction card itself is the tap target (#174)", ()
   });
 });
 
+// #206: the three-step progress indicator that replaced the plain "Steg 1 av 3".
+describe("GuidedFlow — step progress (#206)", () => {
+  it("fills one more segment per choice step and keeps the sentence for screen readers", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    const filled = () => document.querySelectorAll(".guided-progress__segment--done").length;
+    const segments = () => document.querySelectorAll(".guided-progress__segment").length;
+
+    await screen.findByRole("heading", { name: "Vad är du sugen på?" });
+    expect(segments()).toBe(3);
+    expect(filled()).toBe(1);
+    // The bars are aria-hidden; the wording a screen reader had before is still here.
+    expect(screen.getByText("Steg 1 av 3")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Middagsidé" }));
+    await screen.findByRole("heading", { name: "Vilken huvudingrediens?" });
+    expect(filled()).toBe(2);
+
+    await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
+    await screen.findByRole("heading", { name: "Vad har du hemma?" });
+    expect(filled()).toBe(3);
+  });
+
+  it("shows no progress indicator on the result steps", async () => {
+    // They are named, not numbered: a household reading "Tre förslag" is no longer
+    // walking a sequence, and a full bar there would say the flow is over when the
+    // shopping list has not been built.
+    const user = userEvent.setup();
+    stubApi();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await user.click(await screen.findByRole("button", { name: "kycklingfilé" }));
+    await user.click(await screen.findByRole("button", { name: "Hoppa över" }));
+    await screen.findByRole("heading", { name: "Tre förslag" });
+
+    expect(document.querySelectorAll(".guided-progress__segment")).toHaveLength(0);
+  });
+});
+
 describe("GuidedFlow — no typing anywhere except step 2's filter (UX_FLOW §1/§2, #110)", () => {
   it("renders no text input on any step except the main-ingredient filter", async () => {
     const user = userEvent.setup();
