@@ -1,0 +1,99 @@
+name: CI
+
+# Runs on every PR into main and on main itself (#227). Before this, the only thing
+# standing between a red test and a merge was a person remembering to run both suites
+# locally and read the right field of a JSON report.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A new push supersedes the previous run for the same branch. Nothing here is a
+# deploy, so cancelling an in-flight run loses nothing but minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck, tests, build, e2e
+    runs-on: ubuntu-latest
+    # Generous relative to the ~6 min this takes; it exists to kill a hung
+    # `supabase start` rather than to police the runtime.
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the version this is developed against. Deliberately a single
+          # version and not a matrix: there is one deployment target (the Dockerfile),
+          # so a second Node version would test a configuration nothing runs.
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm ci --prefix web
+
+      # The whole reason this job is worth having. 283 backend tests gate themselves
+      # on `isLocalStackAvailable()` (src/db/__fixtures__/localStack.ts) and skip
+      # silently without it — they need a real Postgres *and* GoTrue, because the
+      # fixtures mint genuine ES256 tokens and the RLS tests connect as the
+      # least-privilege `matmatch_app` role. A bare `services: postgres` container
+      # cannot serve JWKS, so this starts the real local stack. Every URL and
+      # credential the tests use is a fixed Supabase CLI default, so nothing needs
+      # configuring here and no secret is involved.
+      - name: Start Supabase (real Postgres + auth, so nothing skips)
+        run: npx supabase start
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Validate curated data
+        run: npm run validate
+
+      - name: Backend tests
+        run: npm test -- --reporter=default --reporter=json --outputFile=reports/backend.json
+
+      - name: Backend tests ran nothing skipped
+        if: always()
+        run: node scripts/assert-no-skipped-tests.mjs reports/backend.json "backend"
+
+      - name: Web tests
+        run: npm test --prefix web -- --reporter=default --reporter=json --outputFile=../reports/web.json
+
+      - name: Web tests ran nothing skipped
+        if: always()
+        run: node scripts/assert-no-skipped-tests.mjs reports/web.json "web"
+
+      # Explicit rather than left to the e2e job's own `webServer`, which also builds:
+      # a broken build should fail as a build, not as a Playwright server timeout.
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: web
+
+      - name: End-to-end
+        run: npx playwright test
+        working-directory: web
+
+      # Uploaded on failure only: green runs produce nothing worth keeping, and a red
+      # one is much easier to read from the report than from the log.
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            reports/
+            web/playwright-report/
+          retention-days: 7
