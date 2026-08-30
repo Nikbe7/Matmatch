@@ -31,6 +31,28 @@ export const IngredientSchema = z
   .object({
     id: SlugIdSchema,
     name: z.string().min(1),
+    // ARCHITECTURE.md §5.5 / #221 — which everyday product this is a *variety* of.
+    //
+    // Optional, and its own namespace: the value is a variety-class key, never an
+    // ingredient id and never a substitution-group id. Several keys happen to read
+    // like both ("ris", "potatis"), which is fine because nothing ever resolves one —
+    // the only operation is comparing two ingredients' keys for equality. Milk is why
+    // the namespace has to be its own: standardmjölk/mellanmjölk/lättmjölk are
+    // varieties of a product the catalog has no ingredient for.
+    //
+    // A field on the ingredient rather than on the group (the model #221 rejected),
+    // because the relation runs between members and not across a group: inside
+    // `gradde`, matlagningsgrädde/vispgrädde are varieties while
+    // matlagningsgrädde/crème fraîche is a swap. And a field rather than a fifth data
+    // file, because every ingredient is a variety of exactly *one* product — unlike
+    // group membership, where crème fraîche legitimately sits in two.
+    //
+    // The curation rule (#221): same shelf in the shop, and the recipe still works —
+    // possibly with an adjustment. Crème fraîche and kokosmjölk fall outside it not
+    // because they are bad swaps but because you buy them as a different product.
+    // Absent is the normal case: 169 of 206 ingredients carry no key at all, and two
+    // ingredients that both lack one are never varieties of each other.
+    variety_of: SlugIdSchema.optional(),
     category: IngredientCategorySchema,
     default_cost_tier: CostTierSchema,
     peak_months: z
