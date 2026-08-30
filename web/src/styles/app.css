@@ -1753,3 +1753,69 @@ select.input {
   flex-direction: column;
   gap: var(--space-3);
 }
+
+/* The dish view (#207) — what the household commits to, one screen before the list.
+   Sections stacked inside one card and separated by rules rather than by four cards:
+   the meta, the count and the amounts are three readings of a single dish, and
+   splitting them into cards would read as three unrelated decisions. */
+.dish-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.dish-view__meta {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+.dish-view__blurb {
+  margin: 0;
+  text-wrap: pretty;
+}
+.dish-view__stepper {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.dish-view__ingredients {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-4) 0 0;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* The amounts are briefly a beat behind the stepper while the rescale lands. Dimmed
+     rather than blanked (see DishView's comment): a list that empties on every tap is
+     worse than one that is a beat late, but an amount that looks authoritative while
+     belonging to a different count is the #231 bug wearing a new screen. */
+  transition: opacity 120ms ease-out;
+}
+.dish-view__ingredients.is-stale {
+  opacity: 0.45;
+}
+
+.dish-view__row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.dish-view__name {
+  overflow-wrap: anywhere;
+}
+/* Pushes the amount to the right edge whether or not the "har hemma" tag is there,
+   so the amounts line up as a column down the list. */
+.dish-view__row .item-amount {
+  margin-left: auto;
+}
+.dish-view__have {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dish-view__ingredients {
+    transition: none;
+  }
+}
