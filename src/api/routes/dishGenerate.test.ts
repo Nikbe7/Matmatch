@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import type { AnthropicMessagesClient } from "../../ai/generateInstructions.js";
 import { createTokenVerifier } from "../../auth/verifyToken.js";
 import type { Sql } from "../../db/client.js";
-import type { Allergy, DietaryFlag } from "../../schema/allergyDietary.js";
+import type { DietaryFlag } from "../../schema/allergyDietary.js";
 import { createHousehold } from "../../db/households.js";
 import { recordGenerationAttempt } from "../../db/generatedDishes.js";
 import {
@@ -52,11 +52,10 @@ function authHeader(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
-// Keeps the pre-#115 `{ allergies, dietary_flags }` call shape, landing them on the
-// household's single adult member — see src/engine/__fixtures__/household.ts. Every
-// expectation in this file is unchanged, which is the point.
+// Keeps the pre-#115 `{ dietary_flags }` call shape, landing them on the household's
+// single adult member — see src/engine/__fixtures__/household.ts.
 async function userWithHousehold(
-  memberOverrides: { allergies?: Allergy[]; dietary_flags?: DietaryFlag[] } = {},
+  memberOverrides: { dietary_flags?: DietaryFlag[] } = {},
 ): Promise<{
   userId: string;
   accessToken: string;
@@ -67,7 +66,6 @@ async function userWithHousehold(
       {
         type: "adult",
         portion_factor: 1,
-        allergies: memberOverrides.allergies ?? [],
         dietary_flags: memberOverrides.dietary_flags ?? [],
       },
     ],
@@ -75,18 +73,13 @@ async function userWithHousehold(
   return user;
 }
 
-/** A fresh catalog: peanuts-containing "jordnötssås" alongside safe ingredients. */
+/** A fresh catalog for the generated dish's ingredients to resolve against. */
 function buildEngineData(): EngineData {
   return makeEngineData({
     ingredients: [
       makeIngredient("kyckling", { name: "kyckling", default_cost_tier: "mid" }),
       makeIngredient("jordnotssas", { name: "jordnötssås", default_cost_tier: "premium" }),
       makeIngredient("jasminris", { name: "jasminris", category: "starch", default_cost_tier: "budget" }),
-    ],
-    allergenMappings: [
-      { ingredient_id: "kyckling", allergens: [], verification_status: "verified" },
-      { ingredient_id: "jordnotssas", allergens: ["peanuts"], verification_status: "verified" },
-      { ingredient_id: "jasminris", allergens: [], verification_status: "verified" },
     ],
   });
 }
@@ -237,51 +230,57 @@ describe.skipIf(!stackAvailable)("POST /api/dishes/generate", () => {
       expect(create).toHaveBeenCalledTimes(1);
     });
 
-    it("a cache hit is withheld from a household with the dish's allergen but shown to one without it — same cached row, opposite outcomes", async () => {
+    it("a cache hit is withheld from a vegetarian household but shown to an omnivore one — same cached row, opposite outcomes", async () => {
+      // The claim is about *where the decision lives*, not about which filter makes
+      // it: the cache stores the raw model output, and every household re-decides
+      // against it. #224 left dietary flags as the only filter that can differ
+      // between two households, so that is what expresses it now.
       const engineData = buildEngineData();
       const create = vi.fn().mockResolvedValue(textResponse(dishResponse()));
       const app = buildApp(engineData, { messages: { create } });
       const query = `jordnötsgryta ${crypto.randomUUID()}`;
 
-      const peanutHousehold = await userWithHousehold({ allergies: ["peanuts"] });
-      const safeHousehold = await userWithHousehold({ allergies: [] });
+      const vegetarianHousehold = await userWithHousehold({ dietary_flags: ["vegetarian"] });
+      const omnivoreHousehold = await userWithHousehold({ dietary_flags: [] });
 
-      // First request (peanut-allergic household) is a cache miss: it generates and
-      // writes the cache row, and must be withheld.
+      // First request (vegetarian household) is a cache miss: it generates and writes
+      // the cache row, and must be withheld — a generated dish never carries the tag.
       const withheld = await request(app)
         .post("/api/dishes/generate")
-        .set(authHeader(peanutHousehold.accessToken))
+        .set(authHeader(vegetarianHousehold.accessToken))
         .send({ query });
       expect(withheld.status).toBe(200);
       expect(withheld.body.dish).toBeNull();
       expect(withheld.body.reason).toBe("no_safe_dish");
       expect(create).toHaveBeenCalledTimes(1);
 
-      // Second request (no allergies) reads the very same cached row — the AI is
-      // not called again — and must see the dish. If the cache stored a
-      // household-scoped decision instead of the raw model output, this would
-      // incorrectly stay withheld.
+      // Second request reads the very same cached row — the AI is not called again —
+      // and must see the dish. If the cache stored a household-scoped decision instead
+      // of the raw model output, this would incorrectly stay withheld.
       const shown = await request(app)
         .post("/api/dishes/generate")
-        .set(authHeader(safeHousehold.accessToken))
+        .set(authHeader(omnivoreHousehold.accessToken))
         .send({ query });
       expect(shown.status).toBe(200);
       expect(shown.body.dish).not.toBeNull();
       expect(shown.body.dish.name).toBe("Kyckling med jordnötssås");
       expect(create).toHaveBeenCalledTimes(1);
 
-      // And a repeat request from the originally-withheld household still comes
-      // back withheld, off the same cache row — the cache crossing households
-      // never changes *this* household's allergy outcome either.
+      // And a repeat request from the originally-withheld household still comes back
+      // withheld, off the same cache row — the cache crossing households never
+      // changes *this* household's outcome either.
       const stillWithheld = await request(app)
         .post("/api/dishes/generate")
-        .set(authHeader(peanutHousehold.accessToken))
+        .set(authHeader(vegetarianHousehold.accessToken))
         .send({ query });
       expect(stillWithheld.body.dish).toBeNull();
       expect(create).toHaveBeenCalledTimes(1);
     });
 
-    it("withholds an unresolved-ingredient dish from an allergic household but shows it, marked unverified, to one without allergies", async () => {
+    it("shows an unresolved-ingredient dish, marked unverified", async () => {
+      // Pre-#224 this dish was withheld from a household that had declared an allergy
+      // and shown, marked, to one that had not. Every household is now the latter, so
+      // only the "shown and marked" half survives — see generatedDish.ts's gate.
       const engineData = buildEngineData();
       const create = vi.fn().mockResolvedValue(
         textResponse(
@@ -296,19 +295,12 @@ describe.skipIf(!stackAvailable)("POST /api/dishes/generate", () => {
       const app = buildApp(engineData, { messages: { create } });
       const query = `okänd-ingrediens-rätt ${crypto.randomUUID()}`;
 
-      const allergicHousehold = await userWithHousehold({ allergies: ["gluten"] });
-      const withheld = await request(app)
-        .post("/api/dishes/generate")
-        .set(authHeader(allergicHousehold.accessToken))
-        .send({ query });
-      expect(withheld.body.dish).toBeNull();
-      expect(withheld.body.reason).toBe("no_safe_dish");
-
-      const safeHousehold = await userWithHousehold({ allergies: [] });
+      const household = await userWithHousehold({ dietary_flags: [] });
       const shown = await request(app)
         .post("/api/dishes/generate")
-        .set(authHeader(safeHousehold.accessToken))
+        .set(authHeader(household.accessToken))
         .send({ query });
+
       expect(shown.body.dish).not.toBeNull();
       expect(shown.body.dish.unverified).toBe(true);
       expect(create).toHaveBeenCalledTimes(1);
@@ -364,23 +356,23 @@ describe.skipIf(!stackAvailable)("POST /api/dishes/generate — diner-scoped con
   // No user-facing surface sends `diners` yet (the search box is a later slice); this
   // proves the parameter is wired through the same seam as the other three endpoints
   // so the Tier 2 gate cannot drift from the curated library's filter.
-  async function peanutChildHousehold() {
+  async function vegetarianChildHousehold() {
     const user = await createTestUser();
     await createHousehold(sql!, user.userId, {
       members: [
-        { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
-        { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+        { type: "adult", portion_factor: 1, dietary_flags: [] },
+        { type: "child", portion_factor: 0.5, dietary_flags: ["vegetarian"] },
       ],
     });
     return user;
   }
 
-  it("withholds the peanut dish with no diner parameter and shows it once the child is deselected", async () => {
+  it("withholds the generated dish with no diner parameter and shows it once the vegetarian child is deselected", async () => {
     const engineData = buildEngineData();
     const create = vi.fn().mockResolvedValue(textResponse(dishResponse()));
     const app = buildApp(engineData, { messages: { create } });
     const query = `jordnötsgryta ${crypto.randomUUID()}`;
-    const user = await peanutChildHousehold();
+    const user = await vegetarianChildHousehold();
 
     const withheld = await request(app)
       .post("/api/dishes/generate")
@@ -403,7 +395,7 @@ describe.skipIf(!stackAvailable)("POST /api/dishes/generate — diner-scoped con
     const create = vi.fn().mockResolvedValue(textResponse(dishResponse()));
     const app = buildApp(engineData, { messages: { create } });
     const query = `jordnötsgryta ${crypto.randomUUID()}`;
-    const user = await peanutChildHousehold();
+    const user = await vegetarianChildHousehold();
 
     for (const diners of ["", "9", "0,9", "-1", "alla"]) {
       const response = await request(app)

@@ -14,8 +14,8 @@ import { withUserContext } from "./context.js";
 // filtering below is therefore belt and braces: the queries say what they mean, and
 // RLS independently guarantees a forgotten filter cannot widen the result set.
 //
-// Note the `::text[]` casts on every read of allergies/dietary_flags: the columns are
-// domain arrays (allergy_value[]), and postgres.js resolves result parsers by type
+// Note the `::text[]` casts on every read of dietary_flags: the column is a domain
+// array (dietary_flag_value[]), and postgres.js resolves result parsers by type
 // OID, so it would hand back the raw `{gluten,soy}` string for an OID it doesn't
 // know. Casting to text[] in the query keeps the driver's array parsing and costs
 // nothing — the domain still enforces the vocabulary on write. Since #115 those
@@ -79,7 +79,6 @@ interface MemberRow {
   name: string | null;
   portion_factor: number;
   position: number;
-  allergies: string[];
   dietary_flags: string[];
 }
 
@@ -89,7 +88,7 @@ interface MemberRow {
  *
  * The row shape is never trusted blindly: a value that drifts from the locked
  * vocabularies (a hand-run SQL update, a future migration bug) fails here rather
- * than flowing into the Meal Engine, where an unrecognised allergy string would be
+ * than flowing into the Meal Engine, where an unrecognised dietary string would be
  * silently ignored by filtering instead of excluding anything.
  */
 function toStoredHousehold(row: HouseholdRow, memberRows: readonly MemberRow[]): StoredHousehold {
@@ -103,7 +102,6 @@ function toStoredHousehold(row: HouseholdRow, memberRows: readonly MemberRow[]):
         // null reach zod, which would reject it rather than treat it as absent.
         name: member.name ?? undefined,
         portion_factor: member.portion_factor,
-        allergies: member.allergies,
         dietary_flags: member.dietary_flags,
       })),
   });
@@ -140,8 +138,16 @@ async function insertMembers(
     position,
     // Written as text[] and cast by the column's domain type on the way in, matching
     // how the household-level columns were written before #115.
-    allergies: member.allergies,
     dietary_flags: member.dietary_flags,
+    // #224 removed allergy filtering from the product but deliberately left the
+    // column in place, so the branch reverts with `git revert` rather than a down
+    // migration (DECISION_LOG 2026-08-25). The column is `not null` and its default
+    // was dropped in 20260810000000 — on purpose, so that "nobody wrote an allergy
+    // list" could never be silently recorded as "no allergies". That constraint is
+    // still enforced, so the write path has to satisfy it: every member is written
+    // with an empty list, which nothing reads. Remove this line only together with
+    // the column itself.
+    allergies: [] as string[],
   }));
 
   return sql<MemberRow[]>`
@@ -152,7 +158,6 @@ async function insertMembers(
       name,
       portion_factor,
       position,
-      allergies::text[] as allergies,
       dietary_flags::text[] as dietary_flags
   `;
 }
@@ -217,7 +222,6 @@ export async function getHousehold(
         name,
         portion_factor,
         position,
-        allergies::text[] as allergies,
         dietary_flags::text[] as dietary_flags
       from household_members
       where household_id = ${id}
@@ -257,7 +261,6 @@ export async function getHouseholdForOwner(
         name,
         portion_factor,
         position,
-        allergies::text[] as allergies,
         dietary_flags::text[] as dietary_flags
       from household_members
       where household_id = ${row.id}
@@ -365,7 +368,6 @@ export async function updateHouseholdPreferenceWeights(
         name,
         portion_factor,
         position,
-        allergies::text[] as allergies,
         dietary_flags::text[] as dietary_flags
       from household_members
       where household_id = ${id}

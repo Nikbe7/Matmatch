@@ -1,8 +1,8 @@
 import { COST_TIER_ORDER } from "../tools/validation.js";
-import type { Allergy, DietaryFlag } from "../schema/allergyDietary.js";
+import type { DietaryFlag } from "../schema/allergyDietary.js";
 import type { CostTier } from "../schema/ingredient.js";
 import type { GeneratedDishOutput } from "../schema/generatedDish.js";
-import { isIngredientExcluded, type AllergenResolutionData } from "./allergens.js";
+import { isIngredientUnknown } from "./catalog.js";
 import type { EngineData } from "./data.js";
 
 // Tier 2 deterministic core (issue #113): resolving a model's proposed dish against
@@ -16,7 +16,7 @@ import type { EngineData } from "./data.js";
 //
 // Exact match only, in two normalized forms — never fuzzy/substring/Levenshtein
 // matching. A fuzzy match that succeeds *wrongly* silently attaches a verified
-// allergen row to the wrong ingredient (e.g. "mandel" vs "mandelmjölk", "ost" vs
+// catalog row to the wrong ingredient (e.g. "mandel" vs "mandelmjölk", "ost" vs
 // "getost") — a fail-*open* failure no test can reliably catch, because the test
 // would have to predict which wrong pair the model proposes. Exact matching keeps
 // the only possible failure mode "unresolved," which is fail-closed and handled by
@@ -153,28 +153,26 @@ export function resolveGeneratedDish(data: EngineData, output: GeneratedDishOutp
 // ---------------------------------------------------------------------------
 
 /**
- * Whether a resolved generated dish may be shown to a household with these
- * allergies. This is the Tier 2 safety boundary — the same fail-safe posture as
- * §5.4/allergens.ts, extended to cover unresolved ingredients:
+ * Whether a resolved generated dish may be shown.
  *
- *  - Any unresolved ingredient, with any declared allergy: withheld. An ingredient
- *    our code cannot even identify is treated exactly like a missing/unverified
- *    allergen mapping row (effectiveAllergens' fail-safe rule) — assumed to contain
- *    every allergen in the locked vocabulary. A household with no allergies has
- *    nothing to fail-safe against, so it may still see the dish (marked unverified
- *    by the caller — see ResolvedGeneratedDish.hasUnverifiedContent).
- *  - Any *resolved* ingredient the household must avoid (effectiveAllergens says so):
- *    withheld outright. Generated dishes carry no substitution groups in this slice,
- *    so there is no rescue path — one excluded ingredient excludes the whole dish.
+ * Reduced to the catalog check by #224, and it is worth being precise about how
+ * little is left. `hasUnverifiedContent` no longer withholds anything: it never did
+ * for a household with no declared allergies, and that is now every household, so an
+ * unresolvable ingredient name behaves exactly as it always did for such a household
+ * — the dish is shown and the caller marks it unverified (dishGenerate.ts). That is
+ * behaviour preservation, not a relaxation.
+ *
+ * What remains is the condition that was never about allergies: a slot carrying an
+ * ingredient *id* the catalog does not know has no name, quantity or cost tier to
+ * render. `resolveGeneratedDish` cannot produce one — it only ever sets an id it just
+ * looked up — so this cannot fire on today's call graph and is defence in depth at
+ * the Tier 2 boundary rather than a live filter. It is kept because that is exactly
+ * the boundary a future path (a model proposing ids, a cached dish read back across a
+ * catalog change) would arrive through, and being withheld is the right answer there.
  */
 export function isGeneratedDishVisibleToHousehold(
-  data: AllergenResolutionData,
+  data: Pick<EngineData, "ingredientsById">,
   resolved: ResolvedGeneratedDish,
-  allergies: readonly Allergy[],
 ): boolean {
-  if (resolved.hasUnverifiedContent && allergies.length > 0) return false;
-
-  return resolved.slots.every(
-    (slot) => !slot.ingredientId || !isIngredientExcluded(data, slot.ingredientId, allergies),
-  );
+  return resolved.slots.every((slot) => !slot.ingredientId || !isIngredientUnknown(data, slot.ingredientId));
 }

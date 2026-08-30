@@ -1,4 +1,3 @@
-import type { Allergy } from "../schema/vocabulary.js";
 import type { Ingredient } from "../schema/ingredient.js";
 import { QuantityUnitSchema } from "../schema/recipeTemplate.js";
 
@@ -16,29 +15,30 @@ import { QuantityUnitSchema } from "../schema/recipeTemplate.js";
 // because a step that had to be repaired is a step whose remaining words were not
 // written under the constraint either.
 //
-// What this is NOT: the allergy protection. Allergens are kept out of a dish by the
-// deterministic filter at template selection, ahead of the AI layer entirely
-// (ARCHITECTURE.md §4.3) — a dish that reaches this file has already been cleared.
-// This is a second layer over the *text*, and for generic words outside
-// ALLERGEN_HEAD_NOUNS it is fail-open by design (see that constant). Never treat a
-// pass here as evidence that a meal is safe for a household.
+// What this is, exactly: a consistency check between generated prose and the curated
+// ingredient list rendered beside it. A step that names a food the card does not list
+// is a step a household cannot cook from. That is the whole claim, and since #224 it
+// is the only one — this file no longer sits on an allergy path, no longer knows what
+// an allergen is, and a pass here has never been and must never be read as evidence
+// that a meal is safe for anyone.
 //
-// What this deliberately does NOT do is decompose Swedish compounds. "Såsen" and
-// "grädden" are head nouns, not catalog entries, and treating every shared word
-// ending as an ingredient mention rejects ordinary cooking prose ("låt såsen
-// puttra") at a rate that would make the surface unusable. A shortened form is
-// recognised only when the short form is itself a name in the catalog — see
-// `matchesName` below.
+// The check is fail-open for any word that is not itself a catalog name, and that is
+// a deliberate, uniform trade rather than a narrow gap: "såsen", "grädden" and
+// "buljongen" are head nouns, not catalog entries, and treating every shared word
+// ending as an ingredient mention rejects ordinary cooking prose ("låt såsen puttra")
+// at a rate that would make the surface unusable. A shortened form is recognised only
+// when the short form is itself a name in the catalog — see `resolveToken`.
 
 /**
  * The only words exempt from the ingredient scan. **This list must never grow.**
  *
- * Salt, pepper and water are exempt because every kitchen has them, no template
- * ingredient list is expected to justify them, and none of the three maps to an
- * allergen. That last clause is the whole rule: the moment an exemption maps to an
- * allergen, the scan stops being a safety check and becomes a formatting
- * preference. Butter and oil are the obvious next candidates and are deliberately
- * absent — milk fat is a dairy allergen and the nut oils are worse. If the scan
+ * Salt, pepper and water are exempt because every kitchen already has them and no
+ * template ingredient list is expected to justify them — they are the only three
+ * foods a step may name that a household never has to be told to buy. That is the
+ * whole rule, and it is what keeps the list closed: butter and oil are the obvious
+ * next candidates and are deliberately absent, because both are catalog ingredients
+ * with their own cost tier that belong on a shopping list. Exempting them would let
+ * a step call for something the household was never asked to have. If the scan
  * rejects too often, fix the prompt or the lexicon; adding an entry here is not an
  * available move (#154).
  */
@@ -110,35 +110,6 @@ const TIME_TEMPERATURE_TOKENS: ReadonlySet<string> = new Set([
   "steg",
 ]);
 
-/**
- * Generic Swedish food words that always imply an allergen but are *not* catalog
- * names, so the ingredient scan above cannot see them.
- *
- * The catalog names products — `vispgrädde`, `fetaost`, `cashewnötter`, `vetemjöl` —
- * while a step naturally says "grädden", "osten", "nötter", "mjölet". Those words
- * resolve to nothing in the lexicon (see `matchesName`: a word that is not itself a
- * catalog entry expands to no compound), which left the single most consequential
- * class of invented ingredient invisible. This closes it.
- *
- * Deliberately narrow, and not the same thing as `INGREDIENT_SCAN_EXCEPTIONS`: this
- * list makes the scan *stricter*, so it may grow when a generic allergen-bearing
- * noun is found missing. Every entry must be a word whose allergen reading is
- * unambiguous in a recipe — which is why "nöt" is absent (Swedish "nötfärs" is
- * beef, not a nut) and only the unmistakable plural "nötter" is listed, and why
- * "nudlar" is absent (glasnudlar and risnudlar carry no gluten).
- */
-const ALLERGEN_HEAD_NOUNS: ReadonlyMap<string, Allergy> = new Map<string, Allergy>([
-  ["grädde", "dairy_lactose"],
-  ["mjölk", "dairy_lactose"],
-  ["ost", "dairy_lactose"],
-  ["yoghurt", "dairy_lactose"],
-  ["nötter", "tree_nuts"],
-  ["mjöl", "gluten"],
-  ["bröd", "gluten"],
-  ["pasta", "gluten"],
-  ["skaldjur", "shellfish"],
-]);
-
 /** Swedish definite/plural endings, longest first — stripped to produce candidate
  *  stems. Every candidate is tried, and the unstemmed token is always among them,
  *  so an over-eager strip ("salt" → "sal") can only add matches, never remove the
@@ -177,11 +148,6 @@ export interface IngredientLexicon {
    *  catalog name in its own right, which is the precondition for it matching a
    *  compound built around it. */
   readonly idsByForm: ReadonlyMap<string, readonly string[]>;
-  /** Ingredient id → its allergen set, order-normalised for comparison. Compound
-   *  matching is gated on this — see `resolveToken`. */
-  readonly allergenKeyById: ReadonlyMap<string, string>;
-  /** Ingredient id → its allergens, for the head-noun check below. */
-  readonly allergensById: ReadonlyMap<string, readonly string[]>;
 }
 
 function normalize(text: string): string {
@@ -214,20 +180,12 @@ function stemCandidates(token: string): string[] {
 }
 
 /**
- * `allergensByIngredientId` is the curated, 100%-hand-verified allergen mapping —
- * passed in rather than looked up here so this module stays pure and the caller
- * keeps owning the data (`EngineData.allergenMappingByIngredientId`). An ingredient
- * absent from it is treated as carrying no allergens, matching how the rest of the
- * engine reads that map.
+ * Built once per process from the ingredient catalog and nothing else — the module
+ * stays pure and the caller keeps owning the data (`EngineData.ingredientsById`).
  */
-export function buildIngredientLexicon(
-  ingredients: Iterable<Ingredient>,
-  allergensByIngredientId: ReadonlyMap<string, { readonly allergens: readonly string[] }>,
-): IngredientLexicon {
+export function buildIngredientLexicon(ingredients: Iterable<Ingredient>): IngredientLexicon {
   const formsById = new Map<string, string[]>();
   const idsByForm = new Map<string, string[]>();
-  const allergenKeyById = new Map<string, string>();
-  const allergensById = new Map<string, readonly string[]>();
 
   for (const ingredient of ingredients) {
     const words = normalize(ingredient.name).split(/\s+/).filter(Boolean);
@@ -244,34 +202,35 @@ export function buildIngredientLexicon(
       if (existing) existing.push(ingredient.id);
       else idsByForm.set(form, [ingredient.id]);
     }
-
-    const allergens = [...(allergensByIngredientId.get(ingredient.id)?.allergens ?? [])].sort();
-    allergenKeyById.set(ingredient.id, allergens.join("|"));
-    allergensById.set(ingredient.id, allergens);
   }
 
-  return { formsById, idsByForm, allergenKeyById, allergensById };
+  return { formsById, idsByForm };
 }
 
 /**
  * Every catalog ingredient a single word could be naming. Empty means the word is
  * not an ingredient mention at all.
  *
- * Two passes, and the gap between them is where the safety of this whole check
- * lives.
+ * Two passes. The first is exact: after stemming, the word *is* a catalog name. The
+ * second expands to compounds built around that name — "kyckling" also naming
+ * `kycklingfilé`, "ris" also naming `basmatiris` — because that is how a step refers
+ * back to an ingredient it introduced in full, and without it ordinary prose is
+ * rejected constantly.
  *
- * The first pass is exact: after stemming, the word *is* a catalog name.
- *
- * The second pass expands to compounds built around that name — "kyckling" also
- * naming `kycklingfilé`, "ris" also naming `basmatiris` — because that is how a
- * step refers back to an ingredient it introduced in full, and without it ordinary
- * prose is rejected constantly. But an expansion is admitted **only when the
- * compound carries exactly the allergens the short name does.** Sharing a word stem
- * is not the same thing as being the same food: `soja` (soy sauce — soy *and*
- * gluten) and `sojagroddar` (bean sprouts — soy) share four letters and differ by an
- * allergen, and without this gate a step saying "soja" would pass unchallenged on a
- * bean-sprout template. Measured against the full library, that gate is the
- * difference between two allergen-introducing misses and none (#154).
+ * The expansion is unconditional, and that is a #224 change worth knowing about. It
+ * used to be gated on the compound carrying exactly the allergens the short name did,
+ * so that `soja` (soy sauce) could not pass on a `sojagroddar` (bean sprout)
+ * template. The gate's justification was never precision — it also admitted
+ * `ris`→`sparris` and `mango`→`mangold`, which are not the same food at all — it was
+ * that it never erred in the one direction that mattered while an allergen could
+ * reach an allergic household. With allergens gone there is no such direction, and
+ * measured over the full library the gate was worth 3 catches in 33 931 foreign
+ * mentions (203 escapes with it, 206 without) at the price of rejecting every
+ * legitimate `soja`/`ägg` self-reference. Ingredient `category` was measured as a
+ * replacement and rejected: it costs 60 new rejections of legitimate prose
+ * ("tomaten" on a tomatpuré dish, "curryn" on a currypasta dish) to buy back 45
+ * escapes, which is the wrong trade now that a miss is an inconsistency and a
+ * rejection is a cook screen that fails to load.
  *
  * A word that is not a catalog name expands to nothing, which is why "såsen" and
  * "grädden" are free prose — see the module comment.
@@ -286,13 +245,10 @@ function resolveToken(token: string, lexicon: IngredientLexicon): Set<string> {
   if (resolved.size === 0) return resolved;
 
   for (const stem of stems) {
-    const anchors = lexicon.idsByForm.get(stem);
-    if (!anchors) continue;
-    const anchorAllergenKeys = new Set(anchors.map((id) => lexicon.allergenKeyById.get(id) ?? ""));
+    if (!lexicon.idsByForm.has(stem)) continue;
 
     for (const [id, forms] of lexicon.formsById) {
       if (resolved.has(id)) continue;
-      if (!anchorAllergenKeys.has(lexicon.allergenKeyById.get(id) ?? "")) continue;
       const isCompound = forms.some(
         (form) =>
           !form.includes(" ") &&
@@ -332,10 +288,7 @@ export function findForeignIngredients(
       if (stemCandidates(token).some((stem) => INGREDIENT_SCAN_EXCEPTIONS.has(stem))) continue;
 
       const candidates = resolveToken(token, lexicon);
-      if (candidates.size === 0) {
-        if (namesUncoveredAllergen(token, lexicon, allowedIngredientIds)) foreign.push(token);
-        continue;
-      }
+      if (candidates.size === 0) continue;
 
       let allowed = false;
       for (const candidate of candidates) {
@@ -349,44 +302,6 @@ export function findForeignIngredients(
   }
 
   return foreign;
-}
-
-/**
- * Whether a generic food word puts an allergen on the screen that the template does
- * not already carry.
- *
- * Two ways to be in the clear, and both are about the word plausibly referring to
- * something the model was actually given. Either the template holds an ingredient
- * carrying that allergen ("osten" on a parmesan dish), or it holds an ingredient
- * whose name ends in the word itself ("mjölet" on a potatismjöl dish — gluten-free,
- * but unmistakably what the step means). Otherwise the model has introduced dairy,
- * gluten, nuts or shellfish out of nowhere, and that is the case this exists for.
- */
-function namesUncoveredAllergen(
-  token: string,
-  lexicon: IngredientLexicon,
-  allowedIngredientIds: ReadonlySet<string>,
-): boolean {
-  for (const stem of stemCandidates(token)) {
-    const allergen = ALLERGEN_HEAD_NOUNS.get(stem);
-    if (!allergen) continue;
-
-    let covered = false;
-    for (const ingredientId of allowedIngredientIds) {
-      if (lexicon.allergensById.get(ingredientId)?.includes(allergen)) {
-        covered = true;
-        break;
-      }
-      const forms = lexicon.formsById.get(ingredientId) ?? [];
-      if (forms.some((form) => !form.includes(" ") && form.endsWith(stem))) {
-        covered = true;
-        break;
-      }
-    }
-    if (!covered) return true;
-  }
-
-  return false;
 }
 
 function isNumber(token: string): boolean {

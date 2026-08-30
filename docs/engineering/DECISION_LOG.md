@@ -8,6 +8,62 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-25 — Allergifiltrering tas bort helt; appen slutar fråga och slutar lova (#224)
+
+Reverserar CLAUDE.md:s första non-negotiable och nio poster i den här loggen: #168
+(onboarding frågar), 2026-08-10 (allergihantering klar), #115 (per medlem), de fyra
+2026-07-31-posterna (verifieringsmetod, mappningssemantik, `allergens: []`, låst
+mappningsschema) och 2026-07-29 (låst vokabulär). 2026-08-09 står kvar till hälften:
+constraints kommer fortfarande från dem som äter, men bara kostpreferenser reser den
+vägen nu.
+
+Allergenmappningarna krävde 100% manuell verifiering utan stickprov. Vid 206
+ingredienser var det görbart. Katalogen måste till tusentals för att AI-namnuppslag,
+utbytesförslag och skafferifrågan ska fungera — #221, #222 och #132 visade sig alla
+vara former av samma flaskhals — och då är det inte görbart längre, allra minst av en
+ensam person som saknar den kunskapen. En kurerad allergendatabas ingen kan
+underhålla är inte en säkerhetsfunktion; löftet står kvar utan täckning, vilket är
+sämre än inget löfte.
+
+Alternativet — låta en modell verifiera och behålla löftet — förkastades. Skillnaden
+är inte hur noggrann modellen är, utan vem som bär konsekvensen när den har fel. Ett
+hushåll som svarat "jordnötter" och fått en rätt serverad har blivit lovat något. Att
+inte fråga är dessutom den lägre ansvarspositionen för en svensk matapp.
+
+Två saker överlevde borttagningen och det är inte av slarv. `isIngredientUnknown`
+(`src/engine/catalog.ts`) är gatens andra fail-closed-villkor, som aldrig var en
+allergiregel: "we cannot say what an unknown ingredient even is." Substitutionsgrupper
+och framtida AI-förslag kan fortfarande bära en okänd id, så den kontrollen överlever
+allergivägen den satt bredvid. Och `dietary_flags` är orörda — fel svar där är en
+irriterad användare, inte en akutmottagning, och de låg i samma modul just där de
+lättast åkt med av misstag.
+
+Substitutionsmaskineriet blev en bieffekt: varje substitution motorn genererade var en
+räddning av en allergiutesluten slot, så `evaluateTemplateAgainstConstraints` har ingen
+slot-loop kvar och `unsafeSlot` är oproducerbar. Fältet `substitutions` står kvar på
+`CandidateTemplate` eftersom byt-ut-popoverns tillämpade byten reser samma väg.
+
+`data/ingredient-allergens.json` raderas inte. 206 verifierade rader är riktigt arbete
+och ligger kvar validerbara men olästa.
+
+**Tillägg 2026-08-28, vid genomförandet:** issuens punkt "Vad som ska till" — en ärlig
+rad där hushållet ser en rätt, "Matmatch filtrerar inte för allergier — läs
+ingredienserna själv" — byggdes medvetet inte. Placeringen var frågan som fällde den:
+"en gång" utesluter varje yta, och den enda plats där raden vore handlingsbar är
+ingredienslistan, som redan står där i sin helhet med mängder. En rad om vad appen
+*inte* gör är också ett påstående om allergener från en app som annars inte har någon
+åsikt om dem — samma sorts kvarstående löfte som korskontamineringsraden i
+`DinerPicker`, som togs bort i samma slice. Att sluta fråga är påståendet. Vill någon
+ha raden tillbaka är det ett eget beslut, inte en bortglömd punkt.
+
+**How to apply:** Lägg inte tillbaka en allergifråga utan att först lösa vem som
+underhåller mappningarna — det var underhållet, inte koden, som fällde funktionen.
+Låt inte en modell fylla i allergendata så länge något i produkten filtrerar på den.
+Blanda inte ihop `isIngredientUnknown` med den gamla gaten: den svarar på om motorn
+vet vad en ingrediens är, aldrig på om någon tål den. Och skilj `dietary_flags` från
+allergier i varje framtida ändring — att de en gång delade modul är ett historiskt
+sammanträffande, inte en släktskap.
+
 ## 2026-08-23 — Adjustment chips become binary toggles; the dot meter is removed everywhere (supersedes the 2026-08-05 two-level calibration on level count)
 
 **Decision:** Billigare, Snabbare, Testa nytt and Enklare are binary: one tap sets the axis to `WEIGHT_ON` (100 notches, engine weight 3 — unchanged from the old level 2), a second tap returns it to 0. There is no level 1, no dot meter and no level in the accessible name — `Chip`'s existing pressed state plus `aria-pressed` is the whole affordance. Reroll depth still increments on every tap in either direction, including the one that turns a chip off. The row still has five slots (Annat kök and the conditional Återställ chip are unchanged) — narrowing the row itself is still the open design call flagged 2026-08-21, not resolved here.
@@ -517,7 +573,7 @@ One exception found and deliberately not fixed here: `vegan + gluten` (17 templa
 
 **Why recorded as a decision rather than left as a closed issue:** the exit review also surfaced a flag that looks like a gap but isn't — `vegetarian`/`vegan`-only profiles necessarily retain only 9–12 of 30 matrix cells, because the `protein_group` axis has 5 values and a vegetarian household can only ever match `vegetarian_vegan` and the vegetarian-taggable slice of `egg_dairy_pantry`. That's the ceiling by definition of what "vegetarian" means, not a data shortfall, and no issue was filed for it. Recording the distinction here so a future reader doesn't file a duplicate "fix vegetarian cell coverage" ticket against a number that was never fixable.
 
-**How to apply:** Phase 1 planning can treat Phase 0's data foundation as sufficient for the common cases the exit criterion cares about. #46 is the one open, scoped exception — track it there, not as a reason to reopen Phase 0. If a future spot-check or user report finds another profile below the same thresholds, use this review's method (`tmp/phase0_exit_review.py`'s approach: raw survival, substitution-rescued survival, cells retained, top offending ingredients) rather than re-deriving it from scratch.
+**How to apply:** Phase 1 planning can treat Phase 0's data foundation as sufficient for the common cases the exit criterion cares about. #46 is the one open, scoped exception — track it there, not as a reason to reopen Phase 0. If a future spot-check or user report finds another profile below the same thresholds, use this review's method — survival counts per household profile over the whole library — rather than re-deriving it from scratch. **The script this used to point at (`tmp/phase0_exit_review.py`) is deleted (2026-08-28):** it was gitignored scratch, so it never existed for anyone but its author, and #224 removed both halves of what it modelled (allergy exclusion and substitution rescue). What survives of the method is `src/engine/candidates.test.ts`'s survival-count block, which pins the same numbers over the real catalog as a test that actually runs — a better home for it than a file on one machine.
 
 ---
 
@@ -569,7 +625,7 @@ One exception found and deliberately not fixed here: `vegan + gluten` (17 templa
 
 **Decision:** #9's 100%-manual-verification pass used a fixed two-pass method across all three sub-issues, reusable as the catalog grows. **Pass 1 (raw):** every row is first classified raw (a single unprocessed ingredient whose allergen set follows from what it is) or manufactured (a recipe/processed product), per the plain-form rule already logged above. Raw rows are grouped into rule blocks (e.g. "fresh vegetables → `[]`", "plain fish → `fish`") and confirmed as a block, not row by row. **Pass 2 (manufactured):** every manufactured row — tagged or not — is verified against an actual retail label (ICA.se/Coop.se, mainstream own-brand or market-leader, not premium/organic/specialty-importer), Innehållsförteckning quoted verbatim. Evidence bar, asymmetric by design: **one label is sufficient to confirm or add an allergen; two independent manufacturers are required to remove `gluten`, `dairy_lactose`, `egg`, or `soy`; three independent manufacturers are required to remove `shellfish`, `fish`, `peanuts`, or `tree_nuts`** — the higher bar for the second group reflects that removal-error consequence scales with reaction severity, not just row count. A "Kan innehålla spår av" trace warning collapses into `allergens[]` exactly like a definite ingredient, per §5.4 — never a separate `may_contain` state. Every outcome is recorded as one of four categories: **correction** (label contradicts the draft), **confirmation** (label agrees), **held-not-removed** (insufficient evidence to remove; kept fail-safe, evidence gap stated explicitly so it's revisitable), or **formulation split** (brands genuinely differ; tag kept fail-safe as an accepted, known coverage cost — not an error).
 
-**Why:** A second independent AI draft (`tmp/allergen-review-worksheet.md`, pre-#27) found disagreements concentrated entirely in manufactured products and none in raw ones, so raw-row risk is low and manufactured-row risk carries effectively all of it — the two-pass split routes human attention accordingly without reducing coverage (every row, raw or manufactured, still gets an explicit ruling). Two headline findings justified the label-backed rigor over a lighter spot-check: (1) the AI draft **systematically assumed continental (wheat-and-soy) formulations for Swedish charkuteri, korv, and bread** — wrong across 6 brands and 3 product classes (skinka/rökt skinka, falukorv/grillkorv, formbröd all had incorrect gluten/soy/dairy tags; Swedish binders are potato-starch-based, not wheat/soy). (2) `pesto` was **missing an allergen entirely** (`egg`, via declared lysozyme/cheese in a mainstream label) — a different and more dangerous failure direction than over-tagging, since an invented allergen only costs a household an unnecessarily avoided dish, while a missing one tells an allergic household a dish is safe when it isn't. Finding #2 is the concrete reason CLAUDE.md's no-sampling rule is correct as written: a spot-check tuned to catch over-tagging (the more common and more "visible" failure) would not have caught this.
+**Why:** A second independent AI draft (`tmp/allergen-review-worksheet.md`, pre-#27 — gitignored scratch, no longer present anywhere; noted 2026-08-28) found disagreements concentrated entirely in manufactured products and none in raw ones, so raw-row risk is low and manufactured-row risk carries effectively all of it — the two-pass split routes human attention accordingly without reducing coverage (every row, raw or manufactured, still gets an explicit ruling). Two headline findings justified the label-backed rigor over a lighter spot-check: (1) the AI draft **systematically assumed continental (wheat-and-soy) formulations for Swedish charkuteri, korv, and bread** — wrong across 6 brands and 3 product classes (skinka/rökt skinka, falukorv/grillkorv, formbröd all had incorrect gluten/soy/dairy tags; Swedish binders are potato-starch-based, not wheat/soy). (2) `pesto` was **missing an allergen entirely** (`egg`, via declared lysozyme/cheese in a mainstream label) — a different and more dangerous failure direction than over-tagging, since an invented allergen only costs a household an unnecessarily avoided dish, while a missing one tells an allergic household a dish is safe when it isn't. Finding #2 is the concrete reason CLAUDE.md's no-sampling rule is correct as written: a spot-check tuned to catch over-tagging (the more common and more "visible" failure) would not have caught this.
 
 **How to apply:** Reuse this exact method for any future ingredient-allergen verification (new catalog rows, a vocabulary expansion). Do not sample even when a batch looks low-risk — pesto's missing egg is the standing counter-example. Two rows are currently `held-not-removed` and need revisiting rather than re-deriving from scratch if new evidence appears: **`blodpudding`** holds `dairy_lactose` and `egg` — only one Swedish manufacturer (Gea's/Lithells, both part of Atria) could be found, gluten is separately confirmed and stands; clears if a second independent manufacturer's label is found and agrees or disagrees. **`worcestershiresas`** holds `soy` — Lea & Perrins is effectively the only Worcestershire sauce sold in Swedish mainstream retail, `fish` and `gluten` are separately confirmed and stand; clears the same way if a second brand is ever stocked. Also recorded: `tree_nuts` and `peanuts` are now coextensive on every packaged nut row in the catalog, because Swedish nut-packing uses shared processing lines and the trace-collapse rule is binding — this is the collapse rule (§5.4, 2026-07-31 entry above) working as designed, and it is the first concrete evidence for the graded-risk revisit that entry flagged as a possible future cost. It is evidence, not a trigger — do not reopen the collapse decision on the strength of this alone.
 

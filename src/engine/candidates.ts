@@ -1,8 +1,8 @@
 import { COST_TIER_ORDER } from "../tools/validation.js";
-import type { Allergy, DietaryFlag } from "../schema/allergyDietary.js";
+import type { DietaryFlag } from "../schema/allergyDietary.js";
 import type { CostTier } from "../schema/ingredient.js";
 import type { IngredientSlot, IngredientSlotRole, RecipeTemplate } from "../schema/recipeTemplate.js";
-import { isIngredientExcluded } from "./allergens.js";
+import { isIngredientUnknown } from "./catalog.js";
 import type { MealConstraints } from "./constraints.js";
 import type { EngineData } from "./data.js";
 
@@ -72,16 +72,16 @@ function passesDietaryFilter(template: RecipeTemplate, flags: readonly DietaryFl
  * or a household-initiated swap (#124), and offering "alternatives to what's on the
  * plate" has to traverse from there, not from what the template originally named.
  *
- * Extracted so both `findSubstitute` below (single rescue candidate) and #124's
- * ingredient-swap popover (every candidate) traverse the curated groups exactly once,
- * in exactly one place — a second traversal is how the two could quietly disagree
- * about which ingredients are interchangeable.
+ * Since #224 the ingredient-swap popover (#124) is the only caller: the engine no
+ * longer rescues slots of its own accord, because every rescue it ever performed was
+ * of an allergy-excluded slot. The traversal stays in one place anyway — it is also
+ * `roleSubstitutionPool`'s narrow counterpart, and two traversals are how the two
+ * pools could quietly disagree about which ingredients are interchangeable.
  */
 export function substituteCandidateIds(
   data: EngineData,
   role: IngredientSlotRole,
   currentIngredientId: string,
-  allergies: readonly Allergy[],
 ): string[] {
   const groups = data.substitutionGroupsByMemberIngredientId.get(currentIngredientId) ?? [];
   const seen = new Set<string>([currentIngredientId]);
@@ -92,37 +92,16 @@ export function substituteCandidateIds(
     for (const memberId of group.member_ingredient_ids) {
       if (seen.has(memberId)) continue;
       seen.add(memberId);
-      // Edibility of a candidate member is always resolved through the verified
-      // ingredient-allergen mapping — groups carry no allergen or dietary field
-      // by design (§5.5).
-      if (isIngredientExcluded(data, memberId, allergies)) continue;
+      // A group may name an id the catalog does not have — groups carry no ingredient
+      // data of their own by design (§5.5), so the catalog is the only thing that can
+      // say whether a member is a real ingredient. This is not an edibility test and
+      // has not been one since #224: see `isIngredientUnknown`.
+      if (isIngredientUnknown(data, memberId)) continue;
       candidateIds.push(memberId);
     }
   }
 
   return candidateIds;
-}
-
-/**
- * The id of an edible ingredient that can stand in for this slot's excluded
- * ingredient, or undefined if the slot cannot be rescued.
- *
- * Only groups whose `role` matches the slot's role are eligible (§5.5), and
- * `substitutable: false` suppresses swaps entirely regardless of group membership —
- * the template author's statement that this ingredient *is* the dish. Per
- * DECISION_LOG 2026-08-01 that is the case for every protein slot in the library.
- *
- * First match wins, in group-file then member order (`substituteCandidateIds`'
- * order). Which member a household would *prefer* is a ranking judgment driven by
- * the session weight vector (DECISION_LOG 2026-07-31), not a property of this filter.
- */
-function findSubstitute(
-  data: EngineData,
-  slot: IngredientSlot,
-  allergies: readonly Allergy[],
-): string | undefined {
-  if (!slot.substitutable) return undefined;
-  return substituteCandidateIds(data, slot.role, slot.ingredient_id, allergies)[0];
 }
 
 /**
@@ -138,7 +117,6 @@ export function roleSubstitutionPool(
   data: EngineData,
   role: IngredientSlotRole,
   excludeIngredientId: string,
-  allergies: readonly Allergy[],
 ): string[] {
   const seen = new Set<string>([excludeIngredientId]);
   const ids: string[] = [];
@@ -148,7 +126,7 @@ export function roleSubstitutionPool(
     for (const memberId of group.member_ingredient_ids) {
       if (seen.has(memberId)) continue;
       seen.add(memberId);
-      if (isIngredientExcluded(data, memberId, allergies)) continue;
+      if (isIngredientUnknown(data, memberId)) continue;
       ids.push(memberId);
     }
   }
@@ -193,28 +171,36 @@ export function classifyCostTier(
   return { cheaper, similar };
 }
 
-/** The first ingredient slot a template cannot be safely served with, unrescued. */
-export interface UnsafeSlot {
+/** A slot whose ingredient id is not in the catalog, so nothing downstream can
+ *  render or reason about it. A data fault, not a household's constraint. */
+export interface UnknownSlotIngredient {
   slotIndex: number;
   ingredientId: string;
 }
 
 /**
- * One template's outcome against one constraint set: either the rescued candidate,
- * or specifically *why* it does not survive — a missing hard dietary tag, or the
- * first slot no substitution could rescue. Never both.
+ * One template's outcome against one constraint set: either the candidate, or
+ * specifically *why* it does not survive — a missing hard dietary tag, or a slot the
+ * catalog cannot resolve. Never both.
  *
- * The three-way split exists for #133/diner-change: keeping the dish shown on
- * Tonight across a diner-set change, or explaining why it had to be replaced,
- * needs to ask this exact question of one template — the same question
- * `selectCandidateTemplates` asks of every template in the catalog. A second,
- * parallel evaluation is exactly how the two could disagree about what is safe,
- * so both go through this one function.
+ * The allergy variant of the second case went with the allergy filter that produced
+ * it (#224). What survives is `isIngredientUnknown`, which was never an allergy rule:
+ * the old gate had two fail-closed conditions and only one of them was about who can
+ * eat what. Without this branch a template naming an ingredient the catalog lacks
+ * becomes a candidate and blows up downstream where the response is assembled
+ * (`tonightIngredients.ts` throws on the failed lookup) — a 500 in place of a dish
+ * quietly withheld.
+ *
+ * The split exists for #133/diner-change: keeping the dish shown on Tonight across a
+ * diner-set change, or explaining why it had to be replaced, needs to ask this exact
+ * question of one template — the same question `selectCandidateTemplates` asks of
+ * every template in the catalog. A second, parallel evaluation is exactly how the two
+ * could disagree, so both go through this one function.
  */
 export type TemplateEvaluation =
   | { candidate: CandidateTemplate }
-  | { unsafeSlot: UnsafeSlot }
-  | { missingDietaryFlags: readonly DietaryFlag[] };
+  | { missingDietaryFlags: readonly DietaryFlag[] }
+  | { unknownSlotIngredient: UnknownSlotIngredient };
 
 /**
  * Whether `template` survives `constraints`, and if not, why — the single
@@ -234,18 +220,21 @@ export function evaluateTemplateAgainstConstraints(
     return { missingDietaryFlags };
   }
 
-  const substitutions: SlotSubstitution[] = [];
-
+  // The slot loop no longer *rescues* anything (#224): every substitution the engine
+  // ever generated was a rescue of an allergy-excluded slot, and with allergy
+  // filtering gone there is nothing to rescue. What it still does is refuse to serve a
+  // template the catalog cannot fully resolve — the surviving fail-closed condition,
+  // which is about what the engine knows, not about who can eat it.
   for (const [slotIndex, slot] of template.ingredient_slots.entries()) {
-    if (!isIngredientExcluded(data, slot.ingredient_id, constraints.allergies)) continue;
-
-    const substituteId = findSubstitute(data, slot, constraints.allergies);
-    if (substituteId === undefined) {
-      return { unsafeSlot: { slotIndex, ingredientId: slot.ingredient_id } };
+    if (isIngredientUnknown(data, slot.ingredient_id)) {
+      return { unknownSlotIngredient: { slotIndex, ingredientId: slot.ingredient_id } };
     }
-
-    substitutions.push({ slot_index: slotIndex, slot, substitute_ingredient_id: substituteId });
   }
+
+  // `substitutions` stays on `CandidateTemplate` — always empty from here — because
+  // the swap popover's applied swaps travel the same field, and removing it is slice
+  // 2's job, not this one's.
+  const substitutions: SlotSubstitution[] = [];
 
   // `template.cost_tier` is returned unchanged, including for templates rescued by
   // a substitution. The effective cost tier of a swapped meal is explicitly
@@ -257,10 +246,10 @@ export function evaluateTemplateAgainstConstraints(
 }
 
 /**
- * Every recipe template these constraints allow, including those rescued by a
- * substitution. A template survives when every one of its slots resolves to an
- * edible ingredient; an excluded slot may be rescued by a substitution, and a
- * template may be rescued at several slots at once.
+ * Every recipe template these constraints allow: every dinner-eligible template whose
+ * own `dietary_tags` satisfy the meal's hard dietary flags and whose every slot names
+ * an ingredient the catalog knows. Since #224 those are the only two ways out — no
+ * slot's ingredient can be excluded on account of who is eating.
  */
 export function selectCandidateTemplates(
   data: EngineData,

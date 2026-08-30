@@ -4,16 +4,22 @@ import { loadEngineData } from "./data.js";
 const data = await loadEngineData();
 
 describe("loadEngineData", () => {
-  it("loads the four curated data files", () => {
+  it("loads the three curated data files the engine reads", () => {
     expect(data.ingredientsById.size).toBe(206);
-    expect(data.allergenMappingByIngredientId.size).toBe(206);
     expect(data.templates.length).toBe(170);
     expect(data.substitutionGroupsById.size).toBe(41);
   });
 
+  it("does not load data/ingredient-allergens.json — the file is kept, unread (#224)", () => {
+    // The whole point of decision 2026-08-25's "validerbar men oläst": the 206
+    // hand-verified rows stay in the repo and `npm run validate` still checks them,
+    // but nothing the engine hands downstream can consult an allergen again. An index
+    // reappearing here is how that would quietly come back.
+    expect(Object.keys(data)).not.toContain("allergenMappingByIngredientId");
+  });
+
   it("indexes ingredients and templates by their slug id", () => {
     expect(data.ingredientsById.get("agg")?.name).toBe("ägg");
-    expect(data.allergenMappingByIngredientId.get("agg")?.allergens).toEqual(["egg"]);
   });
 
   it("builds a reverse index from ingredient id to the groups containing it", () => {

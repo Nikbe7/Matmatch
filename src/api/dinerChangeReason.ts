@@ -1,8 +1,6 @@
-import { effectiveAllergens } from "../engine/allergens.js";
 import { evaluateTemplateAgainstConstraints, type TemplateEvaluation } from "../engine/candidates.js";
 import type { MealConstraints } from "../engine/constraints.js";
 import type { EngineData } from "../engine/data.js";
-import type { AllergenResolutionData } from "../engine/allergens.js";
 import type { RecipeTemplate } from "../schema/recipeTemplate.js";
 import { memberLabels, type HouseholdMember } from "../schema/household.js";
 
@@ -10,8 +8,8 @@ import { memberLabels, type HouseholdMember } from "../schema/household.js";
 // leaves it unsafe. Lives here rather than in src/engine/ because it only ever
 // runs after `evaluateTemplateAgainstConstraints` has already decided the dish is
 // unsafe — it explains that decision in terms of the household, it does not make
-// a second one. It never compares allergy lists to decide safety; that question
-// stays answered exactly once, by the engine.
+// a second one. It never compares dietary flags to decide eligibility; that
+// question stays answered exactly once, by the engine.
 
 export interface ReplacedDishExplanation {
   /** The raw catalog template a `keep` id named — never in `ranked`, or this
@@ -48,48 +46,31 @@ export function explainReplacedDish(
   if (!template) return undefined;
 
   const evaluation = evaluateTemplateAgainstConstraints(data, template, constraints);
-  return { template, affectedMemberLabel: affectedMemberLabel(data, evaluation, constraints, members, eating) };
+  return { template, affectedMemberLabel: affectedMemberLabel(evaluation, members, eating) };
 }
 
 /**
  * The eating member responsible for `evaluation`'s failure, or `undefined` when
  * the evaluation was itself safe (nothing to explain) or — defensively — when no
  * eating member's own declaration matches (should not happen: `constraints` is
- * always the union over `eating`, so whatever allergy or flag failed the dish
- * belongs to at least one of them).
+ * always the union over `eating`, so whatever flag failed the dish belongs to at
+ * least one of them).
  *
  * `members` is the full roster (label numbering is positional over the whole
  * roster, DECISION_LOG 2026-08-09), `eating` the diner subset the failing
  * `constraints` were derived from (`mealDiners`'s `.members`) — only a person
  * actually at tonight's table can be "the reason," even though the household as a
- * whole may have others with the same declared allergy.
+ * whole may have others with the same declared flag.
  */
 export function affectedMemberLabel(
-  data: AllergenResolutionData,
   evaluation: TemplateEvaluation,
-  constraints: MealConstraints,
   members: readonly HouseholdMember[],
   eating: readonly HouseholdMember[],
 ): string | undefined {
-  if ("unsafeSlot" in evaluation) {
-    const contains = effectiveAllergens(data, evaluation.unsafeSlot.ingredientId);
-    const culpritAllergies = constraints.allergies.filter((allergy) => contains.has(allergy));
-    return (
-      firstMatchingMemberLabel(members, eating, (member) =>
-        member.allergies.some((allergy) => culpritAllergies.includes(allergy)),
-      ) ??
-      // Fail-safe fallback (§5.4, allergens.ts): a slot can be unsafe for a
-      // reason that traces to no single declared allergy — an ingredient
-      // missing from the catalog entirely, which `isIngredientExcluded`
-      // excludes regardless of allergies. `constraints.allergies` is only ever
-      // non-empty here (an allergy-free household never reaches this branch —
-      // `isIngredientExcluded` returns false outright when `allergies.length
-      // === 0`), so naming the first eating member who has declared *any*
-      // allergy is never a guess about who is eating; it is never silent.
-      firstMatchingMemberLabel(members, eating, (member) => member.allergies.length > 0)
-    );
-  }
-
+  // The allergy branch went with allergy filtering (#224). A dish can now only be
+  // replaced *for a person* over a dietary flag, so that is the only reason there is
+  // to name; the surviving `unknownSlotIngredient` outcome is a catalog fault nobody
+  // at the table is responsible for, and falls through to `undefined` below.
   if ("missingDietaryFlags" in evaluation) {
     const culpritFlags = evaluation.missingDietaryFlags;
     return firstMatchingMemberLabel(members, eating, (member) =>

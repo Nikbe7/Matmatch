@@ -24,7 +24,6 @@ import {
 import { combinePreferenceWeights } from "../../schema/preferenceWeights.js";
 import {
   buildDirectionSummary,
-  buildExcludedMainIngredients,
   buildGuidedIngredients,
   buildMainIngredientOptions,
   buildPantryIngredientOptions,
@@ -63,7 +62,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
   const router = Router();
 
   // Scoped to the household's own safe candidate set, not the whole catalog: a grid
-  // built from all 170 templates offers a fish-allergic household "lax" as a tap
+  // built from all 170 templates offers a vegetarian household "kycklingfile" as a tap
   // target whose only possible outcome is the §9 empty state. Filtering it out is not
   // the safety mechanism — `selectCandidateTemplates` below is, and it runs again on
   // every directions request — it just keeps the grid free of traps.
@@ -93,9 +92,10 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
         diners: memberLabels(stored.household.members).map((label) => ({ label })),
         mainIngredients: buildMainIngredientOptions(engineData, candidates),
         pantryIngredients: buildPantryIngredientOptions(engineData, candidates),
-        // Step 2's filter-miss explanation (requirement 4) — scoped to the household's
-        // own allergies, not the whole catalog's allergen data.
-        excludedMainIngredients: buildExcludedMainIngredients(engineData, constraints.allergies),
+        // No `excludedMainIngredients`: step 2's filter-miss explanation (requirement 4)
+        // named the allergy excluding a given ingredient, and a dietary flag excludes a
+        // whole dish rather than one ingredient, so there is nothing left to explain
+        // per ingredient (#224).
       });
     } catch (error) {
       next(error);
@@ -231,7 +231,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
 
       if (directions.length === 0) {
         // Recoverable, and the common case rather than an edge case: a household with
-        // allergies plus a chosen main ingredient runs out of options often. The
+        // a dietary flag plus a chosen main ingredient runs out of options often. The
         // client renders the §9 loosen actions off this reason.
         res.status(200).json({
           directions: [],
@@ -246,7 +246,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
       const views: GuidedDirectionView[] = directions.map((direction) => ({
         template: direction.template,
         substitutions: direction.substitutions,
-        ingredients: buildGuidedIngredients(engineData, direction, stored.household.members, portions),
+        ingredients: buildGuidedIngredients(engineData, direction, portions),
         summary: buildDirectionSummary(engineData, direction),
         score: direction.score,
       }));

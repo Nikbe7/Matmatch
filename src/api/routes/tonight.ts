@@ -107,7 +107,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       const { members: eating, constraints, portions } = mealDiners(stored.household.members, selectedDiners);
 
       // Labels for the diner picker, by member position — never the members
-      // themselves, so no allergy data crosses the wire and the client never holds a
+      // themselves, so no constraint data crosses the wire and the client never holds a
       // second copy of the household. The client resets its selection whenever this
       // array changes, which is what keeps a position from outliving its roster.
       const diners = memberLabels(stored.household.members).map((label) => ({ label }));
@@ -184,7 +184,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
             result: {
               template: kept.template,
               substitutions: kept.substitutions,
-              ingredients: buildTonightIngredients(engineData, kept, stored.household.members, portions),
+              ingredients: buildTonightIngredients(engineData, kept, portions),
               score: kept.score,
               reasonCodes,
               pantryMatch: reasonCodes.includes("pantry_match") ? pantryMatchNames(kept) : undefined,
@@ -275,7 +275,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         result: {
           template: picked.template,
           substitutions: picked.substitutions,
-          ingredients: buildTonightIngredients(engineData, picked, stored.household.members, portions),
+          ingredients: buildTonightIngredients(engineData, picked, portions),
           score: picked.score,
           reasonCodes,
           // Only ever present alongside the code that earns it — the client renders the

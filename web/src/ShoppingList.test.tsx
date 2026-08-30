@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OfflineShoppingList, ShoppingList } from "./ShoppingList";
 import { formatPortions } from "./display";
 import { loadShoppingList, SHOPPING_LIST_VERSION, type StoredShoppingList } from "./shoppingListStorage";
-import type { IngredientAllergenMarking, TonightResult } from "./api";
+import type { TonightResult } from "./api";
 
 // Component-level coverage for the shopping list, independent of the Tonight
 // gate/suggestion flow (that wiring is covered in App.test.tsx). Two kinds of I/O
@@ -16,8 +16,8 @@ function result(overrides: Partial<TonightResult> = {}): TonightResult {
   return {
     template: { id: "kycklinggryta", name: "Kycklinggryta", blurb: "Testblurb.", cost_tier: "mid", prep_time_band: "20-40min", effort_level: "moderate", cuisine: "swedish_nordic" },
     ingredients: [
-      { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
-      { role: "vegetable", name: "Morot", slotIndex: 1, ingredientId: "morot", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "vegetable", name: "Morot", slotIndex: 1, ingredientId: "morot", substituted: false, quantity: { kind: "amount", amount: 400, unit: "g" } },
     ],
     substitutions: [],
     score: 0.5,
@@ -172,7 +172,7 @@ describe("ShoppingList", () => {
       <ShoppingList
         result={result({
           template: { id: "fisksoppa", name: "Fisksoppa", blurb: "Testblurb.", cost_tier: "budget", prep_time_band: "<20min", effort_level: "moderate", cuisine: "swedish_nordic" },
-          ingredients: [{ role: "protein", name: "Torsk", slotIndex: 0, ingredientId: "torsk", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } }],
+          ingredients: [{ role: "protein", name: "Torsk", slotIndex: 0, ingredientId: "torsk", substituted: false, quantity: { kind: "amount", amount: 400, unit: "g" } }],
         })}
         portions={2}
         accessToken="tok"
@@ -196,151 +196,6 @@ describe("ShoppingList", () => {
 
     expect(onNewSuggestion).toHaveBeenCalledTimes(1);
     expect(loadShoppingList("kycklinggryta")).toBeNull();
-  });
-
-  describe("allergen marking (#116)", () => {
-    const mjolkAllergen: IngredientAllergenMarking = { allergy: "dairy_lactose", members: ["Elsa"] };
-
-    it("marks an ingredient carrying a declared allergen, naming the allergen and the member", () => {
-      mockFetch();
-      render(
-        <ShoppingList
-          result={result({
-            ingredients: [
-              { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
-              { role: "vegetable", name: "Morot", slotIndex: 1, ingredientId: "morot", substituted: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" } },
-            ],
-          })}
-          portions={2}
-          accessToken="tok"
-          onNewSuggestion={vi.fn()}
-        />,
-      );
-
-      expect(screen.getByText("innehåller mjölk — Elsa")).toBeTruthy();
-      // Not just colour: the row also carries the glyph as visible text content.
-      const row = screen.getByText("Morot").closest("li")!;
-      expect(row.textContent).toContain("⚠");
-    });
-
-    it("does not mark an ingredient with no allergens", () => {
-      mockFetch();
-      render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
-
-      expect(screen.queryByText(/innehåller/)).toBeNull();
-    });
-
-    it("renders the marking after moving an item to Har hemma — display only, never a filter", async () => {
-      mockFetch();
-      const user = userEvent.setup();
-      render(
-        <ShoppingList
-          result={result({
-            ingredients: [{ role: "vegetable", name: "Morot", slotIndex: 0, ingredientId: "morot", substituted: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" } }],
-          })}
-          portions={2}
-          accessToken="tok"
-          onNewSuggestion={vi.fn()}
-        />,
-      );
-
-      await user.click(within(screen.getByText("Morot").closest("li")!).getByRole("button", { name: "Har hemma" }));
-
-      expect(screen.getByText("innehåller mjölk — Elsa")).toBeTruthy();
-    });
-
-    it("survives a reload with the network offline, reading only from localStorage (UX_FLOW §7)", () => {
-      const stored: StoredShoppingList = {
-        version: SHOPPING_LIST_VERSION,
-        templateId: "kycklinggryta",
-        items: [
-          { name: "Morot", section: "to_buy", bought: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "morot" },
-        ],
-      };
-
-      render(<OfflineShoppingList list={stored} />);
-
-      expect(screen.getByText("innehåller mjölk — Elsa")).toBeTruthy();
-    });
-
-    // Exhaustive, not a sample: every ingredient carrying a declared allergen must
-    // show its own marking, and every ingredient that doesn't must show none — for
-    // every ingredient in the list, in both sections, checked one by one rather than
-    // spot-checked (#139 requirement).
-    it("marks every allergen-carrying ingredient and none of the rest, across both sections", () => {
-      mockFetch();
-      const glutenAllergen: IngredientAllergenMarking = { allergy: "gluten", members: ["Sam"] };
-      const nutAllergen: IngredientAllergenMarking = { allergy: "tree_nuts", members: ["Elsa", "Sam"] };
-
-      render(
-        <ShoppingList
-          result={result({
-            ingredients: [
-              { role: "protein", name: "Kyckling", slotIndex: 0, ingredientId: "kyckling", substituted: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
-              { role: "vegetable", name: "Morot", slotIndex: 1, ingredientId: "morot", substituted: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" } },
-              { role: "starch", name: "Pasta", slotIndex: 2, ingredientId: "pasta", substituted: false, allergens: [glutenAllergen], quantity: { kind: "amount", amount: 300, unit: "g" } },
-              { role: "dairy", name: "Mandlar", slotIndex: 3, ingredientId: "mandlar", substituted: false, allergens: [nutAllergen], quantity: { kind: "amount", amount: 50, unit: "g" } },
-              { role: "aromatic", name: "Salt", slotIndex: 4, ingredientId: "salt", substituted: false, allergens: [], quantity: { kind: "to_taste" } },
-            ],
-          })}
-          portions={2}
-          accessToken="tok"
-          onNewSuggestion={vi.fn()}
-        />,
-      );
-
-      const expectations: Array<{ name: string; text: string | null }> = [
-        { name: "Kyckling", text: null },
-        { name: "Morot", text: "innehåller mjölk — Elsa" },
-        { name: "Pasta", text: "innehåller gluten — Sam" },
-        { name: "Mandlar", text: "innehåller trädnötter — Elsa och Sam" },
-        { name: "Salt", text: null },
-      ];
-
-      for (const { name, text } of expectations) {
-        const row = screen.getByText(name).closest("li")!;
-        if (text === null) {
-          expect(within(row).queryByText(/innehåller/)).toBeNull();
-          expect(row.textContent).not.toContain("⚠");
-        } else {
-          expect(within(row).getByText(text)).toBeTruthy();
-          expect(row.textContent).toContain("⚠");
-        }
-      }
-    });
-
-    it("marks every allergen-carrying ingredient and none of the rest in the offline variant", () => {
-      const glutenAllergen: IngredientAllergenMarking = { allergy: "gluten", members: ["Sam"] };
-
-      const stored: StoredShoppingList = {
-        version: SHOPPING_LIST_VERSION,
-        templateId: "kycklinggryta",
-        items: [
-          { name: "Kyckling", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kyckling" },
-          { name: "Morot", section: "to_buy", bought: false, allergens: [mjolkAllergen], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 1, ingredientId: "morot" },
-          { name: "Pasta", section: "have_at_home", bought: false, allergens: [glutenAllergen], quantity: { kind: "amount", amount: 300, unit: "g" }, slotIndex: 2, ingredientId: "pasta" },
-        ],
-      };
-
-      render(<OfflineShoppingList list={stored} />);
-
-      const expectations: Array<{ name: string; text: string | null }> = [
-        { name: "Kyckling", text: null },
-        { name: "Morot", text: "innehåller mjölk — Elsa" },
-        { name: "Pasta", text: "innehåller gluten — Sam" },
-      ];
-
-      for (const { name, text } of expectations) {
-        const row = screen.getByText(name).closest("li")!;
-        if (text === null) {
-          expect(within(row).queryByText(/innehåller/)).toBeNull();
-          expect(row.textContent).not.toContain("⚠");
-        } else {
-          expect(within(row).getByText(text)).toBeTruthy();
-          expect(row.textContent).toContain("⚠");
-        }
-      }
-    });
   });
 
   // Amounts arrived with #123, so a row now legitimately contains digits. What the
@@ -372,7 +227,6 @@ describe("ShoppingList", () => {
                 slotIndex: 0,
                 ingredientId: "kyckling",
                 substituted: false,
-                allergens: [],
                 quantity: { kind: "amount", amount: 450, unit: "g" },
               },
               {
@@ -381,7 +235,6 @@ describe("ShoppingList", () => {
                 slotIndex: 1,
                 ingredientId: "matlagningsgradde",
                 substituted: false,
-                allergens: [],
                 quantity: { kind: "amount", amount: 1.5, unit: "dl" },
               },
             ],
@@ -414,7 +267,6 @@ describe("ShoppingList", () => {
                 slotIndex: 0,
                 ingredientId: "svartpeppar",
                 substituted: false,
-                allergens: [],
                 quantity: { kind: "to_taste" },
               },
             ],
@@ -446,7 +298,6 @@ describe("ShoppingList", () => {
                 slotIndex: 0,
                 ingredientId: "havregradde",
                 substituted: true,
-                allergens: [],
                 quantity: { kind: "amount", amount: 2, unit: "dl" },
               },
             ],
@@ -472,7 +323,6 @@ describe("ShoppingList", () => {
                 slotIndex: 0,
                 ingredientId: "havregradde",
                 substituted: true,
-                allergens: [],
                 quantity: { kind: "amount", amount: 2, unit: "dl" },
               },
             ],
@@ -495,7 +345,6 @@ describe("ShoppingList", () => {
             name: "Morot",
             section: "to_buy",
             bought: false,
-            allergens: [],
             quantity: { kind: "amount", amount: 300, unit: "g" },
             slotIndex: 0,
             ingredientId: "morot",
@@ -567,7 +416,6 @@ describe("ShoppingList", () => {
 
   // #124: tapping an ingredient opens the swap popover.
   describe("ingredient swap popover", () => {
-    const rodlok: IngredientAllergenMarking[] = [];
 
     function alternativesBody(overrides: Record<string, unknown> = {}) {
       return {
@@ -578,7 +426,6 @@ describe("ShoppingList", () => {
             name: "Rödlök",
             costTier: "budget",
             quantity: { kind: "amount", amount: 400, unit: "g" },
-            allergens: rodlok,
           },
         ],
         searchPool: [
@@ -587,14 +434,12 @@ describe("ShoppingList", () => {
             name: "Rödlök",
             costTier: "budget",
             quantity: { kind: "amount", amount: 400, unit: "g" },
-            allergens: rodlok,
           },
           {
             ingredientId: "purjolok",
             name: "Purjolök",
             costTier: "budget",
             quantity: { kind: "amount", amount: 400, unit: "g" },
-            allergens: rodlok,
           },
         ],
         ...overrides,

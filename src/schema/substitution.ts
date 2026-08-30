@@ -5,9 +5,10 @@ import { IngredientSlotRoleSchema } from "./recipeTemplate.js";
 // ARCHITECTURE.md §5.5 — Substitution groups
 
 // A group is an unordered set of ingredients that are interchangeable in a slot
-// of the group's role. Deliberately carries no allergen or dietary field: which
-// members are safe for a household is Meal Engine logic driven by the verified
-// ingredient-allergen mapping (§5.4), never a property of this data.
+// of the group's role. Deliberately carries no dietary field: whether a member fits
+// a household is Meal Engine logic, never a property of this data. The only thing
+// checked about a member at swap time is that the catalog knows it — a group may
+// legitimately name an id the catalog lacks (§5.5, `isIngredientUnknown`).
 export const SubstitutionGroupSchema = z.object({
   id: SlugIdSchema,
   // Swedish display text — surfaces in the UI as a swap label ("Lök"), so it is

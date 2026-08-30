@@ -23,10 +23,6 @@ const options = {
     { id: "ris", name: "ris" },
     { id: "gul-lok", name: "gul lök" },
   ],
-  // A household with a fish allergy: "lax" resolves in the catalog but never in
-  // `mainIngredients` — the filter's explanation path (requirement 4), not the
-  // selectable grid.
-  excludedMainIngredients: [{ id: "lax", name: "Lax", allergies: ["fish"] }],
 };
 
 function direction(id: string, name: string, costTier = "mid") {
@@ -39,8 +35,8 @@ function direction(id: string, name: string, costTier = "mid") {
       cuisine: "swedish_nordic",
     },
     ingredients: [
-      { role: "protein", name: "Kycklingfilé", slotIndex: 0, ingredientId: "kycklingfile", substituted: false, inPantry: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
-      { role: "starch", name: "Ris", slotIndex: 1, ingredientId: "ris", substituted: false, inPantry: true, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "protein", name: "Kycklingfilé", slotIndex: 0, ingredientId: "kycklingfile", substituted: false, inPantry: false, quantity: { kind: "amount", amount: 400, unit: "g" } },
+      { role: "starch", name: "Ris", slotIndex: 1, ingredientId: "ris", substituted: false, inPantry: true, quantity: { kind: "amount", amount: 400, unit: "g" } },
     ],
     substitutions: [],
     summary: "Kycklingfilé, ris och paprika",
@@ -304,21 +300,10 @@ describe("GuidedFlow — step 2's type-to-filter (#110)", () => {
     expect(screen.getByRole("button", { name: "svarta bönor" })).toBeTruthy();
   });
 
-  it("explains an allergy-excluded match instead of returning nothing", async () => {
-    const user = userEvent.setup();
-    stubApi();
-    renderFlow();
-
-    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
-    await screen.findByRole("button", { name: "kycklingfilé" });
-
-    await user.type(screen.getByRole("textbox"), "lax");
-
-    expect(screen.getByText("Lax är utesluten på grund av fiskallergi.")).toBeTruthy();
-    // Display only — never a tap target, and it never widens the selectable set.
-    expect(screen.queryByRole("button", { name: "Lax" })).toBeNull();
-    expect(screen.queryByText("Ingen träff.")).toBeNull();
-  });
+  // The "explains an allergy-excluded match" test that stood here is gone with
+  // `excludedMainIngredients` (#224). A dietary flag excludes a whole dish rather than
+  // one ingredient, so there is no per-ingredient exclusion left for the search box to
+  // explain — an unmatched query is simply "Ingen träff.", asserted above.
 });
 
 describe("GuidedFlow — 'Föreslå åt mig' and 'Överraska mig'", () => {
@@ -773,8 +758,8 @@ describe("GuidedFlow — a shopping list survives a reload (UX_FLOW §7)", () =>
     templateName: "Kycklinggryta",
     substitutions: [],
     items: [
-      { name: "Kycklingfilé", section: "to_buy", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kycklingfile" },
-      { name: "Ris", section: "have_at_home", bought: false, allergens: [], quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 1, ingredientId: "ris" },
+      { name: "Kycklingfilé", section: "to_buy", bought: false, quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 0, ingredientId: "kycklingfile" },
+      { name: "Ris", section: "have_at_home", bought: false, quantity: { kind: "amount", amount: 400, unit: "g" }, slotIndex: 1, ingredientId: "ris" },
     ],
   };
 
@@ -925,16 +910,17 @@ describe("GuidedFlow — the diner picker (#112)", () => {
     expect(screen.queryByRole("group", { name: "Vilka äter?" })).toBeNull();
   });
 
-  it("names the cross-contamination limit rather than implying it is handled", async () => {
+  it("says nothing about allergens — the picker scopes dietary flags and portions only", async () => {
+    // Inverts the pre-#224 assertion; see the twin in App.test.tsx.
     const user = userEvent.setup();
     stubApiWithDiners();
     renderFlow();
 
     await reachDirections(user);
 
-    expect(
-      screen.getByText(/Rester och gemensamma kastruller kan ändå innehålla allergener/),
-    ).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Vilka äter?" }).textContent).not.toMatch(
+      /allergen/i,
+    );
   });
 
   it("writes nothing to localStorage when diners are selected", async () => {

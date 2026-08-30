@@ -15,10 +15,7 @@ import {
 // about whether "stek på hög värme" survives contact with `högrev`.
 
 const engineData = await loadEngineData();
-const lexicon = buildIngredientLexicon(
-  engineData.ingredientsById.values(),
-  engineData.allergenMappingByIngredientId,
-);
+const lexicon = buildIngredientLexicon(engineData.ingredientsById.values());
 
 /** One slot per `IngredientSlotRole`, so "outside the template" can be asserted
  *  role by role rather than sampled. */
@@ -42,31 +39,19 @@ const FOREIGN_BY_ROLE: Record<IngredientSlotRole, string> = {
   dairy: "parmesan",
 };
 
-function allergenKey(ingredientId: string): string {
-  return [...(engineData.allergenMappingByIngredientId.get(ingredientId)?.allergens ?? [])]
-    .sort()
-    .join("|");
-}
-
 describe("the exception list", () => {
   // Guarding the constant itself, not just its behaviour: the comment on it says it
   // must never grow, and a test is the only thing that makes that more than a wish.
-  // Anything added here maps to an allergen sooner or later — that is precisely the
-  // failure this locks out (#154).
   it("is exactly salt, peppar and vatten", () => {
     expect([...INGREDIENT_SCAN_EXCEPTIONS].sort()).toEqual(["peppar", "salt", "vatten"]);
   });
 
-  it("contains nothing that maps to an allergen", () => {
-    for (const exception of INGREDIENT_SCAN_EXCEPTIONS) {
-      const matching = [...engineData.ingredientsById.values()].filter(
-        (ingredient) => ingredient.name.toLowerCase() === exception,
-      );
-      for (const ingredient of matching) {
-        expect(allergenKey(ingredient.id)).toBe("");
-      }
-    }
-  });
+  // There is deliberately no test here computing the *criterion* for membership.
+  // "Maps to no allergen" was computable and is gone with the allergen data (#224);
+  // what replaced it — "every kitchen has it and no shopping list has to carry it" —
+  // is a judgement about three specific words, not a property of a row (salt is
+  // itself a catalog ingredient). Asserting the list's exact contents above is the
+  // honest guard; inventing a computable stand-in would only look like one.
 
   it("lets a step season freely", () => {
     const steps = ["Smaka av med salt och peppar.", "Koka upp vatten i en stor kastrull."];
@@ -106,13 +91,19 @@ describe("findForeignIngredients", () => {
     ["soja", new Set(["sojagroddar"])],
     ["ägg", new Set(["aggnudlar"])],
   ])(
-    "rejects '%s' on a template holding only the compound that differs in allergens",
+    "now accepts '%s' on a template holding only the compound built around it",
     (shortName, templateIngredients) => {
-      // Sharing a word stem is not being the same food: soja carries gluten that
-      // sojagroddar does not, and äggnudlar carries gluten that ägg does not. This
-      // is the case the allergen gate in resolveToken() exists for.
+      // Deliberately the inverse of the pre-#224 assertion, kept rather than deleted
+      // because it is the one behaviour change in this module a reader needs pointed
+      // at. These two pairs are exactly what the allergen-identity gate in
+      // `resolveToken` bought — soja (soy sauce) carried gluten that sojagroddar did
+      // not — and with allergens gone there is no data left that can tell a stem-
+      // sharing compound apart from a genuine shortening. Measured over the full
+      // library the gate was worth 3 catches in 33 931 foreign mentions; ingredient
+      // `category` was measured as a replacement and rejected for costing 60
+      // rejections of legitimate prose. See resolveToken's comment for the numbers.
       const steps = [`Tillsätt ${shortName} och rör om.`];
-      expect(findForeignIngredients(lexicon, steps, templateIngredients)).not.toEqual([]);
+      expect(findForeignIngredients(lexicon, steps, templateIngredients)).toEqual([]);
     },
   );
 
@@ -135,42 +126,15 @@ describe("findForeignIngredients", () => {
   });
 });
 
-describe("generic allergen words the catalog never names outright", () => {
-  // The catalog names products (vispgrädde, fetaost, cashewnötter, vetemjöl); a step
-  // says "grädden", "osten", "nötter", "mjölet". Those words resolve to no catalog
-  // entry at all, so before ALLERGEN_HEAD_NOUNS existed they passed unchallenged —
-  // the fail-open direction on the allergy path, for exactly the four allergens that
-  // matter most.
-  // Chicken, rice, broccoli, garlic — no dairy, no gluten, no nuts, no shellfish.
-  const PLAIN_TEMPLATE = new Set(["kycklingfile", "basmatiris", "broccoli", "vitlok"]);
-
-  it.each([
-    ["Rör ner grädden och låt sjuda.", "dairy"],
-    ["Strö över riven ost.", "dairy"],
-    ["Vispa ihop med mjölken.", "dairy"],
-    ["Toppa med hackade nötter.", "nuts"],
-    ["Pudra över mjölet.", "gluten"],
-    ["Bryn brödet i panna.", "gluten"],
-    ["Koka pastan al dente.", "gluten"],
-    ["Lägg i skaldjuren sist.", "shellfish"],
-  ])("rejects %s — introduces %s the template does not have", (step) => {
-    expect(findForeignIngredients(lexicon, [step], PLAIN_TEMPLATE)).not.toEqual([]);
-  });
-
-  it("allows the word when the template carries that allergen already", () => {
-    // matlagningsgrädde is in TEMPLATE_BY_ROLE, so "grädden" is a reference back to
-    // it, not an introduction.
-    expect(findForeignIngredients(lexicon, ["Rör ner grädden."], TEMPLATE_INGREDIENTS)).toEqual([]);
-  });
-
-  it("allows the word when the template names a compound ending in it", () => {
-    // potatismjöl carries no gluten, but "mjölet" on a dish containing it is
-    // unmistakably that ingredient — the escape hatch this needs.
-    expect(
-      findForeignIngredients(lexicon, ["Red såsen med mjölet."], new Set(["potatismjol"])),
-    ).toEqual([]);
-  });
-});
+// The `ALLERGEN_HEAD_NOUNS` describe that stood here is gone with the mechanism
+// (#224). It asserted that "grädden", "osten", "nötter", "mjölet" and the rest were
+// rejected on a template not already carrying that allergen — a question about
+// allergens end to end, and one measurement made that plain: the rule treated
+// "pastan" as covered on 94 templates holding vetemjöl, couscous or havregryn and no
+// pasta at all, purely because they shared gluten. It never answered "does this
+// template contain this food", so there was nothing to re-point at a surviving
+// subject. Those words are now free prose, like "buljongen" and "såsen" always were —
+// see the module comment on the scan's uniform fail-open limit.
 
 describe("findModelQuantities", () => {
   it.each([
@@ -255,10 +219,10 @@ describe("validateGeneratedInstructions", () => {
   });
 });
 
-// The two properties that decide whether this scanner is deployable, measured across
-// all 170 curated templates rather than argued from examples. The numbers these
-// produce are reported in the PR (#154); if either regresses, the scanner is wrong,
-// not the test.
+// The properties that decide whether this scanner is deployable, measured across all
+// 170 curated templates rather than argued from examples. The numbers these produce
+// are reported in the PR (#154, remeasured for #224); if either regresses, the scanner
+// is wrong, not the test.
 describe("across the whole curated template library", () => {
   const DEFINITE_SUFFIXES = ["", "en", "n", "et", "t", "arna", "orna", "erna", "ar", "or"];
 
@@ -280,12 +244,12 @@ describe("across the whole curated template library", () => {
         for (const suffix of DEFINITE_SUFFIXES) forms.add(head + suffix);
 
         // Legitimate shortenings too: any catalog name this ingredient's name is a
-        // compound of, provided it carries the same allergens (a shortening that
-        // changes the allergen set is not a shortening — see the soja/ägg cases).
+        // compound of. #224 dropped the allergen-identity condition that used to
+        // qualify this set — so `soja` on a sojagroddar dish and `ägg` on an
+        // äggnudlar dish are now among the forms asserted to pass, and they do.
         for (const other of engineData.ingredientsById.values()) {
           const otherHead = headOf(other.name);
           if (otherHead === head) continue;
-          if (allergenKey(other.id) !== allergenKey(ingredient.id)) continue;
           if (!head.startsWith(otherHead) && !head.endsWith(otherHead)) continue;
           for (const suffix of DEFINITE_SUFFIXES) forms.add(otherHead + suffix);
         }
@@ -304,39 +268,36 @@ describe("across the whole curated template library", () => {
     expect(rejected).toEqual([]);
   });
 
-  it("never lets a foreign mention through that would introduce a new allergen", () => {
-    // Some foreign mentions do slip past — an ambiguous Swedish shortening resolves
-    // toward the template by design (see findForeignIngredients). This asserts the
-    // property that makes that acceptable: every escape shares the allergen profile
-    // the template already has, so no miss can put an allergen on a household's
-    // screen that the deterministic filter did not already clear.
-    const unsafe: string[] = [];
+  it("catches all but a pinned handful of foreign catalog mentions", () => {
+    // What replaced the old "no escape introduces a new allergen" assertion, which had
+    // no subject left after #224. Some foreign mentions do slip past — an ambiguous
+    // Swedish shortening resolves toward the template by design (see
+    // findForeignIngredients) — and the honest thing to assert is now the *rate*,
+    // pinned, so a change that made resolution sloppier shows up here.
+    //
+    // Measured, not guessed: dropping the allergen gate on compound expansion moved
+    // this from 203 to 206 out of 33 931. Investigate a disagreement, do not adjust
+    // the expected value.
+    let mentions = 0;
+    const escaped: string[] = [];
     const catalog = [...engineData.ingredientsById.values()];
 
     for (const template of engineData.templates) {
       const allowed = new Set(template.ingredient_slots.map((slot) => slot.ingredient_id));
-      const templateAllergens = new Set(
-        template.ingredient_slots.flatMap(
-          (slot) => engineData.allergenMappingByIngredientId.get(slot.ingredient_id)?.allergens ?? [],
-        ),
-      );
 
       for (const ingredient of catalog) {
         if (allowed.has(ingredient.id)) continue;
         if (INGREDIENT_SCAN_EXCEPTIONS.has(headOf(ingredient.name))) continue;
+        mentions++;
 
         const step = `Tillsätt ${ingredient.name.toLowerCase()} och rör om.`;
-        if (findForeignIngredients(lexicon, [step], allowed).length > 0) continue;
-
-        const introduced = (
-          engineData.allergenMappingByIngredientId.get(ingredient.id)?.allergens ?? []
-        ).filter((allergen) => !templateAllergens.has(allergen));
-        if (introduced.length > 0) {
-          unsafe.push(`${template.id} <- ${ingredient.id}: ${introduced.join(",")}`);
+        if (findForeignIngredients(lexicon, [step], allowed).length === 0) {
+          escaped.push(`${template.id} <- ${ingredient.id}`);
         }
       }
     }
 
-    expect(unsafe).toEqual([]);
+    expect(mentions).toBe(33_931);
+    expect(escaped.length).toBe(206);
   });
 });

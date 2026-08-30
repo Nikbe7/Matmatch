@@ -10,7 +10,6 @@ import {
   type ShoppingListSection,
   type StoredShoppingList,
 } from "./shoppingListStorage";
-import { allergenMarkingText } from "./allergyLabels";
 import { formatQuantity, formatPortions } from "./display";
 import { Button } from "./components/Button";
 import { IngredientPopover } from "./components/IngredientPopover";
@@ -67,28 +66,6 @@ function IngredientTapButton({ item, onTap }: { item: ShoppingListItem; onTap: (
 }
 
 /**
- * The household-union allergen marking for one item (#116). Same visual register as
- * the allergy chips (#101, UX_FLOW §6, `.allergy-group` in app.css): a warning glyph
- * plus text, so the distinction is never colour alone, and rendered as plain text
- * rather than a `Chip` — nothing about it reads as tappable, matching the existing
- * `.excluded-ingredient-notice` precedent for the same reason.
- */
-function AllergenMarks({ allergens }: { allergens: ShoppingListItem["allergens"] }) {
-  if (allergens.length === 0) return null;
-
-  return (
-    <ul className="ingredient-allergen-list">
-      {allergens.map((marking) => (
-        <li key={marking.allergy} className="ingredient-allergen-notice">
-          <span aria-hidden="true">⚠ </span>
-          {allergenMarkingText(marking.allergy, marking.members)}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/**
  * What the shopping list needs from a chosen meal, which is less than a full
  * `TonightResult`: a name to head the list, ingredients to check off, and the
  * substitutions the instructions call needs. Declared structurally so both callers
@@ -140,8 +117,8 @@ export function ShoppingList({
   /**
    * The diner subset this list was built for, in the same spelling `fetchTonight`
    * takes (`FetchTonightOptions.diners`) — forwarded to #124's ingredient-swap
-   * popover so its allergy gate and quantities agree with the list rather than
-   * silently widening to the whole household. Omitted for the same reason
+   * popover so its quantities agree with the list rather than silently widening to
+   * the whole household. Omitted for the same reason
    * `portions` is: a list reopened from storage has no diner selection in hand
    * either, and the popover falls back to the whole household exactly as the
    * accepted list's own quantities would have.
@@ -208,7 +185,7 @@ export function ShoppingList({
 
   /**
    * Replaces the item at `index` with `alternative`, wholesale — name, ingredient
-   * id, allergens and the (unchanged, but server-carried anyway) scaled quantity all
+   * id and the (unchanged, but server-carried anyway) scaled quantity all
    * come from the response, so this never re-derives anything the popover's fetch
    * already resolved. `section` is left untouched (#124 requirement 6: a swap
    * updates the have/buy split in place, it does not move the item between
@@ -225,14 +202,12 @@ export function ShoppingList({
           name: alternative.name,
           ingredientId: alternative.ingredientId,
           quantity: alternative.quantity,
-          allergens: alternative.allergens,
           bought: false,
           swappedFrom: {
             name: item.name,
             ingredientId: item.ingredientId,
             bought: item.bought,
             quantity: item.quantity,
-            allergens: item.allergens,
           },
         };
       }),
@@ -300,7 +275,6 @@ export function ShoppingList({
                   </Button>
                 )}
               </div>
-              <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>
@@ -325,7 +299,6 @@ export function ShoppingList({
                   </Button>
                 )}
               </div>
-              <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>
@@ -425,7 +398,6 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
                   Har hemma
                 </Button>
               </div>
-              <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>
@@ -445,7 +417,6 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
                   Behöver handlas
                 </Button>
               </div>
-              <AllergenMarks allergens={item.allergens} />
             </li>
           ))}
         </ul>

@@ -56,10 +56,7 @@ export function instructionsRouter(
   // make /health depend on it.
   let lexicon: IngredientLexicon | undefined;
   function ingredientLexicon(): IngredientLexicon {
-    lexicon ??= buildIngredientLexicon(
-      engineData.ingredientsById.values(),
-      engineData.allergenMappingByIngredientId,
-    );
+    lexicon ??= buildIngredientLexicon(engineData.ingredientsById.values());
     return lexicon;
   }
 

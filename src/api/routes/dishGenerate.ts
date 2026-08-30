@@ -45,10 +45,10 @@ export interface DishGenerateResponseDish {
   familiarity: string;
   cost_tier: string | null;
   ingredients: { role: string; name: string }[];
-  // The requirement 3 contract, made explicit rather than implied: a household with
-  // no declared allergies may see a dish with an unresolved ingredient, and this is
-  // how the caller is told that happened — nothing else in the response implies a
-  // dish "has been checked" when it hasn't been, fully.
+  // The requirement 3 contract, made explicit rather than implied: every household
+  // may see a dish with an unresolved ingredient (#224 — the allergy gate that used
+  // to withhold it is gone), and this is how the caller is told that happened.
+  // Nothing else in the response implies a dish "has been checked" when it hasn't.
   unverified: boolean;
 }
 
@@ -141,7 +141,7 @@ export function dishGenerateRouter(
       }
 
       const visible =
-        isGeneratedDishVisibleToHousehold(engineData, resolved, constraints.allergies) &&
+        isGeneratedDishVisibleToHousehold(engineData, resolved) &&
         passesHardDietaryFilter(resolved.dietaryTags, constraints.dietary_flags);
 
       if (!visible) {

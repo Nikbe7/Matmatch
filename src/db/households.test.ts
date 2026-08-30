@@ -44,9 +44,9 @@ afterAll(async () => {
 // engine-facing expectation in the suite unchanged.
 const profile: Household = HouseholdSchema.parse({
   members: [
-    { type: "adult", name: "Ella", portion_factor: 1, allergies: ["gluten"], dietary_flags: ["vegetarian"] },
-    { type: "adult", portion_factor: 0.9, allergies: [], dietary_flags: [] },
-    { type: "child", portion_factor: 0.6, allergies: ["fish"], dietary_flags: [] },
+    { type: "adult", name: "Ella", portion_factor: 1, dietary_flags: ["vegetarian"] },
+    { type: "adult", portion_factor: 0.9, dietary_flags: [] },
+    { type: "child", portion_factor: 0.6, dietary_flags: [] },
   ],
 });
 
@@ -84,13 +84,13 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
   it("stores an empty allergy and dietary list without turning it into null", async () => {
     const owner = await createTestUser();
     const plain = HouseholdSchema.parse({
-      members: [{ type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] }],
+      members: [{ type: "adult", portion_factor: 1, dietary_flags: [] }],
     });
 
     const created = await createHousehold(sql!, owner.userId, plain);
     const read = await getHousehold(sql!, owner.userId, created.id);
 
-    expect(created.household.members[0]!.allergies).toEqual([]);
+    expect(created.household.members[0]!.dietary_flags).toEqual([]);
     expect(read!.household.members[0]!.dietary_flags).toEqual([]);
   });
 
@@ -101,12 +101,8 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
     const read = await getHousehold(sql!, owner.userId, created.id);
 
     // The whole point of #115: after the round trip it is still recoverable *whose*
-    // allergy each one is. A union-shaped store cannot answer this.
-    expect(read!.household.members.map((member) => member.allergies)).toEqual([
-      ["gluten"],
-      [],
-      ["fish"],
-    ]);
+    // constraint each one is. A union-shaped store cannot answer this. #224 removed
+    // the allergy half of this assertion; the dietary half is what it was.
     expect(read!.household.members.map((member) => member.dietary_flags)).toEqual([
       ["vegetarian"],
       [],
@@ -149,7 +145,7 @@ describe.skipIf(!stackAvailable)("households repository (local Supabase)", () =>
     // The trigger must still fire even though the UPDATE against `households` sets
     // nothing since #115 — the profile change lands entirely on the member rows.
     const updated = await updateHousehold(sql!, owner.userId, created.id, {
-      members: [{ ...profile.members[0]!, allergies: ["egg"] }],
+      members: [{ ...profile.members[0]!, dietary_flags: ["vegan"] }],
     });
 
     expect(updated!.created_at.getTime()).toBe(created.created_at.getTime());

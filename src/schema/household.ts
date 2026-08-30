@@ -1,15 +1,13 @@
 import { z } from "zod";
-import { AllergySchema, DietaryFlagSchema } from "./allergyDietary.js";
+import { DietaryFlagSchema } from "./allergyDietary.js";
 
 // ARCHITECTURE.md §5 — Household / HouseholdMember
 //
-// Allergies and dietary flags belong to the *member*, not to the household. This
-// reverses the original §5 line ("shared across the household, not per-member") —
-// see DECISION_LOG 2026-08-09. A household does not have allergies; people do, and
-// storing only the union throws away the one fact every downstream question needs:
-// whose allergy it is. The household's effective constraint set is derived on demand
-// (src/engine/constraints.ts's mealConstraints), never stored, so there is exactly
-// one source of truth for safety-critical data.
+// Dietary flags belong to the *member*, not to the household — the household's
+// effective set is derived on demand (src/engine/constraints.ts's mealConstraints),
+// never stored. Allergies used to live here on the same footing and are gone with the
+// rest of allergy filtering (#224); the per-member shape survives them because a
+// vegan and an omnivore in one home is still two different answers.
 //
 // Still in-memory only: this type deliberately carries no id, owner or household_id
 // field — those belong to src/db/households.ts, so the Meal Engine keeps taking a
@@ -42,16 +40,6 @@ export const HouseholdMemberSchema = z.object({
     .optional(),
   // Multiplier against one adult portion — a child is typically < 1.
   portion_factor: z.number().positive(),
-  // Hard filter, safety-critical (§4.3). Reuses the locked §5.2 vocabulary — never a
-  // parallel list.
-  //
-  // Required with no default, deliberately: the same reasoning §5.4 applies to
-  // `verification_status`, one level down. An unset safety value must be structurally
-  // impossible to mistake for a positively-declared empty one, so a caller that omits
-  // this fails loudly rather than being handed a permissive `[]`.
-  allergies: z.array(AllergySchema).refine(noDuplicates, {
-    message: "allergies must not contain duplicate values",
-  }),
   dietary_flags: z.array(DietaryFlagSchema).refine(noDuplicates, {
     message: "dietary_flags must not contain duplicate values",
   }),
@@ -83,10 +71,7 @@ export function memberLabels(members: readonly HouseholdMember[]): string[] {
     const ordinal = (seenByType.get(member.type) ?? 0) + 1;
     seenByType.set(member.type, ordinal);
     // A blank name falls back exactly like a missing one. A stored household never
-    // holds `""` (the client strips it before sending), but a form being edited does
-    // — and an empty label is worst where several members are stacked with an
-    // allergy block each (#168): the block whose owner has no visible name is
-    // exactly where an allergy gets attached to the wrong person.
+    // holds `""` (the client strips it before sending), but a form being edited does.
     const name = member.name?.trim();
     return name ? name : `${TYPE_LABELS[member.type]} ${ordinal}`;
   });

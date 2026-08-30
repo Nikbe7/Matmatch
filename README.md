@@ -185,11 +185,11 @@ The hosted project is already provisioned and idle, so **expect it to be paused 
 
 ## The Supabase project
 
-One project, **`eu-north-1` (Stockholm)** — fixed at provisioning. Allergy data is sensitive personal data under GDPR ([ARCHITECTURE.md §7](docs/ARCHITECTURE.md)), and a Supabase project's region cannot be changed afterwards; moving it means creating a new project and migrating.
+One project, **`eu-north-1` (Stockholm)** — fixed at provisioning. Household member data is personal data under GDPR ([ARCHITECTURE.md §7](docs/ARCHITECTURE.md)), and a Supabase project's region cannot be changed afterwards; moving it means creating a new project and migrating.
 
 Two settings on it are load-bearing, not defaults:
 
-- **Data API (PostgREST) is disabled**, and "automatically expose new tables" is off. There is no client-facing REST surface — the Node backend is the only path to household and meal data. This is what makes allergy filtering unskippable (see [ARCHITECTURE.md §4.3](docs/ARCHITECTURE.md)); do not re-enable it to "just query from the frontend."
+- **Data API (PostgREST) is disabled**, and "automatically expose new tables" is off. There is no client-facing REST surface — the Node backend is the only path to household and meal data. This is what keeps the deterministic dietary filter unskippable (see [ARCHITECTURE.md §4.3](docs/ARCHITECTURE.md)); do not re-enable it to "just query from the frontend."
 - **JWT signing is asymmetric (ES256)**, so the backend verifies tokens against the JWKS endpoint and never holds a signing secret.
 
 Where the values in `.env` come from: **Project Settings → Database** for the connection string, and **Project Settings → API** for the project URL (`https://<project-ref>.supabase.co`) that `SUPABASE_URL` is set to. The backend needs neither the service-role key nor the JWT secret — it only ever verifies tokens.

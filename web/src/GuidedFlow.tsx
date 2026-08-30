@@ -1,12 +1,10 @@
 import { useEffect, useId, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import {
-  type ExcludedIngredientOption,
   type GuidedDirection,
   type GuidedDirectionsResponse,
   type GuidedOptions,
   type IngredientOption,
 } from "./api";
-import { allergyExclusionReason, capitalizeForSentence } from "./allergyLabels";
 import { DinerPicker, useDinerSelection } from "./DinerPicker";
 import { createGuidedClient } from "./guidedClient";
 import { costTierLabel, dinerChangeReasonLine, PREP_TIME_LABELS } from "./display";
@@ -130,21 +128,6 @@ function IngredientGrid({
 }
 
 /**
- * Step 2's filter-miss explanation (requirement 4): a catalog ingredient the query
- * matched, but that the household cannot select because it excludes one of its own
- * declared allergies. Rendered as text, not a `Chip`, so nothing about it reads as
- * tappable — this is display only and must never widen the selectable set.
- */
-function ExcludedIngredientNotice({ excluded }: { excluded: ExcludedIngredientOption }) {
-  return (
-    <p className="excluded-ingredient-notice" role="status">
-      {capitalizeForSentence(excluded.name)} är utesluten på grund av{" "}
-      {allergyExclusionReason(excluded.allergies)}.
-    </p>
-  );
-}
-
-/**
  * One direction card (§5 step 4) — the whole card is the tap target (no inner
  * "Välj" button: three primary buttons on one screen would mean none of them
  * reads as primary). The accessible name is set explicitly to the dish name
@@ -256,7 +239,7 @@ function NoSafeTemplates({ onRestart }: { onRestart: () => void }) {
   return (
     <Card className="state-card">
       <p role="status">Vi hittar inga rätter som passar hushållets alla begränsningar.</p>
-      <p className="muted">Se över allergier och kostval i hushållet, så öppnar fler rätter upp sig.</p>
+      <p className="muted">Se över kostvalen i hushållet, så öppnar fler rätter upp sig.</p>
       <Button type="button" variant="primary" onClick={onRestart}>
         Börja om
       </Button>
@@ -371,7 +354,7 @@ export function GuidedFlow({
         // Dropped, not left on screen, for the same reason the direction set below is:
         // after a failed refetch these grids answer a question the household has
         // already changed. A diner toggle is exactly that — a grid built while the
-        // fish-allergic member was away keeps offering "lax" as a tap target once she
+        // vegetarian member was away keeps offering meat as a tap target once she
         // is back at the table. The directions request would refuse it server-side, so
         // this is not a safety hole; it is the trap tap target the flow is built to
         // avoid.
@@ -394,17 +377,12 @@ export function GuidedFlow({
         matchesIngredientQuery(option.name, trimmedMainQuery),
       )
     : (options?.mainIngredients ?? []);
-  const excludedMainMatches = hasMainQuery
-    ? (options?.excludedMainIngredients ?? []).filter((option) =>
-        matchesIngredientQuery(option.name, trimmedMainQuery),
-      )
-    : [];
   // A miss falls back to the full grid rather than an empty one (requirement 1: the
   // grid stays visible and tappable at all times) — "no match" is communicated by
   // the message above it, never by the grid disappearing.
   const mainGridOptions =
     matchingMainIngredients.length > 0 ? matchingMainIngredients : (options?.mainIngredients ?? []);
-  const noMainMatches = hasMainQuery && matchingMainIngredients.length === 0 && excludedMainMatches.length === 0;
+  const noMainMatches = hasMainQuery && matchingMainIngredients.length === 0;
 
   const main = mainParameter(state);
   const pantryKey = state.pantry.join(",");
@@ -669,9 +647,6 @@ export function GuidedFlow({
                     value={state.mainQuery}
                     onChange={(event) => dispatch({ type: "set_main_query", query: event.target.value })}
                   />
-                  {excludedMainMatches.map((excluded) => (
-                    <ExcludedIngredientNotice key={excluded.id} excluded={excluded} />
-                  ))}
                   {noMainMatches && <p className="muted" role="status">Ingen träff.</p>}
                   <IngredientGrid
                     label="Huvudingredienser"

@@ -2,10 +2,10 @@
 // reason instructionsPrompt.ts is: token cost visible in one place.
 //
 // Deliberately excluded from the input, matching instructionsPrompt.ts's rule:
-// household data (allergies, dietary flags, portions) and any cost figure. The
+// household data (dietary flags, portions) and any cost figure. The
 // model never sees enough to invent a household fact or a price, and it never
-// determines allergy status — that is entirely src/engine/generatedDish.ts's job,
-// after this response comes back. The one thing this prompt sends beyond a bare
+// decides whether a dish may be shown — that is entirely src/engine/generatedDish.ts's
+// job, after this response comes back. The one thing this prompt sends beyond a bare
 // query is the catalog's ingredient names, and only as a closed vocabulary to pick
 // from — never as data the model is allowed to reinterpret.
 

@@ -48,3 +48,8 @@ skills-lock.json
 # PR visual evidence — attach to the PR description as uploads, never commit
 # to the tree (see docs/engineering/GIT_AND_GITHUB.md)
 web/screenshots/
+
+# Playwright MCP session artifacts — page snapshots and console logs written
+# while driving the app in a browser. Same category as test-results/: evidence
+# from a run, not durable data.
+.playwright-mcp/

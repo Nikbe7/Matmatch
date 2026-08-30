@@ -43,7 +43,7 @@ This section describes scope and sequence only — what's in this phase and in w
 
 Build only the single loop described in the Product Plan and UX Flow documents:
 
-1. Household onboarding (members, portions, dietary flags, allergies)
+1. Household onboarding (members, portions; dietary flags on the profile). The allergy question shipped and was removed again in #224 — DECISION_LOG 2026-08-25
 2. Home screen "Tonight" zero-input suggestion (Tier 0 template match, falling back to Tier 1 AI only when needed)
 3. Guided quick-select alternative flow (intent chip → ingredient → pantry multi-select → direction cards → adjust chips → portions → shopping list)
 4. Optional free-text "ask for a tweak" affordance layered on top (Tier 2, capped)
@@ -102,4 +102,4 @@ Only pursue once the core loop is proven to drive repeat use:
 
 ## Rough Sequencing Note
 
-Treat Phase 0 as non-negotiable and don't compress it to "save time" — a thin template library or inconsistent allergy taxonomy will quietly undermine both the quality of Phase 1's launch and the reliability of the safety-critical filtering described in the Architecture document. Phase 1 should stay scoped tightly enough to ship in weeks, not months; if it's growing beyond the single loop described above, that's a signal to cut scope rather than extend the timeline.
+Treat Phase 0 as non-negotiable and don't compress it to "save time" — a thin template library or an inconsistent controlled vocabulary will quietly undermine both the quality of Phase 1's launch and the reliability of the deterministic filtering described in the Architecture document. Phase 1 should stay scoped tightly enough to ship in weeks, not months; if it's growing beyond the single loop described above, that's a signal to cut scope rather than extend the timeline.

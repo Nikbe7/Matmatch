@@ -134,13 +134,12 @@ describe.skipIf(!stackAvailable)("POST /api/households", () => {
           { type: "adult", portion_factor: 1 },
           { type: "child", portion_factor: 0.6 },
         ],
-        allergies: ["gluten"],
         dietary_flags: ["vegetarian"],
       }));
 
     expect(response.status).toBe(201);
-    expect(response.body.household.members[0].allergies).toEqual(["gluten"]);
-    expect(response.body.household.members[1].allergies).toEqual([]);
+    expect(response.body.household.members[0].dietary_flags).toEqual(["vegetarian"]);
+    expect(response.body.household.members[1].dietary_flags).toEqual([]);
     expect(response.body.owner_user_id).toBe(user.userId);
 
     const { getHousehold } = await import("../db/households.js");
@@ -148,7 +147,7 @@ describe.skipIf(!stackAvailable)("POST /api/households", () => {
     expect(stored?.household).toEqual(response.body.household);
   });
 
-  it("rejects an invalid allergy value with 400 and writes nothing", async () => {
+  it("rejects an invalid dietary flag with 400 and writes nothing", async () => {
     const user = await createTestUser();
 
     const response = await request(app!)
@@ -158,7 +157,7 @@ describe.skipIf(!stackAvailable)("POST /api/households", () => {
       // the locked vocabulary, which the typed fixture cannot express.
       .send({
         members: [
-          { type: "adult", portion_factor: 1, allergies: ["sesame"], dietary_flags: [] },
+          { type: "adult", portion_factor: 1, dietary_flags: ["pescatarian"] },
         ],
       });
 
@@ -252,8 +251,8 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
   });
 
   it("returns a null result with a reason for a household with no safe templates", async () => {
-    // Even the worst real profile (all 8 allergies + vegan) still leaves 14 of 170
-    // templates (verified while writing this test) — the catalog cannot currently
+    // Even the most constrained real profile (vegan) still leaves 26 of 170
+    // templates — the catalog cannot currently
     // produce a genuinely empty candidate set, which is a good property of the data,
     // not a gap in this test. So the empty branch is exercised through a real HTTP
     // request against a real, minimal EngineData (zero templates) rather than a
@@ -262,7 +261,6 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     // the genuine code path.
     const emptyEngineData: EngineData = {
       ingredientsById: new Map(),
-      allergenMappingByIngredientId: new Map(),
       templates: [],
       substitutionGroupsById: new Map(),
       substitutionGroupsByMemberIngredientId: new Map(),
@@ -286,7 +284,7 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
     await request(app!)
       .post("/api/households")
       .set(authHeader(bob.accessToken))
-      .send(makeHousehold({ allergies: [], dietary_flags: ["vegan"] }));
+      .send(makeHousehold({ dietary_flags: ["vegan"] }));
 
     // Alice has no household of her own — if the route's RLS context were not wired
     // through (e.g. it queried without the per-request user set), this request could
@@ -567,16 +565,18 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
 
 describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints (#112)", () => {
   // A household where exactly one member is restricted, so the answer to "who is
-  // eating" is the only thing that can change the answer to "what is safe".
-  const peanutChildAndCleanAdult = {
+  // eating" is the only thing that can change the answer to "what is eligible".
+  // Since #224 that restriction is a dietary flag — the allergic child this suite
+  // used to be written around no longer exists as a concept.
+  const veganChildAndOmnivoreAdult = {
     members: [
-      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
-      { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+      { type: "adult", portion_factor: 1, dietary_flags: [] },
+      { type: "child", portion_factor: 0.5, dietary_flags: ["vegan"] },
     ],
   };
 
-  /** Two templates: one safe for everyone, one only safe without the peanut-allergic child. */
-  async function peanutApp(): Promise<Express> {
+  /** One template, untagged — eligible only without the vegan child at the table. */
+  async function meatApp(): Promise<Express> {
     const { makeEngineData, makeIngredient, makeTemplate } = await import(
       "../engine/__fixtures__/engineData.js"
     );
@@ -584,14 +584,11 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
     return createApp({
       sql: sql!,
       engineData: makeEngineData({
-        ingredients: [makeIngredient("jordnotter"), makeIngredient("morot")],
-        allergenMappings: [
-          { ingredient_id: "jordnotter", allergens: ["peanuts"], verification_status: "verified" },
-          { ingredient_id: "morot", allergens: [], verification_status: "verified" },
-        ],
+        ingredients: [makeIngredient("notfars", { category: "protein" })],
         templates: [
-          makeTemplate("satay", {
-            ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "jordnotter", substitutable: false })],
+          makeTemplate("kottfars", {
+            dietary_tags: [],
+            ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "notfars", substitutable: false })],
           }),
         ],
       }),
@@ -599,21 +596,21 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
     });
   }
 
-  async function userWithPeanutChild(): Promise<{ accessToken: string; userId: string }> {
+  async function userWithVeganChild(): Promise<{ accessToken: string; userId: string }> {
     const user = await createTestUser();
     const created = await request(app!)
       .post("/api/households")
       .set(authHeader(user.accessToken))
-      .send(peanutChildAndCleanAdult);
+      .send(veganChildAndOmnivoreAdult);
     expect(created.status).toBe(201);
     return user;
   }
 
-  it("withholds the peanut dish when no diner set is given at all", async () => {
+  it("withholds the meat dish when no diner set is given at all", async () => {
     // Condition 1 at the HTTP boundary: the zero-input request is the *safe* one.
-    const user = await userWithPeanutChild();
+    const user = await userWithVeganChild();
 
-    const response = await request(await peanutApp())
+    const response = await request(await meatApp())
       .get("/api/tonight")
       .set(authHeader(user.accessToken));
 
@@ -622,25 +619,25 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
     expect(response.body.reason).toBe("no_safe_templates");
   });
 
-  it("offers it once the peanut-allergic child is deselected", async () => {
-    const user = await userWithPeanutChild();
+  it("offers it once the vegan child is deselected", async () => {
+    const user = await userWithVeganChild();
 
-    const response = await request(await peanutApp())
+    const response = await request(await meatApp())
       .get("/api/tonight")
       .query({ diners: "0" })
       .set(authHeader(user.accessToken));
 
     expect(response.status).toBe(200);
-    expect(response.body.result?.template.id).toBe("satay");
+    expect(response.body.result?.template.id).toBe("kottfars");
     // Portions followed the same selection — the child is neither filtered for nor
     // cooked for.
     expect(response.body.portions).toBe(1);
   });
 
-  it("still withholds it when the child is one of the selected diners", async () => {
-    const user = await userWithPeanutChild();
+  it("still withholds it when the vegan child is one of the selected diners", async () => {
+    const user = await userWithVeganChild();
 
-    const response = await request(await peanutApp())
+    const response = await request(await meatApp())
       .get("/api/tonight")
       .query({ diners: "0,1" })
       .set(authHeader(user.accessToken));
@@ -650,9 +647,9 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
     expect(response.body.portions).toBe(1.5);
   });
 
-  // The safety-critical half: every malformed diner parameter must land on the
-  // *restricted* answer, never the permissive one. A 400 is deliberately not among
-  // the acceptable outcomes — see src/api/diners.ts.
+  // The half that still matters most: every malformed diner parameter must land on
+  // the *restricted* answer, never the permissive one. A 400 is deliberately not
+  // among the acceptable outcomes — see src/api/diners.ts.
   const failClosed: { name: string; query: Record<string, string | string[]> }[] = [
     { name: "absent", query: {} },
     { name: "empty", query: { diners: "" } },
@@ -664,9 +661,9 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
   ];
 
   it.each(failClosed)("$name resolves to the whole household", async ({ query }) => {
-    const user = await userWithPeanutChild();
+    const user = await userWithVeganChild();
 
-    const response = await request(await peanutApp())
+    const response = await request(await meatApp())
       .get("/api/tonight")
       .query(query)
       .set(authHeader(user.accessToken));
@@ -684,22 +681,21 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
       .set(authHeader(user.accessToken))
       .send({
         members: [
-          { type: "adult", portion_factor: 1, name: "Niklas", allergies: [], dietary_flags: [] },
-          { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: ["vegan"] },
+          { type: "adult", portion_factor: 1, name: "Niklas", dietary_flags: [] },
+          { type: "child", portion_factor: 0.5, dietary_flags: ["vegan"] },
         ],
       });
 
     const response = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
 
     expect(response.body.diners).toEqual([{ label: "Niklas" }, { label: "Barn 1" }]);
-    // No allergy or dietary data crosses the wire: the client renders a picker, it
-    // does not hold a second copy of the household.
-    expect(JSON.stringify(response.body.diners)).not.toContain("peanuts");
+    // No dietary data crosses the wire: the client renders a picker, it does not
+    // hold a second copy of the household.
     expect(JSON.stringify(response.body.diners)).not.toContain("vegan");
   });
 
   it("writes nothing to the household — a diner selection is not a profile edit", async () => {
-    const user = await userWithPeanutChild();
+    const user = await userWithVeganChild();
     const { getHouseholdForOwner } = await import("../db/households.js");
     const before = await getHouseholdForOwner(sql!, user.userId);
 
@@ -709,7 +705,7 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
 
     const after = await getHouseholdForOwner(sql!, user.userId);
     expect(after).toEqual(before);
-    expect(after!.household).toEqual(peanutChildAndCleanAdult);
+    expect(after!.household).toEqual(veganChildAndOmnivoreAdult);
   });
 
   it("still answers a plain zero-input request with a suggestion over the real catalog", async () => {
@@ -724,109 +720,16 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — diner-scoped constraints 
   });
 });
 
-// #168: onboarding now asks one mandatory allergy question instead of rendering
-// the whole chip set per member. What that change could break is the very first
-// suggestion — the one moment a household has declared an allergy and has not yet
-// seen anything the app chose. The client-side ordering (the household is created
-// before Tonight is ever requested) is asserted in web/src/App.test.tsx; this is
-// the other half, over real HTTP: given exactly the body onboarding sends, the
-// first response cannot carry the declared allergen.
-describe.skipIf(!stackAvailable)("the first suggestion after onboarding (#168)", () => {
-  /** Byte for byte what `toHouseholdPayload` sends after "Ja" → Jordnötter on member 2. */
-  const onboardingBodyWithPeanutAllergy = {
-    members: [
-      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
-      { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
-    ],
-  };
-
-  /** One peanut dish and one safe dish, so a null result cannot be mistaken for safety. */
-  async function twoDishApp(): Promise<Express> {
-    const { makeEngineData, makeIngredient, makeTemplate } = await import(
-      "../engine/__fixtures__/engineData.js"
-    );
-
-    return createApp({
-      sql: sql!,
-      engineData: makeEngineData({
-        ingredients: [makeIngredient("jordnotter"), makeIngredient("morot")],
-        allergenMappings: [
-          { ingredient_id: "jordnotter", allergens: ["peanuts"], verification_status: "verified" },
-          { ingredient_id: "morot", allergens: [], verification_status: "verified" },
-        ],
-        templates: [
-          makeTemplate("satay", {
-            ingredient_slots: [
-              makeSlot({ role: "protein", ingredient_id: "jordnotter", substitutable: false }),
-            ],
-          }),
-          makeTemplate("morotssoppa", {
-            ingredient_slots: [
-              makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false }),
-            ],
-          }),
-        ],
-      }),
-      verifyToken: verifyToken!,
-    });
-  }
-
-  it("never carries the declared allergen", async () => {
-    const user = await createTestUser();
-    const twoDishes = await twoDishApp();
-
-    const created = await request(twoDishes)
-      .post("/api/households")
-      .set(authHeader(user.accessToken))
-      .send(onboardingBodyWithPeanutAllergy);
-    expect(created.status).toBe(201);
-
-    // The very first Tonight request of the household's life — no diner set, no
-    // exclusions, nothing but the profile onboarding just wrote.
-    const response = await request(twoDishes).get("/api/tonight").set(authHeader(user.accessToken));
-
-    expect(response.status).toBe(200);
-    // A dish *was* suggested — the assertion below would pass vacuously otherwise.
-    expect(response.body.result).not.toBeNull();
-    expect(response.body.result.template.id).toBe("morotssoppa");
-    for (const ingredient of response.body.result.ingredients) {
-      expect(ingredient.allergens ?? []).not.toContain("peanuts");
-    }
-    expect(JSON.stringify(response.body.result)).not.toContain("jordnotter");
-  });
-
-  it("shows the peanut dish to a household that answered no, from the same catalog", async () => {
-    // The control: the withholding above is the household's declared allergy doing
-    // its work, not the fixture being unable to produce that dish at all.
-    const user = await createTestUser();
-    const twoDishes = await twoDishApp();
-
-    await request(twoDishes)
-      .post("/api/households")
-      .set(authHeader(user.accessToken))
-      .send({
-        members: [{ type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] }],
-      });
-
-    const response = await request(twoDishes)
-      .get("/api/tonight")
-      .query({ exclude: "morotssoppa" })
-      .set(authHeader(user.accessToken));
-
-    expect(response.body.result?.template.id).toBe("satay");
-  });
-});
-
 describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set change (#133)", () => {
   // Selection/exclusion behaviour over `keep` is covered exhaustively in
   // src/engine/candidates.test.ts and src/api/dinerChangeReason.test.ts; what these
   // tests prove is the wiring — that a real request reaches those functions with
   // the right template and the right household, and the response shape a diner
   // change actually gets back.
-  const adultAndPeanutChild = {
+  const adultAndVeganChild = {
     members: [
-      { type: "adult", portion_factor: 1, allergies: [], dietary_flags: [] },
-      { type: "child", portion_factor: 0.5, allergies: ["peanuts"], dietary_flags: [] },
+      { type: "adult", portion_factor: 1, dietary_flags: [] },
+      { type: "child", portion_factor: 0.5, dietary_flags: ["vegan"] },
     ],
   };
 
@@ -838,18 +741,16 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set cha
     return createApp({
       sql: sql!,
       engineData: makeEngineData({
-        ingredients: [makeIngredient("jordnotter"), makeIngredient("morot")],
-        allergenMappings: [
-          { ingredient_id: "jordnotter", allergens: ["peanuts"], verification_status: "verified" },
-          { ingredient_id: "morot", allergens: [], verification_status: "verified" },
-        ],
+        ingredients: [makeIngredient("notfars", { category: "protein" }), makeIngredient("morot")],
         templates: [
-          // Contains peanuts — safe only without the peanut-allergic child.
-          makeTemplate("satay", {
-            ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "jordnotter", substitutable: false })],
+          // Untagged — eligible only without the vegan child at the table.
+          makeTemplate("kottfars", {
+            dietary_tags: [],
+            ingredient_slots: [makeSlot({ role: "protein", ingredient_id: "notfars", substitutable: false })],
           }),
-          // Safe for everyone, regardless of who is eating.
+          // Eligible for everyone, regardless of who is eating.
           makeTemplate("morotssoppa", {
+            dietary_tags: ["vegetarian", "vegan"],
             ingredient_slots: [makeSlot({ role: "vegetable", ingredient_id: "morot", substitutable: false })],
           }),
         ],
@@ -858,22 +759,22 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set cha
     });
   }
 
-  async function userWithPeanutChild(): Promise<{ accessToken: string }> {
+  async function userWithVeganChild(): Promise<{ accessToken: string }> {
     const user = await createTestUser();
     const created = await request(app!)
       .post("/api/households")
       .set(authHeader(user.accessToken))
-      .send(adultAndPeanutChild);
+      .send(adultAndVeganChild);
     expect(created.status).toBe(201);
     return user;
   }
 
   it("returns the same dish, unchanged, when the new diner set still allows it — the regression this closes", async () => {
-    const user = await userWithPeanutChild();
+    const user = await userWithVeganChild();
     const app = await keepApp();
 
-    // "morotssoppa" was already on screen for the adult alone; adding the
-    // peanut-allergic child changes nothing about whether it's safe.
+    // "morotssoppa" was already on screen for the adult alone; adding the vegan
+    // child changes nothing about whether it is eligible.
     const response = await request(app)
       .get("/api/tonight")
       .query({ diners: "0,1", keep: "morotssoppa" })
@@ -885,7 +786,7 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set cha
   });
 
   it("updates portions on a kept dish even though the dish itself did not change", async () => {
-    const user = await userWithPeanutChild();
+    const user = await userWithVeganChild();
     const app = await keepApp();
 
     const adultOnly = await request(app)
@@ -904,26 +805,26 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set cha
   });
 
   it("replaces the dish and names the affected member when the new diner set makes it unsafe", async () => {
-    const user = await userWithPeanutChild();
+    const user = await userWithVeganChild();
     const app = await keepApp();
 
-    // "satay" was safe for the adult alone; adding the peanut-allergic child makes
-    // it unsafe, so it must never come back — but the household must be told why,
+    // "kottfars" was eligible for the adult alone; adding the vegan child makes it
+    // ineligible, so it must never come back — but the household must be told why,
     // not handed a silently different dish.
     const response = await request(app)
       .get("/api/tonight")
-      .query({ diners: "0,1", keep: "satay" })
+      .query({ diners: "0,1", keep: "kottfars" })
       .set(authHeader(user.accessToken));
 
     expect(response.status).toBe(200);
-    expect(response.body.result.template.id).not.toBe("satay");
+    expect(response.body.result.template.id).not.toBe("kottfars");
     expect(response.body.result.template.id).toBe("morotssoppa");
     // The child has no declared name, so the derived label applies.
     expect(response.body.replacedFor).toBe("Barn 1");
   });
 
   it("never replaces a dish selecting a diner set that leaves it safe, even repeatedly", async () => {
-    const user = await userWithPeanutChild();
+    const user = await userWithVeganChild();
     const app = await keepApp();
 
     for (const diners of ["0", "1", "0,1"]) {
@@ -950,10 +851,6 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — `keep` on a diner-set cha
       sql: sql!,
       engineData: makeEngineData({
         ingredients: [makeIngredient("morot"), makeIngredient("hummer")],
-        allergenMappings: [
-          { ingredient_id: "morot", allergens: [], verification_status: "verified" },
-          { ingredient_id: "hummer", allergens: [], verification_status: "verified" },
-        ],
         templates: [
           makeTemplate("morotssoppa", {
             cost_tier: "budget",
@@ -1102,24 +999,27 @@ describe.skipIf(!stackAvailable)("GET /api/tonight — the pantry row (#152)", (
     expect(after).toEqual(before);
   });
 
-  it("cannot widen the candidate set — an allergic household sees the same dishes", async () => {
-    const allergic = await createTestUser();
+  it("cannot widen the candidate set — a vegan household sees the same dishes", async () => {
+    const vegan = await createTestUser();
     await request(app!)
       .post("/api/households")
-      .set(authHeader(allergic.accessToken))
-      .send(makeHousehold({ allergies: ["gluten"] }));
+      .set(authHeader(vegan.accessToken))
+      .send(makeHousehold({ dietary_flags: ["vegan"] }));
 
-    const plain = await request(app!).get("/api/tonight").set(authHeader(allergic.accessToken));
+    const plain = await request(app!).get("/api/tonight").set(authHeader(vegan.accessToken));
     const withPantry = await request(app!)
       .get("/api/tonight")
-      .query({ pantry: "spagetti,makaroner,formbrod" })
-      .set(authHeader(allergic.accessToken));
+      .query({ pantry: "notfars,kycklingfile,lax" })
+      .set(authHeader(vegan.accessToken));
 
-    // Every gluten-bearing staple "at home" and the answer is still a safe dish: the
-    // pantry orders the safe set, it never reaches back into what the safe set is.
+    // Every meat staple "at home" and the answer is still a vegan dish: the pantry
+    // orders the eligible set, it never reaches back into what the eligible set is.
     expect(withPantry.status).toBe(200);
     expect(plain.status).toBe(200);
     expect(withPantry.body.result === null).toBe(plain.body.result === null);
+    if (withPantry.body.result) {
+      expect(withPantry.body.result.template.dietary_tags).toContain("vegan");
+    }
   });
 });
 

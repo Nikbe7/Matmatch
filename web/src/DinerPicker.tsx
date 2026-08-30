@@ -46,7 +46,7 @@ export interface DinerSelectionState {
  * selection made against one roster is meaningless against another — index 1 may now
  * be a different person. Rather than leave that for whoever builds member editing,
  * the selection is discarded the moment the labels change, which fails closed (back
- * to everyone) instead of silently applying somebody else's allergies. The server
+ * to everyone) instead of silently applying somebody else's dietary flags. The server
  * range-check catches the out-of-range half of the same problem; this catches the
  * half that stays in range.
  *
@@ -130,14 +130,13 @@ export function DinerPicker({
         })}
       </div>
       {/*
-        The honesty line. Filtering by diner set is correct about the plate and says
-        nothing about the kitchen: leftovers get eaten by whoever is home tomorrow, and
-        a shared pan, board or fryer carries the allergen regardless of who sat down
-        tonight. The code cannot see any of that, so it must not imply it has.
+        The cross-contamination honesty line that stood here is gone with allergy
+        filtering (#224). It warned that leftovers and shared pans still carry an
+        allergen the diner set cannot account for — true, but it is the app's only
+        remaining mention of allergens, on a screen that now scopes nothing but
+        dietary flags and portions. Naming a hazard the product otherwise says
+        nothing about reads as a residual promise, which is the thing #224 removed.
       */}
-      <p className="diner-picker__caveat">
-        Rester och gemensamma kastruller kan ändå innehålla allergener – det ser inte appen.
-      </p>
     </section>
   );
 }

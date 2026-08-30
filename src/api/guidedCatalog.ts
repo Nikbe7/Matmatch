@@ -2,8 +2,6 @@ import type { CandidateTemplate } from "../engine/candidates.js";
 import type { EngineData } from "../engine/data.js";
 import type { Direction } from "../engine/directions.js";
 import { effectiveIngredientIds } from "../engine/ranking.js";
-import type { Allergy } from "../schema/allergyDietary.js";
-import type { HouseholdMember } from "../schema/household.js";
 import type { IngredientCategory } from "../schema/ingredient.js";
 import { HttpError } from "./httpError.js";
 import { buildTonightIngredients, type TonightIngredientView } from "./tonightIngredients.js";
@@ -49,10 +47,10 @@ const PANTRY_CATEGORIES: readonly IngredientCategory[] = [
  * ingredients worth offering are the ones the most dishes can actually be built
  * from, so the grids follow the catalog instead of going stale beside it. Counted
  * over the *household's* candidate set rather than the whole library, which is what
- * keeps the grid from offering a fish-allergic household a tap target ("lax") whose
- * only possible outcome is the §9 empty state. It is not a safety mechanism — the
- * engine would never serve that dish either way — it is the difference between a
- * grid of real choices and a grid with traps in it.
+ * keeps the grid from offering a vegetarian household a tap target ("kycklingfilé")
+ * whose only possible outcome is the §9 empty state. It is not a filtering mechanism
+ * — the engine would never serve that dish either way — it is the difference between
+ * a grid of real choices and a grid with traps in it.
  */
 function candidateFrequency(candidates: readonly CandidateTemplate[]): Map<string, number> {
   const frequency = new Map<string, number>();
@@ -104,47 +102,6 @@ export function buildPantryIngredientOptions(
   return buildOptions(data, candidates, PANTRY_CATEGORIES, PANTRY_GRID_SIZE);
 }
 
-export interface ExcludedIngredientOption extends IngredientOption {
-  /** Which of the household's own allergies excludes this ingredient. */
-  allergies: Allergy[];
-}
-
-/**
- * Protein-category catalog ingredients that a fish- or nut-allergic household
- * cannot eat, for the step-2 filter's "why nothing matched" explanation
- * (requirement 4 of the type-to-filter issue). Read-only display data — it must
- * never widen what a household can actually select, so the filter itself keeps
- * matching against `buildMainIngredientOptions`'s safe set and only consults this
- * list to explain a miss.
- *
- * Limited to `verified` allergen rows on purpose. An unverified or missing row is
- * treated as containing every allergen for filtering (§5.4's fail-safe rule in
- * allergens.ts), but that is a "we don't know" default, not a fact about the
- * ingredient — naming it as the cause here would assert something we don't
- * actually know. Every protein in the catalog is verified today (see
- * data/ingredient-allergens.json), so this only ever narrows an already-empty set.
- */
-export function buildExcludedMainIngredients(
-  data: EngineData,
-  allergies: readonly Allergy[],
-): ExcludedIngredientOption[] {
-  if (allergies.length === 0) return [];
-
-  const excluded: ExcludedIngredientOption[] = [];
-  for (const ingredient of data.ingredientsById.values()) {
-    if (ingredient.category !== "protein") continue;
-
-    const mapping = data.allergenMappingByIngredientId.get(ingredient.id);
-    if (!mapping || mapping.verification_status !== "verified") continue;
-
-    const causes = allergies.filter((allergy) => mapping.allergens.includes(allergy));
-    if (causes.length === 0) continue;
-
-    excluded.push({ id: ingredient.id, name: ingredient.name, allergies: causes });
-  }
-
-  return excluded.sort((a, b) => (a.id < b.id ? -1 : 1));
-}
 
 export interface GuidedIngredientView extends TonightIngredientView {
   /**
@@ -158,7 +115,6 @@ export interface GuidedIngredientView extends TonightIngredientView {
 export function buildGuidedIngredients(
   data: EngineData,
   direction: Direction,
-  householdMembers: readonly HouseholdMember[],
   portions: number,
 ): GuidedIngredientView[] {
   const covered = new Set(direction.coveredPantryIngredientIds);
@@ -169,7 +125,7 @@ export function buildGuidedIngredients(
     ]),
   );
 
-  return buildTonightIngredients(data, direction, householdMembers, portions).map((view, index) => {
+  return buildTonightIngredients(data, direction, portions).map((view, index) => {
     const ingredientId =
       substituteBySlotIndex.get(index) ?? direction.template.ingredient_slots[index]?.ingredient_id;
     return { ...view, inPantry: ingredientId !== undefined && covered.has(ingredientId) };
@@ -198,13 +154,12 @@ function joinSwedish(parts: readonly string[]): string {
  * rescued, so it never advertises something the household cannot eat.
  */
 export function buildDirectionSummary(data: EngineData, direction: Direction): string {
-  // The summary line only ever reads a view's `name`, so neither a household nor a
-  // real portion count is passed through here — allergen marking and amounts are
-  // irrelevant to a sentence, and this stays a pure function of the direction rather
-  // than of who owns the household or how many of them are eating. The reference
-  // count stands in precisely because its scaled amounts are the authored ones and
-  // nothing reads them.
-  const views = buildTonightIngredients(data, direction, [], REFERENCE_PORTIONS);
+  // The summary line only ever reads a view's `name`, so no real portion count is
+  // passed through here — amounts are irrelevant to a sentence, and this stays a pure
+  // function of the direction rather than of how many people are eating. The
+  // reference count stands in precisely because its scaled amounts are the authored
+  // ones and nothing reads them.
+  const views = buildTonightIngredients(data, direction, REFERENCE_PORTIONS);
 
   const named: string[] = [];
   for (const role of SUMMARY_ROLES) {

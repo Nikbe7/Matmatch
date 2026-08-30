@@ -17,7 +17,7 @@ import {
 // history, and it never throws — every failure mode collapses to
 // `{ ok: false, reason }` so the route can always respond without a 5xx.
 //
-// Deliberately does NOT resolve ingredients, check allergies, or derive cost tier —
+// Deliberately does NOT resolve ingredients, apply dietary filtering, or derive cost tier —
 // that is entirely src/engine/generatedDish.ts's job, run by the caller on this
 // module's raw (but schema-validated) output. This module's only responsibility is
 // getting a structured dish proposal out of the model.

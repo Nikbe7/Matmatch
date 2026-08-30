@@ -1,6 +1,5 @@
-import { ALLERGIES } from "../../src/schema/vocabulary";
 import { QuantityUnitSchema } from "../../src/schema/recipeTemplate";
-import type { IngredientAllergenMarking, ScaledQuantity, TonightIngredient } from "./api";
+import type { ScaledQuantity, TonightIngredient } from "./api";
 
 // localStorage read/write for the shopping list, kept behind one small typed
 // module so the rest of the app never touches raw JSON. A version field means a
@@ -15,17 +14,10 @@ export interface ShoppingListItem {
   section: ShoppingListSection;
   bought: boolean;
   /**
-   * The household-union allergen marking for this ingredient (#116). Stored
-   * alongside the item, not re-derived on the client — the client holds no
-   * household to derive it from — so it survives a reload with no connection,
-   * which is when it matters most (UX_FLOW §7: usable offline).
-   */
-  allergens: IngredientAllergenMarking[];
-  /**
    * How much to buy, already scaled to tonight's diners by the server (#123).
-   * Stored for the same reason as `allergens`: the client cannot re-derive it — it
-   * holds neither the template's authored amounts nor the portion count — and the
-   * shop is exactly where the list gets re-opened with no connection.
+   * Stored rather than re-derived: the client holds neither the template's authored
+   * amounts nor the portion count, and the shop is exactly where the list gets
+   * re-opened with no connection (UX_FLOW §7: usable offline).
    */
   quantity: ScaledQuantity;
   /** Which template slot this item fills, and the ingredient currently there (#124)
@@ -43,7 +35,6 @@ export interface ShoppingListItem {
     ingredientId: string;
     bought: boolean;
     quantity: ScaledQuantity;
-    allergens: IngredientAllergenMarking[];
   };
 }
 
@@ -75,17 +66,6 @@ export interface StoredShoppingList {
 export const SHOPPING_LIST_VERSION = 4;
 const STORAGE_KEY = "matmatch.shoppingList";
 
-function isAllergenMarking(value: unknown): value is IngredientAllergenMarking {
-  if (typeof value !== "object" || value === null) return false;
-  const marking = value as Record<string, unknown>;
-  return (
-    typeof marking.allergy === "string" &&
-    (ALLERGIES as readonly string[]).includes(marking.allergy) &&
-    Array.isArray(marking.members) &&
-    marking.members.every((member) => typeof member === "string")
-  );
-}
-
 function isScaledQuantity(value: unknown): value is ScaledQuantity {
   if (typeof value !== "object" || value === null) return false;
   const quantity = value as Record<string, unknown>;
@@ -111,9 +91,7 @@ function isSwappedFrom(value: unknown): value is NonNullable<ShoppingListItem["s
     typeof swapped.name === "string" &&
     typeof swapped.ingredientId === "string" &&
     typeof swapped.bought === "boolean" &&
-    isScaledQuantity(swapped.quantity) &&
-    Array.isArray(swapped.allergens) &&
-    swapped.allergens.every(isAllergenMarking)
+    isScaledQuantity(swapped.quantity)
   );
 }
 
@@ -124,8 +102,6 @@ function isShoppingListItem(value: unknown): value is ShoppingListItem {
     typeof item.name === "string" &&
     (item.section === "to_buy" || item.section === "have_at_home") &&
     typeof item.bought === "boolean" &&
-    Array.isArray(item.allergens) &&
-    item.allergens.every(isAllergenMarking) &&
     isScaledQuantity(item.quantity) &&
     typeof item.slotIndex === "number" &&
     Number.isInteger(item.slotIndex) &&
@@ -223,7 +199,6 @@ export function freshShoppingList(
       name: ingredient.name,
       section: ingredient.inPantry ? "have_at_home" : "to_buy",
       bought: false,
-      allergens: ingredient.allergens,
       quantity: ingredient.quantity,
       slotIndex: ingredient.slotIndex,
       ingredientId: ingredient.ingredientId,

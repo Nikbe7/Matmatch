@@ -43,6 +43,12 @@ const TYPE_REGISTRY: Record<RecordType, TypeConfig> = {
         : [],
     defaultPaths: ["data/recipe-templates.json"],
   },
+  // Still validated, deliberately, even though nothing in the product reads the file
+  // any more (#224). The 206 hand-verified rows are kept as a record, and a record
+  // that silently rots is worth less than no record: schema, duplicate ids and
+  // referential integrity against the catalog all still apply, so a row pointing at
+  // an ingredient that has since been renamed or removed is still an error. What is
+  // gone is the *coverage* direction — see the note where that check used to be.
   "ingredient-allergen": {
     schema: IngredientAllergenMappingSchema,
     extractIngredientRefs: (record) =>
@@ -177,7 +183,6 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
 
   checkReferentialIntegrity(inputs, validByType, errors, notes);
   checkRecipeTemplateDerivedFields(inputs, validByType, errors, warnings);
-  checkAllergenCoverage(inputs, validByType, errors, warnings, notes);
   checkUnverifiedAllergenRows(validByType, warnings);
   checkSubstitutionMembersResolvable(inputs, validByType, warnings);
 
@@ -355,52 +360,14 @@ function checkRecipeTemplateDerivedFields(
   }
 }
 
-// The inverse of checkReferentialIntegrity: every ingredient in the catalog
-// must have an allergen mapping row. A catalog id with no row is the most
-// likely real-world way the fail-safe allergen posture (ARCHITECTURE.md §5.4)
-// gets silently broken — an ingredient added in #6 and never mapped in #8/#9.
-function checkAllergenCoverage(
-  inputs: FileInput[],
-  validByType: Map<RecordType, ValidRecord[]>,
-  errors: ValidationIssue[],
-  warnings: ValidationIssue[],
-  notes: string[],
-): void {
-  const ingredientFilePassed = inputs.some((i) => i.type === "ingredient");
-  if (!ingredientFilePassed) {
-    warnings.push({
-      file: inputs.map((i) => i.path).join(", "),
-      message: "no ingredient file was passed in this invocation; skipping allergen mapping coverage check",
-    });
-    return;
-  }
-
-  const allergenFilePassed = inputs.some((i) => i.type === "ingredient-allergen");
-  if (!allergenFilePassed) {
-    notes.push(
-      "no ingredient-allergen file was passed in this invocation; skipping allergen mapping coverage check",
-    );
-    return;
-  }
-
-  const mappedIngredientIds = new Set(
-    (validByType.get("ingredient-allergen") ?? [])
-      .map((entry) => recordId(entry.record))
-      .filter((id): id is string => !!id),
-  );
-
-  for (const entry of validByType.get("ingredient") ?? []) {
-    const ingredientId = recordId(entry.record);
-    if (ingredientId && !mappedIngredientIds.has(ingredientId)) {
-      errors.push({
-        file: entry.file,
-        index: entry.index,
-        id: ingredientId,
-        message: `ingredient "${ingredientId}" has no ingredient-allergen mapping row`,
-      });
-    }
-  }
-}
+// Deliberately absent: the inverse of checkReferentialIntegrity — a check that every
+// ingredient in the catalog has an allergen mapping row. It enforced the 100% coverage
+// the old fail-safe allergen posture needed, and #224 removed the thing it was
+// protecting. Keeping it would now block the one change #224 exists to unblock: the
+// first ingredient added to a catalog headed for thousands of entries would fail
+// validation for lacking a row nothing reads, which is a maintenance burden charged
+// for no benefit. Rows still point at real ingredients (referential integrity, above);
+// ingredients no longer have to point back.
 
 // Member resolution itself rides checkReferentialIntegrity via the type
 // registry's extractIngredientRefs. That check only *notes* a skipped run when
@@ -430,6 +397,11 @@ function checkSubstitutionMembersResolvable(
   });
 }
 
+// `data/ingredient-allergens.json` is a closed, hand-verified record, not a working
+// dataset (#224) — every row in it was manually checked, and that is the only thing
+// that makes keeping the file worthwhile. A row that arrives without verification
+// dilutes exactly that, so it is still worth a warning even though nothing filters on
+// the data: the answer to an unverified row is to leave it out, not to ship it.
 function checkUnverifiedAllergenRows(
   validByType: Map<RecordType, ValidRecord[]>,
   warnings: ValidationIssue[],
@@ -443,6 +415,7 @@ function checkUnverifiedAllergenRows(
     file: files,
     message:
       `${unverified.length} of ${rows.length} ingredient-allergen row(s) are unverified — ` +
-      `#9 requires 100% manual verification before any allergen-dependent code ships`,
+      `this file is a hand-verified record kept unread by the product (#224); an ` +
+      `unverified row belongs out of it, not in it`,
   });
 }

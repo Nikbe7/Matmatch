@@ -11,7 +11,7 @@ import type { Cuisine, IngredientSlotRole, PrepTimeBand } from "../schema/recipe
 //
 // Deliberately excluded from the input, per issue #78 and ARCHITECTURE.md §4.2's
 // "minimal context per call": the ingredient catalog (only the resolved Swedish
-// names + roles for *this* dish), household data (allergies, dietary flags,
+// names + roles for *this* dish), household data (dietary flags,
 // portions), and any cost figure. The model never sees enough to invent a household
 // fact or a price.
 

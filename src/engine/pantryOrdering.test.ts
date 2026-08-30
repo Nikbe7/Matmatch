@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AllergySchema } from "../schema/allergyDietary.js";
+import type { DietaryFlag } from "../schema/allergyDietary.js";
 import {
   NEUTRAL_PREFERENCE_WEIGHTS,
   PREFERENCE_WEIGHT_MAX,
@@ -28,7 +28,9 @@ import { makeConstraints as household } from "./__fixtures__/household.js";
 // a three-template fixture cannot support it.
 
 const data = await loadEngineData();
-const rowsByIngredientId = data.allergenMappingByIngredientId;
+
+/** The dietary flags that actually filter (candidates.ts's HARD_DIETARY_FLAGS). */
+const HARD_DIETARY_FLAGS: readonly DietaryFlag[] = ["vegetarian", "vegan"];
 
 const MONTH = 7;
 
@@ -251,19 +253,21 @@ describe("the pantry_match reason", () => {
   });
 });
 
-describe("pantry input can never affect allergy or dietary filtering", () => {
-  // CLAUDE.md non-negotiable. Exhaustive over the locked allergy vocabulary crossed
-  // with slider extremes and pantry selections — not sampled.
+describe("pantry input can never affect dietary filtering", () => {
+  // CLAUDE.md non-negotiable, in the half of it that survives #224: allergy filtering
+  // is gone, dietary filtering is not, and it is still ranking's job to reorder what
+  // the engine allows and never to change it. Exhaustive over the flags that filter,
+  // crossed with slider extremes and pantry selections — not sampled.
   //
   // Structurally this is unreachable: `selectCandidateTemplates` takes neither weights
   // nor a pantry, and `orderByPantryCoverage` is a sort. These tests assert it anyway,
   // because "unreachable" is a claim about today's call graph and this is the file
   // that has to notice when it stops being true.
 
-  it.each(AllergySchema.options)(
-    "shows an identical candidate set for a household allergic to %s, at every slider extreme and pantry selection",
-    (allergy) => {
-      const constraints = household({ allergies: [allergy] });
+  it.each(HARD_DIETARY_FLAGS)(
+    "shows an identical candidate set for a %s household, at every slider extreme and pantry selection",
+    (flag) => {
+      const constraints = household({ dietary_flags: [flag] });
       const reference = new Set(
         rankedFor(constraints, NEUTRAL_PREFERENCE_WEIGHTS).map((c) => c.template.id),
       );
@@ -282,24 +286,17 @@ describe("pantry input can never affect allergy or dietary filtering", () => {
     },
   );
 
-  it.each(AllergySchema.options)(
-    "never surfaces an ingredient containing %s, at every slider extreme and pantry selection",
-    (allergy) => {
-      const constraints = household({ allergies: [allergy] });
+  it.each(HARD_DIETARY_FLAGS)(
+    "never surfaces a dish untagged for %s, at every slider extreme and pantry selection",
+    (flag) => {
+      const constraints = household({ dietary_flags: [flag] });
 
       for (const preference of WEIGHT_EXTREMES) {
         const ranked = rankedFor(constraints, preference);
         for (const pantry of PANTRY_SELECTIONS) {
           const offenders = orderByPantryCoverage(ranked, pantry)
-            .flatMap((direction) => effectiveIngredientIds(direction))
-            .filter((ingredientId) => {
-              const row = rowsByIngredientId.get(ingredientId);
-              // Fail-safe: a missing or unverified row disqualifies as surely as one
-              // that lists the allergen.
-              return (
-                !row || row.verification_status !== "verified" || row.allergens.includes(allergy)
-              );
-            });
+            .filter((direction) => !direction.template.dietary_tags.includes(flag))
+            .map((direction) => direction.template.id);
 
           expect(offenders).toEqual([]);
         }
@@ -307,23 +304,29 @@ describe("pantry input can never affect allergy or dietary filtering", () => {
     },
   );
 
-  it.each(AllergySchema.options)(
-    "never lets a pantry selection reintroduce %s — selecting the whole catalog changes nothing",
-    (allergy) => {
+  it.each(HARD_DIETARY_FLAGS)(
+    "never lets a pantry selection reintroduce a dish untagged for %s — selecting the whole catalog changes nothing",
+    (flag) => {
       // The adversarial case: the household "has" every ingredient in the catalog,
-      // including the ones its own allergy excludes. Coverage is computed over the
-      // safe candidate set, so an excluded ingredient has no dish to promote.
-      const constraints = household({ allergies: [allergy] });
+      // including the ones only an excluded dish uses. Coverage is computed over the
+      // allowed candidate set, so an excluded dish has nothing to be promoted from.
+      const constraints = household({ dietary_flags: [flag] });
       const everything = [...data.ingredientsById.keys()];
+      const allowed = new Set(
+        selectCandidateTemplates(data, constraints).map((candidate) => candidate.template.id),
+      );
 
       for (const preference of WEIGHT_EXTREMES) {
         const ordered = orderByPantryCoverage(rankedFor(constraints, preference), everything);
-        const covered = ordered.flatMap((direction) => direction.coveredPantryIngredientIds);
-        const offenders = covered.filter((ingredientId) =>
-          rowsByIngredientId.get(ingredientId)?.allergens.includes(allergy),
-        );
 
-        expect(offenders).toEqual([]);
+        expect(new Set(ordered.map((direction) => direction.template.id))).toEqual(allowed);
+        // Every ingredient the pantry got credit for belongs to a dish the household
+        // may actually eat — coverage cannot pull one in from an excluded template.
+        const covered = new Set(ordered.flatMap((direction) => direction.coveredPantryIngredientIds));
+        const reachable = new Set(
+          ordered.flatMap((direction) => effectiveIngredientIds(direction)),
+        );
+        expect([...covered].filter((id) => !reachable.has(id))).toEqual([]);
       }
     },
   );

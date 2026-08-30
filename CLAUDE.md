@@ -12,7 +12,7 @@ Matmatch is a mobile-first, AI-powered food planning PWA. It helps households de
 - `/docs/engineering/DECISION_LOG.md` — history of non-obvious decisions; check before re-litigating a settled question
 
 ## Core architectural principle
-Deterministic app logic (the "Meal Engine": ingredient matching, cost tiering, seasonality, portion math, allergy filtering) is fully separate from generative AI (the "AI Orchestrator": creative direction generation, personalization, free-text refinement). Allergy/dietary filtering is ALWAYS deterministic — it must never depend on model output. See ARCHITECTURE.md section 4 for the AI tiering strategy (Tier 0 template match / Tier 1 templated personalization / Tier 2 open-ended generation).
+Deterministic app logic (the "Meal Engine": ingredient matching, cost tiering, seasonality, portion math, dietary filtering) is fully separate from generative AI (the "AI Orchestrator": creative direction generation, personalization, free-text refinement). Dietary filtering is ALWAYS deterministic — it must never depend on model output. Allergy filtering was removed in #224 and the app no longer asks about allergies; read DECISION_LOG 2026-08-25 before proposing it back, because what failed was the maintenance of the mappings, not the code. See ARCHITECTURE.md section 4 for the AI tiering strategy (Tier 0 template match / Tier 1 templated personalization / Tier 2 open-ended generation).
 
 ## Tech stack
 - Frontend: React + TypeScript PWA (Vite), mobile-first, installable
@@ -26,7 +26,7 @@ Deterministic app logic (the "Meal Engine": ingredient matching, cost tiering, s
 Phase 0 closed 2026-08-02 (DECISION_LOG). Building the single loop MVP_ROADMAP.md's Phase 1 section describes — household onboarding through shopping list, save/history, freemium gating, PWA install — with the deterministic engine and persistence already in place. See MVP_ROADMAP.md for scope and sequence, DECISION_LOG.md for how each piece landed, and the GitHub Project board for current status — not this file.
 
 ## Non-negotiables
-- Ingredient-to-allergen mappings require 100% manual verification — never trust AI-drafted allergen data without review, no sampling.
+- Never let a model fill in allergen data while anything in the product filters on it. `data/ingredient-allergens.json` is a closed, hand-verified record of 206 rows, validated by `npm run validate` and read by nothing (#224); an unverified row belongs out of it. Reinstating a filter means first answering who maintains the mappings at catalog scale.
 - Never let AI generate specific cost figures (e.g. "saves 15 kr") — cost tiers are curated, team-maintained data only.
 - Pantry/"what I have" input is session-scoped and ephemeral — do not build persistent pantry inventory tracking in MVP.
 - Recipe template skeletons store structure (ingredients + roles + tags), not full prose instructions — final phrasing is generated on demand and cached.
@@ -36,7 +36,7 @@ Never make large architectural decisions without discussing them first. If a tas
 
 ## Engineering principles
 1. Deterministic first, AI only where creativity is genuinely required.
-2. Safety-critical logic (allergies) is never AI-dependent — no exceptions.
+2. Deterministic-first applies hardest where a wrong answer is a promise broken: dietary filtering is never AI-dependent, no exceptions. Do not make a safety promise the data cannot back — withdrawing one is a legitimate move (#224).
 3. Never let AI invent numbers a user will trust (costs, nutrition) — curated data only.
 4. Ship the smallest thing that tests the retention hypothesis; cut scope before extending the timeline.
 5. Decisions are versioned in the repo (`docs/engineering/DECISION_LOG.md`), not held in memory.
@@ -78,10 +78,10 @@ Whenever AskUserQuestion is used, immediately follow it with the same question a
 Never implement multiple unrelated features in the same session. Prefer small, reviewable changes — one issue, one branch, one PR. If a task turns out to bundle unrelated work, split it into separate issues rather than shipping it as one large change.
 
 Slice size depends on what's at risk, not on habit.
-- **Small, reviewed slices** stay the rule for: database schema and migrations, the allergy and dietary path, AI orchestration, and curated data passes. Mistakes there are expensive or unsafe, and Niklas verifies each one before merge.
+- **Small, reviewed slices** stay the rule for: database schema and migrations, the dietary path, AI orchestration, and curated data passes. Mistakes there are expensive or unsafe, and Niklas verifies each one before merge.
 - **Large single-pass slices** are correct for visual and layout work across multiple screens. It is reversible, nothing safety-critical is at stake, and one screen per PR costs more in round trips than it saves in review.
 
-Merge without waiting for verification when all of these hold: the change touches no schema, no migration, no allergy or dietary path, no AI orchestration and no curated data; typecheck, both suites at 0 skipped via the JSON reporter and e2e are green; and the "Verifiera i webbläsaren" checklist is in the PR body. Merge, close the issue, move it to Done, and report what landed rather than asking whether to merge.
+Merge without waiting for verification when all of these hold: the change touches no schema, no migration, no dietary path, no AI orchestration and no curated data; typecheck, both suites at 0 skipped via the JSON reporter and e2e are green; and the "Verifiera i webbläsaren" checklist is in the PR body. Merge, close the issue, move it to Done, and report what landed rather than asking whether to merge.
 
 Still wait for explicit approval on anything in the first list, on anything that reverses a DECISION_LOG entry, and on any change whose failure mode is that a dish is shown when it should have been withheld — the fail-open direction, regardless of which files it touches.
 
@@ -100,7 +100,7 @@ Every PR description ends with a "Verifiera i webbläsaren" checklist for Niklas
 
 ## Engineering mindset
 Optimize for simplicity, maintainability, readability, low AI cost, fast iteration, and production quality, in that rough order for a pre-PMF solo project. Prefer the simplest solution that satisfies current requirements; don't build infrastructure for hypothetical future features.
-- Testing: heavy unit coverage on the Meal Engine (matching, cost tiering, portion math, and especially allergy filtering — non-negotiable); light integration tests on API endpoints; minimal UI/E2E investment until the core loop is validated (Phase 2, see MVP_ROADMAP.md).
+- Testing: heavy unit coverage on the Meal Engine (matching, cost tiering, portion math, and especially dietary filtering — non-negotiable); light integration tests on API endpoints; minimal UI/E2E investment until the core loop is validated (Phase 2, see MVP_ROADMAP.md).
 - Self-review (`/code-review`, plus `/security-review` for anything touching auth, payments, or user data) before moving an issue to Review.
 
 ## When to use extended thinking
