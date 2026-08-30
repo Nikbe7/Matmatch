@@ -8,6 +8,35 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-31 — En textinmatning är motiverad bara när den når något ett tapp inte når (#206, #235)
+
+Regeln bakom två motsatta utfall samma dag, så nästa "ska den här listan ha ett filter?"
+inte behöver avgöras på känsla.
+
+`PantryPicker`s sökruta togs bort (#206, PR #236). Skafferilistan kapas på servern till
+`PANTRY_GRID_SIZE` = 18 och `src/api/app.test.ts` asserterar att Ikvälls och guidade
+flödets listor är identiska — alla 18 chips syns alltså redan, på båda ytorna. Ett
+filter där kunde per konstruktion inte nå något; det kunde bara dölja det användaren
+redan såg, mot priset av ett tangentbord, ett query-tillstånd och ett
+no-match-tillstånd. #206:s acceptanskriterium sa "search included", men det skrevs på
+premissen att Ikväll-lagret visade en längre lista än guidade steg 3. Det gör det inte.
+
+Steg 2:s type-to-filter (#110) klarar samma test, men bara i avsikt — inte som byggd.
+Mätt 2026-08-31: 33 distinkta proteiner i middagskandidatmängden, rutnätet visar 12,
+21 är onåbara via tapp, och 37 av 148 middagsmallar har inget protein i rutnätet alls.
+Där finns alltså en verklig svans som bara går att nå genom att skriva — lax, tonfisk,
+entrecôte, räkor. Men `buildMainIngredientOptions` kapar till 12 *innan* svaret lämnar
+servern, och klienten filtrerar den kapade listan, så filtret når svansen lika lite som
+skafferisöket gjorde. UX_FLOW §5 påstår räckvidden ("reachable ingredients no longer
+top out at the ~12 the grid shows"); koden har aldrig haft den. Åtgärdas i #235.
+
+**How to apply:** Fråga vad listan har för form innan du frågar om den ska ha ett
+filter. Visas hela mängden redan är ett filter dekoration, oavsett hur lång listan
+känns. Är rutnätet en topplista ur något större är filtret den enda vägen till resten
+— och då ska det finnas, men som en tyst utväg under rutnätet, inte som skärmens
+första element: ett textfält överst säger "skriv här" på en yta vars hela poäng är
+"tryck".
+
 ## 2026-08-25 — Allergifiltrering tas bort helt; appen slutar fråga och slutar lova (#224)
 
 Reverserar CLAUDE.md:s första non-negotiable och nio poster i den här loggen: #168
