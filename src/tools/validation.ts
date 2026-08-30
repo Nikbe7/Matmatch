@@ -186,6 +186,7 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
   checkUnverifiedAllergenRows(validByType, warnings);
   checkSubstitutionMembersResolvable(inputs, validByType, warnings);
   checkVarietyClasses(validByType, warnings);
+  checkIngredientCuisines(inputs, validByType, errors, notes);
 
   return {
     errors,
@@ -455,6 +456,64 @@ function checkVarietyClasses(
       id: recordId(entry.record),
       path: "variety_of",
       message: `variety_of "${key}" has only this one member — a variety class of one never matches anything`,
+    });
+  }
+}
+
+// #222 — `Ingredient.cuisines` says "belongs *only* in these kitchens", and the recipe
+// templates are the other half of the same curated record. If a template of cuisine X
+// puts an ingredient in a slot, then X is a kitchen that ingredient belongs in, and a
+// list omitting it makes the two files contradict each other.
+//
+// An error rather than a warning, unlike `checkVarietyClasses` above: this one has a
+// behavioural consequence that is invisible from the outside. `substituteCandidateIds`
+// filters candidates, not the current ingredient, so the contradiction shows up as a
+// one-way door — the household can swap away from the ingredient its own dish named
+// and is then never offered it back. Cheap to resolve in either direction: add the
+// cuisine, or drop the mark.
+function checkIngredientCuisines(
+  inputs: FileInput[],
+  validByType: Map<RecordType, ValidRecord[]>,
+  errors: ValidationIssue[],
+  notes: string[],
+): void {
+  const marked = (validByType.get("ingredient") ?? []).filter((entry) => Array.isArray(entry.record.cuisines));
+  if (marked.length === 0) return;
+
+  if (!inputs.some((i) => i.type === "recipe-template")) {
+    notes.push(
+      "no recipe-template file was passed in this invocation; skipping the ingredient cuisines check against template usage",
+    );
+    return;
+  }
+
+  const templateCuisinesByIngredient = new Map<string, Set<string>>();
+  for (const entry of validByType.get("recipe-template") ?? []) {
+    const cuisine = entry.record.cuisine;
+    if (typeof cuisine !== "string" || !Array.isArray(entry.record.ingredient_slots)) continue;
+    for (const slot of entry.record.ingredient_slots) {
+      const ingredientId = (slot as { ingredient_id?: unknown })?.ingredient_id;
+      if (typeof ingredientId !== "string") continue;
+      const cuisines = templateCuisinesByIngredient.get(ingredientId) ?? new Set<string>();
+      cuisines.add(cuisine);
+      templateCuisinesByIngredient.set(ingredientId, cuisines);
+    }
+  }
+
+  for (const entry of marked) {
+    const id = recordId(entry.record);
+    if (!id) continue;
+    const declared = new Set(entry.record.cuisines as string[]);
+    const used = [...(templateCuisinesByIngredient.get(id) ?? [])].filter((cuisine) => !declared.has(cuisine)).sort();
+    if (used.length === 0) continue;
+    errors.push({
+      file: entry.file,
+      index: entry.index,
+      id,
+      path: "cuisines",
+      message:
+        `recipe templates of cuisine ${used.map((cuisine) => `"${cuisine}"`).join(", ")} use this ingredient, ` +
+        `but its cuisines list omits ${used.length === 1 ? "it" : "them"} — the two curated files disagree`,
     });
   }
 }
