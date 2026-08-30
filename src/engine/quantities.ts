@@ -22,6 +22,31 @@ import type { QuantityUnit, SlotQuantity } from "../schema/recipeTemplate.js";
 export const REFERENCE_PORTIONS = 4;
 
 /**
+ * The range a meal's portion count may take (#231).
+ *
+ * Distinct from `REFERENCE_PORTIONS`, which is what the catalog is *authored* in and
+ * must never move. These bound what a household may ask to cook: at least one
+ * portion, and not more than a table can plausibly sit. They live here rather than in
+ * the client's reducer because both ends now enforce them — the stepper stops at
+ * them, and the route clamps to them — and two copies of a bound is how the two ends
+ * disagree about what a legal request is.
+ *
+ * The floor is 1 rather than 0.5 even though a diner set can total less (one adult
+ * and one child, adult deselected, is 0.5 — #112): a stepper that opens on a value
+ * its own "−" is already disabled for reads as broken. That clamp is exactly why the
+ * count and the amounts could disagree before #231 without anyone touching the
+ * stepper, so the server now scales to the clamped number rather than the raw total.
+ */
+export const MIN_PORTIONS = 1;
+export const MAX_PORTIONS = 24;
+
+/** `portions` brought into range. Clamping rather than rejecting: the safe answer is
+ *  always available, and a client bug should not dead-end a household. */
+export function clampPortions(portions: number): number {
+  return Math.min(MAX_PORTIONS, Math.max(MIN_PORTIONS, portions));
+}
+
+/**
  * A scaled amount, ready to render. Same shape as the authored `SlotQuantity`: a
  * `to_taste` slot scales to itself, because salt is salt at any portion count.
  */
