@@ -12,6 +12,7 @@ import type {
   RecipeTemplate,
 } from "../schema/recipeTemplate.js";
 import type { CandidateTemplate } from "./candidates.js";
+import { isSameVariety } from "./catalog.js";
 import type { EngineData } from "./data.js";
 
 // Second slice of the Meal Engine: order the safe candidate set produced by
@@ -383,23 +384,139 @@ export function recencyPenalty(templateId: string, recency: RecencyContext): num
  * original ingredient there.
  */
 /**
+ * The `EngineData` slice pantry coverage needs, mirroring `SeasonalityData` above:
+ * the substitution groups, and nothing else. Coverage stopped being answerable from
+ * ids alone in #219 — a household that marked "ris" has covered a slot calling for
+ * `jasminris` — so the rule needs the groups in hand.
+ */
+export type PantryCoverageData = Pick<
+  EngineData,
+  "substitutionGroupsByMemberIngredientId" | "ingredientsById"
+>;
+
+/** One slot of a dish, paired with the pantry item the household actually marked. */
+export interface PantryCoverage {
+  /**
+   * What the dish puts in the pan: the substitute where the filtering slice rescued
+   * the slot, otherwise the template's own ingredient. The shopping list and the
+   * ingredient rows key on this one, because it is the row a household reads.
+   */
+  ingredientId: string;
+  /**
+   * The pantry item covering it — equal to `ingredientId` unless a substitution group
+   * bridged the two. The explanation line names *this* one: a household that marked
+   * "ris" must not be told the dish was picked because they have jasminris, which
+   * they never said.
+   */
+  pantryIngredientId: string;
+}
+
+/**
+ * The pantry item covering `ingredientId` in a slot of `role`, or `undefined` when
+ * the household has nothing that works there.
+ *
+ * The member has to be a *variety* of the slot's ingredient (`isSameVariety`), not
+ * merely a member of some group it shares (#221). Group membership alone put vitlök
+ * under "har hemma" for a household that marked gul lök, in 34 of the catalog's dishes,
+ * and sent them to the stove without garlic. Being told you have something you do not
+ * is worse than not being credited for your rice.
+ *
+ * Deliberately *not* filtered by the slot's role, unlike `substituteCandidateIds`
+ * (src/engine/candidates.ts), and the difference is the whole point: that function asks
+ * "what could go in this slot", which is a question about the dish, while this one asks
+ * "does the household own this product", which is a question about a cupboard. A
+ * cupboard has no roles in it. Filtering here cost four real coverings in the live
+ * catalog — the `hardost` group is `dairy`, but eight of the catalog's slots put hard
+ * cheese in a `protein` one, so a household with hushållsost was credited for
+ * "Risotto med svamp och prästost" and not for "Pasta aglio e olio med prästost". The
+ * same trap is loaded in `mjolk` and `yoghurt`, which also span both roles.
+ *
+ * The invariant the role filter used to be credited with — an asian curry's aromatic
+ * slot may offer grädde ↔ kokosmjölk, a Swedish gräddsås may never see coconut — does
+ * not depend on it and did not when #221 said it did: kokosmjölk carries no variety key
+ * at all, so `isSameVariety` rejects it against either grädde whatever the roles say.
+ * Crème fraîche likewise. The gate that protects that promise is the variety relation,
+ * and it is strictly the narrower of the two.
+ *
+ * Group membership itself is still required: a variety class whose members share no
+ * group covers nothing, which is what keeps the curated classes and the curated groups
+ * from drifting into two independent claims about the same catalog.
+ *
+ * Never a safety decision. An allergic household's unsafe dishes left the candidate
+ * set long before coverage is asked, so nothing here filters again — this only ever
+ * decides ranking and display.
+ */
+function pantryItemCovering(
+  data: PantryCoverageData,
+  ingredientId: string,
+  pantry: ReadonlySet<string>,
+): string | undefined {
+  if (pantry.has(ingredientId)) return ingredientId;
+
+  // Data-file order throughout, so the answer is identical on every machine when more
+  // than one marked item could cover the same slot.
+  for (const group of data.substitutionGroupsByMemberIngredientId.get(ingredientId) ?? []) {
+    for (const memberId of group.member_ingredient_ids) {
+      if (memberId === ingredientId || !pantry.has(memberId)) continue;
+      if (!isSameVariety(data, ingredientId, memberId)) continue;
+      return memberId;
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Which of the household's on-hand ingredients this dish actually uses — resolved
- * through substitutions, so it is the ingredient the household would really put in the
- * pan and not the one the template happens to name.
+ * through substitutions, so it is the ingredient the household would really put in
+ * the pan and not the one the template happens to name, and through substitution
+ * groups, so marking "ris" covers the eleven dishes whose slot says `jasminris`
+ * (#219).
  *
  * The one definition of "pantry coverage" in the product. `orderByPantryCoverage`
- * (src/engine/directions.ts) orders by its length and `explainSuggestion` names its
- * members, so the dish that gets promoted for having pasta at home is the same dish
- * that says so on the card — there is no second rule that could disagree.
+ * (src/engine/directions.ts) orders by `distinctPantryItemCount` of it and
+ * `explainSuggestion` names its members, so the dish that gets promoted for having
+ * pasta at home is the same dish that says so on the card — there is no second rule
+ * that could disagree.
  *
- * Deduplicated: a dish with two slots of the same pantry ingredient covers one pantry
- * item, not two, and must not out-rank a dish using two different things.
+ * One entry per covered ingredient, not per slot: a dish using the same ingredient in
+ * two slots covers it once. Two *different* ingredients covered by one pantry item
+ * stay two entries, because both rows have to render as "har hemma" — the ranking
+ * question ("how much of the pantry did this dish use") is `distinctPantryItemCount`,
+ * which collapses them back to one.
  */
-export function coveredPantryIngredientIds(
+export function coveredPantryIngredients(
+  data: PantryCoverageData,
   candidate: CandidateTemplate,
   pantry: ReadonlySet<string>,
-): string[] {
-  return [...new Set(effectiveIngredientIds(candidate).filter((id) => pantry.has(id)))];
+): PantryCoverage[] {
+  const seen = new Set<string>();
+  const covered: PantryCoverage[] = [];
+
+  // No index into `ingredient_slots` any more: coverage stopped being a question about
+  // the slot when the role filter went (see `pantryItemCovering`), and reaching for the
+  // slot to read a field nothing uses is how the next role-shaped assumption gets in.
+  for (const ingredientId of effectiveIngredientIds(candidate)) {
+    if (seen.has(ingredientId)) continue;
+
+    const pantryIngredientId = pantryItemCovering(data, ingredientId, pantry);
+    if (pantryIngredientId === undefined) continue;
+
+    seen.add(ingredientId);
+    covered.push({ ingredientId, pantryIngredientId });
+  }
+
+  return covered;
+}
+
+/**
+ * How many of the household's pantry items a dish actually used — the ranking
+ * quantity, and the reason coverage is not simply counted by `length`: a dish using
+ * both matlagningsgrädde and vispgrädde must not out-rank one using grädde and
+ * potatis on the strength of a single tap.
+ */
+export function distinctPantryItemCount(coverage: readonly PantryCoverage[]): number {
+  return new Set(coverage.map((entry) => entry.pantryIngredientId)).size;
 }
 
 export function effectiveIngredientIds(candidate: CandidateTemplate): string[] {
@@ -747,7 +864,9 @@ function scoreTermReasons(
  * candidate that was already excluded, and never a re-derivation of the ranking.
  */
 export function explainSuggestion(
-  data: SeasonalityData,
+  // Widened past `SeasonalityData` in #219: the `pantry_match` reason below is
+  // derived through `coveredPantryIngredients`, which needs the substitution groups.
+  data: SeasonalityData & PantryCoverageData,
   ranked: readonly RankedCandidate[],
   excludedTemplateIds: ReadonlySet<string>,
   picked: RankedCandidate,
@@ -782,7 +901,7 @@ export function explainSuggestion(
   // and saying otherwise would credit a tap that did nothing.
   const covered =
     pantryIngredientIds.length > 0
-      ? coveredPantryIngredientIds(picked, new Set(pantryIngredientIds))
+      ? coveredPantryIngredients(data, picked, new Set(pantryIngredientIds))
       : [];
   const pantryDecidedThisPick =
     covered.length > 0 &&

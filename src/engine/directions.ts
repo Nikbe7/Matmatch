@@ -1,7 +1,10 @@
 import type { Cuisine } from "../schema/recipeTemplate.js";
 import {
-  coveredPantryIngredientIds,
+  coveredPantryIngredients,
+  distinctPantryItemCount,
   effectiveIngredientIds,
+  type PantryCoverage,
+  type PantryCoverageData,
   type RankedCandidate,
 } from "./ranking.js";
 
@@ -55,8 +58,13 @@ export interface Direction extends RankedCandidate {
    * "✓ ris, ✓ grädde" half of §5 step 5, and what seeds the shopping list's
    * "Har hemma" section. Ids, in slot order, never names: naming is display work
    * that belongs to the API layer.
+   *
+   * Pairs since #219, not bare ids: a slot and the pantry item covering it can be
+   * different ingredients now that a shared variety bridges them (#221), and the two
+   * consumers want different halves — the rows mark `ingredientId`, the explanation
+   * line names `pantryIngredientId`.
    */
-  coveredPantryIngredientIds: readonly string[];
+  pantryCoverage: readonly PantryCoverage[];
 }
 
 /**
@@ -99,6 +107,7 @@ function matchesMain(candidate: RankedCandidate, main: MainIngredientChoice): bo
  * has one or two.
  */
 export function eligibleDirections(
+  data: PantryCoverageData,
   ranked: readonly RankedCandidate[],
   selection: DirectionSelection,
 ): Direction[] {
@@ -108,7 +117,7 @@ export function eligibleDirections(
     ...candidate,
     // The shared definition (src/engine/ranking.ts), not a local one: the card that
     // says "du har pasta hemma" must be the card coverage actually promoted.
-    coveredPantryIngredientIds: coveredPantryIngredientIds(candidate, pantry),
+    pantryCoverage: coveredPantryIngredients(data, candidate, pantry),
   }));
 }
 
@@ -116,7 +125,7 @@ function bucketKey(direction: Direction, preferHighProtein: boolean): BucketKey 
   const highProtein = direction.template.dietary_tags.includes("high_protein_preference");
   return {
     intentRank: preferHighProtein && highProtein ? 0 : 1,
-    coverage: -direction.coveredPantryIngredientIds.length,
+    coverage: -distinctPantryItemCount(direction.pantryCoverage),
   };
 }
 
@@ -131,22 +140,23 @@ function bucketKey(direction: Direction, preferHighProtein: boolean): BucketKey 
  * answer to "does the household get credit for having pasta", and the two would
  * diverge the first time either was touched.
  *
- * Returns `Direction`s, not bare candidates: the caller needs
- * `coveredPantryIngredientIds` to explain the pick (`pantry_match`, #152), and
- * re-deriving coverage downstream would be the same duplication one layer down.
+ * Returns `Direction`s, not bare candidates: the caller needs `pantryCoverage` to
+ * explain the pick (`pantry_match`, #152), and re-deriving coverage downstream would
+ * be the same duplication one layer down.
  *
  * An empty pantry is the identity function — the household skipped the step, so
  * coverage is 0 everywhere and the stable sort leaves the ranked order untouched.
  */
 export function orderByPantryCoverage(
+  data: PantryCoverageData,
   ranked: readonly RankedCandidate[],
   pantryIngredientIds: readonly string[],
 ): Direction[] {
-  const eligible = eligibleDirections(ranked, { main: { kind: "any" }, pantryIngredientIds });
+  const eligible = eligibleDirections(data, ranked, { main: { kind: "any" }, pantryIngredientIds });
 
   // Stable by specification (ES2019+): equal coverage must preserve the ranked order.
   return [...eligible].sort(
-    (a, b) => b.coveredPantryIngredientIds.length - a.coveredPantryIngredientIds.length,
+    (a, b) => distinctPantryItemCount(b.pantryCoverage) - distinctPantryItemCount(a.pantryCoverage),
   );
 }
 
@@ -167,6 +177,7 @@ export function orderByPantryCoverage(
  *     more exotic one using none.
  */
 export function pickDirections(
+  data: PantryCoverageData,
   ranked: readonly RankedCandidate[],
   selection: DirectionSelection,
 ): Direction[] {
@@ -179,7 +190,8 @@ export function pickDirections(
   // order the `BucketKey` describes, and it keeps pantry coverage computed in one
   // place for both this flow and Tonight.
   const byCoverage = orderByPantryCoverage(
-    eligibleDirections(ranked, selection),
+    data,
+    eligibleDirections(data, ranked, selection),
     selection.pantryIngredientIds ?? [],
   );
 

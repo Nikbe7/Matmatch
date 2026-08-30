@@ -202,7 +202,7 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
               // best dishes we have beats showing none.
               { kind: "any" };
 
-      let directions = pickDirections(ranked, {
+      let directions = pickDirections(engineData, ranked, {
         main: mainChoice,
         pantryIngredientIds,
         preferHighProtein,
@@ -220,7 +220,10 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
       // unrelated, incidentally-recomputed suggestion — exactly the silent swap
       // this feature exists to prevent.
       if (keepTemplateId && !directions.some((direction) => direction.template.id === keepTemplateId)) {
-        const kept = eligibleDirections(ranked, { main: { kind: "any" }, pantryIngredientIds }).find(
+        const kept = eligibleDirections(engineData, ranked, {
+          main: { kind: "any" },
+          pantryIngredientIds,
+        }).find(
           (direction) => direction.template.id === keepTemplateId,
         );
         if (kept) directions = [kept, ...directions].slice(0, DIRECTION_COUNT);
