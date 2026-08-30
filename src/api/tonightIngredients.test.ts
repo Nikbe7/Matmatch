@@ -132,3 +132,68 @@ describe("buildTonightIngredients", () => {
     );
   });
 });
+
+// #223: the variety note, attached to the row the bridge happened on.
+describe("buildTonightIngredients — variety notes", () => {
+  const ingredients = [
+    makeIngredient("matlagningsgradde", { name: "matlagningsgrädde", variety_of: "gradde" }),
+    makeIngredient("vispgradde", { name: "vispgrädde", variety_of: "gradde" }),
+    makeIngredient("tomat", { name: "tomat", variety_of: "tomat" }),
+    makeIngredient("korsbarstomat", { name: "körsbärstomat", variety_of: "tomat" }),
+  ];
+  const varietyFamilies = [
+    { id: "gradde", name: "Grädde", note: "Fetthalten skiljer mellan sorterna." },
+    // A family with no note is the normal case and must render nothing extra.
+    { id: "tomat", name: "Tomat" },
+  ];
+  const template = makeTemplate("gryta", {
+    ingredient_slots: [
+      makeSlot({ role: "dairy", ingredient_id: "matlagningsgradde", substitutable: true }),
+      makeSlot({ role: "vegetable", ingredient_id: "tomat", substitutable: true }),
+    ],
+  });
+
+  function build(pantryCoverage: { ingredientId: string; pantryIngredientId: string }[]) {
+    const data = makeEngineData({ ingredients, varietyFamilies });
+    return buildTonightIngredients(
+      data,
+      { template, substitutions: [] },
+      REFERENCE_PORTIONS,
+      pantryCoverage,
+    );
+  }
+
+  it("carries the family note on a row covered by a different variety", () => {
+    const views = build([{ ingredientId: "matlagningsgradde", pantryIngredientId: "vispgradde" }]);
+
+    expect(views[0]!.varietyNote).toBe("Fetthalten skiljer mellan sorterna.");
+  });
+
+  it("omits the key entirely on an exact pantry match", () => {
+    // The household marked the very thing the dish names — there is nothing to warn
+    // about, and the row must serialize without the key rather than with undefined.
+    const views = build([
+      { ingredientId: "matlagningsgradde", pantryIngredientId: "matlagningsgradde" },
+    ]);
+
+    expect(views[0]).not.toHaveProperty("varietyNote");
+  });
+
+  it("omits it when the bridged family has no note", () => {
+    const views = build([{ ingredientId: "tomat", pantryIngredientId: "korsbarstomat" }]);
+
+    expect(views[1]).not.toHaveProperty("varietyNote");
+  });
+
+  it("omits it on every row with no pantry coverage at all", () => {
+    const views = build([]);
+
+    expect(views.every((view) => !("varietyNote" in view))).toBe(true);
+  });
+
+  it("attaches the note only to the row that was bridged", () => {
+    const views = build([{ ingredientId: "matlagningsgradde", pantryIngredientId: "vispgradde" }]);
+
+    expect(views[1]).not.toHaveProperty("varietyNote");
+  });
+});

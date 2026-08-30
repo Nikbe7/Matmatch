@@ -57,3 +57,30 @@ export function isSameVariety(
   if (variety === undefined) return false;
   return variety === data.ingredientsById.get(otherIngredientId)?.variety_of;
 }
+
+/**
+ * The curated note for the family two ingredients share, when a *variety bridge*
+ * actually happened (#223) — the household marked one variety and the dish asks for
+ * another. `undefined` whenever there is nothing honest to say: the two are the same
+ * ingredient, they are not varieties of each other, or their family carries no note.
+ *
+ * Display only. Nothing in ranking, scoring, filtering or candidate selection may
+ * read this — the note explains a coverage decision that was already made, it never
+ * takes part in making one. It is also never a safety statement, for the same reason
+ * `isSameVariety` is not: an unsafe dish left the candidate set long before anything
+ * asks a family for prose.
+ *
+ * The family lookup cannot silently miss: `validate` requires every `variety_of` to
+ * resolve into `data/variety-families.json`, so an absent family is a data fault the
+ * validator catches rather than a note that quietly never renders.
+ */
+export function varietyBridgeNote(
+  data: Pick<EngineData, "ingredientsById" | "varietyFamiliesById">,
+  ingredientId: string,
+  pantryIngredientId: string,
+): string | undefined {
+  if (ingredientId === pantryIngredientId) return undefined;
+  if (!isSameVariety(data, ingredientId, pantryIngredientId)) return undefined;
+  const family = data.ingredientsById.get(ingredientId)?.variety_of;
+  return family === undefined ? undefined : data.varietyFamiliesById.get(family)?.note;
+}

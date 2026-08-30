@@ -501,6 +501,19 @@ select.input {
   gap: var(--space-2);
 }
 
+/* #223: the variety note under a row whose pantry coverage bridged two varieties.
+   `flex-basis: 100%` is the same idiom `.list-row__actions` above uses to claim its
+   own line — the sentence must not compete with the amount for the first line's
+   space at 360px. Muted and small: it is standing information about the row, not a
+   warning, and a "Har hemma" row is already the quiet half of the screen. */
+.list-row__variety-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  text-wrap: pretty;
+}
+
 /* The popover itself (#124) — a bottom-anchored sheet rather than a floating
    tooltip. At 360px there is nowhere reliable to anchor a popover to the tapped
    row without it running off-screen; a full-width sheet keeps every control (chips,
@@ -1426,12 +1439,26 @@ select.input {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--space-4);
   padding: var(--space-2) 0;
 }
 
 .cook__ingredient-name {
   overflow-wrap: anywhere;
+}
+
+/* #223, the cook-screen half. The row is a `space-between` flex of name and amount,
+   so the note has to wrap onto its own full-width line rather than squeeze between
+   them — hence `flex-wrap` on the row above and `flex-basis: 100%` here. Same muted
+   register as the shopping list's: the ingredient panel is deliberately quiet (#154)
+   and this must not start competing with the step that dominates the screen. */
+.cook__ingredient-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+  text-wrap: pretty;
 }
 
 .cook__section {

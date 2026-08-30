@@ -8,6 +8,52 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-08-30 — Variantfamiljen blir en egen post; `variety_of` blir en validerad nyckel (#223)
+
+Reverserar inte #221. #221 svarade på *medlemskap* — vilken familj en ingrediens
+tillhör är en egenskap hos ingrediensen, eftersom varje ingrediens är variant av
+exakt en produkt — och dess "ingen femte datafil"-argument handlade om just det.
+Svaret står orört: `variety_of` ligger kvar som fält. Den här posten svarar på en
+annan fråga som #221 aldrig behövde ställa: var familjen bor när den ska bära egen
+kurerad text. Fram tills nu bodde den ingenstans, den var en sträng upprepad på sina
+medlemmar.
+
+`data/variety-families.json`, 16 rader, `{ id, name, note? }`. Notisen är en kurerad
+mening som visas när skafferitäckningen faktiskt gick via en annan variant än den
+mallen namnger — hushållet markerade vispgrädde, raden säger matlagningsgrädde, och
+såsen blir tjockare. 9 av 16 familjer bär en; resten skiljer sig inte på ett sätt
+värt en mening.
+
+Att filen äger namnrymden är poängen, inte en bieffekt. En notis nycklad mot en öppen
+namnrymd fallerar *tyst*: "den här familjen har ingen notis" är normaltillståndet för
+de flesta familjer, så ett typo i nyckeln blir omöjligt att skilja från en familj som
+aldrig var tänkt att säga något — och det på den enda ytan där ett hushåll får veta
+att rätten blir en annan. Med filen är samma typo ett referensintegritetsfel.
+`checkVarietyClasses` byter därmed jobb i stället för att försvinna: typo-fallet
+flyttar till referensintegritet, kardinalitet blir kvar som varning, nu åt båda håll
+(en familj med en medlem, och en deklarerad familj utan medlemmar).
+
+Siffran kunde inte komma någon annanstans ifrån. Ingredienser bär ingen fetthalt,
+ingen densitet, ingen tillagningsegenskap — motorn har ingenting att räkna en
+justering ur. Och en modell får inte generera den: "använd 1,5 dl i stället för 2" är
+precis en sådan siffra ett hushåll litar på, samma regel som gäller kostnadssiffror.
+Notisen säger därför *att* det blir skillnad och hur den känns, aldrig hur mycket.
+Ett test håller den regeln: ingen notis får innehålla en siffra.
+
+Per ordnat par med omräknade mängder vore mer korrekt och är ~150–200 kurerade rader
+för en vinst MVP inte behöver. Familjenivån räcker eftersom skillnaden är densamma
+oavsett håll.
+
+Visas på båda ytorna — inköpslistans rad och kockskärmen. De är timmar isär, och
+skillnaden biter vid spisen medan beslutet fattas i butiken.
+
+**How to apply:** Lägg inget mer på familjeposten. Den är `{ id, name, note? }`:
+substitutionssemantik, rankningsvikter och kökstillhörighet hör hemma någon
+annanstans, och en post som börjar samla fält blir en andra sanning om vad en variant
+är. Låt ingen modell skriva notistexten. Och blanda inte ihop de två relationerna:
+gruppmedlemskap är den vidare (#124-popovern), varianten den smalare (skafferifrågan)
+— #221 finns för att de en gång var samma sak.
+
 ## 2026-08-25 — Allergifiltrering tas bort helt; appen slutar fråga och slutar lova (#224)
 
 Reverserar CLAUDE.md:s första non-negotiable och nio poster i den här loggen: #168

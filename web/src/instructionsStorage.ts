@@ -28,6 +28,9 @@ export function substitutionKey(substitutions: readonly TonightSubstitution[]): 
 export interface CookIngredient {
   name: string;
   quantity: ScaledQuantity;
+  /** The variety note for this row (#223) — see `ShoppingListItem.varietyNote`. The
+   *  stove is where the difference actually bites, so it is carried here too. */
+  varietyNote?: string;
 }
 
 export interface CookRecord {

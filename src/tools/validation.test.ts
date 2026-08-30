@@ -447,3 +447,110 @@ describe("validateFiles — variety classes (#221)", () => {
     expect(result.warnings[0]!.path).toBe("variety_of");
   });
 });
+
+describe("validateFiles — variety families (#223)", () => {
+  const base = {
+    category: "starch",
+    default_cost_tier: "budget",
+    peak_months: [],
+    available_year_round: true,
+    seasonality_strength: "weak",
+  };
+
+  function files(
+    records: Record<string, unknown>[],
+    families: Record<string, unknown>[],
+  ): FileInput[] {
+    return [
+      { path: "data/ingredients.json", type: "ingredient", content: JSON.stringify(records) },
+      {
+        path: "data/variety-families.json",
+        type: "variety-family",
+        content: JSON.stringify(families),
+      },
+    ];
+  }
+
+  const twoRice = [
+    { ...base, id: "ris", name: "ris", variety_of: "ris" },
+    { ...base, id: "jasminris", name: "jasminris", variety_of: "ris" },
+  ];
+
+  it("passes a family with two members and a resolving key", () => {
+    const result = validateFiles(files(twoRice, [{ id: "ris", name: "Ris" }]));
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("errors on a variety_of that resolves to no family — the typo case", () => {
+    // This is what moved from checkVarietyClasses: with the family a record, a typo
+    // is referential integrity rather than a cardinality hint. It matters because the
+    // note is optional, so a mistyped key would otherwise be indistinguishable from a
+    // family that legitimately has nothing to say.
+    const result = validateFiles(
+      files(
+        [
+          { ...base, id: "ris", name: "ris", variety_of: "ris" },
+          { ...base, id: "jasminris", name: "jasminris", variety_of: "riss" },
+        ],
+        [{ id: "ris", name: "Ris" }],
+      ),
+    );
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({ id: "jasminris", path: "variety_of" });
+    expect(result.errors[0]!.message).toContain("unknown variety family");
+  });
+
+  it("still warns on a family of one member", () => {
+    const result = validateFiles(
+      files([{ ...base, id: "ris", name: "ris", variety_of: "ris" }], [{ id: "ris", name: "Ris" }]),
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]!.message).toContain("never matches anything");
+  });
+
+  it("warns on a declared family no ingredient points at", () => {
+    // The other half of a renamed key. Only reachable now that the family is a record.
+    const result = validateFiles(
+      files(twoRice, [
+        { id: "ris", name: "Ris" },
+        { id: "gradde", name: "Grädde", note: "Fetthalten skiljer." },
+      ]),
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({ id: "gradde" });
+    expect(result.warnings[0]!.message).toContain("no members");
+  });
+
+  it("errors on a duplicate family id", () => {
+    const result = validateFiles(
+      files(twoRice, [
+        { id: "ris", name: "Ris" },
+        { id: "ris", name: "Ris igen" },
+      ]),
+    );
+
+    expect(result.errors.some((error) => error.id === "ris")).toBe(true);
+  });
+
+  it("rejects an empty note — absent is how a family says nothing", () => {
+    const result = validateFiles(files(twoRice, [{ id: "ris", name: "Ris", note: "" }]));
+
+    expect(result.errors.some((error) => error.path === "note")).toBe(true);
+  });
+
+  it("notes rather than errors when no family file is in the invocation", () => {
+    const result = validateFiles([
+      { path: "data/ingredients.json", type: "ingredient", content: JSON.stringify(twoRice) },
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.notes.some((note) => note.includes("variety-family"))).toBe(true);
+  });
+});
