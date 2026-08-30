@@ -81,11 +81,12 @@ function candidateFrequency(candidates: readonly CandidateTemplate[]): Map<strin
  * have in the cupboard and deserve two squares. The same relation the engine's
  * coverage uses, so the grid can never offer a tap that coverage then ignores.
  *
- * Unlike `pantryItemCovering` in the engine, no role filter applies here: the grid asks
- * what a household has in the cupboard, which is a question about the ingredient and
- * not about any particular slot. It changes nothing in practice — a variety class does
- * not span roles — but stating it as the ingredient question it is keeps the grid from
- * inheriting a slot's vocabulary it has no slot for.
+ * No role filter, for the same reason `pantryItemCovering` in the engine has none: both
+ * ask what a household has in the cupboard, which is a question about the ingredient and
+ * not about any particular slot. Variety classes do span roles in the live catalog —
+ * `hardost`, `mjolk` and `yoghurt` all appear in both `dairy` and `protein` slots — so a
+ * role filter here would have shown two squares for one product depending on which
+ * dishes the household happened to qualify for.
  */
 function isInterchangeableWithPicked(
   data: EngineData,

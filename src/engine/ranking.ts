@@ -8,7 +8,6 @@ import type { CostTier } from "../schema/ingredient.js";
 import type {
   EffortLevel,
   Familiarity,
-  IngredientSlotRole,
   PrepTimeBand,
   RecipeTemplate,
 } from "../schema/recipeTemplate.js";
@@ -416,21 +415,32 @@ export interface PantryCoverage {
  * The pantry item covering `ingredientId` in a slot of `role`, or `undefined` when
  * the household has nothing that works there.
  *
- * Two conditions, because a substitution group answers a wider question than the
- * pantry asks (#221):
+ * The member has to be a *variety* of the slot's ingredient (`isSameVariety`), not
+ * merely a member of some group it shares (#221). Group membership alone put vitlök
+ * under "har hemma" for a household that marked gul lök, in 34 of the catalog's dishes,
+ * and sent them to the stove without garlic. Being told you have something you do not
+ * is worse than not being credited for your rice.
  *
- *  - the member is a *variety* of the slot's ingredient (`isSameVariety`). This is the
- *    half that makes the answer true rather than merely plausible. Group membership
- *    alone put vitlök under "har hemma" for a household that marked gul lök, in 34 of
- *    the catalog's dishes, and sent them to the stove without garlic. Being told you
- *    have something you do not is worse than not being credited for your rice.
- *  - the group's role matches the slot's, exactly as `substituteCandidateIds`
- *    (src/engine/candidates.ts) filters it, and for the same reason: "the household has
- *    something that works in this slot" and "this slot could be swapped" are one
- *    question. It is the narrower of the two here and rarely the one that decides —
- *    variety classes do not span roles — but it is what keeps the `aromatic` group
- *    `kokosmjolk-och-gradde` from reaching a `dairy` slot, so an asian curry's aromatic
- *    slot can offer grädde ↔ kokosmjölk while a Swedish gräddsås never sees coconut.
+ * Deliberately *not* filtered by the slot's role, unlike `substituteCandidateIds`
+ * (src/engine/candidates.ts), and the difference is the whole point: that function asks
+ * "what could go in this slot", which is a question about the dish, while this one asks
+ * "does the household own this product", which is a question about a cupboard. A
+ * cupboard has no roles in it. Filtering here cost four real coverings in the live
+ * catalog — the `hardost` group is `dairy`, but eight of the catalog's slots put hard
+ * cheese in a `protein` one, so a household with hushållsost was credited for
+ * "Risotto med svamp och prästost" and not for "Pasta aglio e olio med prästost". The
+ * same trap is loaded in `mjolk` and `yoghurt`, which also span both roles.
+ *
+ * The invariant the role filter used to be credited with — an asian curry's aromatic
+ * slot may offer grädde ↔ kokosmjölk, a Swedish gräddsås may never see coconut — does
+ * not depend on it and did not when #221 said it did: kokosmjölk carries no variety key
+ * at all, so `isSameVariety` rejects it against either grädde whatever the roles say.
+ * Crème fraîche likewise. The gate that protects that promise is the variety relation,
+ * and it is strictly the narrower of the two.
+ *
+ * Group membership itself is still required: a variety class whose members share no
+ * group covers nothing, which is what keeps the curated classes and the curated groups
+ * from drifting into two independent claims about the same catalog.
  *
  * Never a safety decision. An allergic household's unsafe dishes left the candidate
  * set long before coverage is asked, so nothing here filters again — this only ever
@@ -439,7 +449,6 @@ export interface PantryCoverage {
 function pantryItemCovering(
   data: PantryCoverageData,
   ingredientId: string,
-  role: IngredientSlotRole,
   pantry: ReadonlySet<string>,
 ): string | undefined {
   if (pantry.has(ingredientId)) return ingredientId;
@@ -447,7 +456,6 @@ function pantryItemCovering(
   // Data-file order throughout, so the answer is identical on every machine when more
   // than one marked item could cover the same slot.
   for (const group of data.substitutionGroupsByMemberIngredientId.get(ingredientId) ?? []) {
-    if (group.role !== role) continue;
     for (const memberId of group.member_ingredient_ids) {
       if (memberId === ingredientId || !pantry.has(memberId)) continue;
       if (!isSameVariety(data, ingredientId, memberId)) continue;
@@ -485,18 +493,18 @@ export function coveredPantryIngredients(
   const seen = new Set<string>();
   const covered: PantryCoverage[] = [];
 
-  effectiveIngredientIds(candidate).forEach((ingredientId, index) => {
-    if (seen.has(ingredientId)) return;
+  // No index into `ingredient_slots` any more: coverage stopped being a question about
+  // the slot when the role filter went (see `pantryItemCovering`), and reaching for the
+  // slot to read a field nothing uses is how the next role-shaped assumption gets in.
+  for (const ingredientId of effectiveIngredientIds(candidate)) {
+    if (seen.has(ingredientId)) continue;
 
-    const role = candidate.template.ingredient_slots[index]?.role;
-    if (role === undefined) return;
-
-    const pantryIngredientId = pantryItemCovering(data, ingredientId, role, pantry);
-    if (pantryIngredientId === undefined) return;
+    const pantryIngredientId = pantryItemCovering(data, ingredientId, pantry);
+    if (pantryIngredientId === undefined) continue;
 
     seen.add(ingredientId);
     covered.push({ ingredientId, pantryIngredientId });
-  });
+  }
 
   return covered;
 }

@@ -39,10 +39,11 @@ export function isIngredientUnknown(
  * one, because gul lök does not mean vitlök and telling a household it has garlic is
  * how they get to the stove without any.
  *
- * An ingredient with no key is a variety of nothing but itself: two ingredients that
- * both lack one are never varieties of each other, which is what keeps morot/rödbeta
- * and citron/lime apart. Reflexive on a known id, so callers can ask about an
- * ingredient and itself without a special case.
+ * An ingredient with no key is a variety of nothing *at all*, itself included: two
+ * ingredients that both lack one are never varieties of each other, which is what keeps
+ * morot/rödbeta and citron/lime apart, and `isSameVariety(data, "vitlok", "vitlok")` is
+ * false for the same reason. So this is not a "same ingredient" test and callers must
+ * not use it as one — every caller checks identity itself, before asking.
  *
  * Never a safety decision. This only decides ranking and display; a household's unsafe
  * dishes left the candidate set long before anything asks.

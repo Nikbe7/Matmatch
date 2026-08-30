@@ -65,9 +65,63 @@ describe("pantry coverage runs through varieties, not the whole substitution gro
   });
 
   it("covers the other everyday varieties too", () => {
-    expect(dishesCovering("matlagningsgradde", "vispgradde").length).toBeGreaterThan(0);
-    expect(dishesCovering("hushallsost", "prastost").length).toBeGreaterThan(0);
-    expect(dishesCovering("potatis", "nypotatis").length).toBeGreaterThan(0);
+    // Counts, not `toBeGreaterThan(0)`. The weaker assertion passed while coverage was
+    // still filtered by the slot's role, which silently missed the two prästost dishes
+    // whose slot happens to be `protein` — a test that cannot see a missing half is not
+    // watching the thing it was written for.
+    expect(dishesCovering("matlagningsgradde", "vispgradde")).toHaveLength(2);
+    expect(dishesCovering("hushallsost", "prastost")).toHaveLength(5);
+    expect(dishesCovering("potatis", "nypotatis")).toHaveLength(4);
+  });
+
+  it("covers a variety whatever role the slot gives it", () => {
+    // Three variety classes span both `dairy` and `protein` slots in the live catalog,
+    // so "does the household own this product" must not be answered per slot. Asserted
+    // as the role span itself plus the coverage, because the day the catalog stops
+    // spanning roles is the day this test starts passing for the wrong reason.
+    const rolesFor = (ingredientId: string) =>
+      new Set(
+        candidates.flatMap((candidate) =>
+          candidate.template.ingredient_slots
+            .filter((slot) => slot.ingredient_id === ingredientId)
+            .map((slot) => slot.role),
+        ),
+      );
+
+    expect(rolesFor("prastost")).toEqual(new Set(["dairy", "protein"]));
+    expect(rolesFor("hushallsost")).toEqual(new Set(["dairy", "protein"]));
+
+    for (const name of ["Pasta aglio e olio med prästost", "Friterat ris med prästost och grönsaker"]) {
+      expect(dishesCovering("hushallsost", "prastost")).toContain(name);
+    }
+    for (const name of ["Mac and cheese med hushållsost", "Ostpaj med purjolök"]) {
+      expect(dishesCovering("prastost", "hushallsost")).toContain(name);
+    }
+  });
+
+  it("never misses a variety a household actually marked, over the whole catalog", () => {
+    // The mirror of the false-positive sweep below: that one proves nothing is claimed
+    // that was not marked, this one proves nothing marked is quietly dropped. Coverage
+    // has two ways to lie and both need a sweep.
+    const missed: string[] = [];
+
+    for (const ingredientId of data.ingredientsById.keys()) {
+      for (const candidate of candidates) {
+        const covered = new Set(
+          coveredPantryIngredients(data, candidate, new Set([ingredientId])).map(
+            (entry) => entry.ingredientId,
+          ),
+        );
+        for (const slot of candidate.template.ingredient_slots) {
+          if (slot.ingredient_id === ingredientId) continue;
+          if (!isSameVariety(data, slot.ingredient_id, ingredientId)) continue;
+          if (covered.has(slot.ingredient_id)) continue;
+          missed.push(`${ingredientId} -> ${slot.ingredient_id} (${candidate.template.name})`);
+        }
+      }
+    }
+
+    expect(missed).toEqual([]);
   });
 
   it("names the ingredient the household marked, not the one the slot says", () => {
