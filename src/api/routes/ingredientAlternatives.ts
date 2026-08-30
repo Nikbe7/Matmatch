@@ -71,6 +71,7 @@ export function ingredientAlternativesRouter(
 
       const view = buildIngredientAlternatives(
         engineData,
+        template.cuisine,
         slot,
         currentIngredientId,
         portions,

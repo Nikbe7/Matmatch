@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CostTierSchema, SlugIdSchema } from "./ingredient.js";
+import { CostTierSchema, CuisineSchema, SlugIdSchema, type Cuisine } from "./ingredient.js";
 import { DietaryFlagSchema } from "./allergyDietary.js";
 
 // ARCHITECTURE.md §5.3 — RecipeTemplate schema & coverage matrix
@@ -13,15 +13,11 @@ export const ProteinGroupSchema = z.enum([
 ]);
 export type ProteinGroup = z.infer<typeof ProteinGroupSchema>;
 
-export const CuisineSchema = z.enum([
-  "swedish_nordic",
-  "italian_mediterranean",
-  "asian",
-  "mexican_texmex",
-  "middle_eastern",
-  "american_comfort",
-]);
-export type Cuisine = z.infer<typeof CuisineSchema>;
+// Defined in ingredient.ts and re-exported here, unchanged for every importer.
+// It has to live over there because `Ingredient.cuisines` (#222) needs it and
+// ingredient.ts is already this pair's base module — recipeTemplate.ts imports
+// SlugIdSchema from it, so the dependency can only ever run in this direction.
+export { CuisineSchema, type Cuisine };
 
 export const PrepTimeBandSchema = z.enum(["<20min", "20-40min", "40min+"]);
 export type PrepTimeBand = z.infer<typeof PrepTimeBandSchema>;
