@@ -63,9 +63,12 @@ const TABS = [
   { to: "/profil", label: "Profil", Icon: ProfilIcon, end: false },
 ] as const;
 
-export function BottomNav() {
+/** `inert` while a modal layer is open (#201) — the attribute, not just
+ *  `pointer-events`, so the tabs leave the tab order and the accessibility tree
+ *  rather than merely stopping short of a click. */
+export function BottomNav({ inert = false }: { inert?: boolean }) {
   return (
-    <nav className="bottom-nav" aria-label="Huvudnavigation">
+    <nav className="bottom-nav" aria-label="Huvudnavigation" inert={inert}>
       {TABS.map(({ to, label, Icon, end }) => (
         <NavLink key={to} to={to} end={end} className="bottom-nav__tab">
           <Icon />

@@ -60,4 +60,11 @@
 
   /* Minimum touch target (44px per requirement 3) */
   --touch-target: 44px;
+
+  /* Stacking order (#201). Named because three unrelated magic numbers is exactly
+     how the pantry sheet ended up painting *under* the bottom nav while claiming
+     `aria-modal`. Anything that covers the page uses --z-overlay; the nav is the
+     only thing between the page and an overlay. */
+  --z-nav: 50;
+  --z-overlay: 100;
 }

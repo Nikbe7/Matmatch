@@ -13,6 +13,7 @@ import { formatPortionsCount, portionsNoun } from "./display";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Chip } from "./components/Chip";
+import { PantryPicker } from "./components/PantryPicker";
 import { StateScreen } from "./components/StateScreen";
 import { presentError, type PresentedError } from "./errorPresentation";
 import {
@@ -63,21 +64,60 @@ function GuidedBackButton({ onBack, label }: { onBack: () => void; label: string
   );
 }
 
+const GUIDED_STEP_COUNT = 3;
+
+/**
+ * The three-step progress indicator (#206) — segments, not the plain "Steg 1 av 3"
+ * text it replaces. The flow's cost to a household is that they do not know how much
+ * of it is left; three filled-or-not bars answer that at a glance, which a sentence
+ * they have to read does not.
+ *
+ * Purely decorative to assistive tech: the segments are `aria-hidden` and the same
+ * sentence is still announced, as `sr-only` text. A screen reader gains nothing from
+ * three unlabelled bars and loses the wording it already had.
+ */
+function GuidedProgress({ current }: { current: number }) {
+  return (
+    <div className="guided-progress">
+      <span className="sr-only">{`Steg ${current} av ${GUIDED_STEP_COUNT}`}</span>
+      <span className="guided-progress__track" aria-hidden="true">
+        {Array.from({ length: GUIDED_STEP_COUNT }, (_, index) => (
+          <span
+            key={index}
+            className={
+              index < current
+                ? "guided-progress__segment guided-progress__segment--done"
+                : "guided-progress__segment"
+            }
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
+
 /**
  * The step header (requirement: read as a question, not a form) — reuses
  * `Screen`'s own header shape (`.screen-header`) rather than a second visual
  * language: an eyebrow above a display-face title, with the back button in
- * the header's action slot. `eyebrow` numbers only the three real choice
- * steps ("Steg 1 av 3" …); the three result steps get a named, unnumbered one.
+ * the header's action slot.
+ *
+ * `step` numbers the three real choice steps and renders the progress indicator;
+ * `eyebrow` is the named, unnumbered label the three result steps carry instead.
+ * Exactly one of the two is given — a result step has no position in a sequence the
+ * household is still walking, and a choice step's position is the thing #206 wanted
+ * shown rather than spelled out.
  */
 function GuidedStepHeader({
   eyebrow,
+  step,
   title,
   hint,
   onBack,
   backLabel,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
+  step?: number;
   title: string;
   hint?: string;
   onBack: () => void;
@@ -86,7 +126,7 @@ function GuidedStepHeader({
   return (
     <header className="screen-header guided-header">
       <div>
-        <p className="text-eyebrow">{eyebrow}</p>
+        {step !== undefined ? <GuidedProgress current={step} /> : <p className="text-eyebrow">{eyebrow}</p>}
         <h2 className="screen-header__title">{title}</h2>
         {hint && <p className="muted guided-hint">{hint}</p>}
       </div>
@@ -609,21 +649,23 @@ export function GuidedFlow({
           {state.step === "intent" && (
             <>
               <GuidedStepHeader
-                eyebrow="Steg 1 av 3"
+                step={1}
                 title="Vad är du sugen på?"
                 onBack={handleBack}
                 backLabel={backLabel}
               />
-              <div role="group" aria-label="Välj inriktning" className="chip-row">
-                {GUIDED_INTENTS.map((intent) => (
-                  <Chip
-                    key={intent.id}
-                    pressed={state.intent === intent.id}
-                    onClick={() => dispatch({ type: "select_intent", intent: intent.id })}
-                  >
-                    {intent.label}
-                  </Chip>
-                ))}
+              <div className="guided-step-body">
+                <div role="group" aria-label="Välj inriktning" className="chip-row">
+                  {GUIDED_INTENTS.map((intent) => (
+                    <Chip
+                      key={intent.id}
+                      pressed={state.intent === intent.id}
+                      onClick={() => dispatch({ type: "select_intent", intent: intent.id })}
+                    >
+                      {intent.label}
+                    </Chip>
+                  ))}
+                </div>
               </div>
             </>
           )}
@@ -631,12 +673,13 @@ export function GuidedFlow({
           {state.step === "main" && (
             <>
               <GuidedStepHeader
-                eyebrow="Steg 2 av 3"
+                step={2}
                 title="Vilken huvudingrediens?"
                 hint="Välj en, eller låt oss föreslå utifrån säsong och pris."
                 onBack={handleBack}
                 backLabel={backLabel}
               />
+              <div className="guided-step-body">
               {options ? (
                 <>
                   <input
@@ -668,13 +711,14 @@ export function GuidedFlow({
                   <IngredientGridSkeleton />
                 </>
               )}
+              </div>
             </>
           )}
 
           {state.step === "pantry" && (
             <>
               <GuidedStepHeader
-                eyebrow="Steg 3 av 3"
+                step={3}
                 title="Vad har du hemma?"
                 hint="Valfritt — vi använder det bara för att välja förslag, och sparar det inte."
                 onBack={handleBack}
@@ -682,11 +726,14 @@ export function GuidedFlow({
               />
               {options ? (
                 <>
-                  <IngredientGrid
-                    label="Varor hemma"
+                  {/* #206: the same component Tonight's "Fler" sheet renders. This
+                      step used to show 18 chips flat with no way to narrow them,
+                      while the sheet showing the identical list looked different. */}
+                  <PantryPicker
                     options={options.pantryIngredients}
                     selected={state.pantry}
-                    onTap={(ingredientId) => dispatch({ type: "toggle_pantry", ingredientId })}
+                    onToggle={(ingredientId) => dispatch({ type: "toggle_pantry", ingredientId })}
+                    label="Varor hemma"
                   />
                   <Button
                     type="button"

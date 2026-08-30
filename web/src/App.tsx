@@ -44,9 +44,10 @@ import { createHttpAnalyticsSink } from "./analyticsSink";
 import { Button } from "./components/Button";
 import { Card } from "./components/Card";
 import { Chip } from "./components/Chip";
+import { PantryPicker } from "./components/PantryPicker";
 import { PreferenceBlock } from "./components/PreferenceBlock";
 import { RefreshIcon } from "./components/RefreshIcon";
-import { Screen } from "./components/Screen";
+import { Screen, useModalHost } from "./components/Screen";
 import { StateScreen } from "./components/StateScreen";
 import { presentError, GENERIC_ERROR_MESSAGE, OFFLINE_MESSAGE } from "./errorPresentation";
 import {
@@ -621,11 +622,13 @@ function PantryRow({
 /**
  * The full pantry grid, in a layer over Tonight rather than a route (#152).
  *
- * The guided flow's own grid, unchanged — same options, same multi-select, same chip
- * behaviour — because "what do you have at home" must not be two different questions
- * depending on which screen asked it. A layer rather than navigation so the suggestion
- * is still there when it closes: leaving the screen to answer a side question is how a
- * zero-input surface turns into a form.
+ * The guided flow's own picker, literally — `PantryPicker`, the same component step 3
+ * renders — because "what do you have at home" must not be two different questions
+ * depending on which screen asked it. Until #206 that sameness was a claim maintained
+ * by hand in two places, and it had already drifted: only one of them had a search box.
+ * A layer rather than navigation so the suggestion is still there when it closes:
+ * leaving the screen to answer a side question is how a zero-input surface turns into
+ * a form.
  */
 function PantrySheet({
   options,
@@ -650,18 +653,16 @@ function PantrySheet({
         <p className="muted pantry-sheet__hint">
           Valfritt — vi använder det bara för att välja förslag, och sparar det inte.
         </p>
-        <div role="group" aria-label="Alla varor hemma" className="ingredient-grid">
-          {options.map((option) => (
-            <Chip
-              key={option.id}
-              className="ingredient-grid__item"
-              pressed={selected.includes(option.id)}
-              onClick={() => onToggle(option.id)}
-            >
-              {option.name}
-            </Chip>
-          ))}
-        </div>
+        {/* #206: the same picker the guided flow's step 3 renders, search included.
+            This list is the longest of the three the app used to show for one
+            question, and it was the one with no way to narrow it. */}
+        <PantryPicker
+          options={options}
+          selected={selected}
+          onToggle={onToggle}
+          label="Alla varor hemma"
+          searchable
+        />
       </div>
     </div>
   );
@@ -998,6 +999,14 @@ function TonightView({
   // The "Fler" layer (#152). Plain view state — it holds no selection of its own, it
   // just shows the same list the row does at full length.
   const [pantrySheetOpen, setPantrySheetOpen] = useState(false);
+  // #201: the shell owns the bottom nav, so the sheet has to say it is open rather
+  // than reach for it. Reset on unmount too — navigating away with the sheet open
+  // must not leave the nav inert on the screen the household lands on.
+  const setModalOpen = useModalHost();
+  useEffect(() => {
+    setModalOpen(pantrySheetOpen);
+    return () => setModalOpen(false);
+  }, [pantrySheetOpen, setModalOpen]);
 
   function apply(action: RefinementAction): RefinementState {
     const next = refinementReducer(refinementRef.current, action);
