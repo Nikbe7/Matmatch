@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildPantryIngredientOptions, PANTRY_GRID_SIZE } from "../api/guidedCatalog.js";
 import { selectCandidateTemplates } from "./candidates.js";
-import { isSameVariety } from "./catalog.js";
+import { isSameVariety, varietyBridgeNote } from "./catalog.js";
 import { loadEngineData } from "./data.js";
 import { coveredPantryIngredients } from "./ranking.js";
 import { makeConstraints as household } from "./__fixtures__/household.js";
@@ -220,5 +220,56 @@ describe("the pantry grid offers one square per variety, not per group", () => {
 
   it("is deterministic", () => {
     expect(buildPantryIngredientOptions(data, candidates)).toEqual(options);
+  });
+});
+
+// #223 — the note the family carries, against the REAL curated data for the same
+// reason as everything else in this file: whether a household is warned that its
+// sauce will come out thicker is a claim about the shipped catalog, and a fixture
+// would only prove that the code reads the fixture.
+describe("a variety that covers a slot says what will be different", () => {
+  it("names the grädde difference when vispgrädde covers a matlagningsgrädde slot", () => {
+    // The exact case #223 was filed for: coverage *marks*, it never swaps or
+    // rescales, so this sentence is the only thing between the household and a
+    // silently different sauce.
+    const note = varietyBridgeNote(data, "matlagningsgradde", "vispgradde");
+
+    expect(note).toContain("vispgrädde");
+    expect(note).toContain("matlagningsgrädde");
+  });
+
+  it("says the same thing in the other direction — the families are unordered", () => {
+    expect(varietyBridgeNote(data, "vispgradde", "matlagningsgradde")).toBe(
+      varietyBridgeNote(data, "matlagningsgradde", "vispgradde"),
+    );
+  });
+
+  it("says nothing when the pantry item is the dish's own ingredient", () => {
+    expect(varietyBridgeNote(data, "potatis", "potatis")).toBeUndefined();
+  });
+
+  it("says nothing between two ingredients that are not varieties of each other", () => {
+    // morot and rödbeta share a substitution group but no variety family — the
+    // #221 distinction this whole file exists for.
+    expect(varietyBridgeNote(data, "morot", "rodbeta")).toBeUndefined();
+  });
+
+  it("says nothing for a family curated as needing no note", () => {
+    // tomat/körsbärstomat are a real family with no note: they differ, but not in a
+    // way worth a sentence. Absent is the normal case and must stay silent.
+    expect(isSameVariety(data, "tomat", "korsbarstomat")).toBe(true);
+    expect(varietyBridgeNote(data, "tomat", "korsbarstomat")).toBeUndefined();
+  });
+
+  it("carries a note for 9 of the 16 curated families, and none of them states a number", () => {
+    // A guard on the curation pass's size and on CLAUDE.md's non-negotiable at once:
+    // the engine holds no fat content or density to compute an adjustment from, and
+    // a model must not invent one. A note that grew a digit is the shape that failure
+    // would take.
+    const withNote = [...data.varietyFamiliesById.values()].filter((family) => family.note);
+
+    expect(data.varietyFamiliesById.size).toBe(16);
+    expect(withNote).toHaveLength(9);
+    for (const family of withNote) expect(family.note).not.toMatch(/\d/);
   });
 });

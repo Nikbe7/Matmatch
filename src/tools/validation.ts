@@ -3,6 +3,7 @@ import { IngredientSchema, type CostTier } from "../schema/ingredient.js";
 import { RecipeTemplateSchema } from "../schema/recipeTemplate.js";
 import { IngredientAllergenMappingSchema } from "../schema/ingredientAllergenMapping.js";
 import { SubstitutionGroupSchema } from "../schema/substitution.js";
+import { VarietyFamilySchema } from "../schema/varietyFamily.js";
 
 // DECISION_LOG.md 2026-07-31 — RecipeTemplate cost_tier and dietary_tags
 // (high_protein_preference) are derived, not authored. This ordering is the
@@ -13,7 +14,7 @@ export const COST_TIER_ORDER: Record<CostTier, number> = {
   premium: 2,
 };
 
-export type RecordType = "ingredient" | "recipe-template" | "ingredient-allergen" | "substitution";
+export type RecordType = "ingredient" | "recipe-template" | "ingredient-allergen" | "substitution" | "variety-family";
 
 interface TypeConfig {
   schema: z.ZodType;
@@ -54,6 +55,10 @@ const TYPE_REGISTRY: Record<RecordType, TypeConfig> = {
     extractIngredientRefs: (record) =>
       typeof record.ingredient_id === "string" ? [record.ingredient_id] : [],
     defaultPaths: ["data/ingredient-allergens.json"],
+  },
+  "variety-family": {
+    schema: VarietyFamilySchema,
+    defaultPaths: ["data/variety-families.json"],
   },
   substitution: {
     schema: SubstitutionGroupSchema,
@@ -186,6 +191,7 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
   checkUnverifiedAllergenRows(validByType, warnings);
   checkSubstitutionMembersResolvable(inputs, validByType, warnings);
   checkVarietyClasses(validByType, warnings);
+  checkVarietyFamilyReferences(inputs, validByType, errors, notes);
 
   return {
     errors,
@@ -421,18 +427,24 @@ function checkUnverifiedAllergenRows(
   });
 }
 
-// A variety class of one is always a curation slip (#221): either a typo in the key,
-// or the sibling it was written for never landed. It is silent rather than loud in the
-// engine — `variety_of` is only ever compared for equality, so a lone key simply never
-// matches anything, and the ingredient quietly stops being covered by the sibling that
-// was supposed to cover it. The validator is the only place that can see it.
+// A variety family with fewer than two members is a curation slip (#221): the sibling
+// it was written for never landed, or a family in the file has nothing pointing at it.
+// It is silent rather than loud in the engine — `variety_of` is only ever compared for
+// equality, so a lone key never matches anything, and the ingredient quietly stops
+// being covered by the sibling that was supposed to cover it.
 //
-// A *warning* and not an error: a lone key breaks nothing that was working, and a
-// half-finished curation pass must still be committable. Deliberately absent, for the
-// same reason as the cost-tier check above: anything comparing a class against the
-// substitution groups. The two relations are independent by design — the whole point
-// of #221 is that group membership is the wider one — so a class whose members share no
-// group is not wrong, only inert.
+// This check used to catch typos too. It no longer has to: since #223 the family is a
+// record and `checkVarietyFamilyReferences` below makes an unknown key a referential
+// error, which is the louder and more accurate answer. What is left here is
+// cardinality alone, in both directions — a key with one member, and a declared family
+// with none.
+//
+// Still a *warning* and not an error: a thin family breaks nothing that was working,
+// and a half-finished curation pass must stay committable. Deliberately absent, for
+// the same reason as the cost-tier check above: anything comparing a family against
+// the substitution groups. The two relations are independent by design — the whole
+// point of #221 is that group membership is the wider one — so a family whose members
+// share no group is not wrong, only inert.
 function checkVarietyClasses(
   validByType: Map<RecordType, ValidRecord[]>,
   warnings: ValidationIssue[],
@@ -454,7 +466,68 @@ function checkVarietyClasses(
       index: entry.index,
       id: recordId(entry.record),
       path: "variety_of",
-      message: `variety_of "${key}" has only this one member — a variety class of one never matches anything`,
+      message: `variety_of "${key}" has only this one member — a variety family of one never matches anything`,
+    });
+  }
+
+  // The other direction, reachable only since the family became a record (#223): a
+  // declared family nothing points at. Same slip, same silence — it is the half of a
+  // renamed key that got left behind.
+  for (const entry of validByType.get("variety-family") ?? []) {
+    const id = recordId(entry.record);
+    if (!id || membersByKey.has(id)) continue;
+    warnings.push({
+      file: entry.file,
+      index: entry.index,
+      id,
+      message: `variety family "${id}" has no members — no ingredient carries this variety_of key`,
+    });
+  }
+}
+
+// #223 — `variety_of` resolves into `data/variety-families.json`. An error, not a
+// warning, and the reason is the note the family carries: a note keyed by an open
+// namespace fails *silently*, because "this family has no note" is the normal state
+// for most families. A typo would then be indistinguishable from a family that was
+// never meant to say anything, on the one surface where a household is being told the
+// dish will come out different. Making the namespace closed is what buys that back.
+//
+// Membership itself is untouched and stays a field on the ingredient, for the reason
+// #221 gave: every ingredient is a variety of exactly one product. This validates the
+// key, it does not move it.
+function checkVarietyFamilyReferences(
+  inputs: FileInput[],
+  validByType: Map<RecordType, ValidRecord[]>,
+  errors: ValidationIssue[],
+  notes: string[],
+): void {
+  const keyed = (validByType.get("ingredient") ?? []).filter(
+    (entry) => typeof entry.record.variety_of === "string",
+  );
+  if (keyed.length === 0) return;
+
+  if (!inputs.some((i) => i.type === "variety-family")) {
+    notes.push(
+      "no variety-family file was passed in this invocation; skipping variety_of resolution against the family record",
+    );
+    return;
+  }
+
+  const knownFamilyIds = new Set(
+    (validByType.get("variety-family") ?? [])
+      .map((entry) => recordId(entry.record))
+      .filter((id): id is string => !!id),
+  );
+
+  for (const entry of keyed) {
+    const key = entry.record.variety_of as string;
+    if (knownFamilyIds.has(key)) continue;
+    errors.push({
+      file: entry.file,
+      index: entry.index,
+      id: recordId(entry.record),
+      path: "variety_of",
+      message: `references unknown variety family "${key}"`,
     });
   }
 }

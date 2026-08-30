@@ -91,6 +91,15 @@ function IngredientPanel({
           <li key={ingredient.name} className="cook__ingredient-row">
             <span className="cook__ingredient-name">{ingredient.name}</span>
             <span className="item-amount">{formatQuantity(ingredient.quantity)}</span>
+            {/* #223: the stove is where a variety swap actually bites — the household
+                marked vispgrädde in the shop and is now about to make the sauce with
+                it. Shown here as well as on the list because the two moments are
+                hours apart and the shop is not where you act on it. */}
+            {ingredient.varietyNote && (
+              <p className="cook__ingredient-note" role="note">
+                {ingredient.varietyNote}
+              </p>
+            )}
           </li>
         ))}
       </ul>

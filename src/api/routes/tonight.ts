@@ -142,9 +142,16 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
        * second, quietly wrong definition of coverage.
        */
       function pantryCoveredIngredientIds(candidate: CandidateTemplate): string[] {
-        return coveredPantryIngredients(engineData, candidate, new Set(pantryIngredientIds)).map(
-          ({ ingredientId }) => ingredientId,
-        );
+        return pantryCoverageFor(candidate).map(({ ingredientId }) => ingredientId);
+      }
+
+      /**
+       * The coverage *pairs* for a dish (#223). `buildTonightIngredients` needs both
+       * halves, not just the slot side: whether to show a variety note is decided by
+       * comparing them, and the slot-side list alone has thrown that away.
+       */
+      function pantryCoverageFor(candidate: CandidateTemplate) {
+        return coveredPantryIngredients(engineData, candidate, new Set(pantryIngredientIds));
       }
 
       /**
@@ -211,7 +218,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
             result: {
               template: kept.template,
               substitutions: kept.substitutions,
-              ingredients: buildTonightIngredients(engineData, kept, portions),
+              ingredients: buildTonightIngredients(engineData, kept, portions, pantryCoverageFor(kept)),
               score: kept.score,
               reasonCodes,
               pantryMatch: reasonCodes.includes("pantry_match") ? pantryMatchNames(kept) : undefined,
@@ -303,7 +310,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         result: {
           template: picked.template,
           substitutions: picked.substitutions,
-          ingredients: buildTonightIngredients(engineData, picked, portions),
+          ingredients: buildTonightIngredients(engineData, picked, portions, pantryCoverageFor(picked)),
           score: picked.score,
           reasonCodes,
           // Only ever present alongside the code that earns it — the client renders the

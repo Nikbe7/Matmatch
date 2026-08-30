@@ -25,6 +25,14 @@ export interface ShoppingListItem {
   slotIndex: number;
   ingredientId: string;
   /**
+   * The variety note for this row (#223), carried into storage rather than re-fetched
+   * so the sentence survives the reload the shop is full of — unlike `explanation`
+   * and `portions`, which are genuinely not in hand on a resumed list, this one is
+   * per-row curated text that was already here. A list stored before #223 simply has
+   * no note on any row, which is the same as having nothing to say.
+   */
+  varietyNote?: string;
+  /**
    * Present only immediately after a swap (#124) — the item's state right before
    * that swap, restored verbatim by one-tap undo. Cleared once undone; a second swap
    * overwrites it with the newer "before" state, so undo only ever reaches back one
@@ -202,6 +210,7 @@ export function freshShoppingList(
       quantity: ingredient.quantity,
       slotIndex: ingredient.slotIndex,
       ingredientId: ingredient.ingredientId,
+      ...(ingredient.varietyNote === undefined ? {} : { varietyNote: ingredient.varietyNote }),
     })),
   };
 }

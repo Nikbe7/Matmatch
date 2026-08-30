@@ -93,6 +93,13 @@ export interface TonightIngredient {
   ingredientId: string;
   substituted: boolean;
   quantity: ScaledQuantity;
+  /**
+   * One curated sentence, present only when the household's pantry covered this row
+   * with a *different variety* than the dish names and that family has something to
+   * say (#223) — marked vispgrädde, dish asks for matlagningsgrädde. Server-authored
+   * prose off the variety family; the client renders it and never composes one.
+   */
+  varietyNote?: string;
 }
 
 /**

@@ -34,6 +34,29 @@ function ItemAmount({ item }: { item: ShoppingListItem }) {
   return <span className="item-amount">{formatQuantity(item.quantity)}</span>;
 }
 
+/**
+ * The variety note (#223) — one curated sentence under a row the household's pantry
+ * covered with a different variety than the dish names.
+ *
+ * Coverage only *marks*; it never swaps the ingredient or rescales the amount. So on
+ * a "Har hemma" row this sentence is the only thing between a household and a dish
+ * that quietly came out different — they marked vispgrädde, the row still says
+ * matlagningsgrädde, and nothing else on the screen says the sauce will be thicker.
+ *
+ * `role="note"` rather than `status`: it is standing information about the row, not
+ * something that just happened, so it must not be announced over whatever the
+ * household is doing. Quiet styling for the same reason the swap badge is quiet —
+ * this is one household member telling another what to expect, not a warning.
+ */
+function VarietyNote({ item }: { item: ShoppingListItem }) {
+  if (!item.varietyNote) return null;
+  return (
+    <p className="list-row__variety-note" role="note">
+      {item.varietyNote}
+    </p>
+  );
+}
+
 function withIndex(items: readonly ShoppingListItem[]): IndexedItem[] {
   return items.map((item, index) => ({ ...item, index }));
 }
@@ -261,6 +284,7 @@ export function ShoppingList({
               </label>
               <IngredientTapButton item={item} onTap={() => setOpenIndex(item.index)} />
               <ItemAmount item={item} />
+              <VarietyNote item={item} />
               <div className="list-row__actions">
                 <Button
                   type="button"
@@ -289,6 +313,7 @@ export function ShoppingList({
             <li key={item.index} className="list-row list-row--quiet">
               <IngredientTapButton item={item} onTap={() => setOpenIndex(item.index)} />
               <ItemAmount item={item} />
+              <VarietyNote item={item} />
               <div className="list-row__actions">
                 <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
                   Behöver handlas

@@ -181,7 +181,7 @@ export function buildGuidedIngredients(
     ]),
   );
 
-  return buildTonightIngredients(data, direction, portions).map((view, index) => {
+  return buildTonightIngredients(data, direction, portions, direction.pantryCoverage).map((view, index) => {
     const ingredientId =
       substituteBySlotIndex.get(index) ?? direction.template.ingredient_slots[index]?.ingredient_id;
     return { ...view, inPantry: ingredientId !== undefined && covered.has(ingredientId) };

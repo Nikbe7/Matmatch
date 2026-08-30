@@ -1,0 +1,75 @@
+[
+  {
+    "id": "gradde",
+    "name": "Grädde",
+    "note": "Fetthalten skiljer mellan sorterna — vispgrädde ger en tjockare sås än matlagningsgrädde."
+  },
+  {
+    "id": "gurka",
+    "name": "Gurka"
+  },
+  {
+    "id": "hardost",
+    "name": "Hårdost"
+  },
+  {
+    "id": "lok",
+    "name": "Lök"
+  },
+  {
+    "id": "mjolk",
+    "name": "Mjölk",
+    "note": "Fetthalten skiljer — standardmjölk ger en fylligare sås eller gratäng än lättmjölk."
+  },
+  {
+    "id": "mjukt-brod",
+    "name": "Mjukt bröd"
+  },
+  {
+    "id": "nudlar",
+    "name": "Nudlar",
+    "note": "Sorterna tillagas olika — glasnudlar blötläggs medan äggnudlar och risnudlar kokas."
+  },
+  {
+    "id": "paprika",
+    "name": "Paprika",
+    "note": "Grön paprika är beskare, röd är sötare — rätten blir mildare eller sötare beroende på vilken som används."
+  },
+  {
+    "id": "pasta",
+    "name": "Pasta",
+    "note": "Fullkornspasta tar längre tid att koka och behåller mer tuggmotstånd än vanlig pasta."
+  },
+  {
+    "id": "potatis",
+    "name": "Potatis",
+    "note": "Nypotatis kokar snabbare och mosar sig inte — den blir kladdig i potatismos."
+  },
+  {
+    "id": "ris",
+    "name": "Ris"
+  },
+  {
+    "id": "salladsblad",
+    "name": "Salladsblad"
+  },
+  {
+    "id": "senap",
+    "name": "Senap",
+    "note": "Dijonsenap är starkare och mindre söt än vanlig senap — ta i lite mindre."
+  },
+  {
+    "id": "tomat",
+    "name": "Tomat"
+  },
+  {
+    "id": "vitkal",
+    "name": "Vitkål",
+    "note": "Spetskål är mörare och blir mjuk mycket snabbare än vitkål, och håller inte ihop i lång kokning."
+  },
+  {
+    "id": "yoghurt",
+    "name": "Yoghurt",
+    "note": "Turkisk yoghurt är fetare och tål värme bättre — naturell yoghurt kan skära sig i en varm sås."
+  }
+]

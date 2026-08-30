@@ -264,6 +264,7 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
       templates: [],
       substitutionGroupsById: new Map(),
       substitutionGroupsByMemberIngredientId: new Map(),
+      varietyFamiliesById: new Map(),
     };
     const emptyApp = createApp({ sql: sql!, engineData: emptyEngineData, verifyToken: verifyToken! });
 

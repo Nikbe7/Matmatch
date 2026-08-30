@@ -52,6 +52,14 @@ export const IngredientSchema = z
     // because they are bad swaps but because you buy them as a different product.
     // Absent is the normal case: 169 of 206 ingredients carry no key at all, and two
     // ingredients that both lack one are never varieties of each other.
+    //
+    // Since #223 the key resolves into `data/variety-families.json` and `validate`
+    // requires it to — the namespace is its own, but no longer open. Membership did
+    // not move: it is still a field here, for the reason #221 gave. What changed is
+    // that the *family* became a record, because it had to carry curated text of its
+    // own (the note shown when pantry coverage bridged two varieties). That record
+    // holds `{ id, name, note? }` and nothing else — no substitution semantics, no
+    // ranking weight, no cuisine. See `src/schema/varietyFamily.ts`.
     variety_of: SlugIdSchema.optional(),
     category: IngredientCategorySchema,
     default_cost_tier: CostTierSchema,

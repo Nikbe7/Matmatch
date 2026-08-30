@@ -1,5 +1,6 @@
-import type { RankedCandidate } from "../engine/ranking.js";
+import type { PantryCoverage, RankedCandidate } from "../engine/ranking.js";
 import type { EngineData } from "../engine/data.js";
+import { varietyBridgeNote } from "../engine/catalog.js";
 import type { IngredientSlotRole } from "../schema/recipeTemplate.js";
 import { scaleSlotQuantity, type ScaledQuantity } from "../engine/quantities.js";
 
@@ -37,6 +38,31 @@ export interface TonightIngredientView {
    * change without an API change.
    */
   quantity: ScaledQuantity;
+  /**
+   * One curated sentence, present only when this row is covered by a *different
+   * variety* than the dish names and that family has something to say (#223) — the
+   * household marked vispgrädde, the dish asks for matlagningsgrädde, and the sauce
+   * will be thicker. Absent is the overwhelmingly normal case: an exact pantry match,
+   * no pantry at all, or a family whose varieties differ in no way worth a sentence.
+   *
+   * Curated prose straight off `VarietyFamily.note` — never assembled here, never
+   * generated, and carrying no number. Coverage *marks*, it does not swap the
+   * ingredient or rescale the amount, so this is the only thing standing between a
+   * household and a silently different dish.
+   */
+  varietyNote?: string;
+}
+
+/** `{ varietyNote }` or `{}` — omitted rather than set to undefined, so a row with
+ *  nothing to say serializes without the key at all. */
+function noteFor(
+  engineData: EngineData,
+  ingredientId: string,
+  pantryIngredientId: string | undefined,
+): { varietyNote?: string } {
+  if (pantryIngredientId === undefined) return {};
+  const varietyNote = varietyBridgeNote(engineData, ingredientId, pantryIngredientId);
+  return varietyNote === undefined ? {} : { varietyNote };
 }
 
 /**
@@ -54,7 +80,19 @@ export function buildTonightIngredients(
   engineData: EngineData,
   candidate: Pick<RankedCandidate, "template" | "substitutions">,
   portions: number,
+  /**
+   * This dish's pantry coverage, when the household used the pantry row (#223).
+   * Defaulted to none rather than made required: a caller with no pantry in hand
+   * genuinely has no note to show, and that is the same answer as an empty coverage
+   * list. Passed as the pairs, not the slot-side ids, because deciding whether a
+   * bridge happened is exactly the comparison the pair exists to make.
+   */
+  pantryCoverage: readonly PantryCoverage[] = [],
 ): TonightIngredientView[] {
+  const coveringPantryIngredientId = new Map(
+    pantryCoverage.map(({ ingredientId, pantryIngredientId }) => [ingredientId, pantryIngredientId]),
+  );
+
   const substituteBySlotIndex = new Map(
     candidate.substitutions.map((substitution) => [
       substitution.slot_index,
@@ -82,6 +120,7 @@ export function buildTonightIngredients(
       // still has to fill the same hole in the dish, so swapping mandelmjölk for
       // mjölk changes what you buy, not how much (#123).
       quantity: scaleSlotQuantity(slot.quantity, portions),
+      ...noteFor(engineData, ingredientId, coveringPantryIngredientId.get(ingredientId)),
     };
   });
 }
