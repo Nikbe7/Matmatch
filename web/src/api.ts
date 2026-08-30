@@ -199,7 +199,7 @@ export interface TonightResult {
   /**
    * The dish's *own* ingredient ids that the household's pantry covers (#219) — what
    * the shopping list opens under "Har hemma". Server-derived rather than intersected
-   * client-side against the tapped ids: substitution groups bridge "ris" to a
+   * client-side against the tapped ids: a shared variety bridges "ris" to a
    * `jasminris` row, so the two no longer compare equal and any local intersection
    * would be a second, quietly wrong definition of coverage.
    */

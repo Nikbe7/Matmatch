@@ -60,7 +60,7 @@ export interface Direction extends RankedCandidate {
    * that belongs to the API layer.
    *
    * Pairs since #219, not bare ids: a slot and the pantry item covering it can be
-   * different ingredients now that substitution groups bridge them, and the two
+   * different ingredients now that a shared variety bridges them (#221), and the two
    * consumers want different halves — the rows mark `ingredientId`, the explanation
    * line names `pantryIngredientId`.
    */

@@ -137,7 +137,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
        * to open those rows under "Har hemma".
        *
        * Sent rather than letting the client intersect its own tapped ids with the
-       * rows: since substitution groups bridge the two, "ris" tapped and `jasminris`
+       * rows: since a shared variety bridges the two, "ris" tapped and `jasminris`
        * on the row no longer compare equal, and a client-side intersection would be a
        * second, quietly wrong definition of coverage.
        */

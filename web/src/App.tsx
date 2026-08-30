@@ -1418,8 +1418,8 @@ interface AcceptedListingState {
    * `ShoppingList` below so the list opens with those items already in "Har hemma"
    * instead of contradicting the dish's own "valt för att ni har X hemma" reason
    * line. Dish-side ids, so they compare equal to the rows they mark even when a
-   * substitution group bridged the tap ("ris") to the row (`jasminris`). Applied inside `ShoppingList` itself,
-   * not here: it must land on top of whichever base list wins there (freshly built
+   * variety bridged the tap ("ris") to the row (`jasminris`). Applied inside
+   * `ShoppingList` itself, not here: it must land on top of whichever base list wins there (freshly built
    * or resumed from storage), or a household that accepts the same dish twice in one
    * session — reroll away, mark a new pantry item, accept again — finds its second
    * pantry tap silently ignored because a stored list for that template id already
