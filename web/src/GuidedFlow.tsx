@@ -974,9 +974,8 @@ export function GuidedFlow({
               />
               {options ? (
                 <>
-                  {/* #206: the same component Tonight's "Fler" sheet renders. This
-                      step used to show 18 chips flat with no way to narrow them,
-                      while the sheet showing the identical list looked different. */}
+                  {/* #206: the same component Tonight's "Fler" sheet renders, so the
+                      two surfaces cannot drift into two different questions again. */}
                   <PantryPicker
                     options={options.pantryIngredients}
                     selected={state.pantry}
