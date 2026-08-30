@@ -653,15 +653,16 @@ function PantrySheet({
         <p className="muted pantry-sheet__hint">
           Valfritt — vi använder det bara för att välja förslag, och sparar det inte.
         </p>
-        {/* #206: the same picker the guided flow's step 3 renders, search included.
-            This list is the longest of the three the app used to show for one
-            question, and it was the one with no way to narrow it. */}
+        {/* #206: literally the same component the guided flow's step 3 renders, so
+            "what do you have at home" cannot drift into two questions again. Same
+            18 rows on both surfaces — the server caps the list and app.test.ts
+            asserts the two are identical — which is also why neither has a search
+            box. See PantryPicker's own comment. */}
         <PantryPicker
           options={options}
           selected={selected}
           onToggle={onToggle}
           label="Alla varor hemma"
-          searchable
         />
       </div>
     </div>

@@ -1747,7 +1747,7 @@ select.input {
 }
 
 /* The shared pantry picker (#206) — one treatment for the guided step and Tonight's
-   "Fler" sheet, search included. */
+   "Fler" sheet. Taps only, no filter: see PantryPicker.tsx. */
 .pantry-picker {
   display: flex;
   flex-direction: column;

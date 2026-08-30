@@ -2228,9 +2228,11 @@ describe("App — Tonight's pantry row (#152)", () => {
     expect(document.querySelector(".tonight-suggestion.is-reranking")).toBeNull();
   });
 
-  // #206/#201: the "Fler" layer — the longest list in the app, and until now the one
-  // with no way to narrow it and a tab bar painted on top of it.
-  it("narrows the sheet's list as you type, and falls back to the whole list on a miss", async () => {
+  // #206: one treatment for "Vad har du hemma?", and no search box on it. The list
+  // is server-capped at PANTRY_GRID_SIZE and app.test.ts asserts Tonight's and the
+  // guided flow's are identical, so a filter here could only narrow eighteen chips
+  // that are already all on screen.
+  it("renders no text input in the sheet — the picker is taps only", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, tonightBody())));
@@ -2240,17 +2242,10 @@ describe("App — Tonight's pantry row (#152)", () => {
     await user.click(screen.getByRole("button", { name: "Fler" }));
 
     const sheet = screen.getByRole("dialog", { name: "Vad har du hemma?" });
-    const filter = within(sheet).getByRole("textbox");
-
-    await user.type(filter, "purjo");
-    expect(within(sheet).getByRole("button", { name: "purjolök" })).toBeTruthy();
-    expect(within(sheet).queryByRole("button", { name: "ris" })).toBeNull();
-
-    // A miss shows the full list under an explanation rather than an empty grid —
-    // the same fallback step 2's own filter makes (#110).
-    await user.clear(filter);
-    await user.type(filter, "zzzz");
-    expect(within(sheet).getByRole("status").textContent).toContain("Ingen träff");
+    expect(within(sheet).queryAllByRole("textbox")).toEqual([]);
+    expect(within(sheet).queryAllByRole("searchbox")).toEqual([]);
+    expect(sheet.querySelectorAll("input[type=text], input[type=search]")).toHaveLength(0);
+    // Still the full picker, not a trimmed one.
     expect(within(sheet).getByRole("button", { name: "purjolök" })).toBeTruthy();
   });
 
