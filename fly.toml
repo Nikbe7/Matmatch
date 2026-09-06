@@ -7,8 +7,9 @@
 app = "matmatch"
 
 # Stockholm. The Supabase project is in eu-north-1 (Stockholm) as well, so household
-# and allergy data — sensitive personal data under GDPR (ARCHITECTURE.md §7) — stays
-# in the EU, and the app sits next to its database rather than an ocean away.
+# data — personal data under GDPR (ARCHITECTURE.md §7) — stays in the EU, and the app
+# sits next to its database rather than an ocean away. Allergy data is no longer part
+# of that set: the app stopped collecting it in #224.
 primary_region = "arn"
 
 [build]

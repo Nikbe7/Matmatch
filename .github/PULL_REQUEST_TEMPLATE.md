@@ -4,7 +4,7 @@
 Closes #
 
 ## Project non-negotiables (see CLAUDE.md)
-- [ ] Does not let AI logic make or override allergy/dietary filtering decisions
+- [ ] Does not let AI logic make or override dietary filtering decisions
 - [ ] Does not let AI generate specific cost figures (only curated cost-tier data)
 - [ ] Does not add persistent pantry inventory storage
 - [ ] If this touches the AI Orchestrator: states which tier (0/1/2) it uses and why
