@@ -53,7 +53,7 @@ create_milestone() {
   fi
 }
 
-create_milestone "Phase 0 — Foundations" "Ingredient catalog, recipe templates, allergy taxonomy, substitutions"
+create_milestone "Phase 0 — Foundations" "Ingredient catalog, recipe templates, controlled vocabularies, substitutions"
 create_milestone "Phase 1 — MVP Core Loop" "Household onboarding, Tonight suggestion, guided flow, shopping list"
 create_milestone "Phase 2 — Validate & Iterate" "Real-user cohort, retention metrics"
 create_milestone "Phase 3 — Premium & Scale" "Premium features, only after Phase 2 validates the core loop"

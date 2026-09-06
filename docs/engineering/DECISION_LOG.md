@@ -8,6 +8,34 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-09-07 — GitHub-setupen är körd; #224-drift städad i filerna ingen läste om efteråt
+
+**Beslut:** Stänger den öppna posten från 2026-07-28 ("`gh` CLI not installed; GitHub-side
+setup deferred"). `gh` är installerat och autentiserat, `scripts/setup-github.sh` har körts,
+och etiketter, milstolpar och projekttavla finns. Skriptet behålls — det är idempotent och
+[GIT_AND_GITHUB.md](GIT_AND_GITHUB.md) pekar ut det som avsiktligt sparat, så en radering
+hade motsagt ett dokumenterat beslut utan att spara något.
+
+Samtidigt rättade vi allergireferenser som #224 gjorde felaktiga, på ytorna som inte lästes
+om när filtret togs bort: `fly.toml` (påstod att appen lagrar allergidata i EU),
+`web/src/styles/tokens.css` (motiverade `--color-danger` med en varningsbehandling som inte
+finns kvar, tvärtemot vad UX_FLOW §6 numera säger), PR- och buggmallarna i `.github/`, och
+riskraden i PRODUCT_PLAN.md som fortfarande utlovade hård allergifiltrering.
+
+**Varför:** ARCHITECTURE.md och UX_FLOW.md beskrev redan #224 korrekt — driften satt i
+konfiguration, mallar och kodkommentarer, alltså precis där ingen letar. En PR-mall som
+kryssrutar "låter inte AI överskugga allergifiltrering" lär in ett skydd som inte existerar,
+och ett tokenkommentar som säger att danger är allergifärgen bjuder in nästa ändring att
+återanvända den visuella varningsspråket för en preferens — vilket UX_FLOW uttryckligen
+förbjuder.
+
+**Så tillämpar du det:** `--color-danger` är fel- och destruktiv-åtgärdsfärgen, ingenting
+annat; använd den aldrig för en dietpreferens. Kolumnen `allergies` och domänen
+`allergy_value` ligger kvar i databasen och skrivs aldrig — det är en migration och därmed
+ett eget beslut, spårat separat.
+
+---
+
 ## 2026-08-31 — En textinmatning är motiverad bara när den når något ett tapp inte når (#206, #235)
 
 Regeln bakom två motsatta utfall samma dag, så nästa "ska den här listan ha ett filter?"

@@ -1,16 +1,20 @@
 /*
  * Visual tokens for the whole app — the single source of truth for spacing,
- * type, color and touch-target sizing. See docs/UX_FLOW.md §6 for why danger
- * (allergies) is a separate color from everything else: it must never look
- * like an ordinary preference.
+ * type, color and touch-target sizing.
+ *
+ * Danger is the error and destructive-action color, nothing more. It used to
+ * carry the allergy warning treatment; #224 removed allergy filtering, and
+ * docs/UX_FLOW.md §6 now says plainly that nothing in the household profile is
+ * a safety constraint any more and nothing should adopt that visual language
+ * again without one. Do not reach for danger to mark a dietary preference.
  *
  * Palette ported from lovable-reference/src/styles.css (issue #136) — same
  * oklch values, kept under the token *names* the rest of app.css already
  * references, so this is a value swap, not a rename. Danger is not a Lovable
- * value: it's tuned separately (see below) because Lovable's own allergy
- * styling was explicitly rejected as a safety regression (README "Do not
- * copy"). Verified against WCAG AA: danger text ≥7:1 on background/card/
- * danger-bg, danger-contrast ≥6.3:1 on solid danger fill.
+ * value: it was tuned separately back when it carried the allergy treatment,
+ * and the tuning is kept because the contrast is worth having on errors.
+ * Verified against WCAG AA: danger text ≥7:1 on background/card/danger-bg,
+ * danger-contrast ≥6.3:1 on solid danger fill.
  */
 :root {
   /* Color — accent/background match the PWA manifest's theme_color/background_color
