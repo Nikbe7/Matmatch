@@ -29,9 +29,9 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           # Matches the version this is developed against. Deliberately a single
           # version and not a matrix: there is one deployment target (the Dockerfile),
@@ -58,6 +58,23 @@ jobs:
       - name: Start Supabase (real Postgres + auth, so nothing skips)
         run: npx supabase start
 
+      # web/src/supabaseClient.ts throws at import time without these two, and
+      # App.tsx imports it at module level — so in a production build the whole
+      # app dies before `registerServiceWorker()` ever runs, the worker is never
+      # registered, and the e2e spec waits out its 20s on a `controller` that can
+      # never go non-null. That was the first red run, and only a Playwright trace
+      # showed it: the page error appears nowhere in the job log.
+      #
+      # Both values are public by design (see web/.env.example) and are the local
+      # stack's fixed CLI defaults, so no secret is involved. Written as a file
+      # rather than exported, because `vite preview`'s rebuild in the Playwright
+      # webServer has to see them too.
+      - name: Point the web build at the local stack
+        run: |
+          npx supabase status -o env | grep -E '^(API_URL|ANON_KEY)=' > /tmp/stack.env
+          . /tmp/stack.env
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' "$API_URL" "$ANON_KEY" > web/.env
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -83,14 +100,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      # The e2e suite drives a production build served by `vite preview` and talks
-      # to neither Postgres nor GoTrue. Stopping the stack here hands the whole
-      # 2-core runner to Chromium for the one test that is timing-sensitive: the
-      # service worker has to install, activate and claim the page inside the
-      # spec's 20s budget, and it does that in ~500ms on an unloaded machine.
-      - name: Stop Supabase (the browser test needs the runner, not the database)
-        run: npx supabase stop --no-backup
-
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
         working-directory: web
@@ -105,7 +114,7 @@ jobs:
       # writes no report directory at all, so the old path uploaded nothing.
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-reports
           path: |
