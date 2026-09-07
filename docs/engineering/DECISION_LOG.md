@@ -31,8 +31,10 @@ oklar fasplacering — inte för buggfixar, refaktorering eller redan specade is
 `/design-options <skärm>` innan kod skrivs för nya skärmar; en komponentfix eller ett
 saknat tillstånd bygger du direkt och säger varför det var givet. Rättigheterna i
 `.claude/settings.json` hör till samma beslut: `git push`, `gh pr create` och `gh api graphql`
-(tavelflyttar) saknades, så en självgående slice stannade alltid vid mållinjen. Den filen
-lägger Niklas till själv — Claude får inte utöka sina egna rättigheter.
+(tavelflyttar) saknades, så en självgående slice stannade alltid vid mållinjen. Den listan
+skrev Niklas själv — Claude får inte utöka sina egna rättigheter, bara strama åt dem.
+`gh api graphql:*` är den breda posten och den är medvetet med: det är den som flyttar korten
+på tavlan.
 
 ---
 
