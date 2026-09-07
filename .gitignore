@@ -53,3 +53,8 @@ web/screenshots/
 # while driving the app in a browser. Same category as test-results/: evidence
 # from a run, not durable data.
 .playwright-mcp/
+
+# JSON test-reporter output — written by the vitest JSON reporter when checking
+# the "0 skipped" condition in CLAUDE.md's merge rule. Evidence from a run, not
+# durable data; same category as .playwright-mcp/.
+reports/

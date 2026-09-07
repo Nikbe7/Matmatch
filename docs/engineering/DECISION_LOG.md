@@ -8,6 +8,36 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-09-07 — Product advisor anropas inline; design väljs ur förslag, inte ur prosa
+
+**Beslut:** `product-advisor` behålls men kopplas om. Implementationssessionen anropar den
+själv mitt i arbetet och agerar direkt på svaret; hela apparaten med pasteable blocks,
+briefmallar och close-out-instruktioner till "den andra chatten" är borttagen ur
+agentdefinitionen. En separat rådgivarchatt behålls för en enda sak: oberoende granskning av
+en färdig slice. Samtidigt: design för nya skärmar avgörs via `/design-options`, som ger 2–3
+namngivna riktningar som artboards på en canvas, och Claude flyttar korten på GitHub-tavlan
+själv i stället för att be om lov.
+
+**Varför:** 48 av 55 sessioner nämnde rådgivaren men bara 10 anropade den som subagent —
+normalläget var manuell klipp-och-klistra mellan två chattar, med Niklas som budbärare.
+Regeln om att upprepa AskUserQuestion som ren text fanns bara för att den reläen existerade.
+Det enda reläet faktiskt köpte var oberoende, och det behövs bara vid granskning, inte när
+frågan är "ska vi bygga det här". Designdelen: rådgivaren beskrev design i prosa, så Niklas
+godkände text och såg resultatet först efter att det byggts — han väljer snabbare och bättre
+på bilder än på beskrivningar.
+
+**Så tillämpar du det:** Fråga rådgivaren inline före ny skärm, större visuell ändring eller
+oklar fasplacering — inte för buggfixar, refaktorering eller redan specade issues. Kör
+`/design-options <skärm>` innan kod skrivs för nya skärmar; en komponentfix eller ett
+saknat tillstånd bygger du direkt och säger varför det var givet. Rättigheterna i
+`.claude/settings.json` hör till samma beslut: `git push`, `gh pr create` och `gh api graphql`
+(tavelflyttar) saknades, så en självgående slice stannade alltid vid mållinjen. Den listan
+skrev Niklas själv — Claude får inte utöka sina egna rättigheter, bara strama åt dem.
+`gh api graphql:*` är den breda posten och den är medvetet med: det är den som flyttar korten
+på tavlan.
+
+---
+
 ## 2026-08-31 — En textinmatning är motiverad bara när den når något ett tapp inte når (#206, #235)
 
 Regeln bakom två motsatta utfall samma dag, så nästa "ska den här listan ha ett filter?"
