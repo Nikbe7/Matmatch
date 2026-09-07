@@ -54,8 +54,6 @@
       "Bash(gh repo view:*)"
     ],
     "deny": [
-      "Bash(git push --force*)",
-      "Bash(git push -f*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)",
       "Bash(rm -rf*)",
