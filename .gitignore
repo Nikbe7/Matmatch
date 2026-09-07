@@ -54,7 +54,7 @@ web/screenshots/
 # from a run, not durable data.
 .playwright-mcp/
 
-# JSON test-reporter output — written by the vitest JSON reporter when checking
-# the "0 skipped" condition in CLAUDE.md's merge rule. Evidence from a run, not
-# durable data; same category as .playwright-mcp/.
+# Vitest JSON reports written by CI (.github/workflows/ci.yml) and by any local run
+# that mirrors it — the "0 skipped" guard in CLAUDE.md's merge rule reads these.
+# Evidence from a run, not durable data; same category as test-results/.
 reports/
