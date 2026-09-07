@@ -60,6 +60,16 @@ The GitHub Project board is the single source of truth for what's being worked o
 - New work discovered mid-implementation → create a GitHub Issue immediately (labels, priority, milestone, add to the project, place in the right column) rather than noting it in a comment or a doc.
 - Label taxonomy, milestones, and full board mechanics: `docs/engineering/GIT_AND_GITHUB.md`.
 
+Claude moves the cards, not Niklas. Make the move with `gh project` / `gh api graphql` as part of the work itself — In Progress when starting, Review when the PR opens, Done when it merges under the no-wait rule below — and report the move afterwards instead of asking permission to make it. Niklas reads the board; he does not operate it. A slice that ends with its card in the wrong column is not finished.
+
+## Product and design decisions
+The `product-advisor` subagent is the product and design counterpart. Invoke it inline, mid-session, whenever the question is whether/what/why to build rather than how, and act on its answer directly — never hand its answer to Niklas to relay back.
+- Consult it before: a new screen or flow, a significant visual change, a feature whose phase fit is unclear, and any idea that arrives as "kan vi också...".
+- Skip it for: bug fixes, refactors, tests, tooling, and anything already specified in an issue with a settled design.
+- A separate advisor chat is worth keeping for exactly one thing — an independent review of a finished slice, where not having seen the implementation's reasoning is the point.
+
+Design is chosen from proposals, not from prose. For a new screen or a significant visual change, run `/design-options <screen>`: 2–3 named, genuinely different directions rendered as artboards on one canvas, published as a link Niklas opens on his phone. He picks; only then is it built. A component fix, a missing state, or a change the tokens already decide does not need this — build it and say why it was forced.
+
 ## Definition of Done
 An issue is considered complete when:
 - The implementation satisfies the acceptance criteria.
@@ -72,7 +82,7 @@ An issue is considered complete when:
 
 Only then should the issue move to Review.
 
-Whenever AskUserQuestion is used, immediately follow it with the same question and options as plain text in the response body — the tool's content can't be copied into the product-advisor chat, and this has repeatedly required digging through session transcripts to answer a question that should have been one paste.
+Whenever AskUserQuestion is used, immediately follow it with the same question and options as plain text in the response body. The tool's own content can't be copied out of the terminal, and questions get answered from another device or from a separate review chat; the plain-text copy is what makes that a paste instead of a transcript dig.
 
 ## Task sizing
 Never implement multiple unrelated features in the same session. Prefer small, reviewable changes — one issue, one branch, one PR. If a task turns out to bundle unrelated work, split it into separate issues rather than shipping it as one large change.
