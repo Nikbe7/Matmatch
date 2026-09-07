@@ -8,6 +8,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Manual re-run from the Actions tab or `gh workflow run ci.yml --ref <branch>`.
+  # Added because a run can fail to be created at all (no check suite, nothing in
+  # the run list), and without this there is no way to ask for one short of pushing
+  # a commit that exists only to trigger CI.
+  workflow_dispatch:
 
 # A new push supersedes the previous run for the same branch. Nothing here is a
 # deploy, so cancelling an in-flight run loses nothing but minutes.
