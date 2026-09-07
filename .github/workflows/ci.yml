@@ -78,6 +78,14 @@ jobs:
       - name: Build
         run: npm run build
 
+      # The e2e suite drives a production build served by `vite preview` and talks
+      # to neither Postgres nor GoTrue. Stopping the stack here hands the whole
+      # 2-core runner to Chromium for the one test that is timing-sensitive: the
+      # service worker has to install, activate and claim the page inside the
+      # spec's 20s budget, and it does that in ~500ms on an unloaded machine.
+      - name: Stop Supabase (the browser test needs the runner, not the database)
+        run: npx supabase stop --no-backup
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
         working-directory: web
@@ -87,7 +95,9 @@ jobs:
         working-directory: web
 
       # Uploaded on failure only: green runs produce nothing worth keeping, and a red
-      # one is much easier to read from the report than from the log.
+      # one is much easier to read from the trace than from the log. `test-results/`
+      # rather than `playwright-report/`: the config uses the `list` reporter, which
+      # writes no report directory at all, so the old path uploaded nothing.
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
@@ -95,5 +105,5 @@ jobs:
           name: test-reports
           path: |
             reports/
-            web/playwright-report/
+            web/test-results/
           retention-days: 7
