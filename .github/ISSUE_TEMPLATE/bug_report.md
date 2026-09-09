@@ -13,7 +13,7 @@ labels: "type: bug"
 2.
 
 ## Impact
-<!-- Who/what is affected — is this safety-critical (allergy filtering, data loss)? -->
+<!-- Who/what is affected — is this safety-critical (dietary filtering, data loss)? -->
 
 ## Area / Phase
 - Area: `area: frontend | backend | ai | data | infra`

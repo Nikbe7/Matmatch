@@ -1,3 +1,4 @@
+import { clampPortions } from "../../src/engine/quantities";
 // Session state for the guided quick-select flow (UX_FLOW §5). One reducer rather
 // than six useStates, following refinement.ts: the steps share one object because a
 // tap on any of them can move the step *and* a selection at once, and they must
@@ -94,22 +95,34 @@ export type GuidedAction =
    */
   | { type: "dish_no_longer_safe" }
   /**
-   * #133: the chosen dish survived a diner change — re-seeded from the
-   * household's fresh diner-derived total, exactly like `choose_direction`
-   * already does every time a direction is chosen. Any manual stepper
-   * adjustment does not survive a diner change, deliberately: the number this
-   * type carries is what the ingredients underneath it were actually scaled
-   * for server-side, and letting the display drift from that would be its own
-   * "silent swap" — the count would say one thing while the list said another.
+   * The displayed portion count re-seeded from what the server actually scaled the
+   * ingredients to. Two callers, one rule.
+   *
+   * #133: the chosen dish survived a diner change, re-seeded from the household's
+   * fresh diner-derived total, exactly like `choose_direction` does every time a
+   * direction is chosen. A manual stepper adjustment deliberately does not survive a
+   * diner change.
+   *
+   * #231: the household stepped the count and committed, so the dish was refetched
+   * at that count — and the server's answer, not the stepper's request, is what the
+   * ingredients are scaled to. The two normally agree; they differ when the server
+   * clamps.
+   *
+   * Either way the number this carries is what the ingredients underneath it were
+   * actually scaled for server-side, and letting the display drift from it is its own
+   * "silent swap" — the count would say one thing while the list said another. That
+   * drift *was* #231: the stepper used to change this number and nothing else.
    */
-  | { type: "diner_change_portions"; portions: number };
+  | { type: "portions_rescaled"; portions: number };
 
 /**
  * The smallest number of portions a shopping list can be for. One, not zero: a list
  * for nobody is not a state the flow has, and a stepper that can reach it just adds
  * a way to get stuck.
  */
-export const MIN_PORTIONS = 1;
+// Re-exported from the engine (#231) so the stepper and the route enforce one
+// definition of a legal portion count rather than two that can drift apart.
+export { MIN_PORTIONS, MAX_PORTIONS, clampPortions } from "../../src/engine/quantities";
 
 /**
  * Where "Tillbaka" goes from each step, preserving every earlier selection —
@@ -226,13 +239,13 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
         // (#112) a sub-1 total is now reachable — one adult and one child, adult
         // deselected, is 0.5 — and seeding below the floor opens the step on a value
         // its own "−" button is already disabled for.
-        portions: Math.max(MIN_PORTIONS, action.portions),
+        portions: clampPortions(action.portions),
         step: "portions",
       };
 
     case "adjust_portions": {
       if (state.portions === null) return state;
-      return { ...state, portions: Math.max(MIN_PORTIONS, state.portions + action.delta) };
+      return { ...state, portions: clampPortions(state.portions + action.delta) };
     }
 
     case "confirm_portions":
@@ -264,12 +277,12 @@ export function guidedReducer(state: GuidedState, action: GuidedAction): GuidedS
     case "dish_no_longer_safe":
       return { ...state, step: "directions", chosenTemplateId: null, portions: null };
 
-    case "diner_change_portions":
+    case "portions_rescaled":
       // Guarded like `adjust_portions`: nothing to reseed once the choice has
       // already been released (e.g. a slow response landing after the household
       // stepped back on its own).
       if (state.portions === null) return state;
-      return { ...state, portions: Math.max(MIN_PORTIONS, action.portions) };
+      return { ...state, portions: clampPortions(action.portions) };
 
     default: {
       const exhaustive: never = action;

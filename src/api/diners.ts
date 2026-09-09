@@ -1,4 +1,5 @@
 import type { DinerSelection } from "../engine/constraints.js";
+import { clampPortions } from "../engine/quantities.js";
 
 // Parses `diners=0,2` — who is eating this meal, as member positions (#112,
 // DECISION_LOG 2026-08-09). Session-scoped exactly like the weight vector and the
@@ -60,4 +61,28 @@ export function parseDinersFromQuery(raw: unknown): DinerSelection | undefined {
   }
 
   return indices;
+}
+
+/**
+ * An explicit portion count for this meal, or `undefined` for "however many the
+ * diner set works out to" (#231).
+ *
+ * Same no-error-path idiom as `parseDinersFromQuery` above, for a related reason
+ * rather than the same one. Portions are not safety-critical — they decide how much
+ * to buy, not who can eat it — but the failure this parameter exists to close is a
+ * *display* one: the count on screen disagreeing with the amounts under it. A 400
+ * would replace a wrong number with a dead end, while falling back to the diner-
+ * derived total is always correct and is exactly what happened before this parameter
+ * existed.
+ *
+ * What makes that safe is the response: the route echoes the portion count it
+ * actually scaled to, and the client re-seeds its stepper from that value. So a
+ * malformed or out-of-range request cannot leave the two disagreeing — the worst it
+ * can do is cook a different number of portions than the client asked for, and say so.
+ */
+export function parsePortionsFromQuery(raw: unknown): number | undefined {
+  if (typeof raw !== "string") return undefined;
+  const parsed = Number(raw.trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+  return clampPortions(parsed);
 }
