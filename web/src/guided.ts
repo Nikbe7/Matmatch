@@ -48,8 +48,10 @@ export interface GuidedState {
   /**
    * Step 2's type-to-filter text, live in the reducer rather than component state
    * so it follows the same one-object-per-session rule as everything else here. It
-   * only ever narrows the *display* of `options.mainIngredients` — it never reads
-   * or writes `main`, so a query can never change which ingredient is selected.
+   * only ever changes the *display* of `options.mainIngredients` — narrowing it to
+   * a match, or widening it past the default `MAIN_INGREDIENT_GRID_SIZE` tiles to
+   * the household's full eligible set (#235) — it never reads or writes `main`, so
+   * a query can never change which ingredient is selected.
    */
   mainQuery: string;
   /** Session-scoped, ephemeral, never written anywhere. */
@@ -187,6 +189,15 @@ function normalizeForMatch(value: string): string {
 export function matchesIngredientQuery(name: string, query: string): boolean {
   return normalizeForMatch(name).includes(normalizeForMatch(query));
 }
+
+/**
+ * The step-2 grid's tile count, re-exported from the engine (#235) so the client's
+ * "slice to the default grid" and the server's "how far the search reaches" agree on
+ * one number rather than two that can drift apart. `options.mainIngredients` itself
+ * is the household's *full* eligible set, uncapped — this only bounds what shows
+ * before the household types anything.
+ */
+export { MAIN_INGREDIENT_GRID_SIZE } from "../../src/api/guidedGridSize";
 
 function toggle(list: readonly string[], value: string): string[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];

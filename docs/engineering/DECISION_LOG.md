@@ -8,6 +8,39 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-09-09 — Steg 2:s filter var en riktig bugg, inte en överdrift i dokumentet
+
+**Beslut:** UX_FLOW §5 hade rätt: filtret på steg 2 ska nå hela hushållets behöriga
+huvudingredienser, inte bara de ~12 som rutnätet visar. Koden gjorde inte det —
+`buildMainIngredientOptions` kapade listan till `MAIN_INGREDIENT_GRID_SIZE` innan
+klienten någonsin fick se resten, så filtret kunde bara smalna av samma tolv chips
+som redan syntes (#235). Fixen tar bort kapningen på serversidan och lägger den hos
+klienten i stället: `options.mainIngredients` är nu hushållets fulla, dedupade
+(#220/#221) och frekvensordnade mängd, och `GuidedFlow.tsx` visar de första
+`MAIN_INGREDIENT_GRID_SIZE` som standardrutnät men filtrerar hela listan så fort
+något skrivs. Ingen serverresa för sökningen — samma deterministiska strängjämförelse
+som förut, bara över fler rader.
+
+**Varför:** Rutnätet rankas efter hur många rätter i katalogen som använder en
+ingrediens, vilket inte är samma fråga som vad ett hushåll råkar ha hemma — av 45
+proteiner i katalogen är ett hushålls behöriga mängd realistiskt 20–35, så 8–20 riktiga
+ingredienser var onåbara. Att ta bort fältet i stället hade gjort steg 2 strikt mindre
+kapabelt utan att köpa tillbaka någon enkelhet; fältet finns redan och undantaget från
+tap-first (UX_FLOW §5) motiveras uttryckligen av räckvidden. En serverresa hade lagt
+till debounce, ett laddningsläge och ett offline-felfall på ett steg som idag saknar
+alla tre — och brutit invarianten som gör undantaget legitimt: frågan kan bara någonsin
+smalna av vilka behöriga tap-mål som syns, aldrig nå utanför dem.
+
+**Så tillämpar du det:** `MAIN_INGREDIENT_GRID_SIZE` är nu enbart en visningskonstant
+för hur många rutor rutnätet visar innan hushållet skriver något — den begränsar inte
+längre vad servern skickar. Om ett nytt steg får samma "sök bortom rutnätet"-behov,
+återanvänd samma delning (server: hela den dedupade mängden; klient: `slice` till
+rutstorleken) i stället för att uppfinna en tredje variant. `PANTRY_GRID_SIZE` har inget
+sådant undantag och ska förbli en hård gräns på servern tills steg 3 får ett eget beslut
+om det.
+
+---
+
 ## 2026-09-07 — GitHub-setupen är körd; #224-drift städad i filerna ingen läste om efteråt
 
 **Beslut:** Stänger den öppna posten från 2026-07-28 ("`gh` CLI not installed; GitHub-side

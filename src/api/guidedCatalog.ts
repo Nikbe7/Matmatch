@@ -7,6 +7,7 @@ import type { IngredientCategory } from "../schema/ingredient.js";
 import { HttpError } from "./httpError.js";
 import { buildTonightIngredients, type TonightIngredientView } from "./tonightIngredients.js";
 import { REFERENCE_PORTIONS } from "../engine/quantities.js";
+import { MAIN_INGREDIENT_GRID_SIZE, PANTRY_GRID_SIZE } from "./guidedGridSize.js";
 
 // Display-shaping for the guided flow's routes, the counterpart to
 // tonightIngredients.ts: the engine deals in ingredient ids, the screen needs
@@ -18,14 +19,11 @@ export interface IngredientOption {
   name: string;
 }
 
-/**
- * How many options each grid offers. Sized for a 360px screen at three columns —
- * four rows of proteins, six of pantry staples — and for the tap-first principle:
- * a grid long enough to need scrolling is a list, and a list is one step from the
- * search box UX_FLOW §5 explicitly rules out.
- */
-export const MAIN_INGREDIENT_GRID_SIZE = 12;
-export const PANTRY_GRID_SIZE = 18;
+// MAIN_INGREDIENT_GRID_SIZE and PANTRY_GRID_SIZE live in ./guidedGridSize.js — kept
+// import-free so the web client can pull the constant in without dragging this
+// module's Node-only graph along (#235). Re-exported below so every existing
+// `from "./guidedCatalog.js"` import keeps working unchanged.
+export { MAIN_INGREDIENT_GRID_SIZE, PANTRY_GRID_SIZE };
 
 // The pantry is what a household has *in the cupboard*: staples, vegetables, dairy
 // and aromatics. Proteins are excluded because they are step 2's question, and
@@ -106,7 +104,7 @@ function buildOptions(
   data: EngineData,
   candidates: readonly CandidateTemplate[],
   categories: readonly IngredientCategory[],
-  limit: number,
+  limit?: number,
 ): IngredientOption[] {
   const frequency = candidateFrequency(candidates);
 
@@ -131,7 +129,7 @@ function buildOptions(
   const options: IngredientOption[] = [];
 
   for (const { ingredient } of ordered) {
-    if (options.length >= limit) break;
+    if (limit !== undefined && options.length >= limit) break;
     if (isInterchangeableWithPicked(data, ingredient.id, picked)) continue;
     picked.add(ingredient.id);
     options.push({ id: ingredient.id, name: ingredient.name });
@@ -140,12 +138,17 @@ function buildOptions(
   return options;
 }
 
-/** The step-2 grid: the proteins the most of this household's dinners are built from. */
+/**
+ * The step-2 filter's full reach: every protein at least one of this household's
+ * eligible dishes is built from, deduped by variety (#221) and frequency-ordered.
+ * Uncapped (#235) — the client slices to `MAIN_INGREDIENT_GRID_SIZE` for the
+ * no-query grid and searches this whole list once the household types.
+ */
 export function buildMainIngredientOptions(
   data: EngineData,
   candidates: readonly CandidateTemplate[],
 ): IngredientOption[] {
-  return buildOptions(data, candidates, ["protein"], MAIN_INGREDIENT_GRID_SIZE);
+  return buildOptions(data, candidates, ["protein"]);
 }
 
 /** The step-3 grid: the staples this household is most likely to already have. */
