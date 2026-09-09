@@ -393,3 +393,57 @@ describe("validateFiles — substitution groups", () => {
     ).toBe(false);
   });
 });
+
+describe("validateFiles — variety classes (#221)", () => {
+  function ingredients(records: Record<string, unknown>[]): FileInput {
+    return { path: "data/ingredients.json", type: "ingredient", content: JSON.stringify(records) };
+  }
+
+  const base = {
+    category: "starch",
+    default_cost_tier: "budget",
+    peak_months: [],
+    available_year_round: true,
+    seasonality_strength: "weak",
+  };
+
+  it("passes a class with two or more members", () => {
+    const result = validateFiles([
+      ingredients([
+        { ...base, id: "ris", name: "ris", variety_of: "ris" },
+        { ...base, id: "jasminris", name: "jasminris", variety_of: "ris" },
+        { ...base, id: "basmatiris", name: "basmatiris", variety_of: "ris" },
+      ]),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("passes ingredients that carry no key at all", () => {
+    const result = validateFiles([
+      ingredients([
+        { ...base, id: "citron", name: "citron" },
+        { ...base, id: "lime", name: "lime" },
+      ]),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("warns, without erroring, on a class of one — the shape a typo takes", () => {
+    const result = validateFiles([
+      ingredients([
+        { ...base, id: "ris", name: "ris", variety_of: "ris" },
+        { ...base, id: "jasminris", name: "jasminris", variety_of: "riss" },
+      ]),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toHaveLength(2);
+    expect(result.warnings.map((warning) => warning.id).sort()).toEqual(["jasminris", "ris"]);
+    expect(result.warnings[0]!.message).toContain("never matches anything");
+    expect(result.warnings[0]!.path).toBe("variety_of");
+  });
+});

@@ -185,6 +185,7 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
   checkRecipeTemplateDerivedFields(inputs, validByType, errors, warnings);
   checkUnverifiedAllergenRows(validByType, warnings);
   checkSubstitutionMembersResolvable(inputs, validByType, warnings);
+  checkVarietyClasses(validByType, warnings);
 
   return {
     errors,
@@ -418,4 +419,42 @@ function checkUnverifiedAllergenRows(
       `this file is a hand-verified record kept unread by the product (#224); an ` +
       `unverified row belongs out of it, not in it`,
   });
+}
+
+// A variety class of one is always a curation slip (#221): either a typo in the key,
+// or the sibling it was written for never landed. It is silent rather than loud in the
+// engine — `variety_of` is only ever compared for equality, so a lone key simply never
+// matches anything, and the ingredient quietly stops being covered by the sibling that
+// was supposed to cover it. The validator is the only place that can see it.
+//
+// A *warning* and not an error: a lone key breaks nothing that was working, and a
+// half-finished curation pass must still be committable. Deliberately absent, for the
+// same reason as the cost-tier check above: anything comparing a class against the
+// substitution groups. The two relations are independent by design — the whole point
+// of #221 is that group membership is the wider one — so a class whose members share no
+// group is not wrong, only inert.
+function checkVarietyClasses(
+  validByType: Map<RecordType, ValidRecord[]>,
+  warnings: ValidationIssue[],
+): void {
+  const membersByKey = new Map<string, ValidRecord[]>();
+  for (const entry of validByType.get("ingredient") ?? []) {
+    const key = entry.record.variety_of;
+    if (typeof key !== "string") continue;
+    const members = membersByKey.get(key) ?? [];
+    members.push(entry);
+    membersByKey.set(key, members);
+  }
+
+  for (const [key, members] of membersByKey) {
+    if (members.length > 1) continue;
+    const entry = members[0]!;
+    warnings.push({
+      file: entry.file,
+      index: entry.index,
+      id: recordId(entry.record),
+      path: "variety_of",
+      message: `variety_of "${key}" has only this one member — a variety class of one never matches anything`,
+    });
+  }
 }

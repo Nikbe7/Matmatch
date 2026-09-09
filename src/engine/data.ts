@@ -24,6 +24,14 @@ export interface EngineData {
   // ingredient. The reverse index is built here at load time rather than stored
   // in the data file, which §5.5 explicitly rules out.
   readonly substitutionGroupsByMemberIngredientId: ReadonlyMap<string, readonly SubstitutionGroup[]>;
+  // Deliberately *not* here: a reverse index over `Ingredient.variety_of` (#221).
+  // The issue sketched one, and it turned out to have no reader once the role filter
+  // stayed in coverage: both consumers (#219 pantry coverage, #220 grid dedup) walk
+  // the substitution groups and ask "is this member a variety of that one", which is
+  // an equality test between two fields already in `ingredientsById` — see
+  // `isSameVariety` (src/engine/catalog.ts). A class-keyed index would answer a
+  // question nothing asks. `npm run validate` builds one of its own, for the single
+  // check that does need it (a class of one).
 }
 
 const DEFAULT_DATA_DIR = fileURLToPath(new URL("../../data/", import.meta.url));

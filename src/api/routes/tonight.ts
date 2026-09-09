@@ -8,7 +8,7 @@ import { mealDiners } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import {
   buildCookingHistory,
-  coveredPantryIngredientIds,
+  coveredPantryIngredients,
   explainSuggestion,
   pickNextSuggestion,
   rankCandidates,
@@ -120,6 +120,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       // ranked order untouched. Everything downstream — the pick, the explanation and
       // the `keep` lookup — reads this one list, so no two of them can disagree.
       const ranked = orderByPantryCoverage(
+        engineData,
         rankCandidates(engineData, candidates, weights, month, constraints.dietary_flags, recency),
         pantryIngredientIds,
       );
@@ -130,11 +131,37 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       // request.
       const pantryIngredients = buildPantryIngredientOptions(engineData, candidates);
 
-      /** The names behind a `pantry_match` reason, at most two (#152). */
+      /**
+       * The dish's own ingredient ids that the household's pantry covers (#219) —
+       * the slot half of each coverage pair, which is what the shopping list keys on
+       * to open those rows under "Har hemma".
+       *
+       * Sent rather than letting the client intersect its own tapped ids with the
+       * rows: since a shared variety bridges the two, "ris" tapped and `jasminris`
+       * on the row no longer compare equal, and a client-side intersection would be a
+       * second, quietly wrong definition of coverage.
+       */
+      function pantryCoveredIngredientIds(candidate: CandidateTemplate): string[] {
+        return coveredPantryIngredients(engineData, candidate, new Set(pantryIngredientIds)).map(
+          ({ ingredientId }) => ingredientId,
+        );
+      }
+
+      /**
+       * The names behind a `pantry_match` reason, at most two (#152).
+       *
+       * Names the *pantry* half of each coverage pair, not the slot half (#219): the
+       * household marked "ris", so the card says ris. Saying "jasminris" would credit
+       * them with a tap they never made, on a screen whose whole job is to show its
+       * work honestly.
+       */
       function pantryMatchNames(candidate: CandidateTemplate): string[] {
-        return coveredPantryIngredientIds(candidate, new Set(pantryIngredientIds))
-          .flatMap((id) => {
-            const ingredient = engineData.ingredientsById.get(id);
+        const seen = new Set<string>();
+        return coveredPantryIngredients(engineData, candidate, new Set(pantryIngredientIds))
+          .flatMap(({ pantryIngredientId }) => {
+            if (seen.has(pantryIngredientId)) return [];
+            seen.add(pantryIngredientId);
+            const ingredient = engineData.ingredientsById.get(pantryIngredientId);
             return ingredient ? [ingredient.name] : [];
           })
           .slice(0, MAX_PANTRY_MATCH_NAMES);
@@ -188,6 +215,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
               score: kept.score,
               reasonCodes,
               pantryMatch: reasonCodes.includes("pantry_match") ? pantryMatchNames(kept) : undefined,
+              pantryCoveredIngredientIds: pantryCoveredIngredientIds(kept),
               cookedToday: cookedTodayTemplateIds(history).has(kept.template.id),
             },
             portions,
@@ -282,6 +310,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
           // sentence from these names, so sending them without the code would be a
           // claim with nothing behind it.
           pantryMatch: reasonCodes.includes("pantry_match") ? pantryMatchNames(picked) : undefined,
+          pantryCoveredIngredientIds: pantryCoveredIngredientIds(picked),
           // One boolean about the dish on screen, not a history list: all the client
           // needs is to render the "Lagad ✓" state after a reload. A list of recent
           // meals would be API surface for the history screen that is explicitly out of

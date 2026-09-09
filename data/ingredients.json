@@ -525,6 +525,7 @@
   {
     "id": "gron-paprika",
     "name": "grön paprika",
+    "variety_of": "paprika",
     "category": "vegetable",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -558,6 +559,7 @@
   {
     "id": "gurka",
     "name": "gurka",
+    "variety_of": "gurka",
     "category": "vegetable",
     "default_cost_tier": "budget",
     "peak_months": [
@@ -572,6 +574,7 @@
   {
     "id": "isbergssallat",
     "name": "isbergssallat",
+    "variety_of": "salladsblad",
     "category": "vegetable",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -611,6 +614,7 @@
   {
     "id": "korsbarstomat",
     "name": "körsbärstomat",
+    "variety_of": "tomat",
     "category": "vegetable",
     "default_cost_tier": "mid",
     "peak_months": [
@@ -663,6 +667,7 @@
   {
     "id": "minigurka",
     "name": "minigurka",
+    "variety_of": "gurka",
     "category": "vegetable",
     "default_cost_tier": "budget",
     "peak_months": [
@@ -738,6 +743,7 @@
   {
     "id": "rod-paprika",
     "name": "röd paprika",
+    "variety_of": "paprika",
     "category": "vegetable",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -804,6 +810,7 @@
   {
     "id": "salladsmix",
     "name": "salladsmix",
+    "variety_of": "salladsblad",
     "category": "vegetable",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -865,6 +872,7 @@
   {
     "id": "spetskal",
     "name": "spetskål",
+    "variety_of": "vitkal",
     "category": "vegetable",
     "default_cost_tier": "budget",
     "peak_months": [
@@ -878,6 +886,7 @@
   {
     "id": "tomat",
     "name": "tomat",
+    "variety_of": "tomat",
     "category": "vegetable",
     "default_cost_tier": "mid",
     "peak_months": [
@@ -891,6 +900,7 @@
   {
     "id": "vitkal",
     "name": "vitkål",
+    "variety_of": "vitkal",
     "category": "vegetable",
     "default_cost_tier": "budget",
     "peak_months": [
@@ -920,6 +930,7 @@
   {
     "id": "aggnudlar",
     "name": "äggnudlar",
+    "variety_of": "nudlar",
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -929,6 +940,7 @@
   {
     "id": "basmatiris",
     "name": "basmatiris",
+    "variety_of": "ris",
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -956,6 +968,7 @@
   {
     "id": "formbrod",
     "name": "formbröd",
+    "variety_of": "mjukt-brod",
     "category": "starch",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -965,6 +978,7 @@
   {
     "id": "fullkornspasta",
     "name": "fullkornspasta",
+    "variety_of": "pasta",
     "category": "starch",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -974,6 +988,7 @@
   {
     "id": "glasnudlar",
     "name": "glasnudlar",
+    "variety_of": "nudlar",
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -992,6 +1007,7 @@
   {
     "id": "jasminris",
     "name": "jasminris",
+    "variety_of": "ris",
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1010,6 +1026,7 @@
   {
     "id": "makaroner",
     "name": "makaroner",
+    "variety_of": "pasta",
     "category": "starch",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1037,6 +1054,7 @@
   {
     "id": "nypotatis",
     "name": "nypotatis",
+    "variety_of": "potatis",
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [
@@ -1049,6 +1067,7 @@
   {
     "id": "potatis",
     "name": "potatis",
+    "variety_of": "potatis",
     "category": "starch",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1076,6 +1095,7 @@
   {
     "id": "ragbrod",
     "name": "rågbröd",
+    "variety_of": "mjukt-brod",
     "category": "starch",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1085,6 +1105,7 @@
   {
     "id": "ris",
     "name": "ris",
+    "variety_of": "ris",
     "category": "starch",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1094,6 +1115,7 @@
   {
     "id": "risnudlar",
     "name": "risnudlar",
+    "variety_of": "nudlar",
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1103,6 +1125,7 @@
   {
     "id": "spagetti",
     "name": "spagetti",
+    "variety_of": "pasta",
     "category": "starch",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1184,6 +1207,7 @@
   {
     "id": "hushallsost",
     "name": "hushållsost",
+    "variety_of": "hardost",
     "category": "dairy",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1211,6 +1235,7 @@
   {
     "id": "lattmjolk",
     "name": "lättmjölk",
+    "variety_of": "mjolk",
     "category": "dairy",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1220,6 +1245,7 @@
   {
     "id": "matlagningsgradde",
     "name": "matlagningsgrädde",
+    "variety_of": "gradde",
     "category": "dairy",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1229,6 +1255,7 @@
   {
     "id": "mellanmjolk",
     "name": "mellanmjölk",
+    "variety_of": "mjolk",
     "category": "dairy",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1247,6 +1274,7 @@
   {
     "id": "naturell-yoghurt",
     "name": "naturell yoghurt",
+    "variety_of": "yoghurt",
     "category": "dairy",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1265,6 +1293,7 @@
   {
     "id": "prastost",
     "name": "prästost",
+    "variety_of": "hardost",
     "category": "dairy",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1283,6 +1312,7 @@
   {
     "id": "standardmjolk",
     "name": "standardmjölk",
+    "variety_of": "mjolk",
     "category": "dairy",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1292,6 +1322,7 @@
   {
     "id": "turkisk-yoghurt",
     "name": "turkisk yoghurt",
+    "variety_of": "yoghurt",
     "category": "dairy",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1310,6 +1341,7 @@
   {
     "id": "vispgradde",
     "name": "vispgrädde",
+    "variety_of": "gradde",
     "category": "dairy",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1503,6 +1535,7 @@
   {
     "id": "gul-lok",
     "name": "gul lök",
+    "variety_of": "lok",
     "category": "spice_aromatic",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1600,6 +1633,7 @@
   {
     "id": "rodlok",
     "name": "rödlök",
+    "variety_of": "lok",
     "category": "spice_aromatic",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1618,6 +1652,7 @@
   {
     "id": "schalottenlok",
     "name": "schalottenlök",
+    "variety_of": "lok",
     "category": "spice_aromatic",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1699,6 +1734,7 @@
   {
     "id": "dijonsenap",
     "name": "dijonsenap",
+    "variety_of": "senap",
     "category": "condiment",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1807,6 +1843,7 @@
   {
     "id": "senap",
     "name": "senap",
+    "variety_of": "senap",
     "category": "condiment",
     "default_cost_tier": "budget",
     "peak_months": [],

@@ -22,6 +22,54 @@ describe("IngredientSchema", () => {
     expect(IngredientSchema.parse(fixture)).toEqual(fixture);
   });
 
+  it("parses an optional variety_of key (#221)", () => {
+    const fixture = {
+      id: "jasminris",
+      name: "jasminris",
+      variety_of: "ris",
+      category: "starch",
+      default_cost_tier: "budget",
+      peak_months: [],
+      available_year_round: true,
+      seasonality_strength: "weak",
+    };
+
+    expect(IngredientSchema.parse(fixture)).toEqual(fixture);
+  });
+
+  it("leaves variety_of absent rather than defaulting it", () => {
+    // The absence has to survive parsing: two ingredients that both lack a key are
+    // never varieties of each other, and a default (""/null) would be a value two
+    // unrelated ingredients could compare equal on.
+    const parsed = IngredientSchema.parse({
+      id: "vitlok",
+      name: "vitlök",
+      category: "spice_aromatic",
+      default_cost_tier: "budget",
+      peak_months: [],
+      available_year_round: true,
+      seasonality_strength: "weak",
+    });
+
+    expect("variety_of" in parsed).toBe(false);
+  });
+
+  it("rejects a variety_of that is not a slug", () => {
+    const result = IngredientSchema.safeParse({
+      id: "nypotatis",
+      name: "nypotatis",
+      variety_of: "Ny Potatis",
+      category: "starch",
+      default_cost_tier: "mid",
+      peak_months: [6, 7],
+      available_year_round: false,
+      seasonality_strength: "strong",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]).toMatchObject({ path: ["variety_of"] });
+  });
+
   it("accepts an empty peak_months array for non-seasonal ingredients", () => {
     const fixture = {
       id: "rapsolja",

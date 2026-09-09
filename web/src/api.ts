@@ -196,6 +196,14 @@ export interface TonightResult {
    * list it was handed is a claim or leftovers.
    */
   pantryMatch?: string[];
+  /**
+   * The dish's *own* ingredient ids that the household's pantry covers (#219) — what
+   * the shopping list opens under "Har hemma". Server-derived rather than intersected
+   * client-side against the tapped ids: a shared variety bridges "ris" to a
+   * `jasminris` row, so the two no longer compare equal and any local intersection
+   * would be a second, quietly wrong definition of coverage.
+   */
+  pantryCoveredIngredientIds?: readonly string[];
   // Whether this household already marked *this* dish as cooked today (#88), so the
   // "Lagad ✓" state survives a reload. Deliberately one boolean about the dish on
   // screen rather than a recent-history list — there is no history screen, and the
