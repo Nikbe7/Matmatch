@@ -525,7 +525,7 @@ select.input {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-overlay);
 }
 
 .ingredient-popover {
@@ -1327,7 +1327,7 @@ select.input {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 50;
+  z-index: var(--z-nav);
   display: flex;
   background: var(--color-page-bg);
   border-top: 1px solid var(--color-border);
@@ -1558,7 +1558,9 @@ select.input {
 .pantry-sheet {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  /* #201: was 20, i.e. below the nav's 50 — the tab bar painted over the sheet's
+     own scrim and stayed tappable through a dialog claiming `aria-modal="true"`. */
+  z-index: var(--z-overlay);
   display: flex;
   align-items: flex-end;
   background: oklch(0.25 0.024 55 / 35%);
@@ -1717,6 +1719,130 @@ select.input {
 @media (prefers-reduced-motion: reduce) {
   .tonight-suggestion,
   .preference-block__chevron {
+    transition: none;
+  }
+}
+
+/* #206: the guided flow fills the screen so a sparse step can be composed rather
+   than left hanging at the top. Steps 1 and 2 were a headline and a few chips above
+   roughly 75% empty viewport at 390×844 — on the flow reached from the app's
+   second-most prominent tab. The column here is what gives `.guided-step-body`
+   something to center inside; without it the flow is only as tall as its content and
+   there is no space to distribute. */
+.guided-flow {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--space-6) - 88px - env(safe-area-inset-bottom));
+  min-height: calc(100dvh - var(--space-6) - 88px - env(safe-area-inset-bottom));
+}
+
+/* `safe center` rather than plain `center`: a step whose content outgrows the column
+   (a long ingredient grid on a short screen) must overflow downward and stay
+   scrollable, not get centered with its first rows clipped above the scroll origin. */
+.guided-step-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  justify-content: safe center;
+  gap: var(--space-4);
+}
+
+/* The three-step progress indicator (#206), in the slot the "Steg 1 av 3" eyebrow
+   used to occupy. Sized to the eyebrow's own line so swapping one for the other
+   moves nothing below it. */
+.guided-progress {
+  display: flex;
+  align-items: center;
+  min-height: 1.2rem;
+  margin-bottom: var(--space-1);
+}
+.guided-progress__track {
+  display: flex;
+  gap: var(--space-1);
+  width: 100%;
+  max-width: 8rem;
+}
+.guided-progress__segment {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+}
+.guided-progress__segment--done {
+  background: var(--color-accent);
+}
+
+/* The shared pantry picker (#206) — one treatment for the guided step and Tonight's
+   "Fler" sheet. Taps only, no filter: see PantryPicker.tsx. */
+.pantry-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* The dish view (#207) — what the household commits to, one screen before the list.
+   Sections stacked inside one card and separated by rules rather than by four cards:
+   the meta, the count and the amounts are three readings of a single dish, and
+   splitting them into cards would read as three unrelated decisions. */
+.dish-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.dish-view__meta {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+.dish-view__blurb {
+  margin: 0;
+  text-wrap: pretty;
+}
+.dish-view__stepper {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.dish-view__ingredients {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-4) 0 0;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* The amounts are briefly a beat behind the stepper while the rescale lands. Dimmed
+     rather than blanked (see DishView's comment): a list that empties on every tap is
+     worse than one that is a beat late, but an amount that looks authoritative while
+     belonging to a different count is the #231 bug wearing a new screen. */
+  transition: opacity 120ms ease-out;
+}
+.dish-view__ingredients.is-stale {
+  opacity: 0.45;
+}
+
+.dish-view__row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.dish-view__name {
+  overflow-wrap: anywhere;
+}
+/* Pushes the amount to the right edge whether or not the "har hemma" tag is there,
+   so the amounts line up as a column down the list. */
+.dish-view__row .item-amount {
+  margin-left: auto;
+}
+.dish-view__have {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dish-view__ingredients {
     transition: none;
   }
 }

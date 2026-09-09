@@ -2228,6 +2228,49 @@ describe("App — Tonight's pantry row (#152)", () => {
     expect(document.querySelector(".tonight-suggestion.is-reranking")).toBeNull();
   });
 
+  // #206: one treatment for "Vad har du hemma?", and no search box on it. The list
+  // is server-capped at PANTRY_GRID_SIZE and app.test.ts asserts Tonight's and the
+  // guided flow's are identical, so a filter here could only narrow eighteen chips
+  // that are already all on screen.
+  it("renders no text input in the sheet — the picker is taps only", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, tonightBody())));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Fler" }));
+
+    const sheet = screen.getByRole("dialog", { name: "Vad har du hemma?" });
+    expect(within(sheet).queryAllByRole("textbox")).toEqual([]);
+    expect(within(sheet).queryAllByRole("searchbox")).toEqual([]);
+    expect(sheet.querySelectorAll("input[type=text], input[type=search]")).toHaveLength(0);
+    // Still the full picker, not a trimmed one.
+    expect(within(sheet).getByRole("button", { name: "purjolök" })).toBeTruthy();
+  });
+
+  it("makes the bottom nav inert while the sheet is open, and interactive again after", async () => {
+    // Raising the z-index alone was not enough (#201): a nav painted behind a sheet
+    // is still in the tab order and still reachable by a screen reader, and the
+    // dialog claims aria-modal="true".
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, tonightBody())));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const nav = screen.getByRole("navigation", { name: "Huvudnavigation" });
+    expect(nav.hasAttribute("inert")).toBe(false);
+
+    await user.click(screen.getByRole("button", { name: "Fler" }));
+    expect(nav.hasAttribute("inert")).toBe(true);
+
+    const sheet = screen.getByRole("dialog", { name: "Vad har du hemma?" });
+    await user.click(within(sheet).getByRole("button", { name: "Klar" }));
+    expect(nav.hasAttribute("inert")).toBe(false);
+  });
+
   it("opens the guided flow's full grid in a layer, without leaving the suggestion", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();

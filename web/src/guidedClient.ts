@@ -41,6 +41,13 @@ export interface GuidedDirectionsRequest {
    * for still allows it, replace (and explain) it if not.
    */
   keep?: string;
+  /**
+   * An explicit portion count (#231) — the stepper's value, sent when the household
+   * commits to a dish. Omitted means "however many the diner set works out to".
+   * The response's own `portions` is what the ingredients were actually scaled to
+   * and is what the stepper re-seeds from; these two are never assumed equal.
+   */
+  portions?: number;
 }
 
 interface ApiErrorEnvelope {
@@ -86,6 +93,7 @@ export function createGuidedClient(accessToken: string, diners: string | undefin
         params.set("pantry", options.pantry.join(","));
       }
       if (options.keep) params.set("keep", options.keep);
+      if (options.portions !== undefined) params.set("portions", String(options.portions));
 
       const response = await fetch(`/api/guided/directions${withDiners(params)}`, { headers });
       return readJson<GuidedDirectionsResponse>(response);

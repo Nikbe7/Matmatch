@@ -18,6 +18,7 @@ import { createApp } from "../app.js";
 import { MAIN_INGREDIENT_GRID_SIZE, PANTRY_GRID_SIZE } from "../guidedCatalog.js";
 import { makeHousehold } from "../../engine/__fixtures__/household.js";
 import { selectCandidateTemplates } from "../../engine/candidates.js";
+import { MAX_PORTIONS, MIN_PORTIONS } from "../../engine/quantities.js";
 
 // GET /api/guided/options and GET /api/guided/directions (UX_FLOW §5), against the
 // real local Supabase stack — real database, real auth, no mocks. Selection
@@ -490,6 +491,90 @@ describe.skipIf(!stackAvailable)("GET /api/guided/directions — safety and hous
     const response = await directions(app, user.accessToken, { intent: "dinner_idea", main: "any" });
 
     expect(response.body.portions).toBe(2.5);
+  });
+
+  // #231: the stepper used to move the displayed count without moving the amounts.
+  // The route now takes the count it should scale to, and always echoes what it used.
+  it("scales the ingredients to an explicit portions override, and echoes it", async () => {
+    const app = buildApp();
+    const user = await userWithHousehold(
+      app,
+      makeHousehold({ members: [{ type: "adult", portion_factor: 1 }] }),
+    );
+
+    const one = await directions(app, user.accessToken, { intent: "dinner_idea", main: "any" });
+    const four = await directions(app, user.accessToken, {
+      intent: "dinner_idea",
+      main: "any",
+      portions: "4",
+      keep: one.body.directions[0].template.id,
+    });
+
+    expect(one.body.portions).toBe(1);
+    expect(four.body.portions).toBe(4);
+
+    // Same dish (kept), four times the amount — the claim the whole fix rests on.
+    const amountOf = (body: Record<string, any>) =>
+      body.directions[0].ingredients.find(
+        (ingredient: { quantity: { kind: string } }) => ingredient.quantity.kind === "amount",
+      ).quantity.amount;
+    expect(four.body.directions[0].template.id).toBe(one.body.directions[0].template.id);
+    expect(amountOf(four.body)).toBeCloseTo(amountOf(one.body) * 4, 5);
+  });
+
+  it("clamps an out-of-range override rather than rejecting it, and says which it used", async () => {
+    const app = buildApp();
+    const user = await userWithHousehold(app, makeHousehold());
+
+    const huge = await directions(app, user.accessToken, {
+      intent: "dinner_idea",
+      main: "any",
+      portions: "9999",
+    });
+
+    // A 400 would replace a wrong number with a dead end; the echoed count is what
+    // keeps the client's stepper honest either way.
+    expect(huge.status).toBe(200);
+    expect(huge.body.portions).toBe(MAX_PORTIONS);
+  });
+
+  it("falls back to the household's own total when the override is unusable", async () => {
+    const app = buildApp();
+    const user = await userWithHousehold(
+      app,
+      makeHousehold({
+        members: [
+          { type: "adult", portion_factor: 1 },
+          { type: "adult", portion_factor: 1 },
+        ],
+      }),
+    );
+
+    for (const portions of ["", "abc", "-3", "0"]) {
+      const response = await directions(app, user.accessToken, {
+        intent: "dinner_idea",
+        main: "any",
+        portions,
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.portions).toBe(2);
+    }
+  });
+
+  it("never scales to a count the stepper could not display", async () => {
+    // A single child is 0.5 portions, but the stepper floors at 1 (#112/#231) — so
+    // the route scales to 1 as well. This is the drift that needed no stepper tap
+    // at all to reproduce.
+    const app = buildApp();
+    const user = await userWithHousehold(
+      app,
+      makeHousehold({ members: [{ type: "child", portion_factor: 0.5 }] }),
+    );
+
+    const response = await directions(app, user.accessToken, { intent: "dinner_idea", main: "any" });
+
+    expect(response.body.portions).toBe(MIN_PORTIONS);
   });
 });
 

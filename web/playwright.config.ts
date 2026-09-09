@@ -13,6 +13,14 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: "http://localhost:4173",
+    // Kept off for green runs (they produce nothing worth keeping) and written
+    // only when a test fails. Without these, a CI failure leaves nothing to read:
+    // the `list` reporter writes no report directory, so the first red run of
+    // this suite (#238) could only be diagnosed by guessing. The trace carries
+    // the console output, which is where sw.ts logs every install and activate
+    // failure by design.
+    trace: "retain-on-failure",
+    video: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {

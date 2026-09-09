@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseDinersFromQuery } from "./diners.js";
+import { parseDinersFromQuery, parsePortionsFromQuery } from "./diners.js";
+import { MAX_PORTIONS, MIN_PORTIONS } from "../engine/quantities.js";
 import { mealDiners } from "../engine/constraints.js";
 import type { HouseholdMember } from "../schema/household.js";
 
@@ -73,5 +74,25 @@ describe("parseDinersFromQuery", () => {
     expect(mealDiners(roster, parseDinersFromQuery("1")).constraints.dietary_flags).toEqual([
       "vegetarian",
     ]);
+  });
+});
+
+// #231: the portion count a meal is scaled to, when the household stepped it.
+describe("parsePortionsFromQuery", () => {
+  it("takes a usable count, clamped into range", () => {
+    expect(parsePortionsFromQuery("4")).toBe(4);
+    expect(parsePortionsFromQuery(" 6 ")).toBe(6);
+    expect(parsePortionsFromQuery("2.5")).toBe(2.5);
+    expect(parsePortionsFromQuery("9999")).toBe(MAX_PORTIONS);
+    expect(parsePortionsFromQuery("0.25")).toBe(MIN_PORTIONS);
+  });
+
+  it("falls back to undefined — the diner-derived total — for anything unusable", () => {
+    // No error path, same idiom as parseDinersFromQuery above: a 400 would replace a
+    // wrong number with a dead end, and the route echoes what it scaled to anyway, so
+    // the count on screen can never disagree with the amounts under it.
+    for (const raw of ["", "   ", "abc", "-3", "0", "NaN", "Infinity", undefined, 4, ["4"], null]) {
+      expect(parsePortionsFromQuery(raw)).toBeUndefined();
+    }
   });
 });

@@ -1,0 +1,123 @@
+name: CI
+
+# Runs on every PR into main and on main itself (#227). Before this, the only thing
+# standing between a red test and a merge was a person remembering to run both suites
+# locally and read the right field of a JSON report.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Manual re-run from the Actions tab or `gh workflow run ci.yml --ref <branch>`.
+  # Added because a run can fail to be created at all (no check suite, nothing in
+  # the run list), and without this there is no way to ask for one short of pushing
+  # a commit that exists only to trigger CI.
+  workflow_dispatch:
+
+# A new push supersedes the previous run for the same branch. Nothing here is a
+# deploy, so cancelling an in-flight run loses nothing but minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck, tests, build, e2e
+    runs-on: ubuntu-latest
+    # Generous relative to the ~6 min this takes; it exists to kill a hung
+    # `supabase start` rather than to police the runtime.
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          # Matches the version this is developed against. Deliberately a single
+          # version and not a matrix: there is one deployment target (the Dockerfile),
+          # so a second Node version would test a configuration nothing runs.
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm ci --prefix web
+
+      # The whole reason this job is worth having. 283 backend tests gate themselves
+      # on `isLocalStackAvailable()` (src/db/__fixtures__/localStack.ts) and skip
+      # silently without it — they need a real Postgres *and* GoTrue, because the
+      # fixtures mint genuine ES256 tokens and the RLS tests connect as the
+      # least-privilege `matmatch_app` role. A bare `services: postgres` container
+      # cannot serve JWKS, so this starts the real local stack. Every URL and
+      # credential the tests use is a fixed Supabase CLI default, so nothing needs
+      # configuring here and no secret is involved.
+      - name: Start Supabase (real Postgres + auth, so nothing skips)
+        run: npx supabase start
+
+      # web/src/supabaseClient.ts throws at import time without these two, and
+      # App.tsx imports it at module level — so in a production build the whole
+      # app dies before `registerServiceWorker()` ever runs, the worker is never
+      # registered, and the e2e spec waits out its 20s on a `controller` that can
+      # never go non-null. That was the first red run, and only a Playwright trace
+      # showed it: the page error appears nowhere in the job log.
+      #
+      # Both values are public by design (see web/.env.example) and are the local
+      # stack's fixed CLI defaults, so no secret is involved. Written as a file
+      # rather than exported, because `vite preview`'s rebuild in the Playwright
+      # webServer has to see them too.
+      - name: Point the web build at the local stack
+        run: |
+          npx supabase status -o env | grep -E '^(API_URL|ANON_KEY)=' > /tmp/stack.env
+          . /tmp/stack.env
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' "$API_URL" "$ANON_KEY" > web/.env
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Validate curated data
+        run: npm run validate
+
+      - name: Backend tests
+        run: npm test -- --reporter=default --reporter=json --outputFile=reports/backend.json
+
+      - name: Backend tests ran nothing skipped
+        if: always()
+        run: node scripts/assert-no-skipped-tests.mjs reports/backend.json "backend"
+
+      - name: Web tests
+        run: npm test --prefix web -- --reporter=default --reporter=json --outputFile=../reports/web.json
+
+      - name: Web tests ran nothing skipped
+        if: always()
+        run: node scripts/assert-no-skipped-tests.mjs reports/web.json "web"
+
+      # Explicit rather than left to the e2e job's own `webServer`, which also builds:
+      # a broken build should fail as a build, not as a Playwright server timeout.
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: web
+
+      - name: End-to-end
+        run: npx playwright test
+        working-directory: web
+
+      # Uploaded on failure only: green runs produce nothing worth keeping, and a red
+      # one is much easier to read from the trace than from the log. `test-results/`
+      # rather than `playwright-report/`: the config uses the `list` reporter, which
+      # writes no report directory at all, so the old path uploaded nothing.
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: test-reports
+          path: |
+            reports/
+            web/test-results/
+          retention-days: 7

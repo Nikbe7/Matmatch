@@ -8,6 +8,89 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-09-07 — GitHub-setupen är körd; #224-drift städad i filerna ingen läste om efteråt
+
+**Beslut:** Stänger den öppna posten från 2026-07-28 ("`gh` CLI not installed; GitHub-side
+setup deferred"). `gh` är installerat och autentiserat, `scripts/setup-github.sh` har körts,
+och etiketter, milstolpar och projekttavla finns. Skriptet behålls — det är idempotent och
+[GIT_AND_GITHUB.md](GIT_AND_GITHUB.md) pekar ut det som avsiktligt sparat, så en radering
+hade motsagt ett dokumenterat beslut utan att spara något.
+
+Samtidigt rättade vi allergireferenser som #224 gjorde felaktiga, på ytorna som inte lästes
+om när filtret togs bort: `fly.toml` (påstod att appen lagrar allergidata i EU),
+`web/src/styles/tokens.css` (motiverade `--color-danger` med en varningsbehandling som inte
+finns kvar, tvärtemot vad UX_FLOW §6 numera säger), PR- och buggmallarna i `.github/`, och
+riskraden i PRODUCT_PLAN.md som fortfarande utlovade hård allergifiltrering.
+
+**Varför:** ARCHITECTURE.md och UX_FLOW.md beskrev redan #224 korrekt — driften satt i
+konfiguration, mallar och kodkommentarer, alltså precis där ingen letar. En PR-mall som
+kryssrutar "låter inte AI överskugga allergifiltrering" lär in ett skydd som inte existerar,
+och ett tokenkommentar som säger att danger är allergifärgen bjuder in nästa ändring att
+återanvända den visuella varningsspråket för en preferens — vilket UX_FLOW uttryckligen
+förbjuder.
+
+**Så tillämpar du det:** `--color-danger` är fel- och destruktiv-åtgärdsfärgen, ingenting
+annat; använd den aldrig för en dietpreferens. Kolumnen `allergies` och domänen
+`allergy_value` ligger kvar i databasen och skrivs aldrig — det är en migration och därmed
+ett eget beslut, spårat separat.
+## 2026-09-07 — Product advisor anropas inline; design väljs ur förslag, inte ur prosa
+
+**Beslut:** `product-advisor` behålls men kopplas om. Implementationssessionen anropar den
+själv mitt i arbetet och agerar direkt på svaret; hela apparaten med pasteable blocks,
+briefmallar och close-out-instruktioner till "den andra chatten" är borttagen ur
+agentdefinitionen. En separat rådgivarchatt behålls för en enda sak: oberoende granskning av
+en färdig slice. Samtidigt: design för nya skärmar avgörs via `/design-options`, som ger 2–3
+namngivna riktningar som artboards på en canvas, och Claude flyttar korten på GitHub-tavlan
+själv i stället för att be om lov.
+
+**Varför:** 48 av 55 sessioner nämnde rådgivaren men bara 10 anropade den som subagent —
+normalläget var manuell klipp-och-klistra mellan två chattar, med Niklas som budbärare.
+Regeln om att upprepa AskUserQuestion som ren text fanns bara för att den reläen existerade.
+Det enda reläet faktiskt köpte var oberoende, och det behövs bara vid granskning, inte när
+frågan är "ska vi bygga det här". Designdelen: rådgivaren beskrev design i prosa, så Niklas
+godkände text och såg resultatet först efter att det byggts — han väljer snabbare och bättre
+på bilder än på beskrivningar.
+
+**Så tillämpar du det:** Fråga rådgivaren inline före ny skärm, större visuell ändring eller
+oklar fasplacering — inte för buggfixar, refaktorering eller redan specade issues. Kör
+`/design-options <skärm>` innan kod skrivs för nya skärmar; en komponentfix eller ett
+saknat tillstånd bygger du direkt och säger varför det var givet. Rättigheterna i
+`.claude/settings.json` hör till samma beslut: `git push`, `gh pr create` och `gh api graphql`
+(tavelflyttar) saknades, så en självgående slice stannade alltid vid mållinjen. Den listan
+skrev Niklas själv — Claude får inte utöka sina egna rättigheter, bara strama åt dem.
+`gh api graphql:*` är den breda posten och den är medvetet med: det är den som flyttar korten
+på tavlan.
+
+---
+
+## 2026-08-31 — En textinmatning är motiverad bara när den når något ett tapp inte når (#206, #235)
+
+Regeln bakom två motsatta utfall samma dag, så nästa "ska den här listan ha ett filter?"
+inte behöver avgöras på känsla.
+
+`PantryPicker`s sökruta togs bort (#206, PR #236). Skafferilistan kapas på servern till
+`PANTRY_GRID_SIZE` = 18 och `src/api/app.test.ts` asserterar att Ikvälls och guidade
+flödets listor är identiska — alla 18 chips syns alltså redan, på båda ytorna. Ett
+filter där kunde per konstruktion inte nå något; det kunde bara dölja det användaren
+redan såg, mot priset av ett tangentbord, ett query-tillstånd och ett
+no-match-tillstånd. #206:s acceptanskriterium sa "search included", men det skrevs på
+premissen att Ikväll-lagret visade en längre lista än guidade steg 3. Det gör det inte.
+
+Steg 2:s type-to-filter (#110) klarar samma test, men bara i avsikt — inte som byggd.
+Mätt 2026-08-31: 33 distinkta proteiner i middagskandidatmängden, rutnätet visar 12,
+21 är onåbara via tapp, och 37 av 148 middagsmallar har inget protein i rutnätet alls.
+Där finns alltså en verklig svans som bara går att nå genom att skriva — lax, tonfisk,
+entrecôte, räkor. Men `buildMainIngredientOptions` kapar till 12 *innan* svaret lämnar
+servern, och klienten filtrerar den kapade listan, så filtret når svansen lika lite som
+skafferisöket gjorde. UX_FLOW §5 påstår räckvidden ("reachable ingredients no longer
+top out at the ~12 the grid shows"); koden har aldrig haft den. Åtgärdas i #235.
+
+**How to apply:** Fråga vad listan har för form innan du frågar om den ska ha ett
+filter. Visas hela mängden redan är ett filter dekoration, oavsett hur lång listan
+känns. Är rutnätet en topplista ur något större är filtret den enda vägen till resten
+— och då ska det finnas, men som en tyst utväg under rutnätet, inte som skärmens
+första element: ett textfält överst säger "skriv här" på en yta vars hela poäng är
+"tryck".
 ## 2026-08-30 — Variantfamiljen blir en egen post; `variety_of` blir en validerad nyckel (#223)
 
 Reverserar inte #221. #221 svarade på *medlemskap* — vilken familj en ingrediens
