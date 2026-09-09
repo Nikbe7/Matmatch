@@ -458,6 +458,9 @@
   {
     "id": "bambuskott",
     "name": "bambuskott",
+    "cuisines": [
+      "asian"
+    ],
     "category": "vegetable",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -842,6 +845,9 @@
   {
     "id": "sojagroddar",
     "name": "sojagroddar",
+    "cuisines": [
+      "asian"
+    ],
     "category": "vegetable",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -931,6 +937,9 @@
     "id": "aggnudlar",
     "name": "äggnudlar",
     "variety_of": "nudlar",
+    "cuisines": [
+      "asian"
+    ],
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -989,6 +998,9 @@
     "id": "glasnudlar",
     "name": "glasnudlar",
     "variety_of": "nudlar",
+    "cuisines": [
+      "asian"
+    ],
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1116,6 +1128,9 @@
     "id": "risnudlar",
     "name": "risnudlar",
     "variety_of": "nudlar",
+    "cuisines": [
+      "asian"
+    ],
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1135,6 +1150,9 @@
   {
     "id": "tacoskal",
     "name": "tacoskal",
+    "cuisines": [
+      "mexican_texmex"
+    ],
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1144,6 +1162,9 @@
   {
     "id": "tortillabrod",
     "name": "tortillabröd",
+    "cuisines": [
+      "mexican_texmex"
+    ],
     "category": "starch",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1342,6 +1363,11 @@
     "id": "vispgradde",
     "name": "vispgrädde",
     "variety_of": "gradde",
+    "cuisines": [
+      "swedish_nordic",
+      "italian_mediterranean",
+      "american_comfort"
+    ],
     "category": "dairy",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1450,6 +1476,10 @@
   {
     "id": "curry",
     "name": "curry",
+    "cuisines": [
+      "asian",
+      "swedish_nordic"
+    ],
     "category": "spice_aromatic",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1545,6 +1575,10 @@
   {
     "id": "gurkmeja",
     "name": "gurkmeja",
+    "cuisines": [
+      "asian",
+      "middle_eastern"
+    ],
     "category": "spice_aromatic",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1725,6 +1759,9 @@
   {
     "id": "currypasta",
     "name": "currypasta",
+    "cuisines": [
+      "asian"
+    ],
     "category": "condiment",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1762,6 +1799,9 @@
   {
     "id": "kokosmjolk",
     "name": "kokosmjölk",
+    "cuisines": [
+      "asian"
+    ],
     "category": "condiment",
     "default_cost_tier": "budget",
     "peak_months": [],
@@ -1798,6 +1838,9 @@
   {
     "id": "oystersas",
     "name": "oystersås",
+    "cuisines": [
+      "asian"
+    ],
     "category": "condiment",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1834,6 +1877,9 @@
   {
     "id": "sambal-oelek",
     "name": "sambal oelek",
+    "cuisines": [
+      "asian"
+    ],
     "category": "condiment",
     "default_cost_tier": "mid",
     "peak_months": [],
@@ -1853,6 +1899,10 @@
   {
     "id": "sesamfron",
     "name": "sesamfrön",
+    "cuisines": [
+      "asian",
+      "middle_eastern"
+    ],
     "category": "condiment",
     "default_cost_tier": "budget",
     "peak_months": [],

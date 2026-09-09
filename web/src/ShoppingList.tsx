@@ -288,13 +288,13 @@ export function ShoppingList({
               <div className="list-row__actions">
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="quiet"
                   onClick={() => moveTo(item.index, "have_at_home")}
                 >
                   Har hemma
                 </Button>
                 {item.swappedFrom && (
-                  <Button type="button" variant="secondary" onClick={() => undoSwap(item.index)}>
+                  <Button type="button" variant="quiet" onClick={() => undoSwap(item.index)}>
                     Ångra bytet
                   </Button>
                 )}
@@ -315,11 +315,11 @@ export function ShoppingList({
               <ItemAmount item={item} />
               <VarietyNote item={item} />
               <div className="list-row__actions">
-                <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
+                <Button type="button" variant="quiet" onClick={() => moveTo(item.index, "to_buy")}>
                   Behöver handlas
                 </Button>
                 {item.swappedFrom && (
-                  <Button type="button" variant="secondary" onClick={() => undoSwap(item.index)}>
+                  <Button type="button" variant="quiet" onClick={() => undoSwap(item.index)}>
                     Ångra bytet
                   </Button>
                 )}
@@ -417,7 +417,7 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
               <div className="list-row__actions">
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="quiet"
                   onClick={() => moveTo(item.index, "have_at_home")}
                 >
                   Har hemma
@@ -438,7 +438,7 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
               <span className="item-name">{item.name}</span>
               <ItemAmount item={item} />
               <div className="list-row__actions">
-                <Button type="button" variant="secondary" onClick={() => moveTo(item.index, "to_buy")}>
+                <Button type="button" variant="quiet" onClick={() => moveTo(item.index, "to_buy")}>
                   Behöver handlas
                 </Button>
               </div>

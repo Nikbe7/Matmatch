@@ -6,7 +6,7 @@ import {
 import type { EngineData } from "../engine/data.js";
 import { scaleSlotQuantity, type ScaledQuantity } from "../engine/quantities.js";
 import type { CostTier } from "../schema/ingredient.js";
-import type { IngredientSlot } from "../schema/recipeTemplate.js";
+import type { Cuisine, IngredientSlot } from "../schema/recipeTemplate.js";
 
 // Display-shaping for #124's ingredient-swap popover — the counterpart to
 // tonightIngredients.ts and guidedCatalog.ts: the engine deals in ingredient ids and
@@ -45,13 +45,18 @@ export interface IngredientAlternativesView {
 
 /**
  * Everything #124's popover needs for one slot: whether it accepts swaps at all, and
- * if so, the classified curated alternatives plus the wider search pool. `slot` and
- * `currentIngredientId` are always server-derived (the route re-reads the slot from
- * the template and validates the ingredient id against the catalog) — never trusted
- * as-is from the client beyond that validation.
+ * if so, the classified curated alternatives plus the wider search pool. `cuisine`,
+ * `slot` and `currentIngredientId` are always server-derived (the route re-reads the
+ * slot and the cuisine from the template and validates the ingredient id against the
+ * catalog) — never trusted as-is from the client beyond that validation.
+ *
+ * `cuisine` narrows the curated Billigare/Liknande lists only (#222). `searchPool` is
+ * deliberately left whole: a household typing an ingredient's name has asked for that
+ * ingredient, and the swap it names is its own call to make.
  */
 export function buildIngredientAlternatives(
   engineData: EngineData,
+  cuisine: Cuisine,
   slot: IngredientSlot,
   currentIngredientId: string,
   portions: number,
@@ -72,7 +77,7 @@ export function buildIngredientAlternatives(
     };
   };
 
-  const narrowCandidateIds = substituteCandidateIds(engineData, slot.role, currentIngredientId);
+  const narrowCandidateIds = substituteCandidateIds(engineData, cuisine, slot.role, currentIngredientId);
   const { cheaper: cheaperIds, similar: similarIds } = currentIngredient
     ? classifyCostTier(engineData, narrowCandidateIds, currentIngredient.default_cost_tier)
     : { cheaper: [], similar: [] };

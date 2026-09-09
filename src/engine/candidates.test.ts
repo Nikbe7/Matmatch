@@ -286,13 +286,13 @@ describe("substituteCandidateIds", () => {
   it("returns every other member of a role-matching group containing the current ingredient", () => {
     const data = makeEngineData({ ingredients, substitutionGroups: [group] });
 
-    expect(substituteCandidateIds(data, "aromatic", "gul-lok")).toEqual(["rodlok", "purjolok"]);
+    expect(substituteCandidateIds(data, "swedish_nordic", "aromatic", "gul-lok")).toEqual(["rodlok", "purjolok"]);
   });
 
   it("never includes the current ingredient itself", () => {
     const data = makeEngineData({ ingredients, substitutionGroups: [group] });
 
-    expect(substituteCandidateIds(data, "aromatic", "gul-lok")).not.toContain("gul-lok");
+    expect(substituteCandidateIds(data, "swedish_nordic", "aromatic", "gul-lok")).not.toContain("gul-lok");
   });
 
   it("skips a group member the catalog cannot resolve", () => {
@@ -306,7 +306,7 @@ describe("substituteCandidateIds", () => {
       ],
     });
 
-    expect(substituteCandidateIds(data, "aromatic", "gul-lok")).toEqual(["purjolok"]);
+    expect(substituteCandidateIds(data, "swedish_nordic", "aromatic", "gul-lok")).toEqual(["purjolok"]);
   });
 
   it("ignores a group whose role does not match", () => {
@@ -315,7 +315,7 @@ describe("substituteCandidateIds", () => {
       substitutionGroups: [{ ...group, role: "vegetable" as const }],
     });
 
-    expect(substituteCandidateIds(data, "aromatic", "gul-lok")).toEqual([]);
+    expect(substituteCandidateIds(data, "swedish_nordic", "aromatic", "gul-lok")).toEqual([]);
   });
 
   it("de-duplicates a candidate reachable through more than one matching group", () => {
@@ -327,7 +327,59 @@ describe("substituteCandidateIds", () => {
       ],
     });
 
-    expect(substituteCandidateIds(data, "aromatic", "gul-lok")).toEqual(["rodlok", "purjolok"]);
+    expect(substituteCandidateIds(data, "swedish_nordic", "aromatic", "gul-lok")).toEqual(["rodlok", "purjolok"]);
+  });
+
+  // #222: the cuisine gate, layered on top of the role filter rather than replacing
+  // it. `cuisines` is absent on almost every ingredient and means "belongs anywhere".
+  describe("cuisine gate", () => {
+    const bound = [
+      makeIngredient("gul-lok"),
+      makeIngredient("rodlok"),
+      makeIngredient("purjolok", { cuisines: ["asian"] }),
+    ];
+
+    it("drops a candidate whose curated cuisines exclude the dish's", () => {
+      const data = makeEngineData({ ingredients: bound, substitutionGroups: [group] });
+
+      expect(substituteCandidateIds(data, "swedish_nordic", "aromatic", "gul-lok")).toEqual(["rodlok"]);
+    });
+
+    it("keeps that same candidate in a dish of a cuisine its list names", () => {
+      const data = makeEngineData({ ingredients: bound, substitutionGroups: [group] });
+
+      expect(substituteCandidateIds(data, "asian", "aromatic", "gul-lok")).toEqual(["rodlok", "purjolok"]);
+    });
+
+    it("keeps every candidate that carries no cuisines list at all", () => {
+      const data = makeEngineData({ ingredients, substitutionGroups: [group] });
+
+      expect(substituteCandidateIds(data, "mexican_texmex", "aromatic", "gul-lok")).toEqual([
+        "rodlok",
+        "purjolok",
+      ]);
+    });
+
+    it("gates the candidates, never the current ingredient", () => {
+      // purjolök is asian-bound and is what the (swedish) dish currently has in the
+      // slot. Alternatives to it are still offered — the gate asks whether the
+      // *replacement* belongs in the dish, not whether what is already there does.
+      const data = makeEngineData({ ingredients: bound, substitutionGroups: [group] });
+
+      expect(substituteCandidateIds(data, "swedish_nordic", "aromatic", "purjolok")).toEqual([
+        "gul-lok",
+        "rodlok",
+      ]);
+    });
+
+    it("still applies the role filter — cuisine is layered on top of it, not instead of it", () => {
+      const data = makeEngineData({
+        ingredients: bound,
+        substitutionGroups: [{ ...group, role: "vegetable" as const }],
+      });
+
+      expect(substituteCandidateIds(data, "asian", "aromatic", "gul-lok")).toEqual([]);
+    });
   });
 
   it("traverses from the given current ingredient, not from any slot's authored one", () => {
@@ -335,7 +387,7 @@ describe("substituteCandidateIds", () => {
     // relative to rodlok, so gul-lok — not rodlok — must be offered back.
     const data = makeEngineData({ ingredients, substitutionGroups: [group] });
 
-    expect(substituteCandidateIds(data, "aromatic", "rodlok")).toEqual(["gul-lok", "purjolok"]);
+    expect(substituteCandidateIds(data, "swedish_nordic", "aromatic", "rodlok")).toEqual(["gul-lok", "purjolok"]);
   });
 });
 

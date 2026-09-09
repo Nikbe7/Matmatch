@@ -1,7 +1,7 @@
 import { COST_TIER_ORDER } from "../tools/validation.js";
 import type { DietaryFlag } from "../schema/allergyDietary.js";
 import type { CostTier } from "../schema/ingredient.js";
-import type { IngredientSlot, IngredientSlotRole, RecipeTemplate } from "../schema/recipeTemplate.js";
+import type { Cuisine, IngredientSlot, IngredientSlotRole, RecipeTemplate } from "../schema/recipeTemplate.js";
 import { isIngredientUnknown } from "./catalog.js";
 import type { MealConstraints } from "./constraints.js";
 import type { EngineData } from "./data.js";
@@ -62,10 +62,36 @@ function passesDietaryFilter(template: RecipeTemplate, flags: readonly DietaryFl
 }
 
 /**
+ * Whether a curated ingredient belongs in a dish of this cuisine (#222). No
+ * `cuisines` list is the normal case and means "belongs anywhere" — 191 of 206
+ * ingredients — so this is a narrow veto over a small hand-curated set, not a
+ * membership test every ingredient has to pass. An id the catalog does not know
+ * returns true and is left to `isIngredientUnknown`, which is the one place that
+ * decides what an unresolvable id means.
+ */
+function belongsInCuisine(data: EngineData, ingredientId: string, cuisine: Cuisine): boolean {
+  const cuisines = data.ingredientsById.get(ingredientId)?.cuisines;
+  return cuisines === undefined || cuisines.includes(cuisine);
+}
+
+/**
  * Every edible ingredient that can stand in for `currentIngredientId` in a slot of
- * the given role — every group whose role matches and whose members include
- * `currentIngredientId`, unioned and de-duplicated, in group-file then member order.
- * `currentIngredientId` itself is never included.
+ * the given role, *in a dish of the given cuisine* — every group whose role matches
+ * and whose members include `currentIngredientId`, unioned and de-duplicated, in
+ * group-file then member order. `currentIngredientId` itself is never included.
+ *
+ * Role and cuisine are two separate questions and both are asked (#222). The role
+ * answers "can this stand in for that", which is why it stays: it is what keeps
+ * kokosmjölk out of a `dairy` slot. It says nothing about whether the result belongs
+ * on the plate, which is how sambal oelek came to be offered in a Texas chili and
+ * vispgrädde in a grön curry. The cuisine gate answers that second question and only
+ * that one — it filters *candidates* on their curated `Ingredient.cuisines`, never
+ * the current ingredient, so a slot whose own ingredient is kitchen-bound still gets
+ * the alternatives its dish allows.
+ *
+ * Deliberately not applied to `roleSubstitutionPool` below: that pool backs the
+ * popover's search box, where the household has typed a name and asking for a
+ * specific ingredient by name is not something a cuisine gate should overrule.
  *
  * Deliberately keyed on `currentIngredientId` rather than a slot's authored
  * `ingredient_id`: a slot's *current* ingredient may already be a substitution-rescue
@@ -80,6 +106,7 @@ function passesDietaryFilter(template: RecipeTemplate, flags: readonly DietaryFl
  */
 export function substituteCandidateIds(
   data: EngineData,
+  cuisine: Cuisine,
   role: IngredientSlotRole,
   currentIngredientId: string,
 ): string[] {
@@ -97,6 +124,7 @@ export function substituteCandidateIds(
       // say whether a member is a real ingredient. This is not an edibility test and
       // has not been one since #224: see `isIngredientUnknown`.
       if (isIngredientUnknown(data, memberId)) continue;
+      if (!belongsInCuisine(data, memberId, cuisine)) continue;
       candidateIds.push(memberId);
     }
   }
