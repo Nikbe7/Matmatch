@@ -447,3 +447,92 @@ describe("validateFiles — variety classes (#221)", () => {
     expect(result.warnings[0]!.path).toBe("variety_of");
   });
 });
+
+describe("validateFiles — ingredient cuisines (#222)", () => {
+  const base = {
+    category: "starch",
+    default_cost_tier: "budget",
+    peak_months: [],
+    available_year_round: true,
+    seasonality_strength: "weak",
+  };
+
+  function files(records: Record<string, unknown>[], cuisine: string): FileInput[] {
+    return [
+      { path: "data/ingredients.json", type: "ingredient", content: JSON.stringify(records) },
+      {
+        path: "data/recipe-templates.json",
+        type: "recipe-template",
+        content: JSON.stringify([
+          {
+            id: "ratt",
+            name: "Rätt",
+            blurb: "En rätt.",
+            protein_group: "vegetarian_vegan",
+            cuisine,
+            cost_tier: "budget",
+            prep_time_band: "<20min",
+            dietary_tags: [],
+            meal_types: ["dinner"],
+            familiarity: "everyday",
+            effort_level: "simple",
+            ingredient_slots: [
+              {
+                role: "starch",
+                ingredient_id: "ris",
+                substitutable: true,
+                quantity: { kind: "amount", amount: 2, unit: "dl" },
+              },
+            ],
+          },
+        ]),
+      },
+    ];
+  }
+
+  it("passes an ingredient whose cuisines cover every template that uses it", () => {
+    const result = validateFiles(files([{ ...base, id: "ris", name: "ris", cuisines: ["asian"] }], "asian"));
+
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("passes an ingredient carrying no cuisines list at all", () => {
+    const result = validateFiles(files([{ ...base, id: "ris", name: "ris" }], "swedish_nordic"));
+
+    expect(result.errors).toEqual([]);
+  });
+
+  it("fails an ingredient a template uses in a cuisine its list omits", () => {
+    // The two curated files contradicting each other. It matters because
+    // `substituteCandidateIds` gates candidates and not the current ingredient: the
+    // household could swap away from the rice its own dish names and never be
+    // offered it back.
+    const result = validateFiles(
+      files([{ ...base, id: "ris", name: "ris", cuisines: ["asian"] }], "swedish_nordic"),
+    );
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({ id: "ris", path: "cuisines" });
+    expect(result.errors[0]!.message).toContain("swedish_nordic");
+  });
+
+  it("rejects an empty cuisines list — belonging nowhere is a slip, not a statement", () => {
+    const result = validateFiles(files([{ ...base, id: "ris", name: "ris", cuisines: [] }], "asian"));
+
+    expect(result.errors.some((error) => error.path === "cuisines")).toBe(true);
+  });
+
+  it("notes rather than errors when no recipe-template file is in the invocation", () => {
+    const result = validateFiles([
+      {
+        path: "data/ingredients.json",
+        type: "ingredient",
+        content: JSON.stringify([{ ...base, id: "ris", name: "ris", cuisines: ["asian"] }]),
+      },
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.notes.some((note) => note.includes("ingredient cuisines"))).toBe(true);
+  });
+});
