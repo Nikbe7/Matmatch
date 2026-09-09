@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GuidedFlow } from "./GuidedFlow";
 import { SHOPPING_LIST_VERSION, type StoredShoppingList } from "./shoppingListStorage";
-import { MAX_PORTIONS } from "./guided";
+import { MAIN_INGREDIENT_GRID_SIZE, MAX_PORTIONS } from "./guided";
 
 // Renders the guided flow (UX_FLOW §5) against a stubbed API. The step machine
 // itself is covered directly in guided.test.ts; what this file proves is the
@@ -358,6 +358,37 @@ describe("GuidedFlow — step 2's type-to-filter (#110)", () => {
   // `excludedMainIngredients` (#224). A dietary flag excludes a whole dish rather than
   // one ingredient, so there is no per-ingredient exclusion left for the search box to
   // explain — an unmatched query is simply "Ingen träff.", asserted above.
+
+  it("reaches an ingredient beyond the default grid once its name is typed (#235)", async () => {
+    // The bug: the server used to throw away everything past the grid's own tile
+    // count, so the filter could only ever narrow the same ~12 names already on
+    // screen. Proven end to end here — the client renders the default grid capped,
+    // then a query surfaces a name that was never in that capped set.
+    const beyondGridName = "entrecote";
+    const manyMainIngredients = Array.from({ length: MAIN_INGREDIENT_GRID_SIZE }, (_, i) => ({
+      id: `fyllnad-${i}`,
+      name: `fyllnad ${i}`,
+    })).concat({ id: "entrecote", name: beyondGridName });
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/guided/options")) {
+        return jsonResponse(200, { ...options, mainIngredients: manyMainIngredients });
+      }
+      if (url.startsWith("/api/guided/directions")) return jsonResponse(200, threeDirections);
+      return jsonResponse(200, { instructions: null, reason: "not_configured" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await screen.findByRole("button", { name: "fyllnad 0" });
+    // Not on screen yet — it's the 13th entry, past the default grid's tile count.
+    expect(screen.queryByRole("button", { name: beyondGridName })).toBeNull();
+
+    await user.type(screen.getByRole("textbox"), beyondGridName);
+
+    expect(await screen.findByRole("button", { name: beyondGridName })).toBeTruthy();
+  });
 });
 
 describe("GuidedFlow — 'Föreslå åt mig' and 'Överraska mig'", () => {

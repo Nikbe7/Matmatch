@@ -94,20 +94,45 @@ describe.skipIf(!stackAvailable)("GET /api/guided/options", () => {
     expect(response.body.error.code).toBe("household_not_found");
   });
 
-  it("returns both tapable grids, resolved to Swedish names", async () => {
+  it("returns the pantry grid capped, but the full main-ingredient set uncapped (#235)", async () => {
+    // mainIngredients is the household's whole eligible set, not the ~12-tile grid:
+    // UX_FLOW §5's type-to-filter is meant to reach beyond what the grid shows, which
+    // it cannot do if the server already threw the rest away. pantryIngredients has
+    // no such search exception (step 3), so it stays capped at PANTRY_GRID_SIZE.
     const app = buildApp();
     const user = await userWithHousehold(app);
 
     const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
 
     expect(response.status).toBe(200);
-    expect(response.body.mainIngredients).toHaveLength(MAIN_INGREDIENT_GRID_SIZE);
+    expect(response.body.mainIngredients.length).toBeGreaterThan(MAIN_INGREDIENT_GRID_SIZE);
     expect(response.body.pantryIngredients).toHaveLength(PANTRY_GRID_SIZE);
     for (const option of [...response.body.mainIngredients, ...response.body.pantryIngredients]) {
       expect(typeof option.id).toBe("string");
       expect(typeof option.name).toBe("string");
       expect(Object.keys(option).sort()).toEqual(["id", "name"]);
     }
+  });
+
+  it("surfaces a main ingredient outside the default 12-tile grid once its name is searched (#235)", async () => {
+    // The regression #235 found: the filter used to only ever narrow the same ~12
+    // ingredients the grid already showed, because the server threw the rest away
+    // before the client ever saw them. Proven here at the response boundary — full
+    // list vs. what the client would slice to for the default grid — rather than at
+    // the reducer, since the bug was entirely in what the server sent.
+    const app = buildApp();
+    const user = await userWithHousehold(app);
+
+    const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
+
+    const all: { id: string; name: string }[] = response.body.mainIngredients;
+    const defaultGrid = all.slice(0, MAIN_INGREDIENT_GRID_SIZE);
+    const beyondGrid = all.slice(MAIN_INGREDIENT_GRID_SIZE);
+    expect(beyondGrid.length).toBeGreaterThan(0);
+
+    const reachable = beyondGrid[0]!;
+    expect(defaultGrid.some((option) => option.id === reachable.id)).toBe(false);
+    expect(all.some((option) => option.id === reachable.id)).toBe(true);
   });
 
   it("offers proteins as main ingredients and never repeats them in the pantry grid", async () => {
@@ -786,8 +811,8 @@ describe.skipIf(!stackAvailable)("the guided flow's diner set (#112)", () => {
       .query({ diners: "0" })
       .set(authHeader(user.accessToken));
 
-    // The grid is capped at MAIN_INGREDIENT_GRID_SIZE and ranked, so any *particular*
-    // meat main appearing is not guaranteed and is not the claim — that the grid is
+    // The list is frequency-ranked but no longer capped (#235), so any *particular*
+    // meat main appearing is not guaranteed and is not the claim — that the set is
     // no longer the vegetarian one is, and the directions test below proves a meat
     // main is genuinely selectable.
     const omnivore = await userWithHousehold(app);

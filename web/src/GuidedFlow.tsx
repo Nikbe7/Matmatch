@@ -25,6 +25,7 @@ import { presentError, type PresentedError } from "./errorPresentation";
 import {
   GUIDED_INTENTS,
   INITIAL_GUIDED,
+  MAIN_INGREDIENT_GRID_SIZE,
   MAX_PORTIONS,
   MIN_PORTIONS,
   guidedReducer,
@@ -530,22 +531,26 @@ export function GuidedFlow({
     };
   }, [client, attempt]);
 
-  // Step 2's type-to-filter (requirement 1-6): entirely a display layer over the
-  // already-fetched `options.mainIngredients`, the household's own safe set — no
-  // request, no change to `state.main`. An empty query is the identity filter, so
-  // the grid below never needs a separate "no query" branch.
+  // Step 2's type-to-filter (requirement 1-6, #235): a display layer over the
+  // already-fetched `options.mainIngredients` — the household's *full* eligible set,
+  // uncapped by the server — no request, no change to `state.main`. Below the
+  // default `MAIN_INGREDIENT_GRID_SIZE` tiles until the household types, the filter
+  // then searches the whole set, which is what lets it reach an ingredient the grid
+  // never showed.
   const trimmedMainQuery = state.mainQuery.trim();
   const hasMainQuery = trimmedMainQuery.length > 0;
+  const defaultMainGrid = (options?.mainIngredients ?? []).slice(0, MAIN_INGREDIENT_GRID_SIZE);
   const matchingMainIngredients = hasMainQuery
     ? (options?.mainIngredients ?? []).filter((option) =>
         matchesIngredientQuery(option.name, trimmedMainQuery),
       )
-    : (options?.mainIngredients ?? []);
-  // A miss falls back to the full grid rather than an empty one (requirement 1: the
-  // grid stays visible and tappable at all times) — "no match" is communicated by
-  // the message above it, never by the grid disappearing.
-  const mainGridOptions =
-    matchingMainIngredients.length > 0 ? matchingMainIngredients : (options?.mainIngredients ?? []);
+    : defaultMainGrid;
+  // A miss falls back to the default grid rather than an empty one (requirement 1:
+  // the grid stays visible and tappable at all times) — "no match" is communicated
+  // by the message above it, never by the grid disappearing. The fallback is the
+  // capped default, not the full set: a typo should not suddenly dump every
+  // eligible protein on screen.
+  const mainGridOptions = matchingMainIngredients.length > 0 ? matchingMainIngredients : defaultMainGrid;
   const noMainMatches = hasMainQuery && matchingMainIngredients.length === 0;
 
   const main = mainParameter(state);
@@ -933,8 +938,8 @@ export function GuidedFlow({
                   <input
                     type="text"
                     className="input guided-main-filter"
-                    placeholder="Skriv för att smalna av listan…"
-                    aria-label="Smalna av huvudingredienserna"
+                    placeholder="Sök råvara…"
+                    aria-label="Sök huvudingrediens"
                     value={state.mainQuery}
                     onChange={(event) => dispatch({ type: "set_main_query", query: event.target.value })}
                   />
