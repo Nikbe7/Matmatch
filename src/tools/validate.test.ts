@@ -62,6 +62,7 @@ describe("resolveDefaultTargets", () => {
     await writeFile(path.join(dir, "data", "recipe-templates.json"), "[]");
     await writeFile(path.join(dir, "data", "ingredient-allergens.json"), "[]");
     await writeFile(path.join(dir, "data", "substitutions.json"), "[]");
+    await writeFile(path.join(dir, "data", "variety-families.json"), "[]");
 
     const { targets, notes } = await resolveDefaultTargets();
 
@@ -70,19 +71,22 @@ describe("resolveDefaultTargets", () => {
       "ingredient-allergen",
       "recipe-template",
       "substitution",
+      "variety-family",
     ]);
     expect(notes).toEqual([]);
   });
 
   it("skips a missing default data file with a note instead of an error", async () => {
     await writeFile(path.join(dir, "data", "ingredients.json"), "[]");
-    // recipe-templates.json and ingredient-allergens.json intentionally absent
+    // recipe-templates.json, ingredient-allergens.json and variety-families.json
+    // intentionally absent
 
     const { targets, notes } = await resolveDefaultTargets();
 
     expect(targets).toEqual([{ path: "data/ingredients.json", type: "ingredient" }]);
     expect(notes).toContain("default data file data/recipe-templates.json does not exist; skipping");
     expect(notes).toContain("default data file data/ingredient-allergens.json does not exist; skipping");
+    expect(notes).toContain("default data file data/variety-families.json does not exist; skipping");
   });
 
   it("picks up ingredient files split under data/ingredients/*.json alongside data/ingredients.json", async () => {

@@ -4,8 +4,9 @@ import { z } from "zod";
 import { IngredientSchema, type Ingredient } from "../schema/ingredient.js";
 import { RecipeTemplateSchema, type RecipeTemplate } from "../schema/recipeTemplate.js";
 import { SubstitutionGroupSchema, type SubstitutionGroup } from "../schema/substitution.js";
+import { VarietyFamilySchema, type VarietyFamily } from "../schema/varietyFamily.js";
 
-// Loads the three curated data files the engine reads into plain in-memory indexes.
+// Loads the four curated data files the engine reads into plain in-memory indexes.
 // No database, no ORM, no caching layer: the whole dataset is ~600 small records, and
 // the engine is a set of pure functions over the structures returned here.
 //
@@ -24,6 +25,14 @@ export interface EngineData {
   // ingredient. The reverse index is built here at load time rather than stored
   // in the data file, which §5.5 explicitly rules out.
   readonly substitutionGroupsByMemberIngredientId: ReadonlyMap<string, readonly SubstitutionGroup[]>;
+  /**
+   * The variety families, keyed by the `variety_of` value their members carry (#223).
+   * Loaded because the family now owns curated text — the per-family note shown when
+   * pantry coverage bridged two varieties — and because `validate` makes every
+   * `variety_of` resolve here, so a key with no family is a data fault rather than a
+   * lookup that quietly returns nothing.
+   */
+  readonly varietyFamiliesById: ReadonlyMap<string, VarietyFamily>;
   // Deliberately *not* here: a reverse index over `Ingredient.variety_of` (#221).
   // The issue sketched one, and it turned out to have no reader once the role filter
   // stayed in coverage: both consumers (#219 pantry coverage, #220 grid dedup) walk
@@ -48,10 +57,11 @@ function indexById<T extends { id: string }>(records: readonly T[]): ReadonlyMap
 export async function loadEngineData(dataDir: string = DEFAULT_DATA_DIR): Promise<EngineData> {
   const dir = dataDir.endsWith("/") ? dataDir : `${dataDir}/`;
 
-  const [ingredients, templates, substitutionGroups] = await Promise.all([
+  const [ingredients, templates, substitutionGroups, varietyFamilies] = await Promise.all([
     readRecords(`${dir}ingredients.json`, IngredientSchema),
     readRecords(`${dir}recipe-templates.json`, RecipeTemplateSchema),
     readRecords(`${dir}substitutions.json`, SubstitutionGroupSchema),
+    readRecords(`${dir}variety-families.json`, VarietyFamilySchema),
   ]);
 
   const groupsByMember = new Map<string, SubstitutionGroup[]>();
@@ -68,5 +78,6 @@ export async function loadEngineData(dataDir: string = DEFAULT_DATA_DIR): Promis
     templates: Object.freeze(templates),
     substitutionGroupsById: indexById(substitutionGroups),
     substitutionGroupsByMemberIngredientId: groupsByMember,
+    varietyFamiliesById: indexById(varietyFamilies),
   });
 }

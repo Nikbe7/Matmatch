@@ -1,6 +1,7 @@
 import type { Ingredient } from "../../schema/ingredient.js";
 import type { IngredientSlot, RecipeTemplate } from "../../schema/recipeTemplate.js";
 import type { SubstitutionGroup } from "../../schema/substitution.js";
+import type { VarietyFamily } from "../../schema/varietyFamily.js";
 import type { EngineData } from "../data.js";
 
 // In-memory EngineData for engine unit tests. The one fail-closed case left after
@@ -60,6 +61,7 @@ export function makeEngineData(parts: {
   ingredients?: readonly Ingredient[];
   templates?: readonly RecipeTemplate[];
   substitutionGroups?: readonly SubstitutionGroup[];
+  varietyFamilies?: readonly VarietyFamily[];
 }): EngineData {
   const ingredients = parts.ingredients ?? [];
   const substitutionGroups = parts.substitutionGroups ?? [];
@@ -78,5 +80,6 @@ export function makeEngineData(parts: {
     templates: parts.templates ?? [],
     substitutionGroupsById: new Map(substitutionGroups.map((group) => [group.id, group])),
     substitutionGroupsByMemberIngredientId: groupsByMember,
+    varietyFamiliesById: new Map((parts.varietyFamilies ?? []).map((family) => [family.id, family])),
   };
 }

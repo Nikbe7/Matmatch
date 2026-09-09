@@ -602,3 +602,82 @@ describe("formatPortions", () => {
     expect(formatPortions(2.5)).toBe("För 2.5 portioner");
   });
 });
+
+// #223: the variety note. Pantry coverage only *marks* a row — it never swaps the
+// ingredient or rescales the amount — so on a "Har hemma" row this sentence is the
+// only thing telling a household the dish will come out different.
+describe("ShoppingList — variety notes", () => {
+  const NOTE = "Fetthalten skiljer mellan sorterna — vispgrädde ger en tjockare sås.";
+
+  function withNote() {
+    return result({
+      ingredients: [
+        {
+          role: "dairy",
+          name: "matlagningsgrädde",
+          slotIndex: 0,
+          ingredientId: "matlagningsgradde",
+          substituted: false,
+          quantity: { kind: "amount", amount: 2, unit: "dl" },
+          varietyNote: NOTE,
+        },
+        {
+          role: "vegetable",
+          name: "Morot",
+          slotIndex: 1,
+          ingredientId: "morot",
+          substituted: false,
+          quantity: { kind: "amount", amount: 400, unit: "g" },
+        },
+      ],
+    });
+  }
+
+  it("renders the note on the row it belongs to, and on no other", () => {
+    mockFetch();
+    render(<ShoppingList result={withNote()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
+
+    expect(screen.getAllByRole("note")).toHaveLength(1);
+    expect(screen.getByRole("note").textContent).toBe(NOTE);
+  });
+
+  it("keeps the note visible after the row moves to Har hemma", () => {
+    // The moment the note exists for: the household marked vispgrädde, the row is
+    // now in the quiet half of the screen, and nothing else says the sauce changes.
+    mockFetch();
+    render(
+      <ShoppingList
+        result={withNote()}
+        pantryIngredientIds={["matlagningsgradde"]}
+        portions={2}
+        accessToken="tok"
+        onNewSuggestion={vi.fn()}
+      />,
+    );
+
+    const haveAtHome = screen.getByText(/Har hemma \(/).closest("section")!;
+    expect(within(haveAtHome).getByRole("note").textContent).toBe(NOTE);
+  });
+
+  it("renders no note at all when no row carries one", () => {
+    mockFetch();
+    render(<ShoppingList result={result()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
+
+    expect(screen.queryByRole("note")).toBeNull();
+  });
+
+  it("survives a reload — the note is stored with the list, not re-fetched", () => {
+    mockFetch();
+    const { unmount } = render(
+      <ShoppingList result={withNote()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />,
+    );
+    unmount();
+    cleanup();
+
+    // Second mount reads the stored list rather than the props' ingredients, which is
+    // exactly the path a reload in the shop takes.
+    render(<ShoppingList result={withNote()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
+
+    expect(screen.getByRole("note").textContent).toBe(NOTE);
+  });
+});

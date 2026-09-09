@@ -1508,6 +1508,7 @@ function cookMealFromResult(accepted: AcceptedListingState): CookMeal {
     ingredients: accepted.result.ingredients.map((ingredient) => ({
       name: ingredient.name,
       quantity: ingredient.quantity,
+      ...(ingredient.varietyNote === undefined ? {} : { varietyNote: ingredient.varietyNote }),
     })),
     substitutions: accepted.result.substitutions,
   };
@@ -1541,7 +1542,11 @@ function resumeCookMeal(templateId: string): CookMeal | null {
       name: stored.templateName ?? record?.name ?? "Middagen",
       prepTimeBand: sameDish ? record?.prepTimeBand : undefined,
       portions: sameDish ? record?.portions : undefined,
-      ingredients: stored.items.map((item) => ({ name: item.name, quantity: item.quantity })),
+      ingredients: stored.items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        ...(item.varietyNote === undefined ? {} : { varietyNote: item.varietyNote }),
+      })),
       substitutions,
     };
   }

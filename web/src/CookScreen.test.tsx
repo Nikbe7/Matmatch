@@ -302,3 +302,36 @@ describe("CookScreenEmpty", () => {
     expect(onBack).toHaveBeenCalled();
   });
 });
+
+// #223: the variety note at the stove. The shop and the pan are hours apart, and the
+// pan is where "vispgrädde instead of matlagningsgrädde" actually changes the sauce.
+describe("CookScreen — variety notes", () => {
+  const NOTE = "Fetthalten skiljer mellan sorterna — vispgrädde ger en tjockare sås.";
+
+  it("shows the note on the ingredient row that carries one", async () => {
+    resolvingFetch({ instructions: STEPS });
+    renderCook({
+      meal: meal({
+        ingredients: [
+          {
+            name: "matlagningsgrädde",
+            quantity: { kind: "amount", amount: 2, unit: "dl" },
+            varietyNote: NOTE,
+          },
+          { name: "Morot", quantity: { kind: "amount", amount: 200, unit: "g" } },
+        ],
+      }),
+    });
+    await screen.findByText(STEPS[0]!);
+
+    expect(screen.getByRole("note").textContent).toBe(NOTE);
+  });
+
+  it("shows no note when no ingredient carries one", async () => {
+    resolvingFetch({ instructions: STEPS });
+    renderCook();
+    await screen.findByText(STEPS[0]!);
+
+    expect(screen.queryByRole("note")).toBeNull();
+  });
+});
