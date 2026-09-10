@@ -7,7 +7,7 @@ describe("loadEngineData", () => {
   it("loads the three curated data files the engine reads", () => {
     expect(data.ingredientsById.size).toBe(206);
     expect(data.templates.length).toBe(170);
-    expect(data.substitutionGroupsById.size).toBe(41);
+    expect(data.substitutionGroupsById.size).toBe(40);
   });
 
   it("does not load data/ingredient-allergens.json — the file is kept, unread (#224)", () => {
