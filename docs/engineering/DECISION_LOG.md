@@ -8,6 +8,42 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-09-10 — Kroppstypsnittet byter från DM Sans till Schibsted Grotesk
+
+**Beslut:** `--font-family` (web/src/styles/tokens.css) är nu Schibsted Grotesk
+(`@fontsource-variable/schibsted-grotesk`, med sin egen `wght-italic.css` för
+`.suggestion__reason`/`.swapped-badge`), inte DM Sans. Fraunces som displayfont,
+paletten och radie/skugg-tokens är orörda — det här gäller enbart brödtext.
+Vald via `/design-options` (#246): tre riktigt olika kandidater — DM Sans
+(status quo), Karla (den ursprungliga #216-föreslagningen) och Schibsted
+Grotesk — renderade som den riktiga rättvyn (rubrik, meta-rad, blurb, en
+tio-radig ingredienslista, primärknapp) i appens faktiska tokens, inte som ett
+typsnittsprov. Niklas valde Schibsted Grotesk.
+
+**Varför:** DM Sans är geometrisk och läser kallt bredvid Fraunces varma,
+högkontrasterade formspråk, och är dessutom brödtexten i praktiskt taget varje
+AI-produkt de senaste två åren — precis den identiteten Matmatch aktivt
+undviker (CLAUDE.md: "NOT a chat wrapper"). Karla är hantverksmässig och har
+egen personlighet, men det blir två egensinniga röster som tävlar om
+uppmärksamheten i stället för en (Fraunces). Schibsted Grotesk är en nordisk,
+tidningsdragen grotesk: hög x-höjd, öppna öppningar, inget eget uttryck —
+vilket lämnar Fraunces som skärmens enda karaktärsröst och läser lugnast av de
+tre vid ingredienslistans radtäthet (14px, `2,5 klyfta`/`390 g`-format).
+Bekräftat i `web/src/precache.test.ts`: det självhostade typsnittspaketet
+(Fraunces + Schibsted Grotesk, normal + italic) landar på ~232 KiB, väl under
+1 MiB-taket för offlineinstallation.
+
+Detta ersätter typsnittshalvan av 2026-08-12-postens (#136) Fraunces/DM
+Sans-par; paretvalet av Fraunces som displayfont står kvar oförändrat.
+
+**Så tillämpar du det:** Nästa gång brödtexten ifrågasätts, börja här i
+stället för att om-utreda från grunden — tre kandidater är redan avfärdade med
+skäl. Ett nytt typsnittsbeslut (displayfont, en tredje röst) går genom samma
+`/design-options`-mekanik: riktig skärm, riktigt innehåll, inte ett
+typsnittsprov.
+
+---
+
 ## 2026-09-09 — Steg 2:s filter var en riktig bugg, inte en överdrift i dokumentet
 
 **Beslut:** UX_FLOW §5 hade rätt: filtret på steg 2 ska nå hela hushållets behöriga

@@ -1,10 +1,10 @@
 @import "tailwindcss";
 @import "@fontsource-variable/fraunces";
-@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/schibsted-grotesk";
 /* Real italic face, not the browser's synthetic slant — the two existing
    `font-style: italic` rules below (.suggestion__reason, .swapped-badge)
    predate this file and used to fake it against a system font. */
-@import "@fontsource-variable/dm-sans/wght-italic.css";
+@import "@fontsource-variable/schibsted-grotesk/wght-italic.css";
 @import "./tokens.css";
 
 @utility text-eyebrow {
