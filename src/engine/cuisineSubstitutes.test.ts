@@ -128,3 +128,47 @@ describe("the cuisines curation pass as a whole", () => {
     expect(deadEnds).toEqual([]);
   });
 });
+
+describe("ginger and fresh chili are not the same flavor (#228)", () => {
+  // `asiatisk-aromatbas` named a flavor complex ("ginger and chili together as a wok
+  // base"), not the interchangeable-member-for-member relation a substitution group
+  // means. Removed rather than fixed: ginger is not culinarily bound to Asian
+  // cooking (it shows up in Swedish home cooking too, so #222's cuisine tag was
+  // rightly rejected for it), and the two ingredients are not swaps for each other
+  // in any dish — one is heat, the other is warmth. Reproduced in the shipped
+  // catalog 2026-08-30, across both directions, before this fix.
+  it("never offers ginger as a substitute for fresh chili, or the reverse, in any dish", () => {
+    const wrongOffers: string[] = [];
+
+    for (const found of data.templates) {
+      found.ingredient_slots.forEach((slot, index) => {
+        if (slot.ingredient_id !== "farsk-chili" && slot.ingredient_id !== "ingefara") return;
+        const offers = substituteCandidateIds(data, found.cuisine, slot.role, slot.ingredient_id);
+        const swapId = slot.ingredient_id === "farsk-chili" ? "ingefara" : "farsk-chili";
+        if (offers.includes(swapId)) {
+          wrongOffers.push(`${found.name} [${index}] ${slot.ingredient_id} -> ${swapId}`);
+        }
+      });
+    }
+
+    expect(wrongOffers).toEqual([]);
+  });
+
+  it("keeps fresh chili's real substitutes (chiliflakes, sambal oelek) — the fix must not empty an innocent slot", () => {
+    // The failure mode a blunt fix (deleting the group without checking what else
+    // it fed) would produce: `farsk-chili` also belongs to `chili-och-hetta`, a
+    // genuine interchangeable-member group, so every chili slot must keep offering
+    // from that group after `asiatisk-aromatbas` is gone.
+    const deadEnds: string[] = [];
+
+    for (const found of data.templates) {
+      found.ingredient_slots.forEach((slot, index) => {
+        if (slot.ingredient_id !== "farsk-chili") return;
+        const offers = substituteCandidateIds(data, found.cuisine, slot.role, slot.ingredient_id);
+        if (offers.length === 0) deadEnds.push(`${found.name} [${index}]`);
+      });
+    }
+
+    expect(deadEnds).toEqual([]);
+  });
+});

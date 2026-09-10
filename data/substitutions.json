@@ -247,15 +247,6 @@
     ]
   },
   {
-    "id": "asiatisk-aromatbas",
-    "name": "Asiatisk aromatbas",
-    "role": "aromatic",
-    "member_ingredient_ids": [
-      "ingefara",
-      "farsk-chili"
-    ]
-  },
-  {
     "id": "asiatiska-saser",
     "name": "Asiatiska såser",
     "role": "aromatic",
