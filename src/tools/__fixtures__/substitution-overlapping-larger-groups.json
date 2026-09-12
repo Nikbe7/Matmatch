@@ -1,0 +1,22 @@
+[
+  {
+    "id": "gradde",
+    "name": "Grädde",
+    "role": "dairy",
+    "member_ingredient_ids": [
+      "vispgradde",
+      "matlagningsgradde",
+      "creme-fraiche"
+    ]
+  },
+  {
+    "id": "syrade-mjolkprodukter",
+    "name": "Syrade mjölkprodukter",
+    "role": "dairy",
+    "member_ingredient_ids": [
+      "creme-fraiche",
+      "filmjolk",
+      "yoghurt"
+    ]
+  }
+]

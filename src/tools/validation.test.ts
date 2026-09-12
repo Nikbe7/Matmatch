@@ -394,6 +394,58 @@ describe("validateFiles — substitution groups", () => {
   });
 });
 
+describe("validateFiles — substitution group shape (#228)", () => {
+  const shapeWarnings = (result: { warnings: { message: string }[] }) =>
+    result.warnings.filter((warning) => warning.message.includes("flavour complex"));
+
+  it("warns about a two-member group whose member already has a larger group at the same role", () => {
+    // The #228 shape, reproduced with its own cast: `asiatisk-aromatbas` claimed
+    // ingefära and färsk chili swap for each other, while färsk chili already had a
+    // real swap set in `chili-och-hetta`. Every id resolves and the schema is happy —
+    // which is exactly why it shipped and had to be found by hand.
+    const result = validateFiles([
+      fixture("substitution-shape-ingredients.json", "ingredient"),
+      fixture("substitution-pair-group-shadowed.json", "substitution"),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(shapeWarnings(result)).toHaveLength(1);
+    expect(result.warnings.find((w) => w.message.includes("flavour complex"))).toMatchObject({
+      id: "asiatisk-aromatbas",
+      path: "member_ingredient_ids",
+    });
+    // The message has to name what collides, or it is a riddle rather than a finding.
+    expect(shapeWarnings(result)[0]!.message).toContain("farsk-chili");
+    expect(shapeWarnings(result)[0]!.message).toContain("chili-och-hetta");
+  });
+
+  it("stays silent on two larger groups that deliberately share a member", () => {
+    // The rule's whole calibration: `creme-fraiche` belongs to both `gradde` and
+    // `syrade-mjolkprodukter` on purpose (src/api/guidedCatalog.ts documents it), so a
+    // plain same-role-overlap rule would cry wolf on shipped, correct data. Neither
+    // group here is a pair, and neither is flagged.
+    const result = validateFiles([
+      fixture("substitution-shape-ingredients.json", "ingredient"),
+      fixture("substitution-overlapping-larger-groups.json", "substitution"),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(shapeWarnings(result)).toEqual([]);
+  });
+
+  it("stays silent on a pair group whose members belong to nothing else", () => {
+    // Most of the catalog's pair groups are like this (`citrus`, `senap`, `gurka`) and
+    // are perfectly ordinary swap sets. Being small is not the smell; competing with an
+    // existing set is.
+    const result = validateFiles([
+      fixture("substitution-ingredients.json", "ingredient"),
+      fixture("valid-substitutions.json", "substitution"),
+    ]);
+
+    expect(shapeWarnings(result)).toEqual([]);
+  });
+});
+
 describe("validateFiles — variety classes (#221)", () => {
   function ingredients(records: Record<string, unknown>[]): FileInput {
     return { path: "data/ingredients.json", type: "ingredient", content: JSON.stringify(records) };
