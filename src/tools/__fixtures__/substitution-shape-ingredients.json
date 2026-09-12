@@ -1,0 +1,83 @@
+[
+  {
+    "id": "ingefara",
+    "name": "ingefära",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "farsk-chili",
+    "name": "färsk chili",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "chiliflakes",
+    "name": "chiliflakes",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "sambal-oelek",
+    "name": "sambal oelek",
+    "category": "spice_aromatic",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "vispgradde",
+    "name": "vispgrädde",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "matlagningsgradde",
+    "name": "matlagningsgrädde",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "creme-fraiche",
+    "name": "crème fraiche",
+    "category": "dairy",
+    "default_cost_tier": "mid",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "filmjolk",
+    "name": "filmjölk",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  },
+  {
+    "id": "yoghurt",
+    "name": "yoghurt",
+    "category": "dairy",
+    "default_cost_tier": "budget",
+    "peak_months": [],
+    "available_year_round": true,
+    "seasonality_strength": "weak"
+  }
+]

@@ -190,6 +190,7 @@ export function validateFiles(inputs: FileInput[]): ValidationResult {
   checkRecipeTemplateDerivedFields(inputs, validByType, errors, warnings);
   checkUnverifiedAllergenRows(validByType, warnings);
   checkSubstitutionMembersResolvable(inputs, validByType, warnings);
+  checkPairGroupsAgainstLargerGroups(validByType, warnings);
   checkVarietyClasses(validByType, warnings);
   checkVarietyFamilyReferences(inputs, validByType, errors, notes);
   checkIngredientCuisines(inputs, validByType, errors, notes);
@@ -403,6 +404,69 @@ function checkSubstitutionMembersResolvable(
     message:
       "no ingredient file was passed in this invocation; skipping substitution member resolution against the ingredient catalog",
   });
+}
+
+function substitutionMembers(record: Record<string, unknown>): string[] {
+  const members = record.member_ingredient_ids;
+  if (!Array.isArray(members)) return [];
+  return members.filter((id): id is string => typeof id === "string");
+}
+
+// #228 — a two-member group whose pair-claim competes with a real group.
+//
+// `asiatisk-aromatbas` (ingefära + färsk chili) passed every check this file had:
+// schema satisfied, both members present, both ids resolvable. What was wrong was what
+// it *claimed*. It named a flavour complex — ginger and chili together as a wok base —
+// rather than the member-for-member interchangeability a group means, and because
+// groups are symmetric (DECISION_LOG 2026-08-01) it offered ginger as the swap for
+// chili in 11 dishes, Texas chili among them. A human reading the data file found it.
+//
+// Group membership is global: one bad member changes what is offered in every dish
+// that touches the group. That is affordable to hand-read at 170 templates and is not
+// at the 300-400 #253/#254 are headed for, which is why the check comes first.
+//
+// The shape flagged: a group of exactly two where a member already belongs to a
+// *larger* group of the same role. A pair group is a claim about one pair; when half of
+// that pair already has a real swap set at the same role, the pair is usually a flavour
+// complex rather than a second, competing set. Plain same-role overlap is deliberately
+// NOT the rule — that flags `creme-fraiche`, which sits in both `gradde` and
+// `syrade-mjolkprodukter` on purpose, as `isInterchangeableWithPicked` in
+// src/api/guidedCatalog.ts documents. Larger groups have standing of their own.
+//
+// A warning, and it cannot be an error: whether two ingredients are interchangeable is
+// a taste judgement — #228's was heat against warmth — and no mechanical rule settles
+// it. This raises the shape; a person answers it.
+function checkPairGroupsAgainstLargerGroups(
+  validByType: Map<RecordType, ValidRecord[]>,
+  warnings: ValidationIssue[],
+): void {
+  const groups = validByType.get("substitution") ?? [];
+
+  for (const entry of groups) {
+    const members = substitutionMembers(entry.record);
+    if (members.length !== 2) continue;
+
+    for (const other of groups) {
+      if (other === entry || other.record.role !== entry.record.role) continue;
+
+      const otherMembers = substitutionMembers(other.record);
+      if (otherMembers.length <= members.length) continue;
+
+      const shared = members.filter((id) => otherMembers.includes(id));
+      if (shared.length === 0) continue;
+
+      warnings.push({
+        file: entry.file,
+        index: entry.index,
+        id: recordId(entry.record),
+        path: "member_ingredient_ids",
+        message:
+          `two-member group shares "${shared.join('", "')}" with the larger group ` +
+          `"${recordId(other.record)}" at role "${String(entry.record.role)}" — check this is a swap set ` +
+          `and not a flavour complex (#228)`,
+      });
+    }
+  }
 }
 
 // `data/ingredient-allergens.json` is a closed, hand-verified record, not a working
