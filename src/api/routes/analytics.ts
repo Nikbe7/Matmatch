@@ -101,12 +101,30 @@ const AppErrorShownEventSchema = z
   })
   .strict();
 
+// #255 — the only event carrying free text, and the bound is why that is acceptable.
+// `query` is what the household typed into step 2's filter, trimmed and capped client
+// side; the cap is re-enforced here rather than trusted, because a client-side limit is
+// a convenience and a server-side one is the actual guarantee about what can reach the
+// column. Mirrors MAX_LOGGED_QUERY_LENGTH in web/src/analytics.ts.
+const MAX_LOGGED_QUERY_LENGTH = 64;
+
+const MainSearchMissEventSchema = z
+  .object({
+    name: z.literal("main_search_miss"),
+    query: z.string().min(1).max(MAX_LOGGED_QUERY_LENGTH),
+    // Zero or one. A miss is the point; anything else is not this event, and a client
+    // sending 7 here is drift that should be loud rather than stored.
+    matchCount: z.number().int().min(0).max(1),
+  })
+  .strict();
+
 const AnalyticsEventSchema = z.discriminatedUnion("name", [
   ChipTapEventSchema,
   SessionAbandonedEventSchema,
   MealChosenEventSchema,
   MealChoiceHistoryFailedEventSchema,
   AppErrorShownEventSchema,
+  MainSearchMissEventSchema,
 ]);
 
 // Mirrors the frontend buffer cap (web/src/analyticsSink.ts) — a batch larger than

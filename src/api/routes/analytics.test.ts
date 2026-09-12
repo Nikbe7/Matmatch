@@ -264,6 +264,69 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
     expect(await countEvents(user.userId)).toBe(1);
   });
 
+  it("accepts a main_search_miss event, the one event carrying free text (#255)", async () => {
+    const app = buildApp();
+    const user = await userWithHousehold(app);
+
+    const response = await request(app)
+      .post("/api/analytics/events")
+      .set(authHeader(user.accessToken))
+      .send({
+        events: [
+          {
+            event: { name: "main_search_miss", query: "laxpasta", matchCount: 0 },
+            clientTimestamp: validClientTimestamp,
+          },
+        ],
+      });
+
+    expect(response.status).toBe(204);
+    expect(await countEvents(user.userId)).toBe(1);
+  });
+
+  it("rejects a query past the length cap rather than storing it", async () => {
+    // The client trims and caps, but a client-side limit is a convenience; this is the
+    // actual guarantee about what can reach the column. Free text is only acceptable
+    // here because it is bounded.
+    const app = buildApp();
+    const user = await userWithHousehold(app);
+
+    const response = await request(app)
+      .post("/api/analytics/events")
+      .set(authHeader(user.accessToken))
+      .send({
+        events: [
+          {
+            event: { name: "main_search_miss", query: "x".repeat(65), matchCount: 0 },
+            clientTimestamp: validClientTimestamp,
+          },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(await countEvents(user.userId)).toBe(0);
+  });
+
+  it("rejects a match count that is not a miss — anything else is client drift", async () => {
+    const app = buildApp();
+    const user = await userWithHousehold(app);
+
+    const response = await request(app)
+      .post("/api/analytics/events")
+      .set(authHeader(user.accessToken))
+      .send({
+        events: [
+          {
+            event: { name: "main_search_miss", query: "kyckling", matchCount: 7 },
+            clientTimestamp: validClientTimestamp,
+          },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(await countEvents(user.userId)).toBe(0);
+  });
+
   it("stores events under the caller's own household only", async () => {
     const app = buildApp();
     const alice = await userWithHousehold(app);

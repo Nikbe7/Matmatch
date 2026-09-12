@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GuidedFlow } from "./GuidedFlow";
 import { SHOPPING_LIST_VERSION, type StoredShoppingList } from "./shoppingListStorage";
 import { MAIN_INGREDIENT_GRID_SIZE, MAX_PORTIONS } from "./guided";
+import { setAnalyticsSink, type AnalyticsEvent } from "./analytics";
 
 // Renders the guided flow (UX_FLOW §5) against a stubbed API. The step machine
 // itself is covered directly in guided.test.ts; what this file proves is the
@@ -425,6 +426,68 @@ describe("GuidedFlow — step 2's type-to-filter (#110)", () => {
     await user.type(screen.getByRole("textbox"), beyondGridName);
 
     expect(await screen.findByRole("button", { name: beyondGridName })).toBeTruthy();
+  });
+});
+
+describe("GuidedFlow — recording what the filter could not answer (#255)", () => {
+  afterEach(() => setAnalyticsSink(null));
+
+  function captureEvents(): AnalyticsEvent[] {
+    const events: AnalyticsEvent[] = [];
+    setAnalyticsSink((event) => events.push(event));
+    return events;
+  }
+
+  const misses = (events: AnalyticsEvent[]) => events.filter((e) => e.name === "main_search_miss");
+
+  /** Real timers plus waitFor, like every other debounce assertion in this file —
+   *  fake timers deadlock against testing-library's own polling. */
+  async function typeAndSettle(user: ReturnType<typeof userEvent.setup>, query: string) {
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await screen.findByRole("button", { name: "kycklingfilé" });
+    await user.type(screen.getByRole("textbox"), query);
+  }
+
+  it("records a query that reached nothing, once, after the typing settles", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    const events = captureEvents();
+    renderFlow();
+
+    await typeAndSettle(user, "laxpasta");
+
+    // Not on every keystroke — every prefix of a word is a miss on the way to a hit,
+    // and logging those would drown the signal in people typing normally.
+    expect(misses(events)).toHaveLength(0);
+
+    await waitFor(() => expect(misses(events)).toHaveLength(1), { timeout: 2000 });
+    expect(misses(events)[0]).toMatchObject({ query: "laxpasta", matchCount: 0 });
+  });
+
+  it("records a query that reached exactly one thing — no choice is its own dead end", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    const events = captureEvents();
+    renderFlow();
+
+    // "pasta" reaches only `spagetti` in this stub, via its curated term.
+    await typeAndSettle(user, "pasta");
+
+    await waitFor(() => expect(misses(events)).toHaveLength(1), { timeout: 2000 });
+    expect(misses(events)[0]).toMatchObject({ query: "pasta", matchCount: 1 });
+  });
+
+  it("stays quiet when the query actually found a choice", async () => {
+    const user = userEvent.setup();
+    stubApi();
+    const events = captureEvents();
+    renderFlow();
+
+    // "n" is in both kycklingfilé and svarta bönor — more than one result is a hit.
+    await typeAndSettle(user, "n");
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    expect(misses(events)).toEqual([]);
   });
 });
 

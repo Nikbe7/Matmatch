@@ -99,12 +99,43 @@ export interface AppErrorShownEvent {
   code: string;
 }
 
+/** The longest query worth recording. Past this it is a paste or a cat on the keyboard,
+ *  not a household looking for dinner, and the column should not carry it. */
+export const MAX_LOGGED_QUERY_LENGTH = 64;
+
+/**
+ * Step 2's filter ran and reached nothing, or reached exactly one thing (#255).
+ *
+ * The question it answers is the one that decides whether the catalog needs authoring
+ * at all: when a household types something and gets nowhere, is that a **gap** (no such
+ * dish exists) or a **miss** (it exists and the index could not be pointed at it)?
+ * #259 widened the index precisely because a large share of what looked like gaps were
+ * misses; without this event the split between what remains is guesswork, and #253/#254
+ * would be authoring against a hunch.
+ *
+ * One result counts as a miss too: a query that reaches a single ingredient gives a
+ * household no choice, which is the same dead end wearing a better face.
+ *
+ * This is the only event carrying free text, and it stays the only one. The query is
+ * trimmed and capped at `MAX_LOGGED_QUERY_LENGTH`; nothing else about the household,
+ * its members or its pantry rides along. `analytics_events` holds no PII beyond
+ * `household_id` (ARCHITECTURE §5) and that is not weakened here.
+ */
+export interface MainSearchMissEvent {
+  name: "main_search_miss";
+  /** As typed, trimmed and capped. */
+  query: string;
+  /** 0 or 1 — how many eligible ingredients the query reached. */
+  matchCount: number;
+}
+
 export type AnalyticsEvent =
   | ChipTapEvent
   | SessionAbandonedEvent
   | MealChosenEvent
   | MealChoiceHistoryFailedEvent
-  | AppErrorShownEvent;
+  | AppErrorShownEvent
+  | MainSearchMissEvent;
 
 export type AnalyticsSink = (event: AnalyticsEvent) => void;
 
