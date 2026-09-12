@@ -7,6 +7,7 @@ import {
   isFirstStep,
   mainParameter,
   matchesIngredientQuery,
+  matchesSearchTerms,
   previousStep,
   type GuidedAction,
   type GuidedState,
@@ -144,6 +145,55 @@ describe("matchesIngredientQuery — the deterministic string match behind the f
 
   it("matches everything for an empty query", () => {
     expect(matchesIngredientQuery("Lax", "")).toBe(true);
+  });
+});
+
+describe("matchesSearchTerms — the generic vocabulary behind step 2's filter (#259)", () => {
+  const spagetti = { name: "spagetti", terms: ["Pasta"] };
+  const rodbeta = { name: "rödbeta", terms: ["Rotfrukter"] };
+  const tacoskal = { name: "tacoskal", terms: ["Tortilla och tacoskal"] };
+  const tortillabrod = { name: "tortillabröd", terms: ["Tortilla och tacoskal"] };
+
+  it("finds an ingredient by a generic word no ingredient is called", () => {
+    // The whole point: "pasta" is a variety family and a substitution group, never an
+    // ingredient name, so before this it reached nothing at all.
+    expect(matchesSearchTerms(spagetti, "pasta")).toBe(true);
+    expect(matchesSearchTerms(rodbeta, "rotfrukter")).toBe(true);
+  });
+
+  it("still matches the ingredient's own name as a substring, so typing works letter by letter", () => {
+    expect(matchesSearchTerms(spagetti, "spag")).toBe(true);
+    expect(matchesSearchTerms({ name: "Kycklingfilé", terms: [] }, "filé")).toBe(true);
+  });
+
+  it("matches a term on word starts, so a term never drags in an unrelated ingredient", () => {
+    // Why terms are not substring-matched: "kål" sits inside "tacoskal", and
+    // tortillabröd shares the group term "Tortilla och tacoskal" without its own name
+    // containing anything like the query. Substring-matching terms would put tortilla
+    // bread in front of a household that typed kål — a result with no textual
+    // relationship to what they asked for.
+    expect(matchesSearchTerms(tortillabrod, "kal")).toBe(false);
+    expect(matchesSearchTerms({ name: "vitkål", terms: ["Kål"] }, "kal")).toBe(true);
+    // A later word in a multi-word term still counts — the rule is word starts, not
+    // first word.
+    expect(matchesSearchTerms(tortillabrod, "tacos")).toBe(true);
+  });
+
+  it("leaves the name rule's own compound-word collisions alone, deliberately", () => {
+    // `tacoskal` matches "kal" through its NAME, not its terms, and that is the
+    // substring rule #110 shipped — the same rule that makes "filé" find
+    // "kycklingfilé" and "kål" find "vitkål" and "rödkål". Swedish compounds are why
+    // substring matching on names earns its keep; the occasional tacoskal is its
+    // price, and narrowing it would cost far more than it saves.
+    expect(matchesSearchTerms(tacoskal, "kal")).toBe(true);
+  });
+
+  it("matches regardless of diacritics, like the name rule it sits beside", () => {
+    expect(matchesSearchTerms({ name: "prästost", terms: ["Hårdost"] }, "hardost")).toBe(true);
+  });
+
+  it("matches everything for an empty query", () => {
+    expect(matchesSearchTerms(spagetti, "")).toBe(true);
   });
 });
 

@@ -159,6 +159,78 @@ export function buildPantryIngredientOptions(
   return buildOptions(data, candidates, PANTRY_CATEGORIES, PANTRY_GRID_SIZE);
 }
 
+export interface SearchableIngredient extends IngredientOption {
+  /**
+   * Curated generic words this ingredient also answers to — its variety family's
+   * name (`data/variety-families.json`) and the name of every substitution group it
+   * belongs to (`data/substitutions.json`).
+   */
+  terms: string[];
+}
+
+/**
+ * What step 2's filter searches (#259), as opposed to what its grid offers.
+ *
+ * The grid asks one question — which protein — and `buildMainIngredientOptions`
+ * answers it. The filter was searching that same protein-only list, which is one of
+ * the four facets a person actually thinks in. "Pasta" reached nothing: pasta is a
+ * starch, and there is no generic `pasta` ingredient either, only `spagetti`,
+ * `makaroner` and `fullkornspasta`.
+ *
+ * This stays inside UX_FLOW §5's invariant rather than widening it. The rule is that a
+ * query "can only ever narrow which eligible tap targets are visible, never reach
+ * outside them" — and a non-protein ingredient of the household's own candidates is
+ * inside that eligible set, not outside it. Still catalog filtering over an
+ * already-fetched, already-eligible option set: no request, no AI, deterministic.
+ *
+ * `terms` is where the generic vocabulary comes from, and it costs nothing to
+ * maintain because it is already maintained: 16 variety-family names and 41
+ * substitution-group names, 36 of which are words no ingredient is called. "Pasta",
+ * "Rotfrukter", "Hårdost", "Bladgrönt" become answerable without a synonym table
+ * anyone has to keep — the #224 lesson about curated mappings that outgrow their
+ * maintainer applies to synonyms too.
+ *
+ * Deliberately NOT variety-deduped, unlike the grid. The grid collapses `spagetti` and
+ * `makaroner` because it is a tap surface answering one question and offering the same
+ * question twice is a wasted square (#220/#221). A search result is the household
+ * naming a thing, and collapsing the varieties would hide the very choice they just
+ * asked to see.
+ */
+export function buildSearchableIngredients(
+  data: EngineData,
+  candidates: readonly CandidateTemplate[],
+): SearchableIngredient[] {
+  const frequency = candidateFrequency(candidates);
+
+  const groupNamesByIngredientId = new Map<string, string[]>();
+  for (const group of data.substitutionGroupsById.values()) {
+    for (const memberId of group.member_ingredient_ids) {
+      const names = groupNamesByIngredientId.get(memberId) ?? [];
+      names.push(group.name);
+      groupNamesByIngredientId.set(memberId, names);
+    }
+  }
+
+  return [...frequency.entries()]
+    .flatMap(([ingredientId, count]) => {
+      const ingredient = data.ingredientsById.get(ingredientId);
+      if (!ingredient) return [];
+
+      const familyName =
+        ingredient.variety_of === undefined
+          ? undefined
+          : data.varietyFamiliesById.get(ingredient.variety_of)?.name;
+
+      const terms = [...(familyName ? [familyName] : []), ...(groupNamesByIngredientId.get(ingredientId) ?? [])];
+
+      return [{ ingredient, count, terms: [...new Set(terms)] }];
+    })
+    // Same tie-break as the grid, and for the same reason: the answer to a query must
+    // be identical on every request and every machine.
+    .sort((a, b) => b.count - a.count || (a.ingredient.id < b.ingredient.id ? -1 : 1))
+    .map(({ ingredient, terms }) => ({ id: ingredient.id, name: ingredient.name, terms }));
+}
+
 
 export interface GuidedIngredientView extends TonightIngredientView {
   /**

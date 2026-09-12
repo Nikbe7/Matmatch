@@ -31,7 +31,7 @@ import {
   guidedReducer,
   isFirstStep,
   mainParameter,
-  matchesIngredientQuery,
+  matchesSearchTerms,
   type GuidedState,
 } from "./guided";
 import { clearShoppingList, type StoredShoppingList } from "./shoppingListStorage";
@@ -39,10 +39,12 @@ import { clearShoppingList, type StoredShoppingList } from "./shoppingListStorag
 // The guided quick-select flow (UX_FLOW §5): intent chip → main ingredient →
 // pantry → three direction cards → portions → shopping list.
 //
-// Every step is a tap. There is no text input anywhere in this file and no free-text
-// search — selection is always over the curated catalog, which is the whole
-// distinction between this product and prompting a chatbot (UX_FLOW §1/§2). There is
-// also no AI call: the direction set is the Meal Engine's, deterministic end to end.
+// Every step is a tap. Step 2 carries the one text field UX_FLOW §5 admits, and it
+// selects rather than generates: it narrows which curated tap targets are visible and
+// never reaches outside the household's eligible set (#110, #235, #259). Selection is
+// always over the curated catalog, which is the whole distinction between this product
+// and prompting a chatbot (UX_FLOW §1/§2). There is also no AI call: the direction set
+// is the Meal Engine's, deterministic end to end.
 
 function BackIcon() {
   return (
@@ -540,9 +542,14 @@ export function GuidedFlow({
   const trimmedMainQuery = state.mainQuery.trim();
   const hasMainQuery = trimmedMainQuery.length > 0;
   const defaultMainGrid = (options?.mainIngredients ?? []).slice(0, MAIN_INGREDIENT_GRID_SIZE);
+  // A query searches `searchableIngredients`, not the protein grid (#259): the grid
+  // answers "which protein", while a household types "pasta" or "rotfrukter" — words
+  // no protein is called. Both sets are the household's own eligible candidates, so
+  // this widens what a query can reach without reaching outside the eligible set
+  // (UX_FLOW §5).
   const matchingMainIngredients = hasMainQuery
-    ? (options?.mainIngredients ?? []).filter((option) =>
-        matchesIngredientQuery(option.name, trimmedMainQuery),
+    ? (options?.searchableIngredients ?? []).filter((option) =>
+        matchesSearchTerms(option, trimmedMainQuery),
       )
     : defaultMainGrid;
   // A miss falls back to the default grid rather than an empty one (requirement 1:

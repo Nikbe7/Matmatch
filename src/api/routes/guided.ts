@@ -27,6 +27,7 @@ import {
   buildGuidedIngredients,
   buildMainIngredientOptions,
   buildPantryIngredientOptions,
+  buildSearchableIngredients,
   parseMainFromQuery,
   parsePantryFromQuery,
 } from "../guidedCatalog.js";
@@ -93,6 +94,10 @@ export function guidedRouter(sql: Sql, engineData: EngineData, verifyToken: Toke
         diners: memberLabels(stored.household.members).map((label) => ({ label })),
         mainIngredients: buildMainIngredientOptions(engineData, candidates),
         pantryIngredients: buildPantryIngredientOptions(engineData, candidates),
+        // What the step-2 filter searches, as opposed to what its grid offers (#259).
+        // Every eligible ingredient of any category, each carrying the curated generic
+        // words it answers to — so "pasta" reaches spagetti rather than nothing.
+        searchableIngredients: buildSearchableIngredients(engineData, candidates),
         // No `excludedMainIngredients`: step 2's filter-miss explanation (requirement 4)
         // named the allergy excluding a given ingredient, and a dietary flag excludes a
         // whole dish rather than one ingredient, so there is nothing left to explain

@@ -8,6 +8,46 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-09-13 — Steg 2:s fält söker bredare än rutnätet erbjuder
+
+**Beslut:** Filtret i steg 2 söker inte längre bara bland proteiner. Rutan matchar nu
+varje *behörig* ingrediens oavsett kategori, på sitt eget namn (substräng, som förut)
+och på de kurerade generiska ord den svarar mot — sin variety-familj och sina
+substitutionsgrupper (matchat på ordgräns). Rutnätet är oförändrat: samma tolv
+proteinrutor tills hushållet skriver något.
+
+**Varför:** "Pasta" nådde ingenting. Pasta är stärkelse, och det finns ingen generisk
+`pasta`-ingrediens — bara `spagetti`, `makaroner`, `fullkornspasta`. Samma sak för
+"rotfrukter", "hårdost", "bladgrönt": 36 av 41 gruppnamn och alla 16 familjenamn är ord
+som inget ingrediensnamn innehåller. Ordförrådet kostade ingenting att införa eftersom
+det redan underhålls som kurerad data; en handskriven synonymtabell hade varit en ny
+underhållsskuld, och #224 är vad som händer när kurerade mappningar växer ifrån sin
+underhållare.
+
+Detta *breddar* UX_FLOW §5:s undantag men bryter det inte. Regeln där är att en fråga
+"can only ever narrow which eligible tap targets are visible, never reach outside them"
+— och en icke-proteiningrediens i hushållets egna kandidater ligger innanför den
+behöriga mängden, inte utanför. Fortfarande deterministisk strängjämförelse över en
+redan hämtad, redan behörig mängd: ingen förfrågan, ingen AI, och `matchesMain` i
+motorn var redan kategoriagnostisk, så `spagetti` som huvudingrediens fungerade hela
+vägen utan en enda motorändring.
+
+Termer matchas på ordgräns och namn på substräng, och skillnaden är avsiktlig. Substräng
+på namn är det som får svenska sammansättningar att fungera ("filé" → "kycklingfilé",
+"kål" → "vitkål"). Substräng på *termer* hade dragit in ingredienser utan någon textlig
+relation till frågan alls — "kål" ligger i gruppnamnet "Tortilla och tacoskal". Namnets
+egna krockar är kvar och är priset för sammansättningarna; de är värda mer.
+
+**Så tillämpar du det:** Formuleringen som gör det här förenligt med tap-first är
+*fritext väljer, tap beslutar* — en chattwrapper är fritext som **genererar svaret**,
+medan det här bara smalnar av vilka kurerade alternativ som syns. Nästa steg i samma
+riktning — chips för *rätter* och *former* ("gryta", "köttfärssås") som hoppar direkt
+till förslagskorten — adresserar något annat än tapbara ingredienser i ett rutnät, och
+är därmed en större fråga om produktidentitet. Den är **inte** avgjord här; den har ett
+eget issue och kräver ett uttryckligt beslut innan den byggs.
+
+---
+
 ## 2026-09-10 — Kroppstypsnittet byter från DM Sans till Schibsted Grotesk
 
 **Beslut:** `--font-family` (web/src/styles/tokens.css) är nu Schibsted Grotesk
