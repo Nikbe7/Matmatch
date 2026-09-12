@@ -32,7 +32,7 @@ Commit straight to `main`? Tempting for a solo dev, but PRs earn their keep here
 
 **Merge strategy: squash merge.** One commit per feature/issue on `main`, clean history, and it composes well with Conventional Commits + changelog automation (a squash-merged PR title becomes the one commit message that matters).
 
-**No screenshots.** Niklas verifies every PR live in the browser against the running app before merging (see CLAUDE.md's "Verifiera i webbläsaren" checklist requirement) — a screenshot would prove nothing to the one reviewer who is already looking at the real thing, and producing one costs a manual upload step on every PR for no reader. `web/screenshots/` stays gitignored regardless, in case a screenshot is ever taken for some other reason.
+**No screenshots.** PRs merge on green CI without a human looking at them (CLAUDE.md, "Delegation"), so a screenshot has no reader at merge time, and producing one costs a manual upload step on every PR. What carries the visual claim instead is the "Verifiera i webbläsaren" checklist: concrete steps and expected results, which Niklas can spot-check against the running app whenever he wants and which stays useful long after a screenshot would have gone stale. `web/screenshots/` stays gitignored regardless, in case a screenshot is ever taken for some other reason.
 
 ## Labels
 
@@ -53,7 +53,7 @@ Three templates live in `.github/ISSUE_TEMPLATE/`: **Bug report**, **Feature req
 
 ## Pull request template
 
-`.github/PULL_REQUEST_TEMPLATE.md` includes the project-specific non-negotiables as a checklist (does this touch allergy logic, does it introduce an AI-invented number, does it add persistent pantry storage) alongside the generic tests/docs checklist — the checklist is the enforcement mechanism for `CLAUDE.md`'s non-negotiables, not just a formality.
+`.github/PULL_REQUEST_TEMPLATE.md` includes the project-specific non-negotiables as a checklist (does AI logic reach dietary filtering, does it introduce an AI-invented number, does it add persistent pantry storage, which AI tier it uses) alongside the generic tests/docs checklist — the checklist is the enforcement mechanism for `CLAUDE.md`'s non-negotiables, not just a formality. It asks about *dietary* filtering, not allergy filtering: #224 removed the latter, and a checkbox that swears an absent protection is intact teaches the protection exists.
 
 ## Project board
 
@@ -66,17 +66,17 @@ Backlog → Ready → In Progress → Review → Testing → Done
 - **Backlog**: captured but not yet scoped/prioritized.
 - **Ready**: scoped, acceptance criteria clear, could be picked up right now.
 - **In Progress**: actively being worked (branch exists).
-- **Review**: PR open, self-review (`/code-review`) pending or in progress.
-- **Testing**: merged to a preview/staging context or manually verified against acceptance criteria.
-- **Done**: deployed/verified, issue closed.
+- **Review**: PR open, CI running or self-review in progress. A holding state measured in minutes, not a queue waiting on a person.
+- **Testing**: unused in practice. The gates that would fill it (typecheck, both suites, e2e) run in CI on every PR and block the merge, so nothing sits here.
+- **Done**: merged, issue closed.
 
 **Working the board (the trigger rules that matter day to day):**
 - Starting work on an issue → move it to In Progress.
-- Implementation complete → move it to Review.
-- Niklas verifies it → move it to Done.
+- PR opened → move it to Review.
+- Merged → move it to Done.
 - New work discovered mid-implementation → new Issue, labeled/prioritized/milestoned, added to the project, placed in the right column — not a note in a doc or a comment.
 
-For a solo developer, "Review" and "Testing" don't require a second human — they require the review/testing steps to actually happen and be visible, rather than being silently skipped because there's no one else to hand off to.
+Claude moves the cards and Claude merges; there is no human verification step between Review and Done (CLAUDE.md, "Delegation"). "Review" therefore means the review actually happened — CI green, self-review done — not that someone is waiting to be handed something.
 
 ## Discussions & Wiki
 
