@@ -35,6 +35,7 @@ import {
   type GuidedState,
 } from "./guided";
 import { clearShoppingList, type StoredShoppingList } from "./shoppingListStorage";
+import { MAX_LOGGED_QUERY_LENGTH, track } from "./analytics";
 
 // The guided quick-select flow (UX_FLOW §5): intent chip → main ingredient →
 // pantry → three direction cards → portions → shopping list.
@@ -81,6 +82,12 @@ const GUIDED_STEP_COUNT = 3;
  *  enough that a household that stepped once and paused is not left reading amounts
  *  for the old number. */
 const PORTION_RESCALE_DEBOUNCE_MS = 400;
+
+/** How long the filter has to settle before a miss is recorded (#255). Longer than the
+ *  portions debounce because typing a word takes longer than tapping "+", and every
+ *  prefix of "rotfrukter" is a miss on the way to a hit — logging those would drown the
+ *  signal in the noise of people typing normally. */
+const SEARCH_MISS_DEBOUNCE_MS = 700;
 
 /**
  * The three-step progress indicator (#206) — segments, not the plain "Steg 1 av 3"
@@ -559,6 +566,28 @@ export function GuidedFlow({
   // eligible protein on screen.
   const mainGridOptions = matchingMainIngredients.length > 0 ? matchingMainIngredients : defaultMainGrid;
   const noMainMatches = hasMainQuery && matchingMainIngredients.length === 0;
+
+  // #255: record a query that reached nothing, or reached exactly one thing. This is
+  // what separates a catalog *gap* from an index *miss* — #259 showed a large share of
+  // apparent gaps were misses, and what is left is the authoring backlog. Guessing it
+  // would mean authoring against a hunch.
+  //
+  // Debounced so "lax" is one event rather than three, and gated on `options` being
+  // loaded: a query typed while the grids are still in flight matches nothing for a
+  // reason that has nothing to do with the catalog, and logging that would poison the
+  // very data this exists to produce.
+  const matchCount = matchingMainIngredients.length;
+  useEffect(() => {
+    if (options === null || !hasMainQuery || matchCount > 1) return;
+    const timer = setTimeout(() => {
+      track({
+        name: "main_search_miss",
+        query: trimmedMainQuery.slice(0, MAX_LOGGED_QUERY_LENGTH),
+        matchCount,
+      });
+    }, SEARCH_MISS_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [options, hasMainQuery, trimmedMainQuery, matchCount]);
 
   const main = mainParameter(state);
   const pantryKey = state.pantry.join(",");
