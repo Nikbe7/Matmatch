@@ -349,15 +349,6 @@
     ]
   },
   {
-    "id": "currybas",
-    "name": "Currybas",
-    "role": "aromatic",
-    "member_ingredient_ids": [
-      "currypasta",
-      "curry"
-    ]
-  },
-  {
     "id": "tomatbas",
     "name": "Tomatbas",
     "role": "aromatic",

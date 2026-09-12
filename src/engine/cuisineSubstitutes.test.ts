@@ -129,6 +129,46 @@ describe("the cuisines curation pass as a whole", () => {
   });
 });
 
+describe("curry powder is not Thai curry paste (#258)", () => {
+  // Found by the shape check #256 added, not by hand — `currybas` had exactly
+  // `asiatisk-aromatbas`'s form: two members where one, `curry`, already belonged to
+  // the larger `kryddbas` at the same role.
+  //
+  // The measurement settled it. In the shipped catalog the group's dominant effect was
+  // offering curry POWDER as the swap for Thai curry paste in five asian dishes — grön
+  // curry, massamangryta, currygryta among them. A grön curry made with curry powder is
+  // not a grön curry; that is the same not-interchangeable-at-all that #228 turned on,
+  // wearing a different pair of ingredients.
+  //
+  // Removed rather than repaired. `curry` keeps its real swap set in `kryddbas`;
+  // `currypasta` now belongs to no group and is offered nothing, which is the right
+  // answer until the catalog holds something it genuinely trades for.
+  it("never offers curry powder as a substitute for curry paste, or the reverse, in any dish", () => {
+    const wrongOffers: string[] = [];
+
+    for (const found of data.templates) {
+      found.ingredient_slots.forEach((slot, index) => {
+        if (slot.ingredient_id !== "curry" && slot.ingredient_id !== "currypasta") return;
+        const offers = substituteCandidateIds(data, found.cuisine, slot.role, slot.ingredient_id);
+        const swapId = slot.ingredient_id === "curry" ? "currypasta" : "curry";
+        if (offers.includes(swapId)) {
+          wrongOffers.push(`${found.name} [${index}] ${slot.ingredient_id} -> ${swapId}`);
+        }
+      });
+    }
+
+    expect(wrongOffers).toEqual([]);
+  });
+
+  it("keeps curry powder's real substitutes in kryddbas — the fix must not empty an innocent slot", () => {
+    const dish = "Kikärtscurry";
+    const offers = offersFor(dish, slotOf(dish, "curry"));
+
+    expect(offers).toContain("spiskummin");
+    expect(offers).toContain("gurkmeja");
+  });
+});
+
 describe("ginger and fresh chili are not the same flavor (#228)", () => {
   // `asiatisk-aromatbas` named a flavor complex ("ginger and chili together as a wok
   // base"), not the interchangeable-member-for-member relation a substitution group
