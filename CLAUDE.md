@@ -55,8 +55,8 @@ This repo prioritizes building Matmatch, not producing documentation. Before cre
 ## GitHub Project workflow
 The GitHub Project board is the single source of truth for what's being worked on — no separate markdown TODO lists.
 - Starting work on an issue → move it to **In Progress**.
-- Implementation complete, ready for review → move it to **Review**.
-- Niklas verifies it → move it to **Done**.
+- PR opened → move it to **Review**.
+- Merged → move it to **Done**. Claude does this; there is no human verification step in between (see "Delegation").
 - New work discovered mid-implementation → create a GitHub Issue immediately (labels, priority, milestone, add to the project, place in the right column) rather than noting it in a comment or a doc.
 - Label taxonomy, milestones, and full board mechanics: `docs/engineering/GIT_AND_GITHUB.md`.
 
@@ -80,33 +80,43 @@ An issue is considered complete when:
 - Claude has performed a self-review.
 - A Conventional Commit message has been suggested.
 
-Only then should the issue move to Review.
+Only then does the issue ship. Claude merges it, closes it and moves it to **Done** without waiting — see "Delegation" for the short list of things that still stop.
 
 Whenever AskUserQuestion is used, immediately follow it with the same question and options as plain text in the response body. The tool's own content can't be copied out of the terminal, and questions get answered from another device or from a separate review chat; the plain-text copy is what makes that a paste instead of a transcript dig.
+
+## Delegation
+Niklas reviews **design proposals**. That is the gate. Everything else — picking the next issue, architecture calls, schema changes, curated-data judgments, merging, closing, resequencing the board — Claude decides and executes, then reports what it did.
+
+This replaces the earlier arrangement where work waited in Review for verification. It did not pay for itself: the queue grew faster than it drained, and the things waiting were overwhelmingly things Claude could have settled with a measurement.
+
+What still stops and asks, and only this:
+- **A design proposal.** New screen, significant visual change, anything `/design-options` covers. Named directions as artboards, he picks. Never built before he picks.
+- **Deployment and anything with an external blast radius** — production, DNS, paid services, anything visible outside this repo. Parked until he says otherwise.
+- **Anything that spends money or creates an account.**
+- **A decision he personally made, being reversed.** Reversing one of Claude's own logged decisions on new evidence is Claude's call, and the DECISION_LOG is where the reversal gets argued.
+
+Everything else: decide it, log the reasoning where it belongs (DECISION_LOG for non-obvious calls, the PR body for the rest), and keep going. When a call is genuinely close, make it, ship it, and say in the report what the alternative was and why it lost — a paragraph he can overrule is worth more than a question that blocks a day.
+
+**Do not ask what to work on next.** The board answers that; if the board is wrong, fix the board.
 
 ## Task sizing
 Never implement multiple unrelated features in the same session. Prefer small, reviewable changes — one issue, one branch, one PR. If a task turns out to bundle unrelated work, split it into separate issues rather than shipping it as one large change.
 
 Slice size depends on what's at risk, not on habit.
-- **Small, reviewed slices** stay the rule for: database schema and migrations, the dietary path, AI orchestration, and curated data passes. Mistakes there are expensive or unsafe, and Niklas verifies each one before merge.
-- **Large single-pass slices** are correct for visual and layout work across multiple screens. It is reversible, nothing safety-critical is at stake, and one screen per PR costs more in round trips than it saves in review.
+- **Small slices** stay the rule for: database schema and migrations, the dietary path, AI orchestration, and curated data passes. Mistakes there are expensive or unsafe — so they get their own PR, extra test coverage, and an explicit call-out in the close-out report. Not because someone reviews them first, but so the blast radius of any single mistake stays small and the record says plainly what changed.
+- **Large single-pass slices** are correct for visual and layout work across multiple screens. It is reversible, nothing safety-critical is at stake, and one screen per PR costs more in round trips than it saves.
 
-Merge without waiting for verification when all of these hold: the change touches no schema, no migration, no dietary path, no AI orchestration and no curated data; typecheck, both suites at 0 skipped via the JSON reporter and e2e are green; and the "Verifiera i webbläsaren" checklist is in the PR body. Merge, close the issue, move it to Done, and report what landed rather than asking whether to merge.
-
-Still wait for explicit approval on anything in the first list, on anything that reverses a DECISION_LOG entry, and on any change whose failure mode is that a dish is shown when it should have been withheld — the fail-open direction, regardless of which files it touches.
-
-Deployment stays parked until Niklas says otherwise.
+Merge when typecheck, both suites at 0 skipped via the JSON reporter, and e2e are green, and the "Verifiera i webbläsaren" checklist is in the PR body. Then close the issue, move it to Done, and report what landed.
 
 ## Development session workflow
 1. Review the GitHub Project board.
-2. Recommend the highest-priority actionable issue.
-3. Explain the implementation approach before writing code.
-4. Implement it.
-5. Update relevant docs only if architecture or long-term behavior actually changed.
-6. Suggest a commit message (Conventional Commits).
-7. Flag when the issue is ready to move to Review — and remind to move it to Done once verified.
+2. Take the highest-priority actionable issue. Say which one and why, in a sentence — then start.
+3. Implement it.
+4. Update relevant docs only if architecture or long-term behavior actually changed.
+5. Ship it: Conventional Commit, PR with the verification checklist, merge on green, close, move to Done.
+6. Report what landed, and pick up the next one.
 
-Every PR description ends with a "Verifiera i webbläsaren" checklist for Niklas: 3–5 concrete, ordered steps covering what could actually break in this change, expected result for each, and a note on which step is the blocker. The change's author knows its failure modes best — this saves a review round trip.
+Every PR description ends with a "Verifiera i webbläsaren" checklist: 3–5 concrete, ordered steps covering what could actually break in this change, expected result for each, and a note on which step is the blocker. It survives the move to autonomous merging for two reasons that have nothing to do with who reads it: writing it is what forces the author to name the failure modes before shipping, and when something does break later it is the record of what was believed to be true. Niklas can spot-check from it whenever he wants; the discipline is the point.
 
 ## Engineering mindset
 Optimize for simplicity, maintainability, readability, low AI cost, fast iteration, and production quality, in that rough order for a pre-PMF solo project. Prefer the simplest solution that satisfies current requirements; don't build infrastructure for hypothetical future features.

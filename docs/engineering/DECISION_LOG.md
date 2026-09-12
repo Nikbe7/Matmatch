@@ -8,6 +8,31 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-09-13 — Claude beslutar och mergar; Niklas granskar designförslag
+
+**Beslut:** Granskningssteget före merge är borta. Claude väljer nästa issue, fattar
+arkitektur- och datakall, mergar, stänger och flyttar kortet — och rapporterar efteråt.
+Niklas granskar **designförslag**, och det är hela grinden. Kvar som stopp: deployment
+och allt med extern räckvidd, allt som kostar pengar eller skapar konton, och
+reversering av ett beslut Niklas själv fattat. `CLAUDE.md` har en egen
+"Delegation"-sektion som säger det.
+
+**Varför:** Det gamla upplägget lät arbete vänta i Review. Kön växte fortare än den
+tömdes, och det som väntade var nästan uteslutande saker Claude kunde ha avgjort med en
+mätning — #228 väntade på en smakbedömning, #252 på ett ja till en datafil vars
+konsekvenser redan var uppmätta rad för rad. Ett processteg som inte betalar för sig ska
+bort (CLAUDE.md, princip 9).
+
+**Så tillämpar du det:** Fråga inte vad som ska göras härnäst; tavlan svarar på det, och
+om tavlan har fel är det tavlan som ska rättas. När ett beslut är genuint jämnt — fatta
+det, skeppa det, och skriv i rapporten vad alternativet var och varför det förlorade. Ett
+stycke som går att överpröva är värt mer än en fråga som blockerar ett dygn. De
+riskfyllda områdena (schema, dietväg, AI-orkestrering, kurerad data) mister inte sin
+försiktighet: de får fortfarande egen PR, extra testtäckning och en uttrycklig notering i
+rapporten — det som ändrats är vem som trycker på knappen, inte hur noga det görs.
+
+---
+
 ## 2026-09-13 — Steg 2:s fält söker bredare än rutnätet erbjuder
 
 **Beslut:** Filtret i steg 2 söker inte längre bara bland proteiner. Rutan matchar nu
