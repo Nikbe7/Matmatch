@@ -346,10 +346,21 @@ export interface IngredientOption {
   name: string;
 }
 
+/** A tapable option plus the curated generic words it also answers to (#259). */
+export interface SearchableIngredient extends IngredientOption {
+  terms: string[];
+}
+
 export interface GuidedOptions {
   diners: DinerLabel[];
   mainIngredients: IngredientOption[];
   pantryIngredients: IngredientOption[];
+  /**
+   * What step 2's filter searches. Wider than `mainIngredients`, which is only the
+   * protein grid: a household types "pasta" or "rotfrukter", words no ingredient is
+   * called and no protein answers to.
+   */
+  searchableIngredients: SearchableIngredient[];
 }
 
 export interface GuidedIngredient extends TonightIngredient {

@@ -24,6 +24,14 @@ const options = {
     { id: "ris", name: "ris" },
     { id: "gul-lok", name: "gul lök" },
   ],
+  // What the filter searches (#259) — wider than the protein grid, and carrying the
+  // curated generic words each ingredient answers to. `spagetti` is here and not in
+  // the grid on purpose: it is how a query reaches a non-protein at all.
+  searchableIngredients: [
+    { id: "kycklingfile", name: "kycklingfilé", terms: [] },
+    { id: "svarta-bonor", name: "svarta bönor", terms: ["Bönor och kikärtor"] },
+    { id: "spagetti", name: "spagetti", terms: ["Pasta"] },
+  ],
 };
 
 function direction(id: string, name: string, costTier = "mid") {
@@ -359,6 +367,31 @@ describe("GuidedFlow — step 2's type-to-filter (#110)", () => {
   // one ingredient, so there is no per-ingredient exclusion left for the search box to
   // explain — an unmatched query is simply "Ingen träff.", asserted above.
 
+  it("reaches a non-protein by a generic word no ingredient is called (#259)", async () => {
+    // The capability the whole issue is about: "pasta" is a variety family and a
+    // substitution group, never an ingredient name, and pasta is a starch so the
+    // protein grid could never have offered it. Before #259 this query reached
+    // nothing at all.
+    const user = userEvent.setup();
+    const fetchMock = stubApi();
+    renderFlow();
+
+    await user.click(await screen.findByRole("button", { name: "Middagsidé" }));
+    await screen.findByRole("button", { name: "kycklingfilé" });
+    expect(screen.queryByRole("button", { name: "spagetti" })).toBeNull();
+
+    await user.type(screen.getByRole("textbox"), "pasta");
+
+    const spagetti = await screen.findByRole("button", { name: "spagetti" });
+    expect(spagetti).toBeTruthy();
+    // And it is a real tap target, not a decoration: choosing it carries that
+    // ingredient id into the directions request exactly like a protein would.
+    await user.click(spagetti);
+    await user.click(await screen.findByRole("button", { name: "Hoppa över" }));
+    await screen.findByRole("heading", { name: "Tre förslag" });
+    expect(directionsQueries(fetchMock)[0]!.get("main")).toBe("spagetti");
+  });
+
   it("reaches an ingredient beyond the default grid once its name is typed (#235)", async () => {
     // The bug: the server used to throw away everything past the grid's own tile
     // count, so the filter could only ever narrow the same ~12 names already on
@@ -371,7 +404,11 @@ describe("GuidedFlow — step 2's type-to-filter (#110)", () => {
     })).concat({ id: "entrecote", name: beyondGridName });
     const fetchMock = vi.fn(async (url: string) => {
       if (url.startsWith("/api/guided/options")) {
-        return jsonResponse(200, { ...options, mainIngredients: manyMainIngredients });
+        return jsonResponse(200, {
+          ...options,
+          mainIngredients: manyMainIngredients,
+          searchableIngredients: manyMainIngredients.map((o) => ({ ...o, terms: [] })),
+        });
       }
       if (url.startsWith("/api/guided/directions")) return jsonResponse(200, threeDirections);
       return jsonResponse(200, { instructions: null, reason: "not_configured" });

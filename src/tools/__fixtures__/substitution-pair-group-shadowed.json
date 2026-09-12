@@ -1,0 +1,21 @@
+[
+  {
+    "id": "chili-och-hetta",
+    "name": "Chili och hetta",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "farsk-chili",
+      "chiliflakes",
+      "sambal-oelek"
+    ]
+  },
+  {
+    "id": "asiatisk-aromatbas",
+    "name": "Asiatisk aromatbas",
+    "role": "aromatic",
+    "member_ingredient_ids": [
+      "ingefara",
+      "farsk-chili"
+    ]
+  }
+]

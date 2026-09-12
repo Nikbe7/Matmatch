@@ -48,10 +48,11 @@ export interface GuidedState {
   /**
    * Step 2's type-to-filter text, live in the reducer rather than component state
    * so it follows the same one-object-per-session rule as everything else here. It
-   * only ever changes the *display* of `options.mainIngredients` — narrowing it to
-   * a match, or widening it past the default `MAIN_INGREDIENT_GRID_SIZE` tiles to
-   * the household's full eligible set (#235) — it never reads or writes `main`, so
-   * a query can never change which ingredient is selected.
+   * only ever changes which tap targets are *shown*: empty, the grid's first
+   * `MAIN_INGREDIENT_GRID_SIZE` proteins; non-empty, matches from
+   * `options.searchableIngredients` — every eligible ingredient of any category
+   * (#235, #259). It never reads or writes `main`, so a query can never change which
+   * ingredient is selected.
    */
   mainQuery: string;
   /** Session-scoped, ephemeral, never written anywhere. */
@@ -188,6 +189,38 @@ function normalizeForMatch(value: string): string {
  */
 export function matchesIngredientQuery(name: string, query: string): boolean {
   return normalizeForMatch(name).includes(normalizeForMatch(query));
+}
+
+/**
+ * Whether an ingredient answers to `query`, by its own name or by one of the curated
+ * generic words it carries (#259) — its variety family and its substitution groups.
+ *
+ * The two halves match differently on purpose. A name is matched as a substring — the
+ * rule #110 shipped — which is what makes typing work letter by letter and what lets
+ * Swedish compounds work: "filé" finds "kycklingfilé", "kål" finds "vitkål" and
+ * "rödkål". A term is matched on **word starts**, because substring matching over the
+ * generic vocabulary drags in ingredients with no textual relationship to the query at
+ * all: "kål" sits inside the group name "Tortilla och tacoskal", so a household typing
+ * kål would be offered tortilla bread.
+ *
+ * What this does not do is repair the name rule's own collisions — `tacoskal` still
+ * matches "kal" through its name. That is the substring rule working as designed, and
+ * narrowing it would cost the compounds, which are worth far more than the occasional
+ * stray match.
+ */
+export function matchesSearchTerms(
+  option: { name: string; terms: readonly string[] },
+  query: string,
+): boolean {
+  const needle = normalizeForMatch(query);
+  if (needle.length === 0) return true;
+  if (normalizeForMatch(option.name).includes(needle)) return true;
+
+  return option.terms.some((term) =>
+    normalizeForMatch(term)
+      .split(/[^a-z0-9]+/)
+      .some((word) => word.startsWith(needle)),
+  );
 }
 
 /**
