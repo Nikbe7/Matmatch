@@ -114,6 +114,38 @@ describe.skipIf(!stackAvailable)("GET /api/guided/options", () => {
     }
   });
 
+  it("returns a searchable set that reaches past proteins, carrying curated generic words (#259)", async () => {
+    // Against the real catalog: "pasta" is a variety family and a substitution group,
+    // never an ingredient name, and no protein answers to it — so before this the
+    // query reached nothing. The generic vocabulary is free because it is already
+    // curated and already maintained; no synonym table was added.
+    const app = buildApp();
+    const user = await userWithHousehold(app);
+
+    const response = await request(app).get("/api/guided/options").set(authHeader(user.accessToken));
+
+    expect(response.status).toBe(200);
+    const searchable: { id: string; name: string; terms: string[] }[] =
+      response.body.searchableIngredients;
+
+    // Wider than the protein grid by construction, and genuinely non-protein.
+    const categories = new Set(
+      searchable.map((option) => engineData.ingredientsById.get(option.id)?.category),
+    );
+    expect(categories.size).toBeGreaterThan(1);
+    expect(categories.has("starch")).toBe(true);
+
+    const spagetti = searchable.find((option) => option.id === "spagetti");
+    expect(spagetti).toBeDefined();
+    expect(spagetti!.terms).toContain("Pasta");
+
+    // The grid itself is unchanged — still proteins only. Widening what a query can
+    // reach must not widen what the household is shown before they type.
+    for (const option of response.body.mainIngredients) {
+      expect(engineData.ingredientsById.get(option.id)?.category).toBe("protein");
+    }
+  });
+
   it("surfaces a main ingredient outside the default 12-tile grid once its name is searched (#235)", async () => {
     // The regression #235 found: the filter used to only ever narrow the same ~12
     // ingredients the grid already showed, because the server threw the rest away
