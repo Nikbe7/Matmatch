@@ -463,12 +463,25 @@ export async function fetchInstructions(
  * and answers 200 with the first tap's timestamp, so a retry after a flaky network is
  * never a duplicate entry and never an error the UI has to explain.
  */
+/**
+ * How long the cooked-history write gets before the accept gives up on it (#212).
+ *
+ * It exists because the accept is *blocking*: "Laga ikväll" disables the screen until
+ * this settles, and a bare fetch on a dropped mobile connection never settles at all —
+ * which would leave a household staring at a frozen Tonight with no error and no way
+ * out but a reload. Recording history is the least important thing this tap does
+ * (`markCooked`'s failure is already swallowed), so the timeout is short enough that
+ * nobody waits on it and long enough not to fire on an ordinary slow connection.
+ */
+const COOKED_WRITE_TIMEOUT_MS = 8000;
+
 export async function markCooked(
   accessToken: string,
   templateId: string,
   substitutions: readonly TonightSubstitution[],
 ): Promise<void> {
   const response = await fetch("/api/cooked", {
+    signal: AbortSignal.timeout(COOKED_WRITE_TIMEOUT_MS),
     method: "POST",
     headers: {
       "Content-Type": "application/json",
