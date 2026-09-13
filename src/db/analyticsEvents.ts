@@ -45,3 +45,42 @@ export async function recordAnalyticsEvents(
     insert into analytics_events ${tx(rows)}
   `);
 }
+
+/** One stored event, in the shape the table holds it. */
+export interface StoredAnalyticsEvent {
+  event_name: string;
+  payload: Record<string, unknown>;
+  client_timestamp: Date;
+  server_timestamp: Date;
+}
+
+/**
+ * One household's events in the order they were written, oldest first.
+ *
+ * `order by seq`, and deliberately not `server_timestamp` — nor `server_timestamp, seq`.
+ * `now()` is transaction start time and a batch is one statement, so a batch's rows all
+ * share a server_timestamp and the timestamp alone leaves them tied, which Postgres may
+ * answer either way (#98, and #103 before it, where the same two rows swapped between
+ * runs with no code change). Adding seq as a *tiebreaker* fixes the tie and keeps a
+ * worse bug: the composite sorts on transaction start, so two overlapping flushes come
+ * back inverted, the one that began first but wrote second sorting first. `seq` is
+ * already unique, so it needs no tiebreaker and has no inversion to fix.
+ *
+ * Unbounded and unpaged on purpose. The only caller today is this module's test; it lives
+ * here rather than there because the ordering above is a contract about the table, and a
+ * contract kept in a test file is one the next reader writes its own version of. A
+ * household's event count does not need paging at Phase 1 volume, and adding it would be
+ * infrastructure for a caller that does not exist.
+ */
+export async function readHouseholdEvents(
+  sql: Sql,
+  userId: string,
+  householdId: string,
+): Promise<StoredAnalyticsEvent[]> {
+  return withUserContext(sql, userId, (tx) => tx<StoredAnalyticsEvent[]>`
+    select event_name, payload, client_timestamp, server_timestamp
+    from analytics_events
+    where household_id = ${householdId}
+    order by seq
+  `);
+}
