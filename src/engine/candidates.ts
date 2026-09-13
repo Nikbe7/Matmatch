@@ -274,6 +274,41 @@ export function evaluateTemplateAgainstConstraints(
 }
 
 /**
+ * The vegetarian-or-vegan subset of an already-selected candidate list (#84).
+ *
+ * A *session* filter, and deliberately a separate function applied to the output of
+ * `selectCandidateTemplates` rather than another flag inside `MealConstraints`. The
+ * household's dietary flags are a standing fact about who eats here; "vegetariskt
+ * ikväll" is a thing someone tapped once. Merging the two would mean the session
+ * choice travelling the same field the profile does, and the only thing keeping it out
+ * of the stored profile would be discipline at every call site. Here there is no route
+ * at all: this function cannot reach `constraints`, and nothing that writes a household
+ * calls it.
+ *
+ * Composition, not replacement: the household's own filter has already run by the time
+ * this sees a list, so a vegan household tapping this gets vegan candidates narrowed to
+ * vegetarian-or-vegan — which is all of them — and never the other way round. This can
+ * only ever shrink the set, so it cannot widen what a household is allowed to be shown,
+ * which is the property that matters (CLAUDE.md: dietary filtering is deterministic and
+ * never depends on model output — this is tag arithmetic on curated data, same as the
+ * filter above it).
+ *
+ * `vegan` counts as vegetarian here because the tag vocabulary nests that way for the
+ * hard flags (see HARD_DIETARY_FLAGS): a vegan dish satisfies someone asking for
+ * vegetarian, and a household that taps this chip means "no meat tonight", not "dairy
+ * specifically, please".
+ */
+export function filterToVegetarian(
+  candidates: readonly CandidateTemplate[],
+): CandidateTemplate[] {
+  return candidates.filter(
+    (candidate) =>
+      candidate.template.dietary_tags.includes("vegetarian") ||
+      candidate.template.dietary_tags.includes("vegan"),
+  );
+}
+
+/**
  * Every recipe template these constraints allow: every dinner-eligible template whose
  * own `dietary_tags` satisfy the meal's hard dietary flags and whose every slot names
  * an ingredient the catalog knows. Since #224 those are the only two ways out — no

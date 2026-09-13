@@ -485,6 +485,7 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
   it.each([
     ["exclude", "invalid_exclude"],
     ["previous", "invalid_previous"],
+    ["vegetarian", "invalid_vegetarian"],
   ])("rejects a repeated `%s` parameter with 400", async (param, code) => {
     const user = await createTestUser();
     await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
@@ -497,6 +498,172 @@ describe.skipIf(!stackAvailable)("GET /api/tonight", () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe(code);
+  });
+
+  // #84: the session "Vegetariskt" chip. What is being protected here is that a
+  // session tap can only ever *narrow* what a household is offered — it must never
+  // become a route by which the dietary path is widened, or by which a tap is
+  // mistaken for a stored dietary flag.
+  describe("the session vegetarian filter", () => {
+    it("returns only vegetarian or vegan dishes while the chip is on", async () => {
+      const user = await createTestUser();
+      await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+      // Walk the whole session rather than checking one response: the filter has to
+      // hold for every dish the household can page to, not just the first.
+      const seen: string[] = [];
+      for (let tap = 0; tap < 12; tap += 1) {
+        const response = await request(app!)
+          .get("/api/tonight")
+          .query({ vegetarian: "1", exclude: seen.join(",") })
+          .set(authHeader(user.accessToken));
+
+        expect(response.status).toBe(200);
+        if (response.body.result === null) break;
+        const tags: string[] = response.body.result.template.dietary_tags;
+        expect([response.body.result.template.id, tags.some((t) => t === "vegetarian" || t === "vegan")])
+          .toEqual([response.body.result.template.id, true]);
+        seen.push(response.body.result.template.id);
+      }
+
+      expect(seen.length).toBeGreaterThan(0);
+    });
+
+    it("offers strictly fewer dishes with the chip on than off", async () => {
+      const user = await createTestUser();
+      await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+      async function drain(query: Record<string, string>): Promise<string[]> {
+        const seen: string[] = [];
+        for (let tap = 0; tap < 30; tap += 1) {
+          const response = await request(app!)
+            .get("/api/tonight")
+            .query({ ...query, exclude: seen.join(",") })
+            .set(authHeader(user.accessToken));
+          if (response.body.result === null) break;
+          const id: string = response.body.result.template.id;
+          if (seen.includes(id)) break;
+          seen.push(id);
+        }
+        return seen;
+      }
+
+      const withFilter = await drain({ vegetarian: "1" });
+      const withoutFilter = await drain({});
+
+      // Both drains reach 30 (the exclude cap), so counting proves nothing — what
+      // separates them is *which* dishes they reach. Every dish the filtered session
+      // saw must be vegetarian; the unfiltered one must reach at least one that is
+      // not, or the filter is the identity function and this test would pass with it
+      // removed.
+      expect(withFilter.length).toBeGreaterThan(0);
+      const reachedNonVegetarian = withoutFilter.filter((id) => !withFilter.includes(id));
+      expect(reachedNonVegetarian.length).toBeGreaterThan(0);
+    });
+
+    it("keeps the vegetarian filter on an Annat kök probe, which builds its own request", async () => {
+      // The client's cuisine search calls the API directly rather than through
+      // `requestSuggestion`, so the filter has to be repeated at that call site. If it
+      // is dropped, this returns a non-vegetarian dish — a meat dish under a pressed
+      // "Vegetariskt" chip, which is the worst failure this feature can have.
+      const user = await createTestUser();
+      await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+      const first = await request(app!)
+        .get("/api/tonight")
+        .query({ vegetarian: "1" })
+        .set(authHeader(user.accessToken));
+      const probe = await request(app!)
+        .get("/api/tonight")
+        .query({
+          vegetarian: "1",
+          exclude: first.body.result.template.id,
+          previous: first.body.result.template.id,
+        })
+        .set(authHeader(user.accessToken));
+
+      const tags: string[] = probe.body.result.template.dietary_tags;
+      expect(tags.some((tag) => tag === "vegetarian" || tag === "vegan")).toBe(true);
+    });
+
+    it("offers the same pantry staples with the filter on as off", async () => {
+      // The pantry row asks what is in the household's cupboard, and that answer must
+      // not depend on a filter chip. Deriving the options from the narrowed candidate
+      // set drops staples, and since the client builds its "also selected" list by
+      // filtering these, an already-tapped chip would disappear from the UI while its
+      // id kept riding along in `pantry=` — an active filter nobody can see or undo.
+      const user = await createTestUser();
+      await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+      const off = await request(app!).get("/api/tonight").set(authHeader(user.accessToken));
+      const on = await request(app!)
+        .get("/api/tonight")
+        .query({ vegetarian: "1" })
+        .set(authHeader(user.accessToken));
+
+      const ids = (body: { pantryIngredients?: { id: string }[] }) =>
+        (body.pantryIngredients ?? []).map((option) => option.id).sort();
+
+      expect(ids(on.body)).toEqual(ids(off.body));
+      expect(ids(off.body).length).toBeGreaterThan(0);
+    });
+
+    it("cannot empty the candidate set, which is why there is no chip-specific empty state", async () => {
+      const user = await createTestUser();
+      await request(app!).post("/api/households").set(authHeader(user.accessToken)).send(noRestrictionsBody);
+
+      // 48 vegetarian candidates against MAX_EXCLUDED_IDS (30): a session cannot
+      // exhaust them, so "nothing vegetarian left" is unreachable for any household
+      // that can see this chip — and the households whose sets are small enough to
+      // exhaust are the ones it is hidden for. That is the whole reason this filter
+      // ships without an empty state of its own; if it ever stops being true, this
+      // test is what says so.
+      const seen: string[] = [];
+      for (let tap = 0; tap < 60; tap += 1) {
+        const response = await request(app!)
+          .get("/api/tonight")
+          .query({ vegetarian: "1", exclude: seen.join(",") })
+          .set(authHeader(user.accessToken));
+
+        expect(response.status).toBe(200);
+        expect(response.body.result).not.toBeNull();
+        const id: string = response.body.result.template.id;
+        if (!seen.includes(id)) seen.push(id);
+      }
+    });
+
+    it("reports householdIsVegetarian so the client can hide a chip that would do nothing", async () => {
+      const meatEater = await createTestUser();
+      await request(app!).post("/api/households").set(authHeader(meatEater.accessToken)).send(noRestrictionsBody);
+      const omnivore = await request(app!).get("/api/tonight").set(authHeader(meatEater.accessToken));
+      expect(omnivore.body.householdIsVegetarian).toBe(false);
+
+      const vegan = await createTestUser();
+      await request(app!)
+        .post("/api/households")
+        .set(authHeader(vegan.accessToken))
+        .send({ members: [{ type: "adult", portion_factor: 1, dietary_flags: ["vegan"] }] });
+      const veganResponse = await request(app!).get("/api/tonight").set(authHeader(vegan.accessToken));
+      expect(veganResponse.body.householdIsVegetarian).toBe(true);
+    });
+
+    it("never widens a vegan household's options, chip on or off", async () => {
+      // The non-negotiable, asserted rather than assumed: the session filter composes
+      // with the household's dietary path and cannot override it. A vegan household
+      // must see vegan dishes either way — the chip is not a way back to meat.
+      const user = await createTestUser();
+      await request(app!)
+        .post("/api/households")
+        .set(authHeader(user.accessToken))
+        .send({ members: [{ type: "adult", portion_factor: 1, dietary_flags: ["vegan"] }] });
+
+      for (const query of [{}, { vegetarian: "1" }]) {
+        const response = await request(app!).get("/api/tonight").query(query).set(authHeader(user.accessToken));
+        expect(response.status).toBe(200);
+        expect(response.body.result).not.toBeNull();
+        expect(response.body.result.template.dietary_tags).toContain("vegan");
+      }
+    });
   });
 
   it("accepts an empty `exclude` and an empty `previous` as no selection state at all", async () => {

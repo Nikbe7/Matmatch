@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyCostTier,
+  filterToVegetarian,
   evaluateTemplateAgainstConstraints,
   roleSubstitutionPool,
   selectCandidateTemplates,
   substituteCandidateIds,
 } from "./candidates.js";
 import { mealDiners, type MealConstraints } from "./constraints.js";
+import type { CandidateTemplate } from "./candidates.js";
 import type { HouseholdMember } from "../schema/household.js";
 import type { DietaryFlag } from "../schema/allergyDietary.js";
 import { loadEngineData } from "./data.js";
@@ -532,5 +534,82 @@ describe("recipe template dietary tag invariant", () => {
     );
 
     expect(veganOnly).toEqual([]);
+  });
+});
+
+// #84: the session vegetarian filter. Deliberately its own describe, separate from
+// every dietary test above — this is not the household's dietary path and must never
+// become it. `data` here is the real catalog loaded at the top of this section.
+describe("filterToVegetarian", () => {
+  function candidateFor(tags: DietaryFlag[]): CandidateTemplate {
+    return {
+      template: makeTemplate(`t-${tags.join("-") || "none"}`, { dietary_tags: tags }),
+      substitutions: [],
+    };
+  }
+
+  const DIETARY_CONFIGURATIONS: DietaryFlag[][] = [
+    [],
+    ["vegetarian"],
+    ["vegan"],
+    ["high_protein_preference"],
+    ["vegetarian", "high_protein_preference"],
+  ];
+
+  function householdCandidates(flags: DietaryFlag[]) {
+    return selectCandidateTemplates(
+      data,
+      mealDiners([{ type: "adult", portion_factor: 1, dietary_flags: flags }] as HouseholdMember[])
+        .constraints,
+    );
+  }
+
+  it("keeps vegetarian and vegan dishes and drops everything else", () => {
+    const kept = filterToVegetarian([
+      candidateFor(["vegetarian"]),
+      candidateFor(["vegan"]),
+      candidateFor([]),
+      candidateFor(["high_protein_preference"]),
+    ]);
+
+    expect(kept.map((candidate) => candidate.template.dietary_tags)).toEqual([
+      ["vegetarian"],
+      ["vegan"],
+    ]);
+  });
+
+  it("can only ever shrink the set, which is what makes it safe to compose", () => {
+    // The property the whole design rests on: whatever the household's own dietary
+    // filter already decided, this cannot hand back a dish that filter removed. Over
+    // the real catalog, for every dietary configuration the vocabulary allows — not a
+    // fixture, because the claim is about the catalog people actually get served.
+    for (const flags of DIETARY_CONFIGURATIONS) {
+      const label = flags.join("+") || "inga";
+      const eligible = householdCandidates(flags);
+      const filtered = filterToVegetarian(eligible);
+      const eligibleIds = new Set(eligible.map((candidate) => candidate.template.id));
+
+      expect([label, filtered.length <= eligible.length]).toEqual([label, true]);
+      const escaped = filtered.filter((candidate) => !eligibleIds.has(candidate.template.id));
+      expect([label, escaped]).toEqual([label, []]);
+    }
+  });
+
+  it("is the identity for a household already vegetarian or vegan, which is why the chip hides", () => {
+    for (const flags of [["vegetarian"], ["vegan"]] as DietaryFlag[][]) {
+      const eligible = householdCandidates(flags);
+      expect([flags[0], eligible.length > 0]).toEqual([flags[0], true]);
+      expect([flags[0], filterToVegetarian(eligible).length]).toEqual([flags[0], eligible.length]);
+    }
+  });
+
+  it("leaves a meat-eating household with a real but much smaller set", () => {
+    // Guards the empty state's reason for existing: the filter genuinely bites, so
+    // "nothing vegetarian left tonight" is a state a household can actually reach.
+    const eligible = householdCandidates([]);
+    const filtered = filterToVegetarian(eligible);
+
+    expect(filtered.length).toBeGreaterThan(0);
+    expect(filtered.length).toBeLessThan(eligible.length);
   });
 });

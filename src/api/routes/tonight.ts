@@ -3,7 +3,11 @@ import type { TokenVerifier } from "../../auth/verifyToken.js";
 import type { Sql } from "../../db/client.js";
 import { getHouseholdForOwner } from "../../db/households.js";
 import { cookedTodayTemplateIds, getRecentCookedMeals } from "../../db/cookedMeals.js";
-import { selectCandidateTemplates, type CandidateTemplate } from "../../engine/candidates.js";
+import {
+  filterToVegetarian,
+  selectCandidateTemplates,
+  type CandidateTemplate,
+} from "../../engine/candidates.js";
 import { mealDiners } from "../../engine/constraints.js";
 import type { EngineData } from "../../engine/data.js";
 import {
@@ -30,6 +34,7 @@ import {
   parseExcludeFromQuery,
   parseKeepFromQuery,
   parsePreviousFromQuery,
+  parseVegetarianFromQuery,
 } from "../tonightSelection.js";
 import { buildTonightIngredients } from "../tonightIngredients.js";
 import { parseDinersFromQuery } from "../diners.js";
@@ -58,6 +63,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       // #133: the dish already on screen, sent only by a diner-set change — see
       // parseKeepFromQuery's own comment for how this differs from `previous`.
       const keepTemplateId = parseKeepFromQuery((req.query as Record<string, unknown>).keep);
+      const vegetarianOnly = parseVegetarianFromQuery((req.query as Record<string, unknown>).vegetarian);
       // Optional, and absent on the very first request of every session: Tonight is
       // zero-input and assumes everyone (DECISION_LOG 2026-08-09, condition 2).
       const selectedDiners = parseDinersFromQuery((req.query as Record<string, unknown>).diners);
@@ -112,7 +118,29 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       // array changes, which is what keeps a position from outliving its roster.
       const diners = memberLabels(stored.household.members).map((label) => ({ label }));
 
-      const candidates = selectCandidateTemplates(engineData, constraints);
+      // #84: the session's "Vegetariskt" chip, applied *after* the household's own
+      // dietary filter and never folded into `constraints`. Composition only — this can
+      // shrink the candidate set and never widen it, so no tap can show a household a
+      // dish its standing dietary flags exclude.
+      //
+      // No chip-specific empty state goes with this, deliberately: the filter cannot
+      // empty the set. A household that sees the chip at all has 48 vegetarian
+      // candidates and `exclude` is capped at MAX_EXCLUDED_IDS (30), so a session
+      // cannot exhaust them — and the households whose sets *are* small enough to
+      // exhaust (vegetarian 48, vegan 26) are exactly the ones the chip is hidden for.
+      // Measured, not assumed; see DECISION_LOG 2026-09-13.
+      // #84: whether the "Vegetariskt" chip means anything for this household. Sent as
+      // one derived boolean rather than the household's dietary flags — the response
+      // deliberately carries no constraint data (see `diners` above), and "does this
+      // control apply" is not the same thing as shipping the profile to the client.
+      const householdIsVegetarian =
+        constraints.dietary_flags.includes("vegetarian") ||
+        constraints.dietary_flags.includes("vegan");
+
+      const householdCandidates = selectCandidateTemplates(engineData, constraints);
+      const candidates = vegetarianOnly
+        ? filterToVegetarian(householdCandidates)
+        : householdCandidates;
       // Ordered by pantry coverage on top of the score, through the exact function the
       // guided flow's pantry step uses (#152) — one implementation, so the two screens
       // cannot come to different conclusions about what having pasta at home is worth.
@@ -129,7 +157,15 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
       // same catalog frequency the guided flow's grid is built from. Sent with every
       // response so the row survives a reroll and a diner change without a second
       // request.
-      const pantryIngredients = buildPantryIngredientOptions(engineData, candidates);
+      // Built from `householdCandidates`, NOT the vegetarian-filtered list. The pantry
+      // row is a question about the household's cupboard, and the answer cannot depend
+      // on a filter chip: deriving it from the narrowed set drops staples (measured:
+      // ingefära, paprikapulver, matlagningsgrädde and spagetti all leave the 18
+      // options with the filter on), and `visiblePantryOptions` builds its "also
+      // selected" list by filtering these — so an already-tapped chip would vanish from
+      // both the row and the sheet while its id kept riding along in `pantry=` and kept
+      // skewing the ranking. An active filter the household cannot see or undo.
+      const pantryIngredients = buildPantryIngredientOptions(engineData, householdCandidates);
 
       /**
        * The dish's own ingredient ids that the household's pantry covers (#219) —
@@ -229,6 +265,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
             diners,
             pantryIngredients,
             preferenceWeights: stored.preference_weights,
+            householdIsVegetarian,
           });
           return;
         }
@@ -258,6 +295,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
           diners,
           pantryIngredients,
           preferenceWeights: stored.preference_weights,
+          householdIsVegetarian,
           replacedFor,
         });
         return;
@@ -285,6 +323,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
           diners,
           pantryIngredients,
           preferenceWeights: stored.preference_weights,
+          householdIsVegetarian,
           replacedFor,
         });
         return;
@@ -335,6 +374,7 @@ export function tonightRouter(sql: Sql, engineData: EngineData, verifyToken: Tok
         // settings than the ones that produced the dish above it, and the screen needs
         // no second request to draw itself.
         preferenceWeights: stored.preference_weights,
+        householdIsVegetarian,
         // Present only when the diner-change "keep" path above actually replaced a
         // dish — omitted (never `null`) otherwise, so the client's presence check
         // is the one place this ever gets read.

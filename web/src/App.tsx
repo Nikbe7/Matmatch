@@ -690,8 +690,15 @@ function dinersLabel(diners: readonly DinerLabel[] | undefined): string {
  * things that do something right now.
  */
 function hasActiveAdjustment(refinement: RefinementState): boolean {
-  return (["price", "time", "variation", "simplicity"] as const).some((axis) =>
-    isAxisActive(refinement, axis),
+  // #84: the vegetarian filter counts. It is the one adjustment that removes dishes
+  // rather than reordering them, so a "Återställ" that did not clear it would be the
+  // most misleading version of this button — claiming to restore the suggestion while
+  // still hiding two thirds of the catalog.
+  return (
+    refinement.vegetarianOnly ||
+    (["price", "time", "variation", "simplicity"] as const).some((axis) =>
+      isAxisActive(refinement, axis),
+    )
   );
 }
 
@@ -733,18 +740,34 @@ function ToggleChip({
 function AdjustmentChips({
   refinement,
   busy,
+  householdIsVegetarian,
   onToggle,
+  onToggleVegetarian,
   onOtherCuisine,
   onReset,
 }: {
   refinement: RefinementState;
   busy: boolean;
+  householdIsVegetarian: boolean;
   onToggle: (axis: WeightAxis) => void;
+  onToggleVegetarian: () => void;
   onOtherCuisine: () => void;
   onReset: () => void;
 }) {
   return (
     <div role="group" aria-label="Justera förslaget" className="chip-row">
+      {/* #84. First in the row because it is the only chip that changes *what is in*
+          the candidate set rather than how it is ordered — and hidden entirely for a
+          household whose profile is already vegetarian or vegan, for whom it does
+          nothing except imply they might otherwise be served meat. */}
+      {!householdIsVegetarian && (
+        <ToggleChip
+          label="Vegetariskt"
+          active={refinement.vegetarianOnly}
+          onTap={onToggleVegetarian}
+          disabled={busy}
+        />
+      )}
       <ToggleChip
         label="Billigare"
         active={isAxisActive(refinement, "price")}
@@ -1122,6 +1145,7 @@ function TonightView({
           weights: next.weights,
           pantry: next.pantryIngredientIds,
           diners: diners.parameter,
+          vegetarianOnly: next.vegetarianOnly,
         }),
       );
     });
@@ -1251,6 +1275,18 @@ function TonightView({
     void requestSuggestion(next, current.result?.template.id);
   }
 
+  /**
+   * The "Vegetariskt" chip (#84). Re-requests exactly like an axis toggle, with the
+   * dish on screen as `previous`. It is the one chip whose *off* tap widens the
+   * candidate set rather than reordering it; "Återställ" clears it too, through
+   * `hasActiveAdjustment`.
+   */
+  function handleToggleVegetarian() {
+    const next = apply({ type: "toggle_vegetarian" });
+    reportChipTap("vegetarian", next, next.vegetarianOnly ? 1 : 0);
+    void requestSuggestion(next, current.result?.template.id);
+  }
+
   function handleSomethingElse() {
     const next = apply({ type: "reroll", chip: "something_else" });
     reportChipTap("something_else", next);
@@ -1274,6 +1310,12 @@ function TonightView({
             weights: next.weights,
             pantry: next.pantryIngredientIds,
             diners: diners.parameter,
+            // #84: this call site builds its own request rather than going through
+            // `requestSuggestion`, so every session field has to be repeated here.
+            // Omitting the filter meant "Annat kök" hunting for a different cuisine
+            // across the *unfiltered* catalog and landing a meat dish under a visibly
+            // pressed "Vegetariskt" chip.
+            vegetarianOnly: next.vegetarianOnly,
           }),
         next,
         shown.template.id,
@@ -1341,7 +1383,9 @@ function TonightView({
             <AdjustmentChips
               refinement={refinement}
               busy={fetchingNext}
+              householdIsVegetarian={current.householdIsVegetarian ?? false}
               onToggle={handleToggle}
+              onToggleVegetarian={handleToggleVegetarian}
               onOtherCuisine={handleOtherCuisine}
               onReset={handleReset}
             />

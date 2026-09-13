@@ -37,6 +37,7 @@ const ChipIdSchema = z.enum([
   "something_else",
   "reset",
   "pantry",
+  "vegetarian",
 ]);
 
 const SessionWeightsSchema = z
