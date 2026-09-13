@@ -69,7 +69,7 @@ medan det här bara smalnar av vilka kurerade alternativ som syns. Nästa steg i
 riktning — chips för *rätter* och *former* ("gryta", "köttfärssås") som hoppar direkt
 till förslagskorten — adresserar något annat än tapbara ingredienser i ett rutnät, och
 är därmed en större fråga om produktidentitet. Den är **inte** avgjord här; den har ett
-eget issue och kräver ett uttryckligt beslut innan den byggs.
+eget issue (#265) och kräver ett uttryckligt beslut innan den byggs.
 
 ---
 
