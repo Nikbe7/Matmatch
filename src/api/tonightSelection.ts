@@ -21,7 +21,10 @@ import { HttpError } from "./httpError.js";
 // dead-end a session that did nothing wrong.
 const MAX_EXCLUDED_IDS = 30;
 
-function requireStringParam(name: "exclude" | "previous" | "keep", raw: unknown): string | undefined {
+function requireStringParam(
+  name: "exclude" | "previous" | "keep" | "vegetarian",
+  raw: unknown,
+): string | undefined {
   if (raw === undefined) return undefined;
   if (typeof raw !== "string") {
     throw new HttpError(400, `invalid_${name}`, `${name} must be a single string value`);
@@ -56,4 +59,29 @@ export function parsePreviousFromQuery(raw: unknown): string | undefined {
 export function parseKeepFromQuery(raw: unknown): string | undefined {
   const value = requireStringParam("keep", raw);
   return value !== undefined && value.length > 0 ? value : undefined;
+}
+
+/**
+ * Whether the session's "Vegetariskt" chip is on (#84).
+ *
+ * Present-and-"1" is on; absent is off. Only the exact string "1" counts, and anything
+ * else is a 400 rather than a falsy coercion — the failure this guards against is a
+ * client sending `?vegetarian=0` or `?vegetarian=false` and the server reading it as
+ * on, or the reverse. A filter that silently disagrees with the chip the household can
+ * see is worse than an error, because the household would have no way to tell.
+ *
+ * Wrong-typed (repeated) parameters are rejected exactly like `exclude` and `previous`,
+ * through the same helper, so the whole query surface answers a client bug the same way.
+ */
+export function parseVegetarianFromQuery(raw: unknown): boolean {
+  const value = requireStringParam("vegetarian", raw);
+  if (value === undefined || value.length === 0) return false;
+  if (value !== "1") {
+    throw new HttpError(
+      400,
+      "invalid_vegetarian",
+      "vegetarian must be omitted or the string \"1\"",
+    );
+  }
+  return true;
 }

@@ -23,6 +23,8 @@ import {
 } from "./ranking.js";
 import { makeEngineData, makeIngredient, makeSlot, makeTemplate } from "./__fixtures__/engineData.js";
 import { makeConstraints } from "./__fixtures__/household.js";
+import { mealConstraints } from "./constraints.js";
+import type { DietaryFlag } from "../schema/vocabulary.js";
 
 // Seasonality fixtures: "aret-runt" is always in season, "sommar" only in July.
 const seasonalityData = makeEngineData({
@@ -971,6 +973,48 @@ describe("pickTonight — repeat avoidance", () => {
     }));
 
     expect(picked?.template.id).toBe("enda-ratten");
+  });
+
+  // #84: this is what stands in for the "Annat protein" chip that issue asked for.
+  // The chip was cut because the invariant below already holds — a reroll changes the
+  // protein on its own — so a control promising it would have duplicated "Byt
+  // förslag". A cut justified by a measurement is only safe while the measurement
+  // stays true, and the catalog grows; this is the measurement, kept.
+  it("changes the protein on a reroll whenever a different one is left, across every dietary configuration", () => {
+    const configurations: [string, DietaryFlag[]][] = [
+      ["inga restriktioner", []],
+      ["vegetarian", ["vegetarian"]],
+      ["vegan", ["vegan"]],
+      ["high_protein_preference", ["high_protein_preference"]],
+      ["vegetarian + high_protein", ["vegetarian", "high_protein_preference"]],
+    ];
+
+    for (const [label, flags] of configurations) {
+      const constraints = mealConstraints([
+        { type: "adult", portion_factor: 1, dietary_flags: flags },
+      ]);
+      const ranked = rankCandidates(data, selectCandidateTemplates(data, constraints), zero, 9);
+      expect([label, ranked.length > 0]).toEqual([label, true]);
+
+      // Every candidate taken as "the dish on screen", not a sampled few: the claim is
+      // about the whole set, and a sample is how a regression hides in the tail.
+      for (const current of ranked) {
+        const previous = current.template;
+        const alternativeExists = ranked.some(
+          (candidate) =>
+            candidate.template.id !== previous.id &&
+            candidate.template.protein_group !== previous.protein_group,
+        );
+        if (!alternativeExists) continue;
+
+        const next = pickNextSuggestion(ranked, new Set([previous.id]), previous);
+        expect([label, previous.id, next?.template.protein_group]).not.toEqual([
+          label,
+          previous.id,
+          previous.protein_group,
+        ]);
+      }
+    }
   });
 
   it("rotates through the real candidate set instead of repeating one dish three nights running", () => {

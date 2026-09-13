@@ -203,7 +203,9 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
   // regression test for #197: three of these eight ids (try_new, simpler, pantry)
   // were missing from ChipIdSchema, so any batch containing one of them — including
   // the meal_chosen event riding alongside it — was rejected whole and silently
-  // dropped by the client.
+  // dropped by the client. #84 added `vegetarian` and very nearly repeated it: a new
+  // chip is two edits, the union in web/ and the enum here, and only the second one
+  // has anything that fails when it is forgotten. This list is that thing.
   const allChipIds = [
     "cheaper",
     "faster",
@@ -213,6 +215,7 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
     "something_else",
     "reset",
     "pantry",
+    "vegetarian",
   ] as const;
 
   it.each(allChipIds)(

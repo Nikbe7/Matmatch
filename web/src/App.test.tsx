@@ -673,6 +673,123 @@ describe("App — adjustment chips", () => {
     expect(thirdUrl).toContain("previous=fisksoppa");
   });
 
+  // #84: the session vegetarian filter. The assertions that matter are that the tap
+  // reaches the request, that it never reaches the household, and that "Återställ"
+  // clears it — a filter surviving a reset is the failure this chip could cause.
+  it("sends the vegetarian filter as a query parameter and keeps the chip pressed", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    const chip = screen.getByRole("button", { name: "Vegetariskt" });
+    expect(chip.getAttribute("aria-pressed")).toBe("false");
+    expect(fetchMock.mock.calls[0]![0] as string).not.toContain("vegetarian=");
+
+    await user.click(chip);
+    await screen.findByRole("heading", { name: "Linssoppa" });
+
+    expect(fetchMock.mock.calls[1]![0] as string).toContain("vegetarian=1");
+    expect(screen.getByRole("button", { name: "Vegetariskt" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("clears the vegetarian filter on Återställ, and the next request drops the parameter", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("artsoppa", "Ärtsoppa")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Vegetariskt" }));
+    await screen.findByRole("heading", { name: "Linssoppa" });
+
+    // The filter being on is what makes "Återställ" appear at all (#183).
+    await user.click(screen.getByRole("button", { name: "Återställ" }));
+    await screen.findByRole("heading", { name: "Ärtsoppa" });
+
+    expect(fetchMock.mock.calls[2]![0] as string).not.toContain("vegetarian=");
+    expect(screen.getByRole("button", { name: "Vegetariskt" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("never sends the vegetarian tap to the household — it is a session filter, not a profile edit", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Vegetariskt" }));
+    await screen.findByRole("heading", { name: "Linssoppa" });
+
+    // The guarantee in one assertion: nothing that could write a dietary flag was
+    // called. Every request this tap produced was a GET for a suggestion.
+    for (const call of fetchMock.mock.calls) {
+      const url = call[0] as string;
+      const method = ((call[1] ?? {}) as { method?: string }).method ?? "GET";
+      expect([url, method]).toEqual([url, "GET"]);
+      expect(url.startsWith("/api/tonight")).toBe(true);
+    }
+  });
+
+  it("keeps the vegetarian filter on an Annat kök probe, which builds its own request", async () => {
+    // "Annat kök" bypasses `requestSuggestion` and assembles its own call, so every
+    // session field has to be repeated there. Dropping the filter meant searching the
+    // unfiltered catalog for a different cuisine — a meat dish under a pressed chip.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("linssoppa", "Linssoppa")))
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBodyFor("artsoppa", "Ärtsoppa", "italian")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    await user.click(screen.getByRole("button", { name: "Vegetariskt" }));
+    await screen.findByRole("heading", { name: "Linssoppa" });
+    await user.click(screen.getByRole("button", { name: "Annat kök" }));
+    await screen.findByRole("heading", { name: "Ärtsoppa" });
+
+    // Every request the cuisine search made, not just the first.
+    for (const call of fetchMock.mock.calls.slice(2)) {
+      expect(call[0] as string).toContain("vegetarian=1");
+    }
+  });
+
+  it("hides the chip for a household whose profile is already vegetarian", async () => {
+    sessionHolder.current = fakeSession;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, { ...suggestionBody, householdIsVegetarian: true }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+
+    // A no-op control that implies the household might otherwise be served meat.
+    expect(screen.queryByRole("button", { name: "Vegetariskt" })).toBeNull();
+    // The rest of the row is untouched.
+    expect(screen.getByRole("button", { name: "Billigare" })).toBeTruthy();
+  });
+
   it("turns the price weight on at full strength and keeps the chip pressed", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();

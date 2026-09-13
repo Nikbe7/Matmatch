@@ -63,7 +63,8 @@ export type ChipId =
   | "other_cuisine"
   | "something_else"
   | "reset"
-  | "pantry";
+  | "pantry"
+  | "vegetarian";
 
 export interface RefinementState {
   weights: SessionWeights;
@@ -90,6 +91,16 @@ export interface RefinementState {
    * empty.
    */
   pantryIngredientIds: readonly string[];
+  /**
+   * The "Vegetariskt" chip (#84) — session-scoped like everything else here, and the
+   * only field in this state that removes candidates rather than reordering them.
+   *
+   * Never written to the household profile: this reducer holds React state and nothing
+   * else, so a reload starts it off again. That is the whole guarantee, and it is
+   * structural rather than a rule someone has to remember — the profile is written by
+   * a different module that cannot see this one.
+   */
+  vegetarianOnly: boolean;
 }
 
 export const INITIAL_REFINEMENT: RefinementState = {
@@ -97,6 +108,7 @@ export const INITIAL_REFINEMENT: RefinementState = {
   excludedTemplateIds: [],
   rerollDepth: 0,
   pantryIngredientIds: [],
+  vegetarianOnly: false,
 };
 
 export type RefinementAction =
@@ -110,6 +122,8 @@ export type RefinementAction =
   | { type: "exclude_templates"; templateIds: readonly string[] }
   /** A pantry chip on Tonight, on or off (#152). */
   | { type: "toggle_pantry"; ingredientId: string }
+  /** The "Vegetariskt" session filter, on or off (#84). */
+  | { type: "toggle_vegetarian" }
   | { type: "reset" };
 
 function withExcluded(
@@ -163,6 +177,17 @@ export function refinementReducer(
       };
     }
 
+    case "toggle_vegetarian":
+      // Exclusions are deliberately *not* cleared. The dishes the household already
+      // turned down are still dishes it turned down, whether or not they were
+      // vegetarian — and a household that toggles this twice should not have its
+      // rejections handed back to it as if they were new.
+      return {
+        ...state,
+        vegetarianOnly: !state.vegetarianOnly,
+        rerollDepth: state.rerollDepth + 1,
+      };
+
     case "reset":
       // Weights and exclusions to defaults; reroll depth deliberately survives.
       //
@@ -171,6 +196,10 @@ export function refinementReducer(
       // a request, it is a fact they told us one tap ago, and silently forgetting it
       // would make the button destroy information the household never offered to give
       // back.
+      // The vegetarian chip *is* cleared, unlike the pantry: it is a request ("no meat
+      // tonight"), not a fact about the kitchen, and leaving a filter on behind a button
+      // labelled "Återställ" is the case #84 called out — the button would claim to
+      // restore the suggestion while quietly still hiding most of the catalog.
       return {
         ...INITIAL_REFINEMENT,
         rerollDepth: state.rerollDepth + 1,

@@ -143,6 +143,54 @@ describe("refinementReducer — reroll, exclusion and reset", () => {
   });
 });
 
+describe("refinementReducer — Vegetariskt (#84)", () => {
+  it("toggles on and off, counting each tap as refinement friction", () => {
+    const on = refinementReducer(INITIAL_REFINEMENT, { type: "toggle_vegetarian" });
+    const off = refinementReducer(on, { type: "toggle_vegetarian" });
+
+    expect(on.vegetarianOnly).toBe(true);
+    expect(off.vegetarianOnly).toBe(false);
+    expect([on.rerollDepth, off.rerollDepth]).toEqual([1, 2]);
+  });
+
+  it("keeps the dishes the household already turned down", () => {
+    // Toggling a filter is not a statement about the dishes already rejected, and
+    // handing them back as if they were new would undo a decision nobody revisited.
+    const state = stateWith({ excludedTemplateIds: ["a", "b"], vegetarianOnly: false });
+
+    const on = refinementReducer(state, { type: "toggle_vegetarian" });
+    const off = refinementReducer(on, { type: "toggle_vegetarian" });
+
+    expect(on.excludedTemplateIds).toEqual(["a", "b"]);
+    expect(off.excludedTemplateIds).toEqual(["a", "b"]);
+  });
+
+  it("leaves the weight vector alone — it filters, it does not re-rank", () => {
+    const weighted = stateWith({ weights: { price: 1, time: 0, variation: 1, simplicity: 0 } });
+
+    const next = refinementReducer(weighted, { type: "toggle_vegetarian" });
+
+    expect(next.weights).toEqual({ price: 1, time: 0, variation: 1, simplicity: 0 });
+  });
+
+  it("is cleared by Återställ, unlike the pantry", () => {
+    // The distinction the reset branch draws: the pantry is a fact the household told
+    // us, the filter is a request they made. "Återställ" undoes requests. A reset that
+    // left this on would leave two thirds of the catalog hidden behind a button that
+    // says it restored the suggestion.
+    const filtered = stateWith({ vegetarianOnly: true, pantryIngredientIds: ["pasta"] });
+
+    const next = refinementReducer(filtered, { type: "reset" });
+
+    expect(next.vegetarianOnly).toBe(false);
+    expect(next.pantryIngredientIds).toEqual(["pasta"]);
+  });
+
+  it("starts off, so a reload never inherits a filter nobody asked for again", () => {
+    expect(INITIAL_REFINEMENT.vegetarianOnly).toBe(false);
+  });
+});
+
 describe("searchOtherCuisine", () => {
   it("returns the first different-cuisine suggestion and excludes only the current dish", async () => {
     const request = vi.fn().mockResolvedValue(suggestion("pastagratang", "italian_mediterranean"));

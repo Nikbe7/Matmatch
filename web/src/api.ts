@@ -238,6 +238,15 @@ export type TonightResponse = (
   portions: number;
   diners: DinerLabel[];
   /**
+   * Whether the household's own dietary flags already make every dish vegetarian (#84),
+   * which is when the "Vegetariskt" chip is a no-op and is hidden. One derived boolean
+   * rather than the flags themselves: Tonight deliberately never receives the
+   * household's constraint data (see `diners`), and "does this control apply" is a
+   * different question from what the profile says. On every response, empty states
+   * included, so the chip row does not flicker as the suggestion changes.
+   */
+  householdIsVegetarian?: boolean;
+  /**
    * The staples this household is most likely to have, for Tonight's own pantry row
    * (#152) — the same list the guided flow's step-3 grid is built from, sent on every
    * response (empty states included) so the row survives a reroll without a second
@@ -297,6 +306,12 @@ export interface FetchTonightOptions {
    */
   keep?: string;
   /**
+   * The session's "Vegetariskt" chip (#84). A per-request filter and nothing more —
+   * the household profile is written by `replaceHousehold`, which never sees this
+   * value, so there is no path by which a tap becomes a stored dietary flag.
+   */
+  vegetarianOnly?: boolean;
+  /**
    * The ingredient ids the household tapped on Tonight's pantry row (#152). Session-
    * scoped and ephemeral by decision, exactly like `exclude`: held in React state,
    * never in localStorage, the URL or the household profile, so a reload starts empty.
@@ -318,6 +333,9 @@ export async function fetchTonight(
   if (options.pantry && options.pantry.length > 0) params.set("pantry", options.pantry.join(","));
   if (options.diners) params.set("diners", options.diners);
   if (options.keep) params.set("keep", options.keep);
+  // #84. Sent only when on, and only ever as "1" — the server rejects any other value
+  // rather than coercing it, so the chip and the filter can never disagree silently.
+  if (options.vegetarianOnly) params.set("vegetarian", "1");
   const query = params.toString();
 
   const response = await fetch(`/api/tonight${query ? `?${query}` : ""}`, {
