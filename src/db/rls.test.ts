@@ -360,6 +360,112 @@ describe.skipIf(!stackAvailable)("application role privileges", () => {
   });
 });
 
+// Client-role privileges on the public schema (#267). TRUNCATE is the reason this
+// suite exists: it is NOT subject to row level security, so policies never see it and
+// every append-only guarantee in this schema was scoped to DELETE without covering it.
+// Asserted against the live catalog rather than read off the migration, per the
+// DECISION_LOG 2026-08-07 rule quoted above — hosted Supabase and the local stack do
+// not agree on bootstrap defaults, so the post-migration state is the only thing worth
+// asserting.
+describe.skipIf(!stackAvailable)("client roles hold nothing on public beyond what was granted (#267)", () => {
+  // What each migration explicitly granted `authenticated`, and nothing else. A table
+  // absent from this map must hold nothing at all: the four backend-owned tables
+  // (dish_generation_attempts, generated_dishes, ingredient_review_queue,
+  // recipe_instructions) are reached only through matmatch_app.
+  const INTENDED = new Map<string, string[]>([
+    ["households", ["SELECT", "INSERT", "UPDATE", "DELETE"]],
+    ["household_members", ["SELECT", "INSERT", "UPDATE", "DELETE"]],
+    ["cooked_meals", ["SELECT", "INSERT"]],
+    ["analytics_events", ["SELECT", "INSERT"]],
+  ]);
+
+  it("grants anon and service_role nothing whatsoever on any table in public", async () => {
+    const rows = await admin!<{ table_name: string; grantee: string; privilege_type: string }[]>`
+      select table_name, grantee, privilege_type
+      from information_schema.role_table_grants
+      where table_schema = 'public' and grantee in ('anon', 'service_role')
+      order by table_name, grantee, privilege_type
+    `;
+
+    expect(rows).toEqual([]);
+  });
+
+  it("grants authenticated exactly the privileges its migrations asked for, per table", async () => {
+    const rows = await admin!<{ table_name: string; privilege_type: string }[]>`
+      select table_name, privilege_type
+      from information_schema.role_table_grants
+      where table_schema = 'public' and grantee = 'authenticated'
+      order by table_name, privilege_type
+    `;
+
+    const actual = new Map<string, string[]>();
+    for (const row of rows) {
+      actual.set(row.table_name, [...(actual.get(row.table_name) ?? []), row.privilege_type]);
+    }
+
+    expect([...actual.keys()].sort()).toEqual([...INTENDED.keys()].sort());
+    for (const [table, privileges] of INTENDED) {
+      expect([table, actual.get(table)?.sort()]).toEqual([table, [...privileges].sort()]);
+    }
+  });
+
+  it("lets no client role truncate a table, which RLS would not have stopped", async () => {
+    // Spelled out separately from the sweep above because it is the whole point: a
+    // policy cannot refuse a TRUNCATE, so this privilege is the one that turns
+    // "append-only" into a claim the database does not back.
+    for (const role of ["anon", "authenticated", "service_role"]) {
+      for (const table of ["analytics_events", "cooked_meals", "households"]) {
+        const [row] = await admin!<{ allowed: boolean }[]>`
+          select has_table_privilege(${role}, ${`public.${table}`}, 'TRUNCATE') as allowed
+        `;
+        expect([role, table, row!.allowed]).toEqual([role, table, false]);
+      }
+    }
+  });
+
+  it("gives no client role setval on a sequence, which would undo #98's read order", async () => {
+    // `UPDATE` on a sequence is setval. analytics_events.seq is what gives that table a
+    // read order, and the unique index on (household_id, seq desc) is what makes the
+    // order total — so winding the sequence back would either reintroduce the ties #98
+    // removed or break the analytics write path against that index.
+    const rows = await admin!<{ grantee: string; privilege_type: string }[]>`
+      select grantee, privilege_type
+      from information_schema.role_usage_grants
+      where object_schema = 'public' and grantee in ('anon', 'authenticated', 'service_role')
+    `;
+    expect(rows).toEqual([]);
+
+    const [seq] = await admin!<{ name: string }[]>`
+      select pg_get_serial_sequence('public.analytics_events', 'seq') as name
+    `;
+    for (const role of ["anon", "authenticated", "service_role"]) {
+      const [row] = await admin!<{ allowed: boolean }[]>`
+        select has_sequence_privilege(${role}, ${seq!.name}, 'UPDATE') as allowed
+      `;
+      expect([role, row!.allowed]).toEqual([role, false]);
+    }
+  });
+
+  it("hands a newly created table no client-role privileges, so the fix covers tables not yet written", async () => {
+    // The half that makes #267 stick. The revokes only reached tables that existed when
+    // the migration ran; the grants came from ALTER DEFAULT PRIVILEGES, which would have
+    // re-applied them to every table added afterwards. Created as `postgres` because
+    // that is the role migrations run as, and default privileges are per creating role.
+    const name = `zz_grant_probe_${Date.now()}`;
+    try {
+      await admin!.unsafe(`create table public.${name} (id int)`);
+      const rows = await admin!<{ grantee: string; privilege_type: string }[]>`
+        select grantee, privilege_type from information_schema.role_table_grants
+        where table_schema = 'public' and table_name = ${name}
+          and grantee in ('anon', 'authenticated', 'service_role')
+      `;
+      expect(rows).toEqual([]);
+    } finally {
+      await admin!.unsafe(`drop table if exists public.${name}`);
+    }
+  });
+});
+
 // Kept, not deleted: this remains true of Postgres and is the reason the application
 // role exists. Note the mechanism is `rolbypassrls`, NOT superuser — the `postgres`
 // role here is not a superuser (rolsuper is false), which is worth stating because
