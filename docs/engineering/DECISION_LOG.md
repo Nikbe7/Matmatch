@@ -8,6 +8,22 @@ Append-only record of non-trivial, non-obvious decisions — technical choices, 
 
 ---
 
+## 2026-09-13 — No `pantry_staple` flag: `to_taste` already is one, and a better one (#128 → #273)
+
+**Decision.** #128 proposed a curated `pantry_staple` flag on the ingredient catalog so the shopping list could suppress salt, cooking oil and similar, and asked three open questions: per-ingredient vs per-household vs a list toggle; how it interacts with "Har hemma"; and whether a suppressed ingredient still needs a `quantity` under #123. All three are answered by not building it. `quantity.kind === "to_taste"` already carries the signal, is already authored under a rule naming this exact case (2026-08-05, #123: *"salt, svartpeppar, chiliflakes and anything adjusted at the stove stay `to_taste`"*), and is already validator-enforced.
+
+**Per-slot beats per-ingredient, which is why the flag would have been worse and not merely redundant.** Olive oil is a splash you own in aglio e olio and a measured ingredient in a dressing; a litre for deep-frying is something you have to buy. A flag on the ingredient cannot express that difference and the slot already does. More importantly `to_taste` answers a *better question* — not "do you own this?" but **"is there anything to buy?"** — and those come apart exactly where it matters: #129's "buy-it-or-you-can't-cook-it" group carries real amounts and must stay on the list, while a splash for the pan must not. A staple flag would have suppressed both.
+
+**No interaction with "Har hemma", deliberately.** That is a per-session statement about this shopping trip; `to_taste` is a property of the recipe true for every household on every occasion. Merging them would ask the household to confirm something nobody was going to buy.
+
+**The third question dissolves rather than being answered:** `to_taste` *is* the quantity, so a suppressed slot already has one and there is no exemption to grant.
+
+**The problem was also not yet real, which is what made declining cheap.** Measured: `salt` appears in **0** templates, `svartpeppar` in 6, `rapsolja` and `olivolja` in 2 each, and `to_taste` in **7 of 919 slots (1%)**, all `svartpeppar`/`chiliflakes`. Counting generously — including `smor` and `vetemjol`, definitional in pie crusts and roux — plausible staples reach 39 slots; strip those and it is about 10 lines across the whole catalog. Building a suppression mechanism for ten lines would have been infrastructure ahead of its consumer, the third time that pattern came up in one day (see the two entries below).
+
+**How to apply:** the broad cooking-fat pass #129 deferred is now unblocked without new machinery (#273) — author the fat as `to_taste` where it is a splash and as a real amount where the household must buy it. De-emphasising `to_taste` rows into their own group on the shopping list is worth doing *after* that pass gives it volume, and is a presentation change at that point, not a data model.
+
+---
+
 ## 2026-09-13 — The "Mildare" chip is declined and `spice_level` is gated on a reader (#85 → #271)
 
 **Decision (Niklas's, on a measurement Claude brought).** #85 called `spice_level` "the one refinement dimension the schema genuinely lacks" and specified a **Mildare** chip plus AI-drafted authoring across all 170 templates with a stratified ~20% spot-check. Measuring the catalog first undercut the premise. Counting only ingredients that make a dish *hot* — `chiliflakes`, `farsk-chili`, `sambal-oelek`, `currypasta`, `curry`, `sweet-chilisas`, excluding `svartpeppar`/`senap`/`dijonsenap`/`ingefara`/`paprikapulver` as aromatic or merely peppery — **142 of 170 templates carry no heat at all**, and of the 148 dinner-eligible templates only **25 (17%)** do. Heat is concentrated by cuisine: asian 15, mexican_texmex 7, italian_mediterranean 2, swedish_nordic 1.
