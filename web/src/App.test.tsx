@@ -1128,6 +1128,121 @@ describe("App — Laga ikväll", () => {
     });
   });
 
+  // #212: between the tap and the navigate that ends it, nothing was disabled — so a
+  // double-tap recorded the meal twice, and a pantry tap in that window changed what
+  // the shopping list opened with *after* the household had committed.
+  it("records the meal once when Laga ikväll is double-tapped", async () => {
+    sessionHolder.current = fakeSession;
+    const events: { name: string }[] = [];
+    // The cooked call never settles, so the accept stays in flight for the second tap
+    // — the exact window the guard exists to close.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockImplementation(() => new Promise<Response>(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    // After mount: App installs its own sink on mount and would replace one set earlier.
+    setAnalyticsSink((event) => events.push(event));
+
+    const choose = screen.getByRole("button", { name: "Laga ikväll" });
+    fireEvent.click(choose);
+    fireEvent.click(choose);
+    await screen.findByRole("button", { name: "Laga ikväll" });
+
+    // One POST /api/cooked, and one meal_chosen. Worth being exact about what makes
+    // this pass: React flushes state between two discrete click events, so the button
+    // is already `disabled` by the time the second lands — the disabled attribute is
+    // the mechanism, and `acceptingRef` is defence in depth behind it. Neither this nor
+    // any test here isolates the ref, because with the button disabled there is no way
+    // in to isolate; it is kept so the handler is idempotent on its own terms rather
+    // than because a view detail happens to cover it.
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/cooked")).toHaveLength(1);
+    expect(events.filter((event) => event.name === "meal_chosen")).toHaveLength(1);
+  });
+
+  it("recovers to the shopping list when the history write is aborted", async () => {
+    // #212's sharp edge: the accept disables the whole screen until markCooked settles,
+    // and a bare fetch on a dropped connection never settles at all — which left a
+    // household on a frozen Tonight with no error and no way out but a reload. The
+    // request now carries its own timeout; when it fires, `fetch` rejects, and this is
+    // that outcome: the accept finishes the only way it is allowed to, at the list.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockRejectedValue(Object.assign(new Error("The operation was aborted."), { name: "TimeoutError" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+
+    await screen.findByRole("heading", { name: "Behöver handlas (2)" });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("asks the history write to time out rather than hanging the accept forever", async () => {
+    // The guarantee behind the test above, asserted where it lives: without a signal on
+    // this request there is nothing to abort, and the screen stays frozen.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockImplementation(() => new Promise<Response>(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+
+    const cooked = fetchMock.mock.calls.find(([url]) => url === "/api/cooked");
+    expect((cooked?.[1] as { signal?: AbortSignal } | undefined)?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("makes the accept button inert while an accept is in flight", async () => {
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, suggestionBody))
+      .mockImplementation(() => new Promise<Response>(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+
+    // Visibly inert, not just guarded — a live-looking button that does nothing is the
+    // half-fix this issue warned against.
+    expect((screen.getByRole("button", { name: "Laga ikväll" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("freezes the pantry row and the chips during an accept, so the list cannot open with a set chosen after the commit", async () => {
+    // #212's second criterion, answered by disabling rather than ignoring: the pantry
+    // selection is read at navigate() time, so a tap accepted mid-flight would change
+    // what the household already committed to.
+    sessionHolder.current = fakeSession;
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, tonightBody()))
+      .mockImplementation(() => new Promise<Response>(() => {}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kycklinggryta" });
+    await user.click(screen.getByRole("button", { name: "Laga ikväll" }));
+
+    expect((screen.getByRole("button", { name: "gul lök" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Billigare" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Byt förslag" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("navigates to the shopping list even when the history write fails, without showing the error in the UI", async () => {
     sessionHolder.current = fakeSession;
     const user = userEvent.setup();

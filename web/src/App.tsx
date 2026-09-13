@@ -830,11 +830,14 @@ function AdjustmentChips({
 function SuggestionCard({
   result,
   swapBusy,
+  accepting,
   onChoose,
   onSwap,
 }: {
   result: TonightResult;
   swapBusy: boolean;
+  /** An accept is already in flight (#212) — the button stays visible but inert. */
+  accepting: boolean;
   onChoose: () => void;
   onSwap: () => void;
 }) {
@@ -853,7 +856,13 @@ function SuggestionCard({
       <p className="suggestion__blurb">{result.template.blurb}</p>
       {reasonLine && <p className="suggestion__reason suggestion__reason--muted">{reasonLine}</p>}
       <div className="suggestion__actions">
-        <Button type="button" variant="primary" className="suggestion__choose" onClick={onChoose}>
+        <Button
+          type="button"
+          variant="primary"
+          className="suggestion__choose"
+          onClick={onChoose}
+          disabled={accepting}
+        >
           Laga ikväll
         </Button>
         <Button
@@ -861,7 +870,7 @@ function SuggestionCard({
           variant="secondary"
           className="suggestion__swap"
           onClick={onSwap}
-          disabled={swapBusy}
+          disabled={swapBusy || accepting}
         >
           <RefreshIcon />
           Byt förslag
@@ -1013,6 +1022,21 @@ function TonightView({
   const [fetchingNext, setFetchingNext] = useState(false);
   const [nextError, setNextError] = useState<string | null>(null);
   const acceptedRef = useRef(false);
+  /**
+   * Whether an accept is in flight (#212) — from the tap on "Laga ikväll" through the
+   * `navigate()` that ends it. Two copies on purpose: the ref is the guard, because it
+   * is true immediately and a double-tap does not wait for a render; the state is what
+   * disables the controls, because only a render can do that.
+   *
+   * Never reset, and that is safe only because the accept always *ends*: `markCooked`
+   * carries its own timeout and its failure is caught, so both paths reach the
+   * `navigate()` below. Without that timeout a hung request would leave this latched
+   * true and every control on the screen inert for good. What the latch protects is the
+   * duplicate `meal_chosen` event — the backend already collapses two taps on the same
+   * evening into one history row.
+   */
+  const acceptingRef = useRef(false);
+  const [accepting, setAccepting] = useState(false);
 
   // #133: who the dish on screen was just replaced *for*, when the diner-change
   // effect below asked to keep it and could not. `null` whenever nothing was
@@ -1080,7 +1104,18 @@ function TonightView({
   async function handleChooseTonight() {
     const shown = current.result;
     if (!shown) return;
+    // #212: a second entry while the first accept is still in flight is a no-op.
+    //
+    // Defence in depth, and deliberately so. What actually stops a double-tap is the
+    // button going `disabled` — React flushes state between two discrete click events,
+    // so the second one never reaches a handler. This line is what keeps the handler
+    // itself idempotent without depending on that, which is a property of the view and
+    // not of the accept. It has no isolated test for the same reason it is rarely
+    // reached: with the button disabled there is no way in.
+    if (acceptingRef.current) return;
 
+    acceptingRef.current = true;
+    setAccepting(true);
     acceptedRef.current = true;
     track({
       name: "meal_chosen",
@@ -1091,6 +1126,11 @@ function TonightView({
     try {
       await markCooked(accessToken, shown.template.id, shown.substitutions);
     } catch {
+      // Swallowed, as before: a failed history write is nothing the household can act
+      // on (DECISION_LOG 2026-08-16), and the accept continues to the shopping list.
+      // `markCooked` now carries its own timeout, so this branch is also what a dropped
+      // connection reaches — without it the await never settled and the guard below
+      // never released, freezing the screen with no error and no way out but a reload.
       track({ name: "meal_choice_history_failed", templateId: shown.template.id });
     }
 
@@ -1108,6 +1148,15 @@ function TonightView({
     // The server's own coverage answer, not the raw taps (#219): "ris" tapped covers
     // a `jasminris` row, and only the engine knows that. Falls back to the taps for a
     // response from before the field existed, which is the old behaviour exactly.
+    //
+    // #212 asked which way a pantry tap during an in-flight accept should go: ignored,
+    // or disabled. Disabled — the pantry row, the chips and the diner picker are all
+    // inert for the duration. `refinementRef.current` is read *here*, at navigation
+    // time, so a tap accepted mid-flight would change what this list opens with after
+    // the household had already committed; the comment above promises the set "at the
+    // moment of choice" and this is what makes that literally true. Ignoring the tap
+    // would keep the promise too, but by leaving a control that looks live and does
+    // nothing — a worse answer for the same outcome.
     navigate("/lista", {
       state: {
         result: shown,
@@ -1374,6 +1423,7 @@ function TonightView({
             <SuggestionCard
               result={result}
               swapBusy={fetchingNext}
+              accepting={accepting}
               onChoose={() => void handleChooseTonight()}
               onSwap={handleSomethingElse}
             />
@@ -1382,7 +1432,7 @@ function TonightView({
             <p className="text-eyebrow">Justera</p>
             <AdjustmentChips
               refinement={refinement}
-              busy={fetchingNext}
+              busy={fetchingNext || accepting}
               householdIsVegetarian={current.householdIsVegetarian ?? false}
               onToggle={handleToggle}
               onToggleVegetarian={handleToggleVegetarian}
@@ -1401,11 +1451,17 @@ function TonightView({
       <PantryRow
         options={current.pantryIngredients ?? []}
         selected={refinement.pantryIngredientIds}
-        busy={fetchingNext}
+        busy={fetchingNext || accepting}
         onToggle={handleTogglePantry}
         onOpenAll={() => setPantrySheetOpen(true)}
       />
-      {pantrySheetOpen && (
+      {/* #212: closed for the duration of an accept, rather than left open with live
+          chips. The sheet takes no busy prop, and its chips mutate the very pantry
+          selection `handleChooseTonight` reads at navigate time — so a tap in it would
+          change what the household already committed to. Only reachable that way by
+          keyboard or assistive tech, since the overlay covers the screen for a pointer,
+          but an invariant resting on CSS is not one. */}
+      {pantrySheetOpen && !accepting && (
         <PantrySheet
           options={current.pantryIngredients ?? []}
           selected={refinement.pantryIngredientIds}
@@ -1419,7 +1475,7 @@ function TonightView({
         // refinement on a suggestion the household already has. Rendered in the empty
         // states too — "the child is eating at a grandparent's" is often the way out
         // of one.
-        <DinerPicker state={diners} busy={fetchingNext} />
+        <DinerPicker state={diners} busy={fetchingNext || accepting} />
       }
       {/* Collapsed by default and last on the screen — it shows nothing but its own
           heading until somebody actually wants to steer (#159). Hidden entirely until
@@ -1430,7 +1486,7 @@ function TonightView({
           settled={baseline.settled}
           onCommit={baseline.onCommit}
           collapsible
-          disabled={fetchingNext}
+          disabled={fetchingNext || accepting}
         />
       )}
     </div>
