@@ -129,13 +129,40 @@ export interface MainSearchMissEvent {
   matchCount: number;
 }
 
+/**
+ * A shopping list with the household's own work in it was replaced by a new dish's
+ * list (#202), and the undo offer was shown.
+ *
+ * Paired with `ShoppingListRestoredEvent` below, and the pair exists to answer one
+ * question with evidence rather than opinion: if restores turn out to be common, that
+ * is the trigger for multi-dish lists. If they are rare, single-dish lists are right
+ * and the undo is enough. No dish names or ingredients ride along — `itemCount` and
+ * the template id are what the union already carries elsewhere.
+ */
+export interface ShoppingListReplacedEvent {
+  name: "shopping_list_replaced";
+  /** The dish whose list was displaced. */
+  templateId: string;
+  /** How many rows the displaced list held. */
+  itemCount: number;
+}
+
+/** The household took the undo (#202). */
+export interface ShoppingListRestoredEvent {
+  name: "shopping_list_restored";
+  /** The dish whose list came back. */
+  templateId: string;
+}
+
 export type AnalyticsEvent =
   | ChipTapEvent
   | SessionAbandonedEvent
   | MealChosenEvent
   | MealChoiceHistoryFailedEvent
   | AppErrorShownEvent
-  | MainSearchMissEvent;
+  | MainSearchMissEvent
+  | ShoppingListReplacedEvent
+  | ShoppingListRestoredEvent;
 
 export type AnalyticsSink = (event: AnalyticsEvent) => void;
 

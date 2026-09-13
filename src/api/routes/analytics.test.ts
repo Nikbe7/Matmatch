@@ -218,6 +218,50 @@ describe.skipIf(!stackAvailable)("POST /api/analytics/events", () => {
     "vegetarian",
   ] as const;
 
+  // #202's two events. Same drift risk as the chip vocabulary above and the same
+  // consequence — an event the frontend emits but this schema does not know 400s the
+  // whole batch and takes the co-buffered meal_chosen down with it.
+  it.each([
+    ["shopping_list_replaced", { name: "shopping_list_replaced", templateId: "kalops", itemCount: 7 }],
+    ["shopping_list_restored", { name: "shopping_list_restored", templateId: "kalops" }],
+  ])("accepts a %s event alongside a meal_chosen event", async (_label, event) => {
+    const app = buildApp();
+    const user = await userWithHousehold(app);
+
+    const response = await request(app)
+      .post("/api/analytics/events")
+      .set(authHeader(user.accessToken))
+      .send({
+        events: [
+          validMealChosenEvent,
+          { event, clientTimestamp: validClientTimestamp },
+        ],
+      });
+
+    expect(response.status).toBe(204);
+  });
+
+  it("rejects a shopping-list event carrying a field the union does not declare", async () => {
+    // `.strict()` on both schemas: a payload growing a field on the client without
+    // growing here is drift that should be loud rather than silently stored.
+    const app = buildApp();
+    const user = await userWithHousehold(app);
+
+    const response = await request(app)
+      .post("/api/analytics/events")
+      .set(authHeader(user.accessToken))
+      .send({
+        events: [
+          {
+            event: { name: "shopping_list_restored", templateId: "kalops", dishName: "Kalops" },
+            clientTimestamp: validClientTimestamp,
+          },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+  });
+
   it.each(allChipIds)(
     "accepts a refinement_chip_tap for chip id %s, alongside a meal_chosen event",
     async (chip) => {
