@@ -150,6 +150,51 @@ select.input {
  * more than "what did I already have".
  * --------------------------------------------------------------------------- */
 
+/* #202: the undo offer for a list a new dish displaced. Deliberately an inline bar
+   above the list rather than a toast — the household may be walking into a shop with
+   the phone pocketed, and a notice that times out is a notice they never saw. Quiet
+   enough not to compete with the list it sits above, since the expected answer is to
+   ignore it. */
+.shopping-list__restore {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.shopping-list__restore-text {
+  margin: 0;
+  flex: 1 1 12rem;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+
+.shopping-list__restore-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* A text button, not a second Button: dismissing is the lesser of the two actions and
+   giving it equal weight would make the household choose between two buttons when one
+   of them is "do nothing". */
+.shopping-list__restore-dismiss {
+  border: 0;
+  background: none;
+  padding: var(--space-2);
+  color: var(--color-muted);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .shopping-list__header {
   margin-bottom: var(--space-6);
 }

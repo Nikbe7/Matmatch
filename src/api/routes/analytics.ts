@@ -119,6 +119,26 @@ const MainSearchMissEventSchema = z
   })
   .strict();
 
+// #202. Two events, paired: a list with the household's own work in it was replaced,
+// and the undo was taken. Their whole purpose is to settle single-dish vs multi-dish
+// lists with evidence — a high restore rate is the trigger for multi-dish, a low one
+// says the undo was enough. No free text: the template id and a row count are the same
+// shape of data `meal_chosen` already carries.
+const ShoppingListReplacedEventSchema = z
+  .object({
+    name: z.literal("shopping_list_replaced"),
+    templateId: z.string().min(1),
+    itemCount: z.number().int().min(0),
+  })
+  .strict();
+
+const ShoppingListRestoredEventSchema = z
+  .object({
+    name: z.literal("shopping_list_restored"),
+    templateId: z.string().min(1),
+  })
+  .strict();
+
 const AnalyticsEventSchema = z.discriminatedUnion("name", [
   ChipTapEventSchema,
   SessionAbandonedEventSchema,
@@ -126,6 +146,8 @@ const AnalyticsEventSchema = z.discriminatedUnion("name", [
   MealChoiceHistoryFailedEventSchema,
   AppErrorShownEventSchema,
   MainSearchMissEventSchema,
+  ShoppingListReplacedEventSchema,
+  ShoppingListRestoredEventSchema,
 ]);
 
 // Mirrors the frontend buffer cap (web/src/analyticsSink.ts) — a batch larger than

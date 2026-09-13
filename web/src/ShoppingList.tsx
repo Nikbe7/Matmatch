@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { IngredientAlternative, TonightIngredient, TonightResult } from "./api";
 import {
+  clearDisplacedShoppingList,
   clearShoppingList,
   freshShoppingList,
+  loadDisplacedShoppingList,
   loadShoppingList,
+  restoreDisplacedShoppingList,
   saveShoppingList,
   SHOPPING_LIST_VERSION,
   type ShoppingListItem,
@@ -12,6 +15,7 @@ import {
 } from "./shoppingListStorage";
 import { formatQuantity, formatPortions } from "./display";
 import { Button } from "./components/Button";
+import { track } from "./analytics";
 import { IngredientPopover } from "./components/IngredientPopover";
 
 // The shopping list for an accepted Tonight suggestion. Deliberately no fetch here
@@ -111,6 +115,7 @@ export function ShoppingList({
   onNewSuggestion,
   newSuggestionLabel = "Nytt förslag",
   onCook,
+  onRestored,
 }: {
   result: ShoppingListMeal;
   /**
@@ -156,6 +161,13 @@ export function ShoppingList({
    * rather than leading to an empty screen.
    */
   onCook?: () => void;
+  /**
+   * Called after the household restores a list a different dish displaced (#202). The
+   * restored list is already in storage by then; the caller's job is to re-resolve the
+   * screen from it, which `/lista`'s resume path already knows how to do. Optional
+   * because the guided flow renders this component too and has no such route.
+   */
+  onRestored?: () => void;
 }) {
   const [items, setItems] = useState<ShoppingListItem[]>(() => {
     const stored = loadShoppingList(result.template.id);
@@ -178,8 +190,19 @@ export function ShoppingList({
   // The dish name and substitutions are stored alongside the items so this list can
   // be re-opened after a reload without a fetched result to read them from — the
   // guided flow's dish is one no Tonight response mentions (UX_FLOW §7).
+  /**
+   * Set once the household restores a displaced list (#202). From that moment this
+   * screen has handed its dish over and must stop writing it, or the next render — the
+   * resumed path rebuilds `substitutions` fresh each time, and Gate re-renders the
+   * subtree when the preference baseline settles — saves the displacing dish straight
+   * back over the restored one and re-displaces it. Not state: it must take effect for
+   * the effect below without waiting for a re-render.
+   */
+  const handedOff = useRef(false);
+
   useEffect(() => {
-    saveShoppingList({
+    if (handedOff.current) return;
+    const justDisplaced = saveShoppingList({
       version: SHOPPING_LIST_VERSION,
       templateId: result.template.id,
       templateName: result.template.name,
@@ -189,6 +212,18 @@ export function ShoppingList({
       })),
       items,
     });
+
+    // Non-null exactly once per displacement (#202), so this reports the replacement
+    // rather than the screen — a remount saves over a list with the same template id
+    // and displaces nothing. Only ever *sets* the offer: a later save returning null
+    // must not clear an offer the household has not answered yet.
+    if (!justDisplaced) return;
+    setDisplaced(justDisplaced);
+    track({
+      name: "shopping_list_replaced",
+      templateId: justDisplaced.templateId,
+      itemCount: justDisplaced.items.length,
+    });
   }, [result.template.id, result.template.name, result.substitutions, items]);
 
   // #124: the index of the item whose ingredient-swap popover is open, or null.
@@ -196,11 +231,62 @@ export function ShoppingList({
   // requirement, since the backdrop click already routes through `onClose`.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
+  /**
+   * The list a new dish displaced, still on offer to restore (#202).
+   *
+   * Seeded from storage on mount so the offer survives navigating away and back, while
+   * the analytics event fires from the *displacement itself* in the save effect below —
+   * two different questions ("is there an offer to show?" and "did a replacement just
+   * happen?") that share a value and would otherwise be conflated into an event firing
+   * once per remount.
+   */
+  const [displaced, setDisplaced] = useState<StoredShoppingList | null>(() => {
+    const offer = loadDisplacedShoppingList();
+    return offer && offer.templateId !== result.template.id ? offer : null;
+  });
+
+  /**
+   * Retires the offer, on any of the three things that end it: restoring, dismissing,
+   * and the household doing work of its own on this list.
+   *
+   * Called from the action handlers rather than watched as an effect on `items`,
+   * because the trigger is the household *acting* — an effect would also fire for work
+   * that was already on a resumed list when the offer appeared, retiring the undo in
+   * the same commit that offered it, exactly when the most had been lost.
+   */
+  function retireRestoreOffer() {
+    clearDisplacedShoppingList();
+    setDisplaced(null);
+  }
+
+  function handleRestore() {
+    if (!displaced) return;
+    handedOff.current = true;
+    restoreDisplacedShoppingList(displaced);
+    track({ name: "shopping_list_restored", templateId: displaced.templateId });
+    setDisplaced(null);
+    // Handing off rather than rendering it here: the restored list belongs to a dish
+    // this screen has no `result` for, and `/lista`'s own resume path already builds a
+    // full list from stored data (`resumedShoppingListMeal`) with the dish name, the
+    // swaps, the cook button and the swap popover intact.
+    onRestored?.();
+  }
+
   function moveTo(index: number, section: ShoppingListSection) {
-    setItems((current) => current.map((item, i) => (i === index ? { ...item, section } : item)));
+    retireRestoreOffer();
+    // `movedByHand` (#202) marks this as the household's own work, so a list it is on
+    // is worth offering back if a new dish displaces it. Set here and nowhere else:
+    // rows the app placed in "Har hemma" (freshShoppingList's inPantry, #200's pantry
+    // chips) are reproducible by accepting the dish again, and are not worth an undo.
+    setItems((current) =>
+      current.map((item, i) =>
+        i === index ? { ...item, section, movedByHand: true as const } : item,
+      ),
+    );
   }
 
   function toggleBought(index: number) {
+    retireRestoreOffer();
     setItems((current) =>
       current.map((item, i) => (i === index ? { ...item, bought: !item.bought } : item)),
     );
@@ -217,6 +303,7 @@ export function ShoppingList({
    * included, is kept on `swappedFrom` so one tap can undo it completely.
    */
   function applySwap(index: number, alternative: IngredientAlternative) {
+    retireRestoreOffer();
     setItems((current) =>
       current.map((item, i) => {
         if (i !== index) return item;
@@ -260,6 +347,25 @@ export function ShoppingList({
 
   return (
     <div className="shopping-list">
+      {displaced && (
+        <div role="status" className="shopping-list__restore">
+          <p className="shopping-list__restore-text">
+            Din lista för {displaced.templateName ?? "en annan rätt"} ersattes.
+          </p>
+          <div className="shopping-list__restore-actions">
+            <Button type="button" variant="secondary" onClick={handleRestore}>
+              Återställ
+            </Button>
+            <button
+              type="button"
+              className="shopping-list__restore-dismiss"
+              onClick={retireRestoreOffer}
+            >
+              Avfärda
+            </button>
+          </div>
+        </div>
+      )}
       <header className="shopping-list__header">
         <h2 className="shopping-list__title">{result.template.name}</h2>
         {portions !== undefined && (
@@ -377,7 +483,13 @@ export function OfflineShoppingList({ list }: { list: StoredShoppingList }) {
   }, [list.templateId, items]);
 
   function moveTo(index: number, section: ShoppingListSection) {
-    setItems((current) => current.map((item, i) => (i === index ? { ...item, section } : item)));
+    // `movedByHand` (#202) marks this as the household's own work, so a list it is on
+    // is worth offering back if a new dish displaces it. Set here and nowhere else:
+    // rows the app placed in "Har hemma" (freshShoppingList's inPantry, #200's pantry
+    // chips) are reproducible by accepting the dish again, and are not worth an undo.
+    setItems((current) =>
+      current.map((item, i) => (i === index ? { ...item, section, movedByHand: true as const } : item)),
+    );
   }
 
   function toggleBought(index: number) {

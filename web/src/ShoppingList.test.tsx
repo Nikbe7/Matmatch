@@ -3,7 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OfflineShoppingList, ShoppingList } from "./ShoppingList";
 import { formatPortions } from "./display";
-import { loadShoppingList, SHOPPING_LIST_VERSION, type StoredShoppingList } from "./shoppingListStorage";
+import { setAnalyticsSink } from "./analytics";
+import {
+  hasHouseholdWork,
+  loadDisplacedShoppingList,
+  loadShoppingList,
+  saveShoppingList,
+  SHOPPING_LIST_VERSION,
+  type ShoppingListItem,
+  type StoredShoppingList,
+} from "./shoppingListStorage";
 import type { TonightResult } from "./api";
 
 // Component-level coverage for the shopping list, independent of the Tonight
@@ -679,5 +688,230 @@ describe("ShoppingList — variety notes", () => {
     render(<ShoppingList result={withNote()} portions={2} accessToken="tok" onNewSuggestion={vi.fn()} />);
 
     expect(screen.getByRole("note").textContent).toBe(NOTE);
+  });
+});
+
+// #202: a new dish used to destroy the previous list silently, including whatever the
+// household had ticked, moved or swapped on it. The fix is an undo, not a confirm —
+// see DECISION_LOG 2026-09-13 for why a prompt answered "yes" 95% of the time is worse
+// than an offer that can be ignored.
+describe("a displaced shopping list (#202)", () => {
+  function item(overrides: Partial<ShoppingListItem> = {}): ShoppingListItem {
+    return {
+      name: "Kalops",
+      section: "to_buy",
+      bought: false,
+      quantity: { kind: "amount", amount: 400, unit: "g" },
+      slotIndex: 0,
+      ingredientId: "notkott",
+      ...overrides,
+    };
+  }
+
+  function storedList(templateId: string, items: ShoppingListItem[]): StoredShoppingList {
+    return { version: SHOPPING_LIST_VERSION, templateId, templateName: "Kalops med rotfrukter", items };
+  }
+
+  describe("hasHouseholdWork", () => {
+    it("counts ticking, hand-moving and swapping as work worth keeping", () => {
+      expect(hasHouseholdWork(storedList("kalops", [item({ bought: true })]))).toBe(true);
+      expect(
+        hasHouseholdWork(storedList("kalops", [item({ section: "have_at_home", movedByHand: true })])),
+      ).toBe(true);
+      expect(
+        hasHouseholdWork(
+          storedList("kalops", [
+            item({ swappedFrom: { name: "Fläsk", ingredientId: "flask", bought: false, quantity: { kind: "amount", amount: 400, unit: "g" } } }),
+          ]),
+        ),
+      ).toBe(true);
+    });
+
+    it("does not count a row the app placed in Har hemma", () => {
+      // freshShoppingList opens `inPantry` rows there, and #200 moves rows there from
+      // Tonight's pantry chips. Both are reproduced by accepting the dish again, so
+      // neither is worth interrupting anyone over.
+      expect(hasHouseholdWork(storedList("kalops", [item({ section: "have_at_home" })]))).toBe(false);
+      expect(hasHouseholdWork(storedList("kalops", [item()]))).toBe(false);
+    });
+  });
+
+  describe("saveShoppingList", () => {
+    it("sets aside a list with work when a different dish takes its place", () => {
+      saveShoppingList(storedList("kalops", [item({ bought: true })]));
+      saveShoppingList(storedList("kycklinggryta", [item({ name: "Kyckling" })]));
+
+      expect(loadDisplacedShoppingList()?.templateId).toBe("kalops");
+      expect(loadShoppingList("kycklinggryta")?.templateId).toBe("kycklinggryta");
+    });
+
+    it("displaces nothing when the replaced list held no work of the household's own", () => {
+      saveShoppingList(storedList("kalops", [item()]));
+      saveShoppingList(storedList("kycklinggryta", [item({ name: "Kyckling" })]));
+
+      expect(loadDisplacedShoppingList()).toBeNull();
+    });
+
+    it("treats saving over the same dish as a resume, not a displacement", () => {
+      // The #200 path: accept, reroll, accept the same dish again. Offering to restore
+      // a list nobody lost would be noise, and would do it on the common path.
+      saveShoppingList(storedList("kalops", [item({ bought: true })]));
+      saveShoppingList(storedList("kalops", [item({ bought: true }), item({ name: "Morot" })]));
+
+      expect(loadDisplacedShoppingList()).toBeNull();
+    });
+  });
+
+  it("offers the displaced list back, and hands off to the caller on Återställ", async () => {
+    mockFetch();
+    const user = userEvent.setup();
+    const onRestored = vi.fn();
+    saveShoppingList(storedList("kalops", [item({ bought: true })]));
+
+    render(
+      <ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} onRestored={onRestored} />,
+    );
+
+    expect(await screen.findByText(/Din lista för Kalops med rotfrukter ersattes/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Återställ" }));
+
+    expect(loadShoppingList("kalops")?.templateId).toBe("kalops");
+    expect(loadDisplacedShoppingList()).toBeNull();
+    expect(onRestored).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores the list whole — the dish name and its swaps survive", async () => {
+    // The restore hands off to /lista's resume path rather than rendering the list
+    // here, precisely so `templateName` and `substitutions` are still on it afterwards.
+    // Rendering it in place stripped both, and a cook screen opened from a stripped
+    // list silently drops the household's ingredient swaps.
+    mockFetch();
+    const user = userEvent.setup();
+    const withSwaps: StoredShoppingList = {
+      version: SHOPPING_LIST_VERSION,
+      templateId: "kalops",
+      templateName: "Kalops med rotfrukter",
+      substitutions: [{ slot_index: 0, substitute_ingredient_id: "flaskkarre" }],
+      items: [item({ bought: true })],
+    };
+    saveShoppingList(withSwaps);
+
+    render(
+      <ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} onRestored={() => {}} />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Återställ" }));
+
+    const restored = loadShoppingList("kalops");
+    expect(restored?.templateName).toBe("Kalops med rotfrukter");
+    expect(restored?.substitutions).toEqual([{ slot_index: 0, substitute_ingredient_id: "flaskkarre" }]);
+  });
+
+  it("survives a re-render after the restore instead of quietly undoing it", async () => {
+    // The save effect re-runs whenever the parent hands down a new `substitutions`
+    // array, which the resumed path rebuilds every render. If the restore left this
+    // screen mounted, that re-run wrote the displacing dish back over the restored one.
+    mockFetch();
+    const user = userEvent.setup();
+    saveShoppingList(storedList("kalops", [item({ bought: true })]));
+
+    const { rerender } = render(
+      <ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} onRestored={() => {}} />,
+    );
+    await user.click(await screen.findByRole("button", { name: "Återställ" }));
+    rerender(
+      <ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} onRestored={() => {}} />,
+    );
+
+    expect(loadShoppingList("kalops")?.templateId).toBe("kalops");
+    expect(loadDisplacedShoppingList()).toBeNull();
+  });
+
+  it("reports the replacement once, not once per visit to the list", async () => {
+    // The restore rate is the whole point of the event pair, and re-announcing the same
+    // displacement on every remount inflates its denominator — biasing the answer
+    // toward "restores are rare", which is the conclusion that stops multi-dish lists.
+    const events: { name: string }[] = [];
+    setAnalyticsSink((event) => events.push(event));
+    mockFetch();
+    saveShoppingList(storedList("kalops", [item({ bought: true })]));
+
+    const first = render(<ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} />);
+    await screen.findByText(/ersattes/);
+    first.unmount();
+    render(<ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} />);
+    await screen.findByText(/ersattes/);
+
+    expect(events.filter((event) => event.name === "shopping_list_replaced")).toHaveLength(1);
+    setAnalyticsSink(null);
+  });
+
+  it("keeps the offer reachable when the replacing dish already had work on it", async () => {
+    // The case where the most was lost: the household had lists for both dishes. An
+    // effect watching `items` retired the offer in the same commit that made it,
+    // because the resumed list arrived already ticked.
+    mockFetch();
+    saveShoppingList({
+      version: SHOPPING_LIST_VERSION,
+      templateId: "kycklinggryta",
+      items: [item({ name: "Kyckling", bought: true })],
+    });
+    saveShoppingList(storedList("kalops", [item({ bought: true })]));
+
+    render(<ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} />);
+
+    expect(await screen.findByRole("button", { name: "Återställ" })).toBeTruthy();
+  });
+
+  it("retires the offer when dismissed, and does not bring it back on a re-render", async () => {
+    mockFetch();
+    const user = userEvent.setup();
+    saveShoppingList(storedList("kalops", [item({ bought: true })]));
+
+    render(<ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} />);
+    await user.click(await screen.findByRole("button", { name: "Avfärda" }));
+
+    expect(loadDisplacedShoppingList()).toBeNull();
+    expect(screen.queryByText(/ersattes/)).toBeNull();
+  });
+
+  it("retires the offer once the new list has work of its own", async () => {
+    mockFetch();
+    const user = userEvent.setup();
+    saveShoppingList(storedList("kalops", [item({ bought: true })]));
+
+    render(<ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} />);
+    expect(await screen.findByText(/ersattes/)).toBeTruthy();
+
+    // The household has moved on: an undo bar pointing backwards over a list they are
+    // already working on is clutter.
+    await user.click(screen.getAllByRole("checkbox")[0]!);
+
+    expect(screen.queryByText(/ersattes/)).toBeNull();
+    expect(loadDisplacedShoppingList()).toBeNull();
+  });
+
+  it("drops the offer when the household abandons the list context entirely", async () => {
+    // "Nytt förslag" clears the list and the offer attached to it. Asserted rather than
+    // left implicit because `clearShoppingList` clearing a second key is exactly the
+    // kind of coupling that reads as a bug later — it is deliberate, and this says so.
+    mockFetch();
+    const user = userEvent.setup();
+    saveShoppingList(storedList("kalops", [item({ bought: true })]));
+
+    render(<ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} />);
+    await screen.findByText(/ersattes/);
+    await user.click(screen.getByRole("button", { name: "Nytt förslag" }));
+
+    expect(loadDisplacedShoppingList()).toBeNull();
+    expect(loadShoppingList("kycklinggryta")).toBeNull();
+  });
+
+  it("shows no offer at all when nothing was displaced", async () => {
+    mockFetch();
+    render(<ShoppingList result={result()} accessToken="t" onNewSuggestion={() => {}} />);
+
+    await screen.findByText("Kyckling");
+    expect(screen.queryByText(/ersattes/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Återställ" })).toBeNull();
   });
 });

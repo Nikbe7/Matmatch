@@ -1512,6 +1512,11 @@ function ListaRoute({ accessToken }: { accessToken: string }) {
             state: cookMealFromResult(accepted),
           })
         }
+        /* #202: the restored list is already in storage. Re-enter /lista with the
+           accepted-dish navigation state cleared, so the `stored` branch below picks it
+           up and rebuilds a full list from it — dish name, swaps and cook button
+           included — instead of this branch re-rendering the dish that displaced it. */
+        onRestored={() => navigate("/lista", { replace: true, state: null })}
       />
     );
   }
@@ -1523,6 +1528,8 @@ function ListaRoute({ accessToken }: { accessToken: string }) {
         accessToken={accessToken}
         onNewSuggestion={() => navigate("/")}
         onCook={() => navigate(`/laga/${stored.templateId}`)}
+        /* Already the storage-driven branch, so a restore only has to re-read it. */
+        onRestored={() => navigate("/lista", { replace: true, state: null })}
       />
     );
   }

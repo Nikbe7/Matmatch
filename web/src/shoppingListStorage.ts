@@ -20,6 +20,18 @@ export interface ShoppingListItem {
    * re-opened with no connection (UX_FLOW §7: usable offline).
    */
   quantity: ScaledQuantity;
+  /**
+   * Set when the household moved this row between sections itself (#202), and never
+   * by the app placing it. `freshShoppingList` opens `inPantry` rows in "Har hemma",
+   * and #200 moves rows there from Tonight's pantry chips — neither is work the
+   * household would mind losing, because re-accepting the dish reproduces both. A
+   * hand-move is the only one worth protecting, so it is the only one marked.
+   *
+   * Optional, so no SHOPPING_LIST_VERSION bump: a list stored before #202 simply has
+   * the flag nowhere, which reads as "nothing was hand-moved" — true of every row it
+   * can still say anything about.
+   */
+  movedByHand?: true;
   /** Which template slot this item fills, and the ingredient currently there (#124)
    * — identifies the tap target for the ingredient-swap popover. */
   slotIndex: number;
@@ -172,12 +184,100 @@ export function loadAnyShoppingList(): StoredShoppingList | null {
   return isStoredShoppingList(parsed) ? parsed : null;
 }
 
-export function saveShoppingList(list: StoredShoppingList): void {
+/**
+ * Where a list goes when a different dish takes its place (#202).
+ *
+ * Holds at most one list, overwritten by each displacement and cleared the moment the
+ * offer to restore it retires. Deliberately a second key rather than a list of lists:
+ * one dinner tonight is what a Matmatch shopping list *is*, and a slot that
+ * accumulates would be the first half of week planning with none of the second
+ * (aggregating quantities across dishes, removing one dish from a combined list). See
+ * DECISION_LOG 2026-09-13.
+ */
+const DISPLACED_KEY = "matmatch.displacedShoppingList";
+
+/**
+ * Whether this list holds work the household did, as opposed to work the app did for
+ * them — the test for whether losing it is worth an undo offer.
+ *
+ * Three things count, and all three are unambiguously a tap the household made:
+ * ticking something off, moving a row between sections by hand, and applying an
+ * ingredient swap. Everything else on a list is reproducible by accepting the dish
+ * again, so a freshly generated, untouched list is losing nothing.
+ */
+export function hasHouseholdWork(list: StoredShoppingList): boolean {
+  return list.items.some((item) => item.bought || item.movedByHand || item.swappedFrom);
+}
+
+/**
+ * Stores a list, first setting aside any list it displaces that had work in it (#202).
+ * Returns the list it displaced, or null.
+ *
+ * The displacement lives here rather than at the call site because every write goes
+ * through this function, so no caller can forget it and no ordering between effects can
+ * get it wrong. Saving over *the same* dish is not a displacement — that is the resume
+ * path (#200: accept, reroll, accept again), and treating it as one would offer to
+ * restore a list the household never lost.
+ *
+ * The return value is what the caller reports to analytics, and it is non-null exactly
+ * once per displacement: every later save in that session carries the same template id
+ * as the stored list and displaces nothing. That is what keeps `shopping_list_replaced`
+ * from re-firing on each remount and quietly inflating the denominator of the restore
+ * rate the event exists to measure.
+ */
+export function saveShoppingList(list: StoredShoppingList): StoredShoppingList | null {
+  const displaced = loadAnyShoppingList();
+  const displacing =
+    displaced && displaced.templateId !== list.templateId && hasHouseholdWork(displaced)
+      ? displaced
+      : null;
+
+  if (displacing) localStorage.setItem(DISPLACED_KEY, JSON.stringify(displacing));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  return displacing;
+}
+
+/** The displaced list still on offer, if there is one. */
+export function loadDisplacedShoppingList(): StoredShoppingList | null {
+  const raw = localStorage.getItem(DISPLACED_KEY);
+  if (!raw) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  return isStoredShoppingList(parsed) ? parsed : null;
+}
+
+/**
+ * Retires the offer. Called on restore, on dismissal, once the household does work on
+ * the list that replaced it — and by `clearShoppingList`, which is the household
+ * abandoning this list context altogether ("Nytt förslag"), taking the offer attached
+ * to it with them.
+ */
+export function clearDisplacedShoppingList(): void {
+  localStorage.removeItem(DISPLACED_KEY);
+}
+
+/**
+ * Puts a displaced list back as the current one and retires the offer.
+ *
+ * Written directly rather than through `saveShoppingList`, which would treat this as a
+ * displacement of the list that replaced it. That is usually harmless — the replacing
+ * list rarely has work yet, so the predicate above declines — but relying on that would
+ * make restoring depend on the state of the thing it is undoing.
+ */
+export function restoreDisplacedShoppingList(list: StoredShoppingList): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  clearDisplacedShoppingList();
 }
 
 export function clearShoppingList(): void {
   localStorage.removeItem(STORAGE_KEY);
+  clearDisplacedShoppingList();
 }
 
 /**
